@@ -1,0 +1,3 @@
+[submodule "tree-sitter-zeek"]
+	path = tree-sitter-zeek
+	url = git@github.com:/ckreibich/tree-sitter-zeek

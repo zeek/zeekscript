@@ -1,0 +1,196 @@
+#! /usr/bin/env python
+
+import argparse
+import sys
+
+try:
+    from tree_sitter import Language, Parser
+except ImportError:
+    print('This script requires the tree_sitter package.')
+    sys.exit(1)
+
+# Build and initialize the tree-sitter parser. This becomes essentially a no-op
+# when the parser need not be re-built. We specify the library build location
+# and the language(s) to include.
+Language.build_library('build/zeek-language.so', ['tree-sitter-zeek'])
+ZEEK_LANGUAGE = Language('build/zeek-language.so', 'zeek')
+ZEEK_PARSER = Parser()
+ZEEK_PARSER.set_language(ZEEK_LANGUAGE)
+
+
+class NodeMapper:
+    def __init__(self):
+        self._map = {}
+
+    def register(self, symbol_name, klass):
+        self._map[symbol_name] = klass
+
+    def get(self, symbol_name):
+        try:
+            return self._map[symbol_name]
+        except KeyError:
+            return Formatter
+
+
+class Script:
+    def __init__(self, fname, ofname=None):
+        # The file name to read the Zeek script from
+        self.name = fname
+        # The file's full content
+        self.source = None
+        # The tree-sitter parse tree for the script
+        self.tree = None
+        # The output file name -- None if stdout
+        self.ofname = ofname
+
+    def parse(self):
+        with open(self.name, 'rb') as hdl:
+            self.source = hdl.read()
+            self.tree = ZEEK_PARSER.parse(self.source)
+
+    def __getitem__(self, key):
+        return self.source.__getitem__(key)
+
+    def format(self):
+        with open(self.ofname, 'wb') if self.ofname else sys.stdout as ostream:
+            fclass = Formatter.lookup(self.tree.root_node.type)
+            formatter = fclass(self, self.tree.root_node)
+            formatter.format(ostream)
+
+
+class Formatter:
+    MAP = NodeMapper()
+
+    def __init__(self, script, node, indent=0):
+        self._script = script
+        self._node = node
+        self._indent = indent
+
+    def format_node(self, ostream, node):
+        fclass = Formatter.lookup(node.type)
+        formatter = fclass(self._script, node, self._indent)
+        formatter.format(ostream)
+
+    def format_children(self, ostream, sep=None, final=None):
+        num_kids = len(self._node.children)
+        for idx, child in enumerate(self._node.children):
+            self.format_node(ostream, child)
+            if sep is not None and idx < num_kids - 1:
+                ostream.buffer.write(sep)
+        if final is not None:
+            ostream.buffer.write(final)
+
+    def format_token(self, ostream):
+        buf = self._script[self._node.start_byte:self._node.end_byte]
+        ostream.buffer.write(buf)
+
+    def format(self, ostream):
+        if self._node.children:
+            self.format_children(ostream)
+        else:
+            self.format_token(ostream)
+
+    @staticmethod
+    def lookup(symbol_name):
+        return Formatter.MAP.get(symbol_name)
+
+
+class LineFormatter(Formatter):
+    def format(self, ostream):
+        if self._node.children:
+            self.format_children(ostream, b' ', b'\n')
+        else:
+            self.format_token(ostream)
+
+class SpaceSeparatedFormatter(Formatter):
+    def format(self, ostream):
+        if self._node.children:
+            self.format_children(ostream, b' ')
+        else:
+            self.format_token(ostream)
+
+Formatter.MAP.register('preproc', LineFormatter)
+Formatter.MAP.register('type_decl', LineFormatter)
+Formatter.MAP.register('type', SpaceSeparatedFormatter)
+
+def tree_traverse(node):
+    queue = [(node, 0)]
+    while queue:
+        node, indent = queue.pop(0)
+        yield node, indent
+        for child in reversed(node.children):
+            queue.insert(0, (child, indent+1))
+
+def node_str(node, indent, script):
+    content = ''
+    if node.is_named:
+        # Cap the amount we show in the tree ...
+        content = script.source[node.start_byte:node.end_byte][:100]
+        # ... and render it such that we get backslash-escapes.
+        content = str(repr(content.decode('ascii', 'ignore')))
+    return ' ' * (4*indent) + '{} ({}.{},{}.{}) {}'.format(
+        node.type, node.start_point[0], node.start_point[1],
+        node.end_point[0], node.end_point[1], content)
+
+def do_format(fname, args):
+    ofname = fname if args.inplace else None
+    script = Script(fname, ofname)
+    script.parse()
+    script.format()
+
+def cmd_format(args):
+    for fname in args.scripts:
+        do_format(fname, args)
+    return 0
+
+def cmd_parse(args):
+    script = Script(args.script)
+    script.parse()
+
+    for node, indent in tree_traverse(script.tree.root_node):
+        print(node_str(node, indent, script))
+
+    return 0
+
+def create_parser():
+    parser = argparse.ArgumentParser(description='A Zeek script analyzer')
+
+    command_parser = parser.add_subparsers(
+        title='commands', dest='command',
+        help='See `%(prog)s <command> -h` for per-command usage info.')
+
+    # format
+
+    sub_parser = command_parser.add_parser(
+        'format', help='Format/indent Zeek scripts')
+    sub_parser.set_defaults(run_cmd=cmd_format)
+    sub_parser.add_argument('--inplace', '-i', action='store_true',
+                            help='change provided files instead of writing to stdout')
+    sub_parser.add_argument('scripts', metavar='FILES', action='append',
+                            help='Zeek script(s) to process.')
+
+    # parse
+
+    sub_parser = command_parser.add_parser(
+        'parse', help='Show Zeek script parse tree')
+    sub_parser.set_defaults(run_cmd=cmd_parse)
+    sub_parser.add_argument('script', metavar='FILE',
+                            help='Zeek script to parse.')
+
+    return parser
+
+def main():
+    parser = create_parser()
+    args = parser.parse_args()
+
+    if not args.command:
+        print('error: please provide a command to execute. See --help.')
+        return 1
+
+    try:
+        return args.run_cmd(args)
+    except KeyboardInterrupt:
+        return 0
+
+if __name__ == '__main__':
+    sys.exit(main())
