@@ -32,6 +32,24 @@ class NodeMapper:
 
 MAP = NodeMapper()
 
+
+class OutputStream:
+    """A column-aware wrapper for output streams."""
+    def __init__(self, ostream):
+        self._ostream = ostream
+        self._col = 0
+
+    def write(self, data):
+        for chunk in data.splitlines(keepends=True):
+            self._ostream.buffer.write(chunk)
+            self._col += len(chunk)
+            if chunk.endswith(b'\n'):
+                self._col = 0
+
+    def get_column(self):
+        return self._col
+
+
 class Script:
     def __init__(self, fname, ofname=None):
         # The file name to read the Zeek script from
@@ -54,18 +72,27 @@ class Script:
     def format(self):
         with open(self.ofname, 'wb') if self.ofname else sys.stdout as ostream:
             fclass, _ = Formatter.lookup(self.tree.root_node)
-            formatter = fclass(self, self.tree.root_node, ostream)
+            formatter = fclass(self, self.tree.root_node, OutputStream(ostream))
             formatter.format()
+
 
 # ---- Symbol formatters -----------------------------------------------
 
 class Formatter:
-    def __init__(self, script, node, ostream, indent=0):
+    def __init__(self, script, node, ostream, indent=0, parent=None):
         self._script = script
         self._node = node
         self._ostream = ostream
         self._indent = indent
-        self._cidx = 0
+
+        self._cidx = 0 # Child node index, starting at 0
+
+        # Like tree_sitter.Node we use a parent/children structure, so a given
+        # formatter can access formatting state in its surroundings. 
+        self._parent = parent
+        self._next = None
+        self._prev = None
+        self._children = []
 
     def format(self):
         if self._node.children:
@@ -79,17 +106,30 @@ class Formatter:
 
         fclass, addl_args = Formatter.lookup(node)
         formatter = fclass(self._script, node, self._ostream,
-                           self._indent + int(do_indent), **addl_args)
+                           indent=self._indent + int(do_indent),
+                           parent=self, **addl_args)
+
+        if self._children:
+            self._children[-1]._next = formatter
+            formatter._prev = self._children[-1]
+
+        self._children.append(formatter)
+
         formatter.format()
 
     def _format_child(self, do_indent=False):
-        # Skip comments transparently, as they can occur anywhere
-        while self._is_comment_node(self._node.children[self._cidx]):
+        # Skip comments transparently, as they can occur anywhere.
+        while self._is_comment_node(self._get_child(skip_comments=False)):
             self._format_child_impl(do_indent=do_indent)
+
         self._format_child_impl(do_indent=do_indent)
 
+        # After the child, also skip Zeekygen post-comments (##<):
+        while self._is_post_comment_node(self._get_child(skip_comments=False)):
+            self._format_child_impl(do_indent=do_indent)
+
     def _format_child_range(self, num, do_indent=False):
-        for idx in range(num):
+        for _ in range(num):
             self._format_child(do_indent)
 
     def _format_children(self, sep=None, final=None):
@@ -105,28 +145,27 @@ class Formatter:
         self._write(buf)
 
     def _write(self, data):
-        self._ostream.buffer.write(data)
-
-    def _write_sp(self):
-        self._ostream.buffer.write(b' ')
-
-    def _write_nl(self):
-        self._ostream.buffer.write(b'\n')
+        # Transparently indent at the beginning of lines, but only if we're not
+        # writing a newline anyway.
+        if not data.startswith(b'\n'):
+            self._write_indent()
+        self._ostream.write(data)
 
     def _write_indent(self):
-        self._ostream.buffer.write(b'\t' * self._indent)
+        if self._ostream.get_column() == 0:
+            self._ostream.write(b'\t' * self._indent)
 
-    def _next_sibling_typechange(self, typelist=None):
-        if self._node.next_sibling is None:
-            return False
-        if typelist and self._node.next_sibling.type not in typelist:
-            return False
-        if self._node.next_sibling.type == self._node.type:
-            return False
-        return True
+    def _write_sp(self, num=1):
+        self._write(b' ' * num)
+
+    def _write_nl(self, num=1):
+        self._write(b'\n' * num)
 
     def _is_comment_node(self, node):
-        return node.type in ['minor_comment', 'zeekygen_comment']
+        return node.type.endswith('_comment')
+
+    def _is_post_comment_node(self, node):
+        return node and node.type == 'zeekygen_prev_comment'
 
     def _children_remaining(self):
         remaining = 0
@@ -134,6 +173,31 @@ class Formatter:
             if not self._is_comment_node(child):
                 remaining += 1
         return remaining
+
+    def _get_child(self, offset=0, skip_comments=True):
+        """Returns the current child node (skipping any potential comments) without
+        adjusting the index, or None if there is no more child node.
+        """
+        direction = 1 if offset >= 0 else -1
+        offset = abs(offset)
+
+        for child in self._node.children[self._cidx::direction]:
+            if not skip_comments or not self._is_comment_node(child):
+                if offset == 0:
+                    return child
+                offset -= 1
+
+        return None
+
+    def _get_child_type(self, offset=0, skip_comments=True):
+        """Returns the type ("decl", "stmt", etc) of the current child node (skipping
+        any potential comments) without adjusting the index, or None if there is
+        no more child node.
+        """
+        try:
+            return self._get_child(offset, skip_comments).type
+        except AttributeError:
+            return ''
 
     @staticmethod
     def register(symbol_name, klass, addl_args=None):
@@ -147,12 +211,14 @@ class Formatter:
             return Formatter, {}
         return MAP.get(node.type)
 
+
 class LineFormatter(Formatter):
     def format(self):
         if self._node.children:
             self._format_children(b' ', b'\n')
         else:
             self._format_token()
+
 
 class SpaceSeparatedFormatter(Formatter):
     def format(self):
@@ -161,9 +227,15 @@ class SpaceSeparatedFormatter(Formatter):
         else:
             self._format_token()
 
+
 class TypechangeNewlineFormatter(Formatter):
-    def __init__(self, script, node, ostream, indent=0, typelist=None):
-        super().__init__(script, node, ostream, indent)
+    """A formatter that issues a newline after formatting when the next sibling
+    node has a different type, or isn't among a given list of types. This helps
+    with grouping "similar" nodes tightly, adding an extra newline only when a
+    group finishes.
+    """
+    def __init__(self, script, node, ostream, indent=0, parent=None, typelist=None):
+        super().__init__(script, node, ostream, indent, parent)
         self._typelist = typelist
 
     def format(self):
@@ -171,55 +243,149 @@ class TypechangeNewlineFormatter(Formatter):
         if self._next_sibling_typechange(typelist=self._typelist):
             self._write_nl()
 
+    def _next_sibling_typechange(self, typelist=None):
+        if self._node.next_sibling is None:
+            return False
+        if typelist and self._node.next_sibling.type not in typelist:
+            return False
+        if self._node.next_sibling.type == self._node.type:
+            return False
+        return True
+
+
+class ZeekygenCommentFormatter(Formatter):
+    def format(self):
+        if self._ostream.get_column() > 0:
+            self._write_nl()
+        self._format_token()
+
+
+class ZeekygenPrevCommentFormatter(ZeekygenCommentFormatter):
+    def __init__(self, script, node, ostream, indent=0, parent=None):
+        super().__init__(script, node, ostream, indent, parent)
+        self._column = 0 # Column at which this comment lives
+
+    def format(self):
+        # Handle indent explicitly here because of the transparent handling of
+        # comments. If we don't call this, nothing may force the indent for the
+        # comment if it's the only thing on the line.
+        self._write_indent()
+
+        if isinstance(self._prev, ZeekygenPrevCommentFormatter):
+            self._write_sp(self._prev._column - self._ostream.get_column())
+        else:
+            self._write_sp()
+
+        # Record the output column so potential subsequent Zeekygen
+        # comments can use the same alignment.
+        self._column = self._ostream.get_column()
+        self._format_token()
+
+
 class TypeDeclFormatter(Formatter):
     def format(self):
-        self._format_child()
+        self._format_child() # "type"
         self._write_sp()
-        self._format_child_range(2)
+        self._format_child_range(2) # <id> ':'
         self._write_sp()
-        self._format_child_range(2)
-        if self._children_remaining():
+        self._format_child() # <type>
+        if self._get_child_type() == 'attr_list':
+            self._write_sp()
             self._format_child()
+        self._format_child() # ';'
         self._write_nl()
 
-class TypeFormatter(Formatter):
+
+class TypeFormatter(SpaceSeparatedFormatter):
     CURLY_LIST_TYPES = set(['record', 'union', 'enum'])
     PAREN_LIST_TYPES = set(['function', 'event', 'hook'])
 
     def format(self):
-        self._format_child()
-
-        if self._node.children[0].type == 'set':
+        if self._get_child_type() == 'set':
+            self._format_child() # 'set'
             self._format_child_range(3) # '[' ... ']'
 
-        elif self._node.children[0].type == 'table':
+        elif self._get_child_type() == 'table':
+            self._format_child() # 'table'
             self._format_child_range(3) # '[' ... ']'
             self._write_sp()
             self._format_child(1) # 'of'
             self._write_sp()
-            self._format_child(1) # type
+            self._format_child(1) # <type>
 
-        elif self._node.children[0].type in TypeFormatter.CURLY_LIST_TYPES:
+        elif self._get_child_type() in TypeFormatter.CURLY_LIST_TYPES:
+            self._format_child() # 'record', 'enum', etc
             self._write_sp()
             self._format_child() # '{'
             self._write_nl()
-            while self._children_remaining() > 1 # type_specs
+
+            while self._get_child_type() == 'type_spec': # any number of type_specs
                 self._format_child(do_indent=True)
+
+                # If we've exhausted the type_specs and didn't just finish with a comment,
+                # write a newline for the type_spec.
+                if (self._get_child_type() != 'type_spec' and
+                    not self._is_comment_node(self._get_child(offset=-1, skip_comments=False))):
+                    self._write_nl()
+                    continue
+
+                # If there is another type_spec coming up, write a newline if we
+                # just wrote at least two preceding Zeekygen post-comments (##<):
+                if (self._get_child_type() == 'type_spec' and
+                    (self._is_post_comment_node(self._get_child(offset=-1, skip_comments=False)) and
+                     self._is_post_comment_node(self._get_child(offset=-2, skip_comments=False)))):
+                    self._write_nl()
+                    continue
+
+                # If there is another type_spec coming up and it has preceding
+                # comments, close out the finished type_spec and add a blank
+                # line.
+                if (self._get_child_type() == 'type_spec' and
+                    self._is_comment_node(self._get_child(skip_comments=False))):
+                    self._write_nl(2)
+
             self._format_child() # '}'
+
+        else:
+            # Format anything else with plain space separation, e.g. "vector of foo"
+            super().format()
+
+
+class TypeSpecFormatter(Formatter):
+    def format(self):
+        self._format_child_range(2) # <id> ':'
+        self._write_sp()
+        self._format_child() # <type>
+        if self._get_child_type() == 'attr_list':
+            self._write_sp()
+            self._format_child()
+        self._format_child() # ';'
+
+
+class EnumBodyFormatter(Formatter):
+    def format(self):
+        pass
 
 # ---- Map symbol names produced by the grammer to formatters ----------
 
 Formatter.register('decl', TypechangeNewlineFormatter)
 
-# After minor comments we don't add an extra newline (so we group the comment
+# After minor comments we don't add an extra newline (to group the comment
 # with the thing that follows), unless we switch to a Zeekygen comment.
 Formatter.register('minor_comment', TypechangeNewlineFormatter,
-                   {'typelist': ['zeekygen_comment']})
+                   {'typelist': ['zeekygen_head_comment',
+                                 'zeekygen_prev_comment',
+                                 'zeekygen_next_comment']})
 
-Formatter.register('zeekygen_comment', LineFormatter)
+Formatter.register('zeekygen_head_comment', ZeekygenCommentFormatter)
+Formatter.register('zeekygen_next_comment', ZeekygenCommentFormatter)
+Formatter.register('zeekygen_prev_comment', ZeekygenPrevCommentFormatter)
+
 Formatter.register('preproc', LineFormatter)
 Formatter.register('type_decl', TypeDeclFormatter)
 Formatter.register('type', TypeFormatter)
+Formatter.register('type_spec', TypeSpecFormatter)
+#Formatter.register('enum_body', EnumBodyFormatter)
 
 def tree_traverse(node):
     queue = [(node, 0)]
