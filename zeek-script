@@ -17,6 +17,20 @@ ZEEK_LANGUAGE = Language('build/zeek-language.so', 'zeek')
 ZEEK_PARSER = Parser()
 ZEEK_PARSER.set_language(ZEEK_LANGUAGE)
 
+class Node:
+    def __init__(self):
+        self.children = []
+        self.parent = None
+        self.prev_sibling = None
+        self.next_sibling = None
+        self.start_byte = 0
+        self.end_byte = 0
+        self.start_point = (0, 0)
+        self.end_point = (0, 0)
+        self.is_named = False
+        self.type = None
+
+
 class NodeMapper:
     def __init__(self):
         self._map = {}
@@ -58,6 +72,8 @@ class Script:
         self.source = None
         # The tree-sitter parse tree for the script
         self.tree = None
+        # The root node of our cloned (and malleable) tree
+        self.root = None
         # The output file name -- None if stdout
         self.ofname = ofname
 
@@ -65,15 +81,92 @@ class Script:
         with open(self.name, 'rb') as hdl:
             self.source = hdl.read()
             self.tree = ZEEK_PARSER.parse(self.source)
+            self._clone_tree()
+            self._patchup_tree()
+
+    def traverse(self):
+        def visit(node):
+            queue = [(node, 0)]
+            while queue:
+                node, indent = queue.pop(0)
+                yield node, indent
+                for child in reversed(node.children):
+                    queue.insert(0, (child, indent+1))
+
+        assert self.root is not None, 'call Script.parse() before Script.traverse()'
+        for node, indent in visit(self.root):
+            yield node, indent
 
     def __getitem__(self, key):
         return self.source.__getitem__(key)
 
     def format(self):
+        assert self.root is not None, 'call Script.parse() before Script.format()'
         with open(self.ofname, 'wb') if self.ofname else sys.stdout as ostream:
-            fclass, _ = Formatter.lookup(self.tree.root_node)
-            formatter = fclass(self, self.tree.root_node, OutputStream(ostream))
+            fclass, _ = Formatter.lookup(self.root)
+            formatter = fclass(self, self.root, OutputStream(ostream))
             formatter.format()
+
+    def _clone_tree(self):
+        """The tree_sitter tree isn't malleable from Python. This clones it to a tree of
+        our own Node class that we can alter freely.
+        """
+        def make_node(node):
+            new_node = Node()
+            new_node.start_byte, new_node.end_byte = node.start_byte, node.end_byte
+            new_node.start_point, new_node.end_point = node.start_point, node.end_point
+            new_node.is_named = node.is_named
+            new_node.type = node.type
+
+            for child in node.children:
+                new_child = make_node(child)
+                new_child.parent = new_node
+                new_node.children.append(new_child)
+                if len(new_node.children) > 1:
+                    new_node.children[-2].next_sibling = new_node.children[-1]
+                    new_node.children[-1].prev_sibling = new_node.children[-2]
+
+            return new_node
+
+        self.root = make_node(self.tree.root_node)
+
+    def _patchup_tree(self):
+        """Make any modifications to the syntax tree we require for our processing."""
+
+        # Move any dangling zeekygen_prev_comments down into the tree so they
+        # directly child-follow the node that the comment refers to. For
+        # example, this turns ...
+        #
+        #   type_spec (138.1,138.15)
+        #       id (138.1,138.9)
+        #       : (138.9,138.10)
+        #       type (138.11,138.14)
+        #           int (138.11,138.14)
+        #           ; (138.14,138.15)
+        #       zeekygen_prev_comment (138.19,139.0) '##< A comment explaining the int\n'
+        #       zeekygen_prev_comment (139.19,140.0) '##< continuing here.\n'
+        #
+        # ... into this:
+        #
+        #   type_spec (138.1,138.15)
+        #       id (138.1,138.9)
+        #       : (138.9,138.10)
+        #       type (138.11,138.14)
+        #           int (138.11,138.14)
+        #           ; (138.14,138.15)
+        #           zeekygen_prev_comment (138.19,139.0) '##< A comment explaining the int\n'
+        #           zeekygen_prev_comment (139.19,140.0) '##< continuing here.\n'
+        #
+        for node, _ in self.traverse():
+            idx = 0
+            while idx < len(node.children):
+                child = node.children[idx]
+                if (idx > 0 and child.type == 'zeekygen_prev_comment' and
+                    node.children[idx-1].children):
+                    node.children[idx-1].children.append(child)
+                    node.children.pop(idx)
+                else:
+                    idx += 1
 
 
 # ---- Symbol formatters -----------------------------------------------
@@ -85,7 +178,8 @@ class Formatter:
         self._ostream = ostream
         self._indent = indent
 
-        self._cidx = 0 # Child node index, starting at 0
+        # Child node index for iteration
+        self._cidx = 0
 
         # Like tree_sitter.Node we use a parent/children structure, so a given
         # formatter can access formatting state in its surroundings. 
@@ -100,13 +194,20 @@ class Formatter:
         else:
             self._format_token()
 
-    def _format_child_impl(self, do_indent):
-        node = self._node.children[self._cidx]
-        self._cidx += 1
+    def _next_child(self):
+        try:
+            node = self._node.children[self._cidx]
+            self._cidx += 1
+            return node
+        except IndexError:
+            return None
+
+    def _format_child_impl(self, indent):
+        node = self._next_child()
 
         fclass, addl_args = Formatter.lookup(node)
         formatter = fclass(self._script, node, self._ostream,
-                           indent=self._indent + int(do_indent),
+                           indent=self._indent + int(indent),
                            parent=self, **addl_args)
 
         if self._children:
@@ -117,20 +218,20 @@ class Formatter:
 
         formatter.format()
 
-    def _format_child(self, do_indent=False):
+    def _format_child(self, indent=False):
         # Skip comments transparently, as they can occur anywhere.
         while self._is_comment_node(self._get_child(skip_comments=False)):
-            self._format_child_impl(do_indent=do_indent)
+            self._format_child_impl(indent=indent)
 
-        self._format_child_impl(do_indent=do_indent)
+        self._format_child_impl(indent=indent)
 
         # After the child, also skip Zeekygen post-comments (##<):
         while self._is_post_comment_node(self._get_child(skip_comments=False)):
-            self._format_child_impl(do_indent=do_indent)
+            self._format_child_impl(indent=indent)
 
-    def _format_child_range(self, num, do_indent=False):
+    def _format_child_range(self, num, indent=False):
         for _ in range(num):
-            self._format_child(do_indent)
+            self._format_child(indent)
 
     def _format_children(self, sep=None, final=None):
         while self._children_remaining():
@@ -162,7 +263,7 @@ class Formatter:
         self._write(b'\n' * num)
 
     def _is_comment_node(self, node):
-        return node.type.endswith('_comment')
+        return node and node.type.endswith('_comment')
 
     def _is_post_comment_node(self, node):
         return node and node.type == 'zeekygen_prev_comment'
@@ -175,8 +276,12 @@ class Formatter:
         return remaining
 
     def _get_child(self, offset=0, skip_comments=True):
-        """Returns the current child node (skipping any potential comments) without
-        adjusting the index, or None if there is no more child node.
+
+        """Accessor for child nodes, without adjusting the offset index. Without
+        additional options, it returns the current child node, ignoring any
+        comment nodes. When using the offset argument, returns children
+        before/after the current child. If setting skip_comments=False, it does
+        not skip comment nodes.
         """
         direction = 1 if offset >= 0 else -1
         offset = abs(offset)
@@ -198,6 +303,27 @@ class Formatter:
             return self._get_child(offset, skip_comments).type
         except AttributeError:
             return ''
+
+    def _write_comment_aware_nl(self, child_type):
+        def is_comment(offset=0):
+            return self._is_post_comment_node(
+                self._get_child(offset=offset, skip_comments=False))
+
+        # If we just wrote a comment and have no more children, we're done.
+        if not self._get_child() and is_comment(-1):
+            return
+
+        # If there is another child_type coming up, write a newline if we
+        # just wrote at least two preceding Zeekygen post-comments (##<):
+        if self._get_child_type() == child_type and is_comment(-1) and is_comment(-2):
+            self._write_nl()
+            return
+
+        # If there is another child_type coming up and it has preceding
+        # comments, close out the finished child_type and add a blank
+        # line.
+        if self._get_child_type() == child_type and is_comment():
+            self._write_nl()
 
     @staticmethod
     def register(symbol_name, klass, addl_args=None):
@@ -279,6 +405,8 @@ class ZeekygenPrevCommentFormatter(ZeekygenCommentFormatter):
         # Record the output column so potential subsequent Zeekygen
         # comments can use the same alignment.
         self._column = self._ostream.get_column()
+
+        # Write comment itself
         self._format_token()
 
 
@@ -297,7 +425,6 @@ class TypeDeclFormatter(Formatter):
 
 
 class TypeFormatter(SpaceSeparatedFormatter):
-    CURLY_LIST_TYPES = set(['record', 'union', 'enum'])
     PAREN_LIST_TYPES = set(['function', 'event', 'hook'])
 
     def format(self):
@@ -309,41 +436,28 @@ class TypeFormatter(SpaceSeparatedFormatter):
             self._format_child() # 'table'
             self._format_child_range(3) # '[' ... ']'
             self._write_sp()
-            self._format_child(1) # 'of'
+            self._format_child() # 'of'
             self._write_sp()
-            self._format_child(1) # <type>
+            self._format_child() # <type>
 
-        elif self._get_child_type() in TypeFormatter.CURLY_LIST_TYPES:
-            self._format_child() # 'record', 'enum', etc
+        elif self._get_child_type() == 'record':
+            self._format_child() # 'record',
             self._write_sp()
             self._format_child() # '{'
             self._write_nl()
 
             while self._get_child_type() == 'type_spec': # any number of type_specs
-                self._format_child(do_indent=True)
+                self._format_child(indent=True)
+                self._write_comment_aware_nl('type_spec')
 
-                # If we've exhausted the type_specs and didn't just finish with a comment,
-                # write a newline for the type_spec.
-                if (self._get_child_type() != 'type_spec' and
-                    not self._is_comment_node(self._get_child(offset=-1, skip_comments=False))):
-                    self._write_nl()
-                    continue
+            self._format_child() # '}'
 
-                # If there is another type_spec coming up, write a newline if we
-                # just wrote at least two preceding Zeekygen post-comments (##<):
-                if (self._get_child_type() == 'type_spec' and
-                    (self._is_post_comment_node(self._get_child(offset=-1, skip_comments=False)) and
-                     self._is_post_comment_node(self._get_child(offset=-2, skip_comments=False)))):
-                    self._write_nl()
-                    continue
-
-                # If there is another type_spec coming up and it has preceding
-                # comments, close out the finished type_spec and add a blank
-                # line.
-                if (self._get_child_type() == 'type_spec' and
-                    self._is_comment_node(self._get_child(skip_comments=False))):
-                    self._write_nl(2)
-
+        elif self._get_child_type() == 'enum':
+            self._format_child() # 'enum'
+            self._write_sp()
+            self._format_child() # '{'
+            self._write_nl()
+            self._format_child(indent=True) # enum_body
             self._format_child() # '}'
 
         else:
@@ -364,9 +478,13 @@ class TypeSpecFormatter(Formatter):
 
 class EnumBodyFormatter(Formatter):
     def format(self):
-        pass
+        while self._get_child():
+            self._format_child() # enum_body_elem
+            if self._get_child():
+                self._format_child() # ',' (optional at the end of the list)
+            self._write_comment_aware_nl('enum_body_elem')
 
-# ---- Map symbol names produced by the grammer to formatters ----------
+# ---- Map grammar symbols to formatters -------------------------------
 
 Formatter.register('decl', TypechangeNewlineFormatter)
 
@@ -385,15 +503,9 @@ Formatter.register('preproc', LineFormatter)
 Formatter.register('type_decl', TypeDeclFormatter)
 Formatter.register('type', TypeFormatter)
 Formatter.register('type_spec', TypeSpecFormatter)
-#Formatter.register('enum_body', EnumBodyFormatter)
+Formatter.register('enum_body', EnumBodyFormatter)
 
-def tree_traverse(node):
-    queue = [(node, 0)]
-    while queue:
-        node, indent = queue.pop(0)
-        yield node, indent
-        for child in reversed(node.children):
-            queue.insert(0, (child, indent+1))
+# ---- Helper functions ------------------------------------------------
 
 def node_str(node, indent, script):
     content = ''
@@ -405,24 +517,6 @@ def node_str(node, indent, script):
     return ' ' * (4*indent) + '{} ({}.{},{}.{}) {}'.format(
         node.type, node.start_point[0], node.start_point[1],
         node.end_point[0], node.end_point[1], content)
-
-def cmd_format(args):
-    for fname in args.scripts:
-        ofname = fname if args.inplace else None
-        script = Script(fname, ofname)
-        script.parse()
-        script.format()
-
-    return 0
-
-def cmd_parse(args):
-    script = Script(args.script)
-    script.parse()
-
-    for node, indent in tree_traverse(script.tree.root_node):
-        print(node_str(node, indent, script))
-
-    return 0
 
 def create_parser():
     parser = argparse.ArgumentParser(description='A Zeek script analyzer')
@@ -450,6 +544,26 @@ def create_parser():
                             help='Zeek script to parse.')
 
     return parser
+
+# ---- CLI commands ----------------------------------------------------
+
+def cmd_format(args):
+    for fname in args.scripts:
+        ofname = fname if args.inplace else None
+        script = Script(fname, ofname)
+        script.parse()
+        script.format()
+
+    return 0
+
+def cmd_parse(args):
+    script = Script(args.script)
+    script.parse()
+
+    for node, indent in script.traverse():
+        print(node_str(node, indent, script))
+
+    return 0
 
 def main():
     parser = create_parser()
