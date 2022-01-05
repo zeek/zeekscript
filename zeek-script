@@ -220,14 +220,16 @@ class Formatter:
 
     def _format_child(self, indent=False):
         # Skip comments transparently, as they can occur anywhere.
-        while self._is_comment_node(self._get_child(skip_comments=False)):
+        while self._is_comment():
             self._format_child_impl(indent=indent)
 
         self._format_child_impl(indent=indent)
 
         # After the child, also skip Zeekygen post-comments (##<):
-        while self._is_post_comment_node(self._get_child(skip_comments=False)):
+        while self._is_post_comment():
             self._format_child_impl(indent=indent)
+            if self._is_post_comment():
+                self._write_nl()
 
     def _format_child_range(self, num, indent=False):
         for _ in range(num):
@@ -265,8 +267,16 @@ class Formatter:
     def _is_comment_node(self, node):
         return node and node.type.endswith('_comment')
 
+    def _is_comment(self, offset=0):
+        return self._is_comment_node(
+            self._get_child(offset=offset, skip_comments=False))
+
     def _is_post_comment_node(self, node):
         return node and node.type == 'zeekygen_prev_comment'
+
+    def _is_post_comment(self, offset=0):
+        return self._is_post_comment_node(
+            self._get_child(offset=offset, skip_comments=False))
 
     def _children_remaining(self):
         remaining = 0
@@ -276,7 +286,6 @@ class Formatter:
         return remaining
 
     def _get_child(self, offset=0, skip_comments=True):
-
         """Accessor for child nodes, without adjusting the offset index. Without
         additional options, it returns the current child node, ignoring any
         comment nodes. When using the offset argument, returns children
@@ -303,27 +312,6 @@ class Formatter:
             return self._get_child(offset, skip_comments).type
         except AttributeError:
             return ''
-
-    def _write_comment_aware_nl(self, child_type):
-        def is_comment(offset=0):
-            return self._is_post_comment_node(
-                self._get_child(offset=offset, skip_comments=False))
-
-        # If we just wrote a comment and have no more children, we're done.
-        if not self._get_child() and is_comment(-1):
-            return
-
-        # If there is another child_type coming up, write a newline if we
-        # just wrote at least two preceding Zeekygen post-comments (##<):
-        if self._get_child_type() == child_type and is_comment(-1) and is_comment(-2):
-            self._write_nl()
-            return
-
-        # If there is another child_type coming up and it has preceding
-        # comments, close out the finished child_type and add a blank
-        # line.
-        if self._get_child_type() == child_type and is_comment():
-            self._write_nl()
 
     @staticmethod
     def register(symbol_name, klass, addl_args=None):
@@ -381,9 +369,8 @@ class TypechangeNewlineFormatter(Formatter):
 
 class ZeekygenCommentFormatter(Formatter):
     def format(self):
-        if self._ostream.get_column() > 0:
-            self._write_nl()
         self._format_token()
+        self._write_nl()
 
 
 class ZeekygenPrevCommentFormatter(ZeekygenCommentFormatter):
@@ -448,7 +435,6 @@ class TypeFormatter(SpaceSeparatedFormatter):
 
             while self._get_child_type() == 'type_spec': # any number of type_specs
                 self._format_child(indent=True)
-                self._write_comment_aware_nl('type_spec')
 
             self._format_child() # '}'
 
@@ -474,6 +460,7 @@ class TypeSpecFormatter(Formatter):
             self._write_sp()
             self._format_child()
         self._format_child() # ';'
+        self._write_nl()
 
 
 class EnumBodyFormatter(Formatter):
@@ -482,7 +469,7 @@ class EnumBodyFormatter(Formatter):
             self._format_child() # enum_body_elem
             if self._get_child():
                 self._format_child() # ',' (optional at the end of the list)
-            self._write_comment_aware_nl('enum_body_elem')
+            self._write_nl()
 
 # ---- Map grammar symbols to formatters -------------------------------
 
