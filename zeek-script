@@ -432,15 +432,11 @@ class ExportDeclFormatter(Formatter):
         self._write_nl()
 
 
-class GlobalDeclFormatter(Formatter):
-    """A formatter for the global-like symbols (global, option, const, simple
-    value redefs), which all layout similarly.
+class TypedInitializerFormatter(Formatter):
+    """Helper for common construct that's not a separate symbol in the grammar:
+    [:<type>] [<initializer] [attributes]
     """
     def format(self):
-        self._format_child() # "global", "option", etc
-        self._write_sp()
-        self._format_child() # <id>
-
         if self._get_child_type() == ':':
             self._format_child() # ':'
             self._write_sp()
@@ -453,6 +449,18 @@ class GlobalDeclFormatter(Formatter):
         if self._get_child_type() == 'attr_list':
             self._write_sp()
             self._format_child()
+
+
+class GlobalDeclFormatter(TypedInitializerFormatter):
+    """A formatter for the global-like symbols (global, option, const, simple
+    value redefs), which all layout similarly.
+    """
+    def format(self):
+        self._format_child() # "global", "option", etc
+        self._write_sp()
+        self._format_child() # <id>
+
+        super().format()
 
         self._format_child() # ';'
         self._write_nl()
@@ -594,6 +602,251 @@ class EnumBodyFormatter(Formatter):
             self._write_nl()
 
 
+class FuncDeclFormatter(Formatter):
+    def format(self):
+        self._format_child() # <func_hdr>
+        if self._get_child_type() == 'preproc':
+            self.write_nl()
+            while self._get_child_type() == 'preproc':
+                self._format_child() # <preproc>
+                self.write_nl()
+        self._format_child() # <func_body>
+
+
+class FuncHdrFormatter(Formatter):
+    def format(self):
+        self._format_child() # <func>, <hook>, or <event>
+
+
+class FuncHdrVariantFormatter(Formatter):
+    def format(self):
+        if self._get_child_type() == 'redef':
+            self._format_child() # 'redef'
+            self._write_sp()
+        self._format_child() # 'function', 'hook', or 'event'
+        self._write_sp()
+        self._format_child() # <id>
+        self._format_child() # <func_params>
+        if self._get_child_type() == 'attr_list':
+            self._write_sp()
+            self._format_child() # <attr_list>
+
+
+class FuncParamsFormatter(Formatter):
+    def format(self):
+        self._format_child() # '('
+        if self._get_child_type() == 'formal_args':
+            self._format_child() # <formal_args>
+        self._format_child() # ')'
+        if self._get_child_type() == ':':
+            self._format_child() # ':'
+            self._write_sp()
+            self._format_child() # <type>
+
+
+class FuncBodyFormatter(Formatter):
+    def format(self):
+        self._write_sp()
+        self._format_child() # '{'
+        self._write_nl()
+        while self._get_child_type() == 'stmt':
+            self._format_child(indent=True) # <stmt>
+        self._format_child() # '}'
+        self._write_nl()
+
+
+class FormalArgsFormatter(Formatter):
+    def format(self):
+        while self._get_child_type() == 'formal_arg':
+            self._format_child() # <formal_arg>
+            if self._get_child():
+                self._format_child() # ',' or ';'
+                self._write_sp()
+
+
+class FormalArgFormatter(Formatter):
+    def format(self):
+        self._format_child_range(2) # <id> ':'
+        self._write_sp()
+        self._format_child() # <type>
+        if self._get_child_type() == 'attr_list':
+            self._write_sp()
+            self._format_child() # <attr_list>
+
+
+class StmtFormatter(TypedInitializerFormatter):
+    def _child_is_curly_stmt(self):
+        """Looks ahead to see if the upcoming statement is { ... }.  This decides the
+        surrounding whitespace in some situations below. This is where we could
+        theoretically do Whitesmith. :-P
+        """
+        try:
+            return self._get_child().children[0].type == '{'
+        except (AttributeError, IndexError):
+            return False
+
+    def _format_when(self):
+        self._format_child() # 'when'
+        self._write_sp()
+        self._format_child() # '('
+        self._write_sp()
+        self._format_child() # <expr>
+        self._write_sp()
+        self._format_child() # ')'
+        self._write_sp() if self._child_is_curly_stmt() else self._write_nl()
+        self._format_child(indent=True) # <stmt>
+
+        if self._get_child_type() == 'timeout':
+            self._format_child() # 'timeout'
+            self._write_sp()
+            self._format_child() # '{'
+            self._write_nl()
+            while self._get_child_type() == 'stmt':
+                self._format_child(indent=True)
+            self._format_child() # '}'
+            self._write_nl()
+
+    def format(self):
+        # Statements aren't currently broken down into more specific symbol
+        # types in the grammer, so we just examine their beginning.
+        start = self._get_child_type()
+        if start == '{':
+            self._format_child() # '{'
+            self._write_nl()
+            while self._get_child_type() == 'stmt':
+                self._format_child(indent=True)
+            self._format_child() # '}'
+
+        elif start == 'print' or start == 'event':
+            self._format_child() # 'print'/'event'
+            self._write_sp()
+            self._write_child_range(2) # <expr_list>/<event_hdr> XXX ';'
+            self._write_nl()
+
+        elif start == 'if':
+            self._format_child() # 'if'
+            self._write_sp()
+            self._format_child() # '('
+            self._write_sp()
+            self._format_child() # <expr>
+            self._write_sp()
+            self._format_child() # ')'
+            self._write_sp() if self._child_is_curly_stmt() else self._write_nl()
+            self._format_child(indent=True) # <stmt>
+            if self._get_child_type() == 'else':
+                self._format_child() # 'else'
+                self._write_sp() if self._child_is_curly_stmt() else self._write_nl()
+                self._format_child(indent=True) # <stmt>
+
+        elif start == 'switch':
+            self._format_child() # 'switch'
+            self._write_sp()
+            self._format_child() # <expr>
+            self._write_sp()
+            self._format_child() # '{'
+            if self._get_child_type == 'case_list':
+                self._format_child(indent=True) # <case_list> XXX
+            else:
+                self._write_sp()
+            self._format_child() # '}'
+            self._write_nl()
+
+        elif start == 'for':
+            self._format_child() # 'switch'
+            self._write_sp()
+            self._format_child() # '('
+            self._write_sp()
+            if self._get_child_type() == '[':
+                self._format_child() # '['
+                while self._get_child_type() != ']':
+                    self._format_child() # <id>
+                    if self._get_child_type() == ',':
+                        self._format_child() # ','
+                        self._write_sp()
+                self._format_child() # ']'
+            else:
+                self._format_child() # <id>
+
+            while self._get_child_type() == ',':
+                self._format_child() # ','
+                self._write_sp()
+                self._format_child() # <id>
+            self._write_sp()
+            self._format_child() # 'in'
+            self._write_sp()
+            self._format_child() # <expr>
+            self._write_sp()
+            self._format_child() # ')'
+            self._write_sp() if self._child_is_curly_stmt() else self._write_nl()
+            self._format_child(indent=True) # <stmt>
+
+        elif start == 'while':
+            self._format_child() # 'while'
+            self._write_sp()
+            self._format_child() # '('
+            self._write_sp()
+            self._format_child() # <expr>
+            self._write_sp()
+            self._format_child() # ')'
+            self._write_sp() if self._child_is_curly_stmt() else self._write_nl()
+            self._format_child(indent=True) # <stmt>
+
+        elif start in ['next', 'break', 'fallthrough']:
+            self._format_child(2) # loop control statement, ';'
+            self._write_nl()
+
+        elif start == 'return':
+            self._format_child() # 'return'
+            # There's also an optional 'return" before when statements,
+            # so detour in that case and be done.
+            if self._get_child_type() == 'when':
+                self._format_when()
+                return
+            if self._get_child_type() == 'expr':
+                self._write_sp()
+                self._format_child() # <expr>
+            self._format_child() # ';'
+            self._write_nl()
+
+        elif start in ['add', 'delete']:
+            self._format_child() # set management
+            self._write_sp()
+            self._format_child_range(2) # <expr> ';'
+            self._write_nl()
+
+        elif start in ['local', 'const']:
+            self._format_child() # 'local'/'const'
+            self._write_sp()
+            self._format_child() # <id>
+
+            super().format()
+
+            self._format_child() # ';'
+            self._write_nl()
+
+        elif start == 'when':
+            self._format_when()
+
+        elif start == 'index_slice':
+            self._format_child() # <index_slice> XXX
+            self._write_sp()
+            self._format_child() # '='
+            self._write_sp()
+            self._format_child_range(2) # <expr> XXX ';'
+            self._write_nl()
+
+        elif start == 'expr':
+            self._format_child() # <expr> XXX
+
+        elif start == 'preproc':
+            self._format_child() # <preproc>
+            self._write_nl()
+
+        elif start == ';':
+            self._format_child() # ';'
+            self._write_nl()
+
+
 class ZeekygenCommentFormatter(Formatter):
     def format(self):
         self._format_token()
@@ -630,7 +883,7 @@ Formatter.register('decl', TypechangeNewlineFormatter)
 Formatter.register('module_decl', ModuleDeclFormatter)
 Formatter.register('export_decl', ExportDeclFormatter)
 
-# After minor comments we don't add an extra newline (to group the comment
+# After minor comments we don't add an extra newline (so we group the comment
 # with the thing that follows), unless we switch to a Zeekygen comment.
 Formatter.register('minor_comment', TypechangeNewlineFormatter,
                    {'typelist': ['zeekygen_head_comment',
@@ -654,9 +907,24 @@ Formatter.register('option_decl', GlobalDeclFormatter)
 Formatter.register('redef_decl', GlobalDeclFormatter)
 Formatter.register('redef_enum_decl', RedefEnumDeclFormatter)
 Formatter.register('redef_record_decl', RedefRecordDeclFormatter)
+Formatter.register('func_decl', FuncDeclFormatter)
 
 Formatter.register('initializer', InitializerFormatter)
 Formatter.register('init', InitFormatter)
+
+Formatter.register('func_hdr', FuncHdrFormatter)
+Formatter.register('func', FuncHdrVariantFormatter)
+Formatter.register('hook', FuncHdrVariantFormatter)
+Formatter.register('event', FuncHdrVariantFormatter)
+Formatter.register('func_params', FuncParamsFormatter)
+Formatter.register('func_body', FuncBodyFormatter)
+
+Formatter.register('formal_args', FormalArgsFormatter)
+Formatter.register('formal_arg', FormalArgFormatter)
+
+Formatter.register('stmt', StmtFormatter)
+Formatter.register('expr', SpaceSeparatedFormatter)
+
 
 # ---- Helper functions ------------------------------------------------
 
