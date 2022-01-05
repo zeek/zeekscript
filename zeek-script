@@ -158,13 +158,27 @@ class Script:
         #           zeekygen_prev_comment (139.19,140.0) '##< continuing here.\n'
         #
         for node, _ in self.traverse():
-            idx = 0
+            idx = 0 # Iterate manually since not every iteration advances idx
             while idx < len(node.children):
                 child = node.children[idx]
+                # If this child is a ##< comment and the previous child has
+                # children, move the comment down to the kid's kids.
                 if (idx > 0 and child.type == 'zeekygen_prev_comment' and
                     node.children[idx-1].children):
-                    node.children[idx-1].children.append(child)
+
+                    # Cut out comment from sibling relationships:
+                    child.prev_sibling.next_sibling = child.next_sibling
+                    if child.next_sibling:
+                        child.next_sibling.prev_sibling = child.prev_sibling
+
+                    # Move comment to new location:
                     node.children.pop(idx)
+                    node.children[idx-1].children.append(child)
+
+                    # Adjust sibling relationship in new location:
+                    if len(node.children[idx-1].children) > 1:
+                        node.children[idx-1].children[-2].next_sibling = child
+                        child.prev_sibling = node.children[idx-1].children[-2]
                 else:
                     idx += 1
 
@@ -354,59 +368,167 @@ class TypechangeNewlineFormatter(Formatter):
 
     def format(self):
         super().format()
-        if self._next_sibling_typechange(typelist=self._typelist):
+        if self._next_sibling_typechange():
             self._write_nl()
 
-    def _next_sibling_typechange(self, typelist=None):
-        if self._node.next_sibling is None:
+    def _next_sibling_typechange(self):
+        # There's no type change when there's nothing to compare to, or that
+        # thing isn't a complex node (for example, a '}' at the end of an export
+        # block).
+        if self._node.next_sibling is None or not self._node.next_sibling.is_named:
             return False
-        if typelist and self._node.next_sibling.type not in typelist:
+
+        next = self._node.next_sibling
+
+        if self._typelist and next.type not in self._typelist:
             return False
-        if self._node.next_sibling.type == self._node.type:
+
+        if next.type == self._node.type:
+            # For sequences of 'decl' this isn't very meaningful, so look more
+            # closely. If the types of decls differ, it counts.
+            try:
+                if (self._node.type == 'decl' and
+                    self._node.children[0].type != next.children[0].type):
+                    return True
+            except IndexError:
+                pass
+
+            # Always separate uncommented record type definitions. (Comments
+            # already trigger a separate newline, since they count as a type
+            # change relative to decls.)
+            def is_record_type_decl(node):
+                try:
+                    return (node.children[0].type == 'type_decl' and
+                            node.children[0].children[3].children[0].type == 'record')
+                except IndexError:
+                    return False
+
+            if is_record_type_decl(self._node) or is_record_type_decl(next):
+                return True
+
             return False
+
         return True
 
 
-class ZeekygenCommentFormatter(Formatter):
+class ModuleDeclFormatter(Formatter):
     def format(self):
-        self._format_token()
+        self._write_nl()
+        self._format_child() # 'module'
+        self._write_sp()
+        self._format_child_range(2) # <name> ';'
+        self._write_nl(2)
+
+
+class ExportDeclFormatter(Formatter):
+    def format(self):
+        self._format_child() # 'export'
+        self._write_sp()
+        self._format_child() # '{'
+        self._write_nl()
+        while self._get_child_type() == 'decl':
+            self._format_child(indent=True)
+        self._format_child() # '}'
         self._write_nl()
 
 
-class ZeekygenPrevCommentFormatter(ZeekygenCommentFormatter):
-    def __init__(self, script, node, ostream, indent=0, parent=None):
-        super().__init__(script, node, ostream, indent, parent)
-        self._column = 0 # Column at which this comment lives
-
+class GlobalDeclFormatter(Formatter):
+    """A formatter for the global-like symbols (global, option, const, simple
+    value redefs), which all layout similarly.
+    """
     def format(self):
-        # Handle indent explicitly here because of the transparent handling of
-        # comments. If we don't call this, nothing may force the indent for the
-        # comment if it's the only thing on the line.
-        self._write_indent()
+        self._format_child() # "global", "option", etc
+        self._write_sp()
+        self._format_child() # <id>
 
-        if isinstance(self._prev, ZeekygenPrevCommentFormatter):
-            self._write_sp(self._prev._column - self._ostream.get_column())
-        else:
+        if self._get_child_type() == ':':
+            self._format_child() # ':'
+            self._write_sp()
+            self._format_child() # <type>
+
+        if self._get_child_type() == 'initializer':
+            self._write_sp()
+            self._format_child() # <initializer>
+
+        if self._get_child_type() == 'attr_list':
+            self._write_sp()
+            self._format_child()
+
+        self._format_child() # ';'
+        self._write_nl()
+
+
+class InitializerFormatter(Formatter):
+    def format(self):
+        if self._get_child_type() == 'init_class':
+            self._format_child() # '=', '+=', etc
             self._write_sp()
 
-        # Record the output column so potential subsequent Zeekygen
-        # comments can use the same alignment.
-        self._column = self._ostream.get_column()
+        self._format_child() # <init>
 
-        # Write comment itself
-        self._format_token()
+class InitFormatter(Formatter):
+    def format(self):
+        if self._get_child_type() == '{':
+            self._format_child() # '{'
+            while self._get_child_type() != '}':
+                self._format_child() # <expr>
+                if self._get_child_type() == ',':
+                    self._format_child() # ','
+                    self._write_sp()
+            self._format_child() # '}'
+        else:
+            self._format_child() # <expr>
+
+
+class RedefEnumDeclFormatter(Formatter):
+    def format(self):
+        self._format_child() # 'redef'
+        self._write_sp()
+        self._format_child() # 'enum'
+        self._write_sp()
+        self._format_child() # <id>
+        self._write_sp()
+        self._format_child() # '+='
+        self._write_sp()
+        self._format_child() # '{'
+        self._write_nl()
+        self._format_child(indent=True) # enum_body
+        self._format_child_range(2) # '}' ';'
+        self._write_nl()
+
+
+class RedefRecordDeclFormatter(Formatter):
+    def format(self):
+        self._format_child() # 'redef'
+        self._write_sp()
+        self._format_child() # 'record'
+        self._write_sp()
+        self._format_child() # <id>
+        self._write_sp()
+        self._format_child() # '+='
+        self._write_sp()
+        self._format_child() # '{'
+        self._write_nl()
+        while self._get_child_type() == 'type_spec': # any number of type_specs
+            self._format_child(indent=True)
+        self._format_child() # '}'
+        if self._get_child_type() == 'attr_list':
+            self._write_sp()
+            self._format_child() # <attr_list>
+        self._format_child() # ';'
+        self._write_nl()
 
 
 class TypeDeclFormatter(Formatter):
     def format(self):
-        self._format_child() # "type"
+        self._format_child() # 'type'
         self._write_sp()
         self._format_child_range(2) # <id> ':'
         self._write_sp()
         self._format_child() # <type>
         if self._get_child_type() == 'attr_list':
             self._write_sp()
-            self._format_child()
+            self._format_child() # <attr_list>
         self._format_child() # ';'
         self._write_nl()
 
@@ -471,9 +593,42 @@ class EnumBodyFormatter(Formatter):
                 self._format_child() # ',' (optional at the end of the list)
             self._write_nl()
 
+
+class ZeekygenCommentFormatter(Formatter):
+    def format(self):
+        self._format_token()
+        self._write_nl()
+
+
+class ZeekygenPrevCommentFormatter(ZeekygenCommentFormatter):
+    def __init__(self, script, node, ostream, indent=0, parent=None):
+        super().__init__(script, node, ostream, indent, parent)
+        self._column = 0 # Column at which this comment lives
+
+    def format(self):
+        # Handle indent explicitly here because of the transparent handling of
+        # comments. If we don't call this, nothing may force the indent for the
+        # comment if it's the only thing on the line.
+        self._write_indent()
+
+        if isinstance(self._prev, ZeekygenPrevCommentFormatter):
+            self._write_sp(self._prev._column - self._ostream.get_column())
+        else:
+            self._write_sp()
+
+        # Record the output column so potential subsequent Zeekygen
+        # comments can use the same alignment.
+        self._column = self._ostream.get_column()
+
+        # Write comment itself
+        self._format_token()
+
+
 # ---- Map grammar symbols to formatters -------------------------------
 
 Formatter.register('decl', TypechangeNewlineFormatter)
+Formatter.register('module_decl', ModuleDeclFormatter)
+Formatter.register('export_decl', ExportDeclFormatter)
 
 # After minor comments we don't add an extra newline (to group the comment
 # with the thing that follows), unless we switch to a Zeekygen comment.
@@ -487,10 +642,21 @@ Formatter.register('zeekygen_next_comment', ZeekygenCommentFormatter)
 Formatter.register('zeekygen_prev_comment', ZeekygenPrevCommentFormatter)
 
 Formatter.register('preproc', LineFormatter)
+
 Formatter.register('type_decl', TypeDeclFormatter)
 Formatter.register('type', TypeFormatter)
 Formatter.register('type_spec', TypeSpecFormatter)
 Formatter.register('enum_body', EnumBodyFormatter)
+
+Formatter.register('const_decl', GlobalDeclFormatter)
+Formatter.register('global_decl', GlobalDeclFormatter)
+Formatter.register('option_decl', GlobalDeclFormatter)
+Formatter.register('redef_decl', GlobalDeclFormatter)
+Formatter.register('redef_enum_decl', RedefEnumDeclFormatter)
+Formatter.register('redef_record_decl', RedefRecordDeclFormatter)
+
+Formatter.register('initializer', InitializerFormatter)
+Formatter.register('init', InitFormatter)
 
 # ---- Helper functions ------------------------------------------------
 
