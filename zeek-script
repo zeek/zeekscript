@@ -356,7 +356,7 @@ class SpaceSeparatedFormatter(Formatter):
             self._format_token()
 
 
-class TypechangeNewlineFormatter(Formatter):
+class TypechangeFormatter(Formatter):
     """A formatter that issues a newline after formatting when the next sibling
     node has a different type, or isn't among a given list of types. This helps
     with grouping "similar" nodes tightly, adding an extra newline only when a
@@ -413,11 +413,10 @@ class TypechangeNewlineFormatter(Formatter):
 
 class ModuleDeclFormatter(Formatter):
     def format(self):
-        self._write_nl()
         self._format_child() # 'module'
         self._write_sp()
         self._format_child_range(2) # <name> ';'
-        self._write_nl(2)
+        self._write_nl()
 
 
 class ExportDeclFormatter(Formatter):
@@ -478,11 +477,16 @@ class InitFormatter(Formatter):
     def format(self):
         if self._get_child_type() == '{':
             self._format_child() # '{'
-            while self._get_child_type() != '}':
-                self._format_child() # <expr>
-                if self._get_child_type() == ',':
-                    self._format_child() # ','
-                    self._write_sp()
+            # Any number of expressions, comma-separated
+            if self._get_child_type() == 'expr':
+                self._write_nl()
+                while self._get_child_type() == 'expr':
+                    self._format_child(indent=True) # <expr>
+                    if self._get_child_type() == ',':
+                        self._format_child() # ','
+                    self._write_nl()
+            else:
+                self._write_sp()
             self._format_child() # '}'
         else:
             self._format_child() # <expr>
@@ -561,10 +565,13 @@ class TypeFormatter(SpaceSeparatedFormatter):
             self._format_child() # 'record',
             self._write_sp()
             self._format_child() # '{'
-            self._write_nl()
 
-            while self._get_child_type() == 'type_spec': # any number of type_specs
-                self._format_child(indent=True)
+            if self._get_child_type() == 'type_spec': # any number of type_specs
+                self._write_nl()
+                while self._get_child_type() == 'type_spec':
+                    self._format_child(indent=True)
+            else:
+                self._write_sp() # empty record, keep on one line
 
             self._format_child() # '}'
 
@@ -712,15 +719,18 @@ class StmtFormatter(TypedInitializerFormatter):
         start = self._get_child_type()
         if start == '{':
             self._format_child() # '{'
-            self._write_nl()
-            while self._get_child_type() == 'stmt':
-                self._format_child(indent=True)
+            if self._get_child_type() == 'stmt':
+                self._write_nl()
+                while self._get_child_type() == 'stmt':
+                    self._format_child(indent=True)
+            else:
+                self.write_sp()
             self._format_child() # '}'
 
         elif start == 'print' or start == 'event':
             self._format_child() # 'print'/'event'
             self._write_sp()
-            self._write_child_range(2) # <expr_list>/<event_hdr> XXX ';'
+            self._write_child_range(2) # <expr_list>/<event_hdr> ';'
             self._write_nl()
 
         elif start == 'if':
@@ -731,12 +741,27 @@ class StmtFormatter(TypedInitializerFormatter):
             self._format_child() # <expr>
             self._write_sp()
             self._format_child() # ')'
-            self._write_sp() if self._child_is_curly_stmt() else self._write_nl()
-            self._format_child(indent=True) # <stmt>
+
+            # We need to track whether the subsequent statement is a
+            # curly-braces block for several reasons: we write a newline now
+            # only when it's not, and we need to indent only if it's not such a
+            # block (because it takes care of it internally).
+
+            curly = self._child_is_curly_stmt()
+            self._write_sp() if curly else self._write_nl()
+            self._format_child(indent=not curly) # <stmt>
+
             if self._get_child_type() == 'else':
+                if curly:
+                    self._write_sp()
                 self._format_child() # 'else'
-                self._write_sp() if self._child_is_curly_stmt() else self._write_nl()
-                self._format_child(indent=True) # <stmt>
+                curly = self._child_is_curly_stmt()
+                self._write_sp() if curly else self._write_nl()
+                self._format_child(indent=not curly) # <stmt>
+                if curly:
+                    self._write_nl()
+            else:
+                self._write_nl()
 
         elif start == 'switch':
             self._format_child() # 'switch'
@@ -745,7 +770,7 @@ class StmtFormatter(TypedInitializerFormatter):
             self._write_sp()
             self._format_child() # '{'
             if self._get_child_type == 'case_list':
-                self._format_child(indent=True) # <case_list> XXX
+                self._format_child(indent=True) # <case_list>
             else:
                 self._write_sp()
             self._format_child() # '}'
@@ -828,15 +853,15 @@ class StmtFormatter(TypedInitializerFormatter):
             self._format_when()
 
         elif start == 'index_slice':
-            self._format_child() # <index_slice> XXX
+            self._format_child() # <index_slice>
             self._write_sp()
             self._format_child() # '='
             self._write_sp()
-            self._format_child_range(2) # <expr> XXX ';'
+            self._format_child_range(2) # <expr> ';'
             self._write_nl()
 
         elif start == 'expr':
-            self._format_child() # <expr> XXX
+            self._format_child_range(2) # <expr> ';'
 
         elif start == 'preproc':
             self._format_child() # <preproc>
@@ -847,13 +872,124 @@ class StmtFormatter(TypedInitializerFormatter):
             self._write_nl()
 
 
-class ZeekygenCommentFormatter(Formatter):
+class ExprListFormatter(Formatter):
+    def format(self):
+        while self._get_child_type() == 'expr':
+            self._format_child() # <expr>
+            if self._get_child():
+                self._format_child() # ','
+                self._write_sp()
+
+
+class CaseListFormatter(Formatter):
+    def format(self):
+        while self._get_node():
+            if self._get_child_type() == 'case':
+                self._format_child() # 'case'
+                self._write_sp()
+                self._format_child_range(2) # <expr_list> or <case_type_list>, ':'
+            else:
+                self._format_child_range(2) # 'default' ':'
+            self._write_nl()
+            while self._get_node_type() == 'stmt':
+                self._format_child(indent=True) # <stmt>
+
+
+class CaseTypeListFormatter(Formatter):
+    def format():
+        while self._get_node_type() == 'type':
+            self._format_child() # 'type'
+            self._write_sp()
+            self._format_child() # <type>
+            if self._get_node_type() == 'as':
+                self._write_sp()
+                self._format_child() # 'as'
+                self._write_sp()
+                self._format_child() # <id>
+            if self._get_node_type() == ',':
+                self._format_child() # ','
+                self._write_sp()
+
+
+class EventHdrFormatter(Formatter):
+    def format():
+        self._format_child() # <id>
+        self._write_sp()
+        self._format_child() # '(
+        if self._get_child_type() == 'expr_list':
+            self._write_sp()
+            self._format_child # <expr_list>
+        self._write_sp()
+        self._format_child() # ')'
+
+
+class ExprFormatter(SpaceSeparatedFormatter):
+    # Like statments, expressions aren't currently broken into specific symbol
+    # types, so we parse into them to identify how to layout them.
+    def format(self):
+        first = self._get_child_type()
+        secnd = self._get_child_type(offset=1)
+        third = self._get_child_type(offset=2)
+
+        if first == 'expr' and secnd in ['[', 'index_slice', '$']:
+            while self._get_child():
+                self._format_child()
+
+        elif first in ['|', '++', '--', '!', '~', '-', '+']:
+            # No space when those operators are involved
+            while self._get_child():
+                self._format_child()
+
+        elif first == 'expr' and secnd == '!' and third == 'in':
+            self._format_child() # <expr>
+            self._write_sp()
+            self._format_child_range(2) # '!in'
+            self._write_sp()
+            self._format_child() # <expr>
+
+        elif first == '[':
+            self._format_child() # '['
+            if self._get_child_type() == 'expr_list':
+                self._format_child() # <expr_list>
+            else:
+                self._write_sp()
+            self._format_child() # ']
+
+        elif first == '$':
+            self._format_child_range(2) # '$'<id>
+            self._write_sp()
+            super().format()
+
+        elif secnd == '(':
+            # initializers such as table(...)
+            self._format_child_range(2) # 'table(' etc
+            if self._get_child_type() == 'expr_list':
+                self._format_child()
+            self._format_child() # ')'
+            if self._get_child_type() == 'attr_list':
+                self._write_sp()
+                self._format_child()
+
+        else:
+            # Fall back to simple space-separation
+            super().format()
+
+
+class ZeekygenHeadCommentFormatter(TypechangeFormatter):
+    def format(self):
+        self._format_token()
+        self._write_nl()
+        if self._next_sibling_typechange():
+            self._write_nl()
+
+
+class ZeekygenNextCommentFormatter(Formatter):
     def format(self):
         self._format_token()
         self._write_nl()
 
 
-class ZeekygenPrevCommentFormatter(ZeekygenCommentFormatter):
+class ZeekygenPrevCommentFormatter(Formatter):
     def __init__(self, script, node, ostream, indent=0, parent=None):
         super().__init__(script, node, ostream, indent, parent)
         self._column = 0 # Column at which this comment lives
@@ -879,19 +1015,19 @@ class ZeekygenPrevCommentFormatter(ZeekygenCommentFormatter):
 
 # ---- Map grammar symbols to formatters -------------------------------
 
-Formatter.register('decl', TypechangeNewlineFormatter)
+Formatter.register('decl', TypechangeFormatter)
 Formatter.register('module_decl', ModuleDeclFormatter)
 Formatter.register('export_decl', ExportDeclFormatter)
 
 # After minor comments we don't add an extra newline (so we group the comment
 # with the thing that follows), unless we switch to a Zeekygen comment.
-Formatter.register('minor_comment', TypechangeNewlineFormatter,
+Formatter.register('minor_comment', TypechangeFormatter,
                    {'typelist': ['zeekygen_head_comment',
                                  'zeekygen_prev_comment',
                                  'zeekygen_next_comment']})
 
-Formatter.register('zeekygen_head_comment', ZeekygenCommentFormatter)
-Formatter.register('zeekygen_next_comment', ZeekygenCommentFormatter)
+Formatter.register('zeekygen_head_comment', ZeekygenHeadCommentFormatter)
+Formatter.register('zeekygen_next_comment', ZeekygenNextCommentFormatter)
 Formatter.register('zeekygen_prev_comment', ZeekygenPrevCommentFormatter)
 
 Formatter.register('preproc', LineFormatter)
@@ -923,8 +1059,13 @@ Formatter.register('formal_args', FormalArgsFormatter)
 Formatter.register('formal_arg', FormalArgFormatter)
 
 Formatter.register('stmt', StmtFormatter)
-Formatter.register('expr', SpaceSeparatedFormatter)
+Formatter.register('expr', ExprFormatter)
 
+Formatter.register('expr_list', ExprListFormatter)
+Formatter.register('case_list', CaseListFormatter)
+
+Formatter.register('case_type_list', CaseTypeListFormatter)
+Formatter.register('event_hdr', EventHdrFormatter)
 
 # ---- Helper functions ------------------------------------------------
 
