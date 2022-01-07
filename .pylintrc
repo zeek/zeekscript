@@ -1,0 +1,6 @@
+[MASTER]
+disable=missing-function-docstring,
+  missing-class-docstring,
+  too-many-arguments, too-many-branches,
+  too-many-instance-attributes,
+  too-many-lines, too-many-statements

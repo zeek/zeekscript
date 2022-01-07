@@ -1,1 +1,3 @@
 build
+*.egg-info
+zeekscript/zeek-language.so
