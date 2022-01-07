@@ -54,11 +54,15 @@ class OutputStream:
     """A column-aware wrapper for output streams."""
     def __init__(self, ostream):
         self._ostream = ostream
+        # The 0-based text column the next character will be written to.
         self._col = 0
 
     def write(self, data):
         for chunk in data.splitlines(keepends=True):
-            self._ostream.buffer.write(chunk)
+            if self._ostream == sys.stdout:
+                self._ostream.buffer.write(chunk)
+            else:
+                self._ostream.write(chunk)
             self._col += len(chunk)
             if chunk.endswith(b'\n'):
                 self._col = 0
