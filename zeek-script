@@ -557,8 +557,6 @@ class TypeDeclFormatter(Formatter):
 
 
 class TypeFormatter(SpaceSeparatedFormatter):
-    PAREN_LIST_TYPES = set(['function', 'event', 'hook'])
-
     def format(self):
         if self._get_child_type() == 'set':
             self._format_child() # 'set'
@@ -593,6 +591,15 @@ class TypeFormatter(SpaceSeparatedFormatter):
             self._write_nl()
             self._format_child(indent=True) # enum_body
             self._format_child() # '}'
+
+        elif self._get_child_type() == 'function':
+            self._format_child_range(2) # 'function' <func_params>
+
+        elif self._get_child_type() in ['event', 'hook']:
+            self._format_child_range(2) # 'event'/'hook' '('
+            if self._get_child_type() == 'formal_args':
+                self._format_child()
+            self._format_child() # ')'
 
         else:
             # Format anything else with plain space separation, e.g. "vector of foo"
@@ -1143,6 +1150,7 @@ Formatter.register('expr', ExprFormatter)
 Formatter.register('stmt_list', StmtListFormatter)
 Formatter.register('expr_list', ExprListFormatter)
 Formatter.register('case_list', CaseListFormatter)
+Formatter.register('attr_list', SpaceSeparatedFormatter)
 
 Formatter.register('case_type_list', CaseTypeListFormatter)
 Formatter.register('event_hdr', EventHdrFormatter)
