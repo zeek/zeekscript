@@ -955,7 +955,7 @@ class ExprListFormatter(Formatter):
 
 class CaseListFormatter(Formatter):
     def format(self):
-        while self._get_node():
+        while self._get_child():
             if self._get_child_type() == 'case':
                 self._format_child() # 'case'
                 self._write_sp()
@@ -963,7 +963,7 @@ class CaseListFormatter(Formatter):
             else:
                 self._format_child_range(2) # 'default' ':'
             self._write_nl()
-            if self._get_node_type() == 'stmt_list':
+            if self._get_child_type() == 'stmt_list':
                 self._format_child(indent=True) # <stmt_list>
 
 
@@ -986,12 +986,9 @@ class CaseTypeListFormatter(Formatter):
 class EventHdrFormatter(Formatter):
     def format(self):
         self._format_child() # <id>
-        self._write_sp()
-        self._format_child() # '(
+        self._format_child() # '('
         if self._get_child_type() == 'expr_list':
-            self._write_sp()
-            self._format_child # <expr_list>
-        self._write_sp()
+            self._format_child() # <expr_list>
         self._format_child() # ')'
 
 
