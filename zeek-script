@@ -666,9 +666,11 @@ class FuncBodyFormatter(Formatter):
     def format(self):
         self._write_sp()
         self._format_child() # '{'
-        self._write_nl()
-        while self._get_child_type() == 'stmt':
-            self._format_child(indent=True) # <stmt>
+        if self._get_child_type() == 'stmt_list':
+            self._write_nl()
+            self._format_child(indent=True) # <stmt_list>
+        else:
+            self._write_sp()
         self._format_child() # '}'
         self._write_nl()
 
@@ -718,9 +720,11 @@ class StmtFormatter(TypedInitializerFormatter):
             self._format_child() # 'timeout'
             self._write_sp()
             self._format_child() # '{'
-            self._write_nl()
-            while self._get_child_type() == 'stmt':
+            if self._get_child_type() == 'stmt_list':
+                self._write_nl()
                 self._format_child(indent=True)
+            else:
+                self._write_sp()
             self._format_child() # '}'
             self._write_nl()
 
@@ -730,12 +734,11 @@ class StmtFormatter(TypedInitializerFormatter):
         start = self._get_child_type()
         if start == '{':
             self._format_child() # '{'
-            if self._get_child_type() == 'stmt':
+            if self._get_child_type() == 'stmt_list':
                 self._write_nl()
-                while self._get_child_type() == 'stmt':
-                    self._format_child(indent=True)
+                self._format_child(indent=True)
             else:
-                self.write_sp()
+                self._write_sp()
             self._format_child() # '}'
 
         elif start == 'print' or start == 'event':
@@ -882,6 +885,24 @@ class StmtFormatter(TypedInitializerFormatter):
             self._write_nl()
 
 
+class StmtListFormatter(Formatter):
+    def format(self):
+        while self._get_child_type() == 'stmt':
+            cur_type = self._get_child().children[0].type
+            self._format_child() # <stmt>
+
+            # Ad-hoc stmt type comparison: if the statement's first symbol type
+            # (e.g. "expr" vs "if") differs, we write a separator line. This
+            # keeps some statements un-separated, such as sequences of
+            # expression statements (like function calls and assignments). This
+            # usually looks fine but we may need to revisit.
+
+            if self._get_child_type() == 'stmt':
+                next_type = self._get_child().children[0].type
+                if cur_type != next_type:
+                    self._write_nl()
+
+
 class ExprListFormatter(Formatter):
     def format(self):
         while self._get_child_type() == 'expr':
@@ -901,8 +922,8 @@ class CaseListFormatter(Formatter):
             else:
                 self._format_child_range(2) # 'default' ':'
             self._write_nl()
-            while self._get_node_type() == 'stmt':
-                self._format_child(indent=True) # <stmt>
+            if self._get_node_type() == 'stmt_list':
+                self._format_child(indent=True) # <stmt_list>
 
 
 class CaseTypeListFormatter(Formatter):
@@ -1069,6 +1090,7 @@ Formatter.register('formal_arg', FormalArgFormatter)
 Formatter.register('stmt', StmtFormatter)
 Formatter.register('expr', ExprFormatter)
 
+Formatter.register('stmt_list', StmtListFormatter)
 Formatter.register('expr_list', ExprListFormatter)
 Formatter.register('case_list', CaseListFormatter)
 
