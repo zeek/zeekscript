@@ -18,6 +18,9 @@ ZEEK_PARSER = Parser()
 ZEEK_PARSER.set_language(ZEEK_LANGUAGE)
 
 class Node:
+    """A subset of tree_sitter.Node, used to build a mutable clone of the
+    tree-sitter parse tree.
+    """
     def __init__(self):
         self.children = []
         self.parent = None
@@ -384,8 +387,8 @@ class TypechangeFormatter(Formatter):
             return False
 
         if next.type == self._node.type:
-            # For sequences of 'decl' this isn't very meaningful, so look more
-            # closely. If the types of decls differ, it counts.
+            # For sequences of 'decl' this isn't very meaningful, so look at
+            # the children to decide.
             try:
                 if (self._node.type == 'decl' and
                     self._node.children[0].type != next.children[0].type):
@@ -396,14 +399,24 @@ class TypechangeFormatter(Formatter):
             # Always separate uncommented record type definitions. (Comments
             # already trigger a separate newline, since they count as a type
             # change relative to decls.)
-            def is_record_type_decl(node):
+            def is_record_decl(node):
                 try:
                     return (node.children[0].type == 'type_decl' and
                             node.children[0].children[3].children[0].type == 'record')
                 except IndexError:
                     return False
 
-            if is_record_type_decl(self._node) or is_record_type_decl(next):
+            if is_record_decl(self._node) or is_record_decl(next):
+                return True
+
+            # Always separate functions, events, hooks with extra whitespace
+            def is_func_decl(node):
+                try:
+                    return node.type == 'decl' and node.children[0].type == 'func_decl'
+                except IndexError:
+                    return False
+
+            if is_func_decl(self._node) or is_func_decl(next):
                 return True
 
             return False
@@ -435,7 +448,7 @@ class TypedInitializerFormatter(Formatter):
     """Helper for common construct that's not a separate symbol in the grammar:
     [:<type>] [<initializer] [attributes]
     """
-    def format(self):
+    def _format_typed_initializer(self):
         if self._get_child_type() == ':':
             self._format_child() # ':'
             self._write_sp()
@@ -458,9 +471,7 @@ class GlobalDeclFormatter(TypedInitializerFormatter):
         self._format_child() # "global", "option", etc
         self._write_sp()
         self._format_child() # <id>
-
-        super().format()
-
+        self._format_typed_initializer()
         self._format_child() # ';'
         self._write_nl()
 
@@ -760,8 +771,8 @@ class StmtFormatter(TypedInitializerFormatter):
                 self._format_child(indent=not curly) # <stmt>
                 if curly:
                     self._write_nl()
-            else:
-                self._write_nl()
+            elif curly:
+                self._write_nl() # Finish the if's curly block.
 
         elif start == 'switch':
             self._format_child() # 'switch'
@@ -843,9 +854,7 @@ class StmtFormatter(TypedInitializerFormatter):
             self._format_child() # 'local'/'const'
             self._write_sp()
             self._format_child() # <id>
-
-            super().format()
-
+            self._format_typed_initializer()
             self._format_child() # ';'
             self._write_nl()
 
@@ -862,6 +871,7 @@ class StmtFormatter(TypedInitializerFormatter):
 
         elif start == 'expr':
             self._format_child_range(2) # <expr> ';'
+            self._write_nl()
 
         elif start == 'preproc':
             self._format_child() # <preproc>
@@ -927,27 +937,25 @@ class ExprFormatter(SpaceSeparatedFormatter):
     # Like statments, expressions aren't currently broken into specific symbol
     # types, so we parse into them to identify how to layout them.
     def format(self):
-        first = self._get_child_type()
-        secnd = self._get_child_type(offset=1)
-        third = self._get_child_type(offset=2)
+        c1, c2, c3 = [self._get_child_type(offset=n) for n in (0,1,2)]
 
-        if first == 'expr' and secnd in ['[', 'index_slice', '$']:
+        if c1 == 'expr' and c2 in ['[', 'index_slice', '$']:
             while self._get_child():
                 self._format_child()
 
-        elif first in ['|', '++', '--', '!', '~', '-', '+']:
+        elif c1 in ['|', '++', '--', '!', '~', '-', '+']:
             # No space when those operators are involved
             while self._get_child():
                 self._format_child()
 
-        elif first == 'expr' and secnd == '!' and third == 'in':
+        elif c1 == 'expr' and c2 == '!' and c3 == 'in':
             self._format_child() # <expr>
             self._write_sp()
             self._format_child_range(2) # '!in'
             self._write_sp()
             self._format_child() # <expr>
 
-        elif first == '[':
+        elif c1 == '[':
             self._format_child() # '['
             if self._get_child_type() == 'expr_list':
                 self._format_child() # <expr_list>
@@ -955,12 +963,12 @@ class ExprFormatter(SpaceSeparatedFormatter):
                 self._write_sp()
             self._format_child() # ']
 
-        elif first == '$':
+        elif c1 == '$':
             self._format_child_range(2) # '$'<id>
             self._write_sp()
             super().format()
 
-        elif secnd == '(':
+        elif c2 == '(':
             # initializers such as table(...)
             self._format_child_range(2) # 'table(' etc
             if self._get_child_type() == 'expr_list':
