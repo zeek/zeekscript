@@ -629,7 +629,7 @@ class FuncDeclFormatter(Formatter):
                 self._format_child() # <preproc>
                 self.write_nl()
         self._format_child() # <func_body>
-
+        self._write_nl()
 
 class FuncHdrFormatter(Formatter):
     def format(self):
@@ -672,7 +672,6 @@ class FuncBodyFormatter(Formatter):
         else:
             self._write_sp()
         self._format_child() # '}'
-        self._write_nl()
 
 
 class FormalArgsFormatter(Formatter):
@@ -694,16 +693,44 @@ class FormalArgFormatter(Formatter):
             self._format_child() # <attr_list>
 
 
+class CaptureListFormatter(Formatter):
+    def format(self):
+        self._format_child() # '['
+        while self._get_child_type() == 'capture':
+            self._format_child() # <capture>
+            if self._get_child_type() == ',':
+                self._format_child() # ','
+                self._write_sp()
+        self._format_child() # ']'
+        self._write_sp()
+
+
 class StmtFormatter(TypedInitializerFormatter):
+    def __init__(self, script, node, ostream, indent=0, parent=None):
+        super().__init__(script, node, ostream, indent, parent)
+
+        # It's an if/for/while statement with a "{ ... }" block
+        self.has_curly_block = False
+
     def _child_is_curly_stmt(self):
-        """Looks ahead to see if the upcoming statement is { ... }.  This decides the
-        surrounding whitespace in some situations below. This is where we could
-        theoretically do Whitesmith. :-P
+        """Looks ahead to see if the upcoming statement is { ... }.
+        This decides surrounding whitespace in some situations below.
         """
         try:
-            return self._get_child().children[0].type == '{'
+            res = self._get_child().children[0].type == '{'
+            if res:
+                self.has_curly_block = True
+            return res
         except (AttributeError, IndexError):
             return False
+
+    def _format_block(self):
+        """Helper for formatting a statement that may be an { ... } block."""
+        curly = self._child_is_curly_stmt()
+        self._write_sp() if curly else self._write_nl()
+        self._format_child(indent=not curly) # <stmt>
+        if curly:
+            self._write_nl()
 
     def _format_when(self):
         self._format_child() # 'when'
@@ -744,7 +771,7 @@ class StmtFormatter(TypedInitializerFormatter):
         elif start == 'print' or start == 'event':
             self._format_child() # 'print'/'event'
             self._write_sp()
-            self._write_child_range(2) # <expr_list>/<event_hdr> ';'
+            self._format_child_range(2) # <expr_list>/<event_hdr> ';'
             self._write_nl()
 
         elif start == 'if':
@@ -759,7 +786,8 @@ class StmtFormatter(TypedInitializerFormatter):
             # We need to track whether the subsequent statement is a
             # curly-braces block for several reasons: we write a newline now
             # only when it's not, and we need to indent only if it's not such a
-            # block (because it takes care of it internally).
+            # block (because it takes care of it internally). An else-block also
+            # requires treatment.
 
             curly = self._child_is_curly_stmt()
             self._write_sp() if curly else self._write_nl()
@@ -769,7 +797,7 @@ class StmtFormatter(TypedInitializerFormatter):
                 if curly:
                     self._write_sp()
                 self._format_child() # 'else'
-                curly = self._child_is_curly_stmt()
+                curly  = self._child_is_curly_stmt()
                 self._write_sp() if curly else self._write_nl()
                 self._format_child(indent=not curly) # <stmt>
                 if curly:
@@ -791,7 +819,7 @@ class StmtFormatter(TypedInitializerFormatter):
             self._write_nl()
 
         elif start == 'for':
-            self._format_child() # 'switch'
+            self._format_child() # 'for'
             self._write_sp()
             self._format_child() # '('
             self._write_sp()
@@ -816,8 +844,7 @@ class StmtFormatter(TypedInitializerFormatter):
             self._format_child() # <expr>
             self._write_sp()
             self._format_child() # ')'
-            self._write_sp() if self._child_is_curly_stmt() else self._write_nl()
-            self._format_child(indent=True) # <stmt>
+            self._format_block() # <stmt>
 
         elif start == 'while':
             self._format_child() # 'while'
@@ -827,11 +854,10 @@ class StmtFormatter(TypedInitializerFormatter):
             self._format_child() # <expr>
             self._write_sp()
             self._format_child() # ')'
-            self._write_sp() if self._child_is_curly_stmt() else self._write_nl()
-            self._format_child(indent=True) # <stmt>
+            self._format_block() # <stmt>
 
         elif start in ['next', 'break', 'fallthrough']:
-            self._format_child(2) # loop control statement, ';'
+            self._format_child_range(2) # loop control statement, ';'
             self._write_nl()
 
         elif start == 'return':
@@ -889,18 +915,33 @@ class StmtListFormatter(Formatter):
     def format(self):
         while self._get_child_type() == 'stmt':
             cur_type = self._get_child().children[0].type
+
             self._format_child() # <stmt>
 
             # Ad-hoc stmt type comparison: if the statement's first symbol type
-            # (e.g. "expr" vs "if") differs, we write a separator line. This
-            # keeps some statements un-separated, such as sequences of
-            # expression statements (like function calls and assignments). This
-            # usually looks fine but we may need to revisit.
+            # (e.g. "expr" vs "if") differs, we write a separator line, with few
+            # exceptions. This keeps some statements un-separated, such as
+            # sequences of expression statements (like function calls and
+            # assignments). This usually looks fine but we may need to revisit
+            # by typing additional expression classes explicitly.
 
-            if self._get_child_type() == 'stmt':
-                next_type = self._get_child().children[0].type
-                if cur_type != next_type:
-                    self._write_nl()
+            if self._get_child_type() != 'stmt':
+                # Done with the statement list
+                continue
+
+            next_type = self._get_child().children[0].type
+
+            # Loop control statements look odd with a blank line before them.
+            if next_type in ['next', 'break', 'fallthrough', 'return']:
+                continue
+
+            # Separate statements when they have a curly block:
+            if self._children[-1].has_curly_block:
+                self._write_nl()
+                continue
+
+            if cur_type != next_type:
+                self._write_nl()
 
 
 class ExprListFormatter(Formatter):
@@ -927,7 +968,7 @@ class CaseListFormatter(Formatter):
 
 
 class CaseTypeListFormatter(Formatter):
-    def format():
+    def format(self):
         while self._get_node_type() == 'type':
             self._format_child() # 'type'
             self._write_sp()
@@ -943,7 +984,7 @@ class CaseTypeListFormatter(Formatter):
 
 
 class EventHdrFormatter(Formatter):
-    def format():
+    def format(self):
         self._format_child() # <id>
         self._write_sp()
         self._format_child() # '(
@@ -987,7 +1028,16 @@ class ExprFormatter(SpaceSeparatedFormatter):
         elif c1 == '$':
             self._format_child_range(2) # '$'<id>
             self._write_sp()
-            super().format()
+            super().format() # Handle rest space-separated
+
+        elif c1 == '(':
+            self._format_child_range(3) # '(' <expr> ')'
+
+        elif c1 == 'copy':
+            self._format_child_range(4) # 'copy' '(' <expr> ')'
+
+        elif c2 == '?$':
+            self._format_child_range(3) # <expr> '$?' <expr>
 
         elif c2 == '(':
             # initializers such as table(...)
@@ -1086,6 +1136,9 @@ Formatter.register('func_body', FuncBodyFormatter)
 
 Formatter.register('formal_args', FormalArgsFormatter)
 Formatter.register('formal_arg', FormalArgFormatter)
+
+Formatter.register('capture', SpaceSeparatedFormatter)
+Formatter.register('capture_list', CaptureListFormatter)
 
 Formatter.register('stmt', StmtFormatter)
 Formatter.register('expr', ExprFormatter)
