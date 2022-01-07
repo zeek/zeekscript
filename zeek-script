@@ -59,10 +59,15 @@ class OutputStream:
 
     def write(self, data):
         for chunk in data.splitlines(keepends=True):
+            if chunk.endswith(b'\n'):
+                # Remove any trailing whitespace
+                chunk = chunk.rstrip() + b'\n'
+
             if self._ostream == sys.stdout:
                 self._ostream.buffer.write(chunk)
             else:
                 self._ostream.write(chunk)
+
             self._col += len(chunk)
             if chunk.endswith(b'\n'):
                 self._col = 0
