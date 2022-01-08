@@ -2,13 +2,21 @@ import setuptools.command.build_py
 
 from setuptools import setup
 from setuptools.dist import Distribution
+from setuptools.command.install import install
 
 
 class BinaryDistribution(Distribution):
     """Distribution which always forces a binary package with platform name"""
     # https://stackoverflow.com/a/62668026
-    def has_ext_modules(_):
+    def has_ext_modules(self):
         return True
+
+class InstallPlatlib(install):
+    """Additional tweak to treat the package as platform-specific."""
+    # https://github.com/google/or-tools/issues/616#issuecomment-371480314
+    def finalize_options(self):
+        install.finalize_options(self)
+        self.install_lib = self.install_platlib
 
 class BuildCommand(setuptools.command.build_py.build_py):
     """A customized build command that also rebuilds the parser bindings as needed."""
@@ -42,7 +50,11 @@ setup(
     packages=['zeekscript'],
     package_data={'zeekscript': ['zeek-language.so']},
 
-    cmdclass={ 'build_py': BuildCommand },
+    cmdclass={
+        'build_py': BuildCommand,
+        'install': InstallPlatlib,
+    },
+
     distclass=BinaryDistribution,
 
     setup_requires=['tree_sitter'],
