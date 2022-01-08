@@ -1,0 +1,6 @@
+include tree-sitter-zeek/src/*
+include tree-sitter-zeek/src/tree_sitter/*
+exclude tree-sitter-zeek/src/.git
+
+# In a source distribution, never include any build bindings
+exclude zeekscript/*.so
