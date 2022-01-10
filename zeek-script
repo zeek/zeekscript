@@ -11,6 +11,9 @@ import zeekscript
 
 # ---- Helper functions --------------------------------------------------------
 
+def print_error(*args, **kwargs):
+    print(*args, file=sys.stderr, **kwargs)
+
 def node_str(node, indent, script):
     content = ''
     if node.is_named:
@@ -57,14 +60,29 @@ def cmd_format(args):
     for fname in args.scripts:
         ofname = fname if args.inplace else None
         script = zeekscript.Script(fname, ofname)
-        script.parse()
+
+        try:
+            script.parse()
+        except zeekscript.Error as err:
+            print_error('error: ' + str(err))
+            return 1
+
         script.format()
 
     return 0
 
 def cmd_parse(args):
     script = zeekscript.Script(args.script)
-    script.parse()
+
+    try:
+        script.parse()
+    except zeekscript.ParserError as err:
+        print_error('parsing error: ' + str(err))
+        print_error('starting line: ' + err.line)
+        return 1
+    except zeekscript.Error as err:
+        print_error('error: ' + str(err))
+        return 1
 
     for node, indent in script.traverse():
         print(node_str(node, indent, script))
@@ -76,7 +94,7 @@ def main():
     args = parser.parse_args()
 
     if not args.command:
-        print('error: please provide a command to execute. See --help.')
+        print_error('error: please provide a command to execute. See --help.')
         return 1
 
     try:

@@ -10,8 +10,9 @@ except ImportError:
     sys.exit(1)
 
 __version__ = '0.1.1'
-__all__ = ['formatter', 'tree']
+__all__ = ['error', 'formatter', 'tree']
 
+from .error import *
 from .formatter import *
 from .tree import *
 
@@ -87,12 +88,38 @@ class Script:
         self.ofname = ofname
 
     def parse(self):
-        """Parses the script and creates the internal concrete syntax tree."""
-        with open(self.name, 'rb') as hdl:
-            self.source = hdl.read()
-            self.tree = Parser().parse(self.source)
-            self._clone_tree()
-            self._patchup_tree()
+        """Parses the script and creates the internal concrete syntax tree.
+
+        Raises zeekscript.FileError when the input file cannot be read, and
+        zeekscript.ParserError when the file didn't parse correctly.
+        """
+        try:
+            with open(self.name, 'rb') as hdl:
+                self.source = hdl.read()
+        except OSError as err:
+            raise FileError(str(err)) from err
+
+        tree = Parser().parse(self.source)
+        if tree.root_node and tree.root_node.has_error:
+            # There's no succinct error summary via tree-sitter, so compute
+            # one. Traverse the tree to call out the topmost ERROR node.
+            for node, _ in self._visit(tree.root_node):
+                if node.type == 'ERROR':
+                    snippet = self.source[node.start_byte:node.end_byte]
+                    if len(snippet) > 50:
+                        snippet = snippet[:50] + b'[...]'
+                    msg = 'cannot parse line {}, col {}: "{}"'.format(
+                        # +1 here because tree-sitter counts lines from 0
+                        # but few editors do. Less clear with columns.
+                        node.start_point[0] + 1, node.start_point[1],
+                        snippet.decode('UTF-8'))
+                    line = self.source.split(b'\n')[node.start_point[0]]
+                    line = line.decode('UTF-8')
+                    raise ParserError(msg, line)
+
+        self.tree = tree
+        self._clone_tree()
+        self._patchup_tree()
 
     def traverse(self):
         """Depth-first iterator for the script's syntax tree.
@@ -100,16 +127,8 @@ class Script:
         This yields a tuple (node, indent) with a Node instance (ours, not
         tree_sitter's) and its indentation level.
         """
-        def visit(node):
-            queue = [(node, 0)]
-            while queue:
-                node, indent = queue.pop(0)
-                yield node, indent
-                for child in reversed(node.children):
-                    queue.insert(0, (child, indent+1))
-
         assert self.root is not None, 'call Script.parse() before Script.traverse()'
-        for node, indent in visit(self.root):
+        for node, indent in self._visit(self.root):
             yield node, indent
 
     def __getitem__(self, key):
@@ -129,6 +148,19 @@ class Script:
             fclass, _ = Formatter.lookup(self.root)
             formatter = fclass(self, self.root, OutputStream(ostream))
             formatter.format()
+
+    def _visit(self, node):
+        """A tree-traversing generator.
+
+        Yields a tuple of (node, indentation depth) for every visited
+        node. Works for zeekscript Nodes as well as tree-sitter's tree nodes.
+        """
+        queue = [(node, 0)]
+        while queue:
+            node, indent = queue.pop(0)
+            yield node, indent
+            for child in reversed(node.children):
+                queue.insert(0, (child, indent+1))
 
     def _clone_tree(self):
         # The tree_sitter tree isn't malleable from Python. This clones it to a
