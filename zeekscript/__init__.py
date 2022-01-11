@@ -109,9 +109,7 @@ class Script:
                     if len(snippet) > 50:
                         snippet = snippet[:50] + b'[...]'
                     msg = 'cannot parse line {}, col {}: "{}"'.format(
-                        # +1 here because tree-sitter counts lines from 0
-                        # but few editors do. Less clear with columns.
-                        node.start_point[0] + 1, node.start_point[1],
+                        node.start_point[0], node.start_point[1],
                         snippet.decode('UTF-8'))
                     line = self.source.split(b'\n')[node.start_point[0]]
                     line = line.decode('UTF-8')

@@ -406,14 +406,15 @@ class TypeDeclFormatter(Formatter):
 
 
 class TypeFormatter(SpaceSeparatedFormatter):
+
     def format(self):
         if self._get_child_type() == 'set':
             self._format_child() # 'set'
-            self._format_child_range(3) # '[' ... ']'
+            self._format_typelist() # '[' ... ']'
 
         elif self._get_child_type() == 'table':
             self._format_child() # 'table'
-            self._format_child_range(3) # '[' ... ']'
+            self._format_typelist() # '[' ... ']'
             self._write_sp()
             self._format_child() # 'of'
             self._write_sp()
@@ -453,6 +454,15 @@ class TypeFormatter(SpaceSeparatedFormatter):
         else:
             # Format anything else with plain space separation, e.g. "vector of foo"
             super().format()
+
+    def _format_typelist(self):
+        self._format_child() # '['
+        while self._get_child_type() == 'type':
+            self._format_child() # <type>
+            if self._get_child_type() == ',':
+                self._format_child() # ','
+                self._write_sp()
+        self._format_child() # ']'
 
 
 class TypeSpecFormatter(Formatter):
@@ -596,6 +606,8 @@ class StmtFormatter(TypedInitializerFormatter):
             self._write_nl()
 
     def _format_when(self):
+        # XXX when-timeout is almost redundant with if-else, though the timeout
+        # block differs in that curly braces are required. Could refactor a bit.
         self._format_child() # 'when'
         self._write_sp()
         self._format_child() # '('
@@ -603,21 +615,26 @@ class StmtFormatter(TypedInitializerFormatter):
         self._format_child() # <expr>
         self._write_sp()
         self._format_child() # ')'
-        _ = self._child_is_curly_stmt()
+
+        curly = self._child_is_curly_stmt()
         self._write_sp_or_nl()
-        self._format_child(indent=True) # <stmt>
+        self._format_child(indent=not curly) # <stmt>
 
         if self._get_child_type() == 'timeout':
+            if curly:
+                self._write_sp()
             self._format_child() # 'timeout'
             self._write_sp()
+            self._format_child() # <expr>
+            self._write_sp()
             self._format_child() # '{'
+            self._write_nl()
             if self._get_child_type() == 'stmt_list':
-                self._write_nl()
-                self._format_child(indent=True)
-            else:
-                self._write_sp()
+                self._format_child(indent=True) # <stmt_list>
             self._format_child() # '}'
             self._write_nl()
+        elif curly:
+            self._write_nl() # Finish the when's curly block.
 
     def format(self):
         # Statements aren't currently broken down into more specific symbol
@@ -729,6 +746,7 @@ class StmtFormatter(TypedInitializerFormatter):
             # There's also an optional 'return" before when statements,
             # so detour in that case and be done.
             if self._get_child_type() == 'when':
+                self._write_sp()
                 self._format_when()
                 return
             if self._get_child_type() == 'expr':
@@ -980,3 +998,4 @@ Formatter.register('event', FuncHdrVariantFormatter)
 
 Formatter.register('capture', SpaceSeparatedFormatter)
 Formatter.register('attr_list', SpaceSeparatedFormatter)
+Formatter.register('interval', SpaceSeparatedFormatter)
