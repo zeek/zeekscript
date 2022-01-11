@@ -42,7 +42,7 @@ def create_parser():
         help='change provided files instead of writing to stdout')
     sub_parser.add_argument(
         'scripts', metavar='FILES', action='append',
-        help='Zeek script(s) to process.')
+        help='Zeek script(s) to process. Use "-" for stdin.')
 
     # parse
 
@@ -50,7 +50,7 @@ def create_parser():
         'parse', help='Show Zeek script parse tree')
     sub_parser.set_defaults(run_cmd=cmd_parse)
     sub_parser.add_argument(
-        'script', metavar='FILE', help='Zeek script to parse.')
+        'script', metavar='FILE', help='Zeek script to parse. Use "-" for stdin.')
 
     return parser
 

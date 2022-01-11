@@ -31,7 +31,9 @@ class OutputStream:
 
             try:
                 if self._ostream == sys.stdout:
-                    self._ostream.buffer.write(chunk)
+                    # Must write string here, not bytes. An alternative is to
+                    # use _ostream.buffer -- not sure how reliable that is.
+                    self._ostream.write(chunk.decode('UTF-8'))
                 else:
                     self._ostream.write(chunk)
             except BrokenPipeError:
@@ -94,8 +96,12 @@ class Script:
         zeekscript.ParserError when the file didn't parse correctly.
         """
         try:
-            with open(self.name, 'rb') as hdl:
-                self.source = hdl.read()
+            # tree-sitter expects bytes, not strings, as input.
+            if self.name == '-':
+                self.source = sys.stdin.read().encode('UTF-8')
+            else:
+                with open(self.name, 'rb') as hdl:
+                    self.source = hdl.read()
         except OSError as err:
             raise FileError(str(err)) from err
 
