@@ -27,22 +27,25 @@ def node_str(node, indent, script):
 
 def create_parser():
     parser = argparse.ArgumentParser(description='A Zeek script analyzer')
-
     command_parser = parser.add_subparsers(
         title='commands', dest='command',
         help='See `%(prog)s <command> -h` for per-command usage info.')
+
+    file_help = ('Use "-" to specify stdin as a filename. Omitting '
+                 'filenames entirely implies reading from stdin.')
 
     # format
 
     sub_parser = command_parser.add_parser(
         'format', help='Format/indent Zeek scripts')
+
     sub_parser.set_defaults(run_cmd=cmd_format)
     sub_parser.add_argument(
         '--inplace', '-i', action='store_true',
         help='change provided files instead of writing to stdout')
     sub_parser.add_argument(
-        'scripts', metavar='FILES', action='append',
-        help='Zeek script(s) to process. Use "-" for stdin.')
+        'scripts', metavar='FILES', nargs='*',
+        help='Zeek script(s) to process. ' + file_help)
 
     # parse
 
@@ -50,15 +53,24 @@ def create_parser():
         'parse', help='Show Zeek script parse tree')
     sub_parser.set_defaults(run_cmd=cmd_parse)
     sub_parser.add_argument(
-        'script', metavar='FILE', help='Zeek script to parse. Use "-" for stdin.')
+        'script', metavar='FILE', nargs='?',
+        help='Zeek script to parse. ' + file_help)
 
     return parser
 
 # ---- CLI commands ------------------------------------------------------------
 
 def cmd_format(args):
+    if not args.scripts:
+        args.scripts = ['-']
+
     for fname in args.scripts:
-        ofname = fname if args.inplace else None
+        inplace = args.inplace
+        if fname == '-' and inplace:
+            print_error('warning: ignoring --inplace when reading from stdin')
+            inplace = False
+
+        ofname = fname if inplace else None
         script = zeekscript.Script(fname, ofname)
 
         try:
@@ -72,7 +84,7 @@ def cmd_format(args):
     return 0
 
 def cmd_parse(args):
-    script = zeekscript.Script(args.script)
+    script = zeekscript.Script(args.script or '-')
 
     try:
         script.parse()
