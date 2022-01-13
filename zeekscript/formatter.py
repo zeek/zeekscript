@@ -92,10 +92,10 @@ class Formatter:
 
         self._format_child_impl(indent=indent)
 
-        # After the child, also skip Zeekygen post-comments (##<):
-        while self._is_post_comment():
+        # After the child, also skip Zeekygen prev-comments (##<):
+        while self._is_zeekygen_prev_comment():
             self._format_child_impl(indent=indent)
-            if self._is_post_comment():
+            if self._is_zeekygen_prev_comment():
                 self._write_nl()
 
     def _format_child_range(self, num, indent=False):
@@ -135,9 +135,9 @@ class Formatter:
         node = self._get_child(offset=offset, skip_comments=False)
         return node and node.is_comment()
 
-    def _is_post_comment(self, offset=0):
+    def _is_zeekygen_prev_comment(self, offset=0):
         node = self._get_child(offset=offset, skip_comments=False)
-        return node and node.is_post_comment()
+        return node and node.is_zeekygen_prev_comment()
 
     def _children_remaining(self):
         remaining = 0

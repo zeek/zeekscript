@@ -19,5 +19,5 @@ class Node:
     def is_comment(self):
         return self.type and self.type.endswith('_comment')
 
-    def is_post_comment(self):
+    def is_zeekygen_prev_comment(self):
         return self.type and self.type == 'zeekygen_prev_comment'
