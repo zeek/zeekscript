@@ -10,11 +10,11 @@ except ImportError:
     sys.exit(1)
 
 __version__ = '0.1.1'
-__all__ = ['error', 'formatter', 'tree']
+__all__ = ['error', 'formatter', 'node']
 
 from .error import *
 from .formatter import *
-from .tree import *
+from .node import *
 
 
 class OutputStream:
