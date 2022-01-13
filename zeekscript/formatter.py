@@ -71,9 +71,7 @@ class Formatter:
         except IndexError:
             return None
 
-    def _format_child_impl(self, indent):
-        node = self._next_child()
-
+    def _format_child_impl(self, node, indent):
         fclass, addl_args = Formatter.lookup(node)
         formatter = fclass(self._script, node, self._ostream,
                            indent=self._indent + int(indent),
@@ -86,17 +84,15 @@ class Formatter:
         formatter.format()
 
     def _format_child(self, indent=False):
-        # Skip comments transparently, as they can occur anywhere.
-        while self._is_comment():
-            self._format_child_impl(indent=indent)
+        node = self._next_child()
 
-        self._format_child_impl(indent=indent)
+        for child in node.prev_cst_siblings:
+            self._format_child_impl(child, indent=indent)
 
-        # After the child, also skip Zeekygen prev-comments (##<):
-        while self._is_zeekygen_prev_comment():
-            self._format_child_impl(indent=indent)
-            if self._is_zeekygen_prev_comment():
-                self._write_nl()
+        self._format_child_impl(node, indent=indent)
+
+        for child in node.next_cst_siblings:
+            self._format_child_impl(child, indent=indent)
 
     def _format_child_range(self, num, indent=False):
         for _ in range(num):
@@ -115,6 +111,8 @@ class Formatter:
         self._write(buf)
 
     def _write(self, data):
+        if isinstance(data, str):
+            data = data.encode('UTF-8')
         # Transparently indent at the beginning of lines, but only if we're not
         # writing a newline anyway.
         if not data.startswith(b'\n'):
@@ -192,7 +190,18 @@ class Formatter:
         return MAP.get(node.type)
 
 
+class NullFormatter(Formatter):
+    """The null formatter doesn't output anything.
+
+    We add newlines manually throughout the tree, using existing ones only as a
+    guideline.
+    """
+    def format(self):
+        pass
+
+
 class LineFormatter(Formatter):
+    """This formatter separates all nodes with space and terminates with a newline."""
     def format(self):
         if self._node.children:
             self._format_children(b' ', b'\n')
@@ -201,6 +210,7 @@ class LineFormatter(Formatter):
 
 
 class SpaceSeparatedFormatter(Formatter):
+    """This formatter simply separates all nodes with a space."""
     def format(self):
         if self._node.children:
             self._format_children(b' ')
@@ -793,39 +803,6 @@ class StmtFormatter(TypedInitializerFormatter):
             self._write_nl()
 
 
-class StmtListFormatter(Formatter):
-    def format(self):
-        while self._get_child_type() == 'stmt':
-            cur_type = self._get_child().children[0].type
-
-            self._format_child() # <stmt>
-
-            # Ad-hoc stmt type comparison: if the statement's first symbol type
-            # (e.g. "expr" vs "if") differs, we write a separator line, with few
-            # exceptions. This keeps some statements un-separated, such as
-            # sequences of expression statements (like function calls and
-            # assignments). This usually looks fine but we may need to revisit
-            # by typing additional expression classes explicitly.
-
-            if self._get_child_type() != 'stmt':
-                # Done with the statement list
-                continue
-
-            next_type = self._get_child().children[0].type
-
-            # Loop control statements look odd with a blank line before them.
-            if next_type in ['next', 'break', 'fallthrough', 'return']:
-                continue
-
-            # Separate statements when they have a curly block:
-            if self.children[-1].has_curly_block:
-                self._write_nl()
-                continue
-
-            if cur_type != next_type:
-                self._write_nl()
-
-
 class ExprListFormatter(Formatter):
     def format(self):
         while self._get_child_type() == 'expr':
@@ -933,6 +910,47 @@ class ExprFormatter(SpaceSeparatedFormatter):
             super().format()
 
 
+
+class NlFormatter(Formatter):
+    def format(self):
+        node = self._node
+        # If this has another newline after it, do nothing.
+        if node.next_cst_sibling and node.next_cst_sibling.is_nl():
+            return
+
+        # Write a single newline for any sequence of blank lines in the input,
+        # unless this sequence is at the beginning or end of the sequence.
+
+        if not node.next_cst_sibling or node.next_cst_sibling.type == '}':
+            # It's at the end of a sequence.
+            return
+
+        if node.prev_cst_sibling and node.prev_cst_sibling.is_nl():
+            # It's a sequence.
+            while node.prev_cst_sibling and node.prev_cst_sibling.is_nl():
+                node = node.prev_cst_sibling
+
+            if node.prev_cst_sibling and node.prev_cst_sibling.type != '{':
+                # There's something other than whitspace before this sequence.
+                self._write_nl()
+
+
+class MinorCommentFormatter(Formatter):
+    def format(self):
+        node = self._node
+        # There's something before us and it's not a newline, then
+        # separate this comment from it with a space:
+        if node.prev_cst_sibling and not node.prev_cst_sibling.is_nl():
+            self._write_sp()
+
+        self._format_token() # Write comment itself
+
+        # If there's nothing or a newline before us, then this comment spans
+        # the whole line and we need to write the final newline ourselves.
+        if node.prev_cst_sibling is None or node.prev_cst_sibling.is_nl():
+            self._write_nl()
+
+
 class ZeekygenHeadCommentFormatter(TypechangeFormatter):
     def format(self):
         self._format_token()
@@ -970,20 +988,19 @@ class ZeekygenPrevCommentFormatter(Formatter):
         # Write comment itself
         self._format_token()
 
+        # If this has another ##< comment after it, write the newline.
+        try:
+            if (self._node.next_cst_sibling.is_nl() and
+                self._node.next_cst_sibling.next_cst_sibling.is_zeekygen_prev_comment()):
+                self._write_nl()
+        except AttributeError:
+            pass
+
 
 # ---- Explicit mappings for grammar symbols to formatters ---------------------
 #
 # NodeMapper.get() retrieves formatters not listed here by mapping symbol
 # names to class names, e.g. module_decl -> ModuleDeclFormatter.
-
-Formatter.register('decl', TypechangeFormatter)
-
-# After minor comments we don't add an extra newline (so we group the comment
-# with the thing that follows), unless we switch to a Zeekygen comment.
-Formatter.register('minor_comment', TypechangeFormatter,
-                   {'typelist': ['zeekygen_head_comment',
-                                 'zeekygen_prev_comment',
-                                 'zeekygen_next_comment']})
 
 Formatter.register('preproc', LineFormatter)
 
@@ -999,3 +1016,5 @@ Formatter.register('event', FuncHdrVariantFormatter)
 Formatter.register('capture', SpaceSeparatedFormatter)
 Formatter.register('attr_list', SpaceSeparatedFormatter)
 Formatter.register('interval', SpaceSeparatedFormatter)
+
+Formatter.register('nullnode', NullFormatter)

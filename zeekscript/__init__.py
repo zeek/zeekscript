@@ -51,22 +51,29 @@ class OutputStream:
 
 
 class Parser:
-    """A class to abstract the tree_sitter.Parser."""
+    """tree_sitter.Parser abstraction
 
+    Takes care of loading the TS Zeek language and provides error handling when
+    parsing encounters trouble.
+    """
     TS_PARSER = None # A tree_sitter.Parser singleton
 
     def __init__(self):
         Parser.load_parser()
 
     def parse(self, text):
-        """Returns a tree_sitter.Tree for the given script text."""
+        """Returns a tree_sitter.Tree for the given script text.
+
+        This tree may have errors, as indicated via its root node's has_error
+        flag.
+        """
         return Parser.TS_PARSER.parse(text)
 
     @classmethod
     def load_parser(cls):
         if cls.TS_PARSER is None:
-            # Python voodoo to access the contained bindings library
-            # regardless of how we're loading the package. Details:
+            # Python voodoo to access the bindings library contained in this
+            # package regardless of how we're loading the package. Details:
             # https://importlib-resources.readthedocs.io/en/latest/using.html#file-system-or-zip-file
             source = files(__package__).joinpath('zeek-language.so')
             with as_file(source) as lib:
@@ -78,16 +85,11 @@ class Parser:
 class Script:
     """Representation of a single Zeek script file."""
     def __init__(self, fname, ofname=None):
-        # The file name to read the Zeek script from
-        self.name = fname
-        # The file's full content
-        self.source = None
-        # The tree-sitter parse tree for the script
-        self.tree = None
-        # The root node of our cloned (and malleable) tree
-        self.root = None
-        # The output file name -- None if stdout
-        self.ofname = ofname
+        self.name = fname # The file name to read the Zeek script from
+        self.source = None # The file's full content
+        self.ts_tree = None # The tree-sitter parse tree for the script
+        self.root = None # The root node of our cloned (and malleable) tree
+        self.ofname = ofname # The output file name -- None if stdout
 
     def parse(self):
         """Parses the script and creates the internal concrete syntax tree.
@@ -105,25 +107,12 @@ class Script:
         except OSError as err:
             raise FileError(str(err)) from err
 
-        tree = Parser().parse(self.source)
-        if tree.root_node and tree.root_node.has_error:
-            # There's no succinct error summary via tree-sitter, so compute
-            # one. Traverse the tree to call out the topmost ERROR node.
-            for node, _ in self._visit(tree.root_node):
-                if node.type == 'ERROR':
-                    snippet = self.source[node.start_byte:node.end_byte]
-                    if len(snippet) > 50:
-                        snippet = snippet[:50] + b'[...]'
-                    msg = 'cannot parse line {}, col {}: "{}"'.format(
-                        node.start_point[0], node.start_point[1],
-                        snippet.decode('UTF-8'))
-                    line = self.source.split(b'\n')[node.start_point[0]]
-                    line = line.decode('UTF-8')
-                    raise ParserError(msg, line)
+        self.ts_tree = Parser().parse(self.source)
+        if self.ts_tree.root_node and self.ts_tree.root_node.has_error:
+            self._raise_parser_error()
 
-        self.tree = tree
         self._clone_tree()
-        self._patchup_tree()
+        self._patch_tree()
 
     def traverse(self):
         """Depth-first iterator for the script's syntax tree.
@@ -166,34 +155,161 @@ class Script:
             for child in reversed(node.children):
                 queue.insert(0, (child, indent+1))
 
+    def _raise_parser_error(self):
+        """Raises zeekscript.ParserError with info on trouble in the parse tree."""
+
+        # There's no succinct error summary via tree-sitter, so compute
+        # one. Traverse the tree to call out the troubled node -- it will
+        # either have type "ERROR" or its is_missing flag is set.
+
+        msg = 'cannot parse document'
+        line = None
+
+        for node, _ in self._visit(self.ts_tree.root_node):
+            if node.type != 'ERROR' and not node.is_missing:
+                continue
+
+            snippet = self.source[node.start_byte:node.end_byte]
+            if len(snippet) > 50:
+                snippet = snippet[:50] + b'[...]'
+
+            if node.type == 'ERROR':
+                msg = 'cannot parse line {}, col {}: "{}"'.format(
+                    node.start_point[0], node.start_point[1],
+                    snippet.decode('UTF-8'))
+            elif node.is_missing:
+                snippet = self.source[node.start_byte:node.end_byte]
+                if len(snippet) > 50:
+                    snippet = snippet[:50] + b'[...]'
+                msg = 'missing grammer node "{}" on line {}, col {}'.format(
+                    node.type, node.start_point[0], node.start_point[1])
+
+            line = self.source.split(b'\n')[node.start_point[0]]
+            line = line.decode('UTF-8')
+            break
+
+        raise ParserError(msg, line)
+
     def _clone_tree(self):
-        # The tree_sitter tree isn't malleable from Python. This clones it to a
-        # tree of our own Node class that we can alter freely.
+        """Deep-copy the TS tree to one consisting of zeekscript.Node instances.
+
+        The input is self.ts_tree, the output is our tree's root node at self.root.
+        """
+        # We don't operate directly on the TS tree, for two reasons: first, the
+        # TS tree isn't malleable from Python. We can alter the structure of our
+        # own tree freely, which helps during formatting. Second, we encode
+        # additional metadata in the node structure.
         def make_node(node):
             new_node = Node()
+
+            # Copy basic TS properties
             new_node.start_byte, new_node.end_byte = node.start_byte, node.end_byte
             new_node.start_point, new_node.end_point = node.start_point, node.end_point
             new_node.is_named = node.is_named
+            new_node.is_missing = node.is_missing
+            new_node.has_error = node.has_error
             new_node.type = node.type
 
+            # Mark the node as AST-only if it's not a newline or comment.  Those
+            # are extras (in TS terminology) that occur anywhere in the tree.
+            if node.type != 'nl' and not node.type.endswith('_comment'):
+                new_node.is_ast = True
+
+            new_children = []
+
+            # Set up state for all of the node's children. This recurses
+            # so we build up our own tree.
             for child in node.children:
                 new_child = make_node(child)
+
+                # Fully link CST nodes so they can reason about their neighbors
+                if new_children:
+                    new_children[-1].next_cst_sibling = new_child
+                    new_child.prev_cst_sibling = new_children[-1]
+
+                new_children.append(new_child)
                 new_child.parent = new_node
-                new_node.children.append(new_child)
-                if len(new_node.children) > 1:
-                    new_node.children[-2].next_sibling = new_node.children[-1]
-                    new_node.children[-1].prev_sibling = new_node.children[-2]
+
+                # Only register AST nodes directly in the child list. This
+                # allows expected indices, such as the expr in '[' <expr> ']' to
+                # be the second child, to function regardless of comments or
+                # newlines.
+                if new_child.is_ast:
+                    new_node.children.append(new_child)
+                    if len(new_node.children) > 1:
+                        new_node.children[-2].next_sibling = new_node.children[-1]
+                        new_node.children[-1].prev_sibling = new_node.children[-2]
+
+            # Corner case: if we have no AST nodes (only comments in a statement
+            # block, for example), then create a dummy "null" node as AST node
+            # to house those elements. This node has a null formatter so will
+            # not produce any output.
+            if new_children and not new_node.children:
+                nullnode = Node()
+                nullnode.is_named = True
+                nullnode.type = 'nullnode'
+                nullnode.is_ast = True
+                new_node.children.append(nullnode)
+                new_children.append(nullnode)
+
+            # Now figure out where to "cut" the sequence of CST nodes around the
+            # AST nodes. After an AST node we only allow a sequence of Zeekygen
+            # prev comments, or any regular comment up to the next newline. The
+            # rest gets associated with the subsequent AST node, unless there
+            # isn't one.
+
+            ast_node = None
+            ast_nodes_remaining = len(new_node.children)
+            prevs = []
+            last_child = None
+
+            for child in new_children:
+                if ast_nodes_remaining == 0:
+                    ast_node.next_cst_siblings.append(child)
+                    child.ast_parent = ast_node
+
+                elif child.is_ast:
+                    ast_nodes_remaining -= 1
+                    child.prev_cst_siblings = prevs
+                    for p in prevs:
+                        p.ast_parent = child
+                    prevs = []
+                    ast_node = child
+
+                elif not ast_node:
+                    prevs.append(child)
+
+                elif child.is_zeekygen_prev_comment():
+                    # Accept ##< comments. Newlines control how often we do so.
+                    ast_node.next_cst_siblings.append(child)
+                    child.ast_parent = ast_node
+
+                elif child.is_minor_comment() and last_child and last_child.is_ast:
+                    # Accept a minor comment if it directly follows the AST node.
+                    ast_node.next_cst_siblings.append(child)
+                    child.ast_parent = ast_node
+
+                elif child.is_nl() and last_child and last_child.is_comment():
+                    ast_node.next_cst_siblings.append(child)
+                    child.ast_parent = ast_node
+
+                else:
+                    # Break the chain of CST nodes: this child becomes the start
+                    # of the prev CST nodes for the next AST.
+                    ast_node = None
+                    prevs = [child]
+
+                last_child = child
 
             return new_node
 
-        self.root = make_node(self.tree.root_node)
+        self.root = make_node(self.ts_tree.root_node)
 
-    def _patchup_tree(self):
-        """Tweak the syntax tree to simplify our processing."""
-
-        # Move any dangling zeekygen_prev_comments down into the tree so they
-        # directly child-follow the node that the comment refers to. For
-        # example, this turns ...
+    def _patch_tree(self):
+        """Tweak the syntax tree to simplify formatting."""
+        # Move any dangling CST nodes (such as comments) down into the tree so
+        # they directly child-follow the node that they refers to. For example,
+        # this turns ...
         #
         #       type (138.11,138.14)
         #           int (138.11,138.14)
@@ -210,26 +326,12 @@ class Script:
         #           zeekygen_prev_comment (139.19,140.0) '##< continuing here.\n'
         #
         for node, _ in self.traverse():
-            idx = 0 # Iterate manually since not every iteration advances idx
-            while idx < len(node.children):
-                child = node.children[idx]
-                # If this child is a ##< comment and the previous child has
-                # children, move the comment down to the kid's kids.
-                if (idx > 0 and child.type == 'zeekygen_prev_comment' and
-                    node.children[idx-1].children):
+            if node.next_cst_siblings and node.children:
+                node.next_cst_sibling = None
 
-                    # Cut out comment from sibling relationships:
-                    child.prev_sibling.next_sibling = child.next_sibling
-                    if child.next_sibling:
-                        child.next_sibling.prev_sibling = child.prev_sibling
+                if node.children[-1].next_cst_siblings:
+                    node.children[-1].next_cst_siblings[-1].next_cst_sibling = node.next_cst_siblings[0]
+                    node.next_cst_siblings[0].prev_cst_sibling = node.children[-1].next_cst_siblings[-1]
 
-                    # Move comment to new location:
-                    node.children.pop(idx)
-                    node.children[idx-1].children.append(child)
-
-                    # Adjust sibling relationship in new location:
-                    if len(node.children[idx-1].children) > 1:
-                        node.children[idx-1].children[-2].next_sibling = child
-                        child.prev_sibling = node.children[idx-1].children[-2]
-                else:
-                    idx += 1
+                node.children[-1].next_cst_siblings += node.next_cst_siblings
+                node.next_cst_siblings = []

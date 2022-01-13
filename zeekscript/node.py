@@ -5,6 +5,10 @@ class Node:
     match those of tree_sitter.Node. Instances provide separate navigational
     data structures for abstract and concrete nodes (such as comments, newlines)
     in the source, and a few helper methods.
+
+    We don't inherit from tree_sitter.Node because we can't: doing so yields
+    TypeError: type 'tree_sitter.Node' is not an acceptable base type. One also
+    cannot instantiate its nodes manually.
     """
     def __init__(self):
         # AST navigation: these relationship omit nodes present only in the
@@ -26,19 +30,38 @@ class Node:
 
         # Additions over the TS node members below:
 
-        self.prev_cst_sibling = None
-        self.next_cst_sibling = None
-
-        # If this is an AST node: full sequences of CST nodes
-        # preceeding/succeeding this node.
-        self.prev_cst_siblings = []
-        self.next_cst_siblings = []
-
         # Whether this is an AST member
         self.is_ast = False
 
         # For CST nodes, a link to the AST node they're grouped with.
         self.ast_parent = None
+
+        # Direct previous/next links to nodes in the CST.
+        self.prev_cst_sibling = None
+        self.next_cst_sibling = None
+
+        # If this is an AST node: full sequences of CST nodes preceeding/
+        # succeeding this node. These lists are in tree-order: if a tree node's
+        # sequence of children is ...
+        #
+        #   <minor comment>  (CST)
+        #   <nl>             (CST)
+        #   <minor comment>  (CST)
+        #   <nl>             (CST)
+        #   <expr>           (AST)
+        #   <minor_comment>  (CST)
+        #   <nl>             (CST)
+        #
+        # ... then the members of prev_cst_siblings are ...
+        #
+        #   [ <minor comment>, <nl>, <minor comment>, <nl>]
+        #
+        # ... and those of next_cst_siblings are:
+        #
+        # [ <minor comment>, <nl>]
+        #
+        self.prev_cst_siblings = []
+        self.next_cst_siblings = []
 
     def is_nl(self):
         """Returns True iff this is a newline."""
