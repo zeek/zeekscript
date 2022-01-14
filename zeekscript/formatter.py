@@ -46,6 +46,8 @@ class Formatter:
         self._script = script
         self._node = node
         self._ostream = ostream
+
+        # Number of tabs to indent with
         self._indent = indent
 
         # Child node index for iteration
@@ -113,20 +115,36 @@ class Formatter:
     def _write(self, data):
         if isinstance(data, str):
             data = data.encode('UTF-8')
+
         # Transparently indent at the beginning of lines, but only if we're not
         # writing a newline anyway.
-        if not data.startswith(b'\n'):
-            self._write_indent()
+        if not data.startswith(b'\n') and self._write_indent():
+            # We just indented. Don't write any additional whitespace at the
+            # beginning now. Such whitespace might exist from spacing that
+            # would result without the presence of interrupting comments.
+            data = data.lstrip()
+
         self._ostream.write(data)
 
     def _write_indent(self):
         if self._ostream.get_column() == 0:
             self._ostream.write(b'\t' * self._indent)
+            self._ostream.write_space_indent()
+            return True
+        return False
 
     def _write_sp(self, num=1):
         self._write(b' ' * num)
 
-    def _write_nl(self, num=1):
+    def _write_nl(self, num=1, force=False, is_midline=False):
+        self._ostream.set_space_indent(is_midline)
+
+        # It's rare that we really want to write newlines multiple times in a
+        # row. Normally, if we just wrote one, don't do so again unless we
+        # force.
+        if self._ostream.get_column() == 0 and not force:
+            return
+
         self._write(b'\n' * num)
 
     def _is_comment(self, offset=0):
@@ -932,7 +950,7 @@ class NlFormatter(Formatter):
 
             if node.prev_cst_sibling and node.prev_cst_sibling.type != '{':
                 # There's something other than whitspace before this sequence.
-                self._write_nl()
+                self._write_nl(force=True)
 
 
 class MinorCommentFormatter(Formatter):
@@ -945,10 +963,13 @@ class MinorCommentFormatter(Formatter):
 
         self._format_token() # Write comment itself
 
-        # If there's nothing or a newline before us, then this comment spans
-        # the whole line and we need to write the final newline ourselves.
+        # If there's nothing or a newline before us, then this comment spans the
+        # whole line and we write a regular newline. Otherwise we indicate that
+        # this newline is likely an interruption to the current line.
         if node.prev_cst_sibling is None or node.prev_cst_sibling.is_nl():
             self._write_nl()
+        else:
+            self._write_nl(is_midline=True)
 
 
 class ZeekygenHeadCommentFormatter(TypechangeFormatter):
@@ -966,6 +987,7 @@ class ZeekygenNextCommentFormatter(Formatter):
 
 
 class ZeekygenPrevCommentFormatter(Formatter):
+    """A formatter for Zeekygen comments that refer to earlier items (##<)."""
     def __init__(self, script, node, ostream, indent=0, parent=None):
         super().__init__(script, node, ostream, indent, parent)
         self.column = 0 # Column at which this comment lives

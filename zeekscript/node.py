@@ -36,6 +36,11 @@ class Node:
         # For CST nodes, a link to the AST node they're grouped with.
         self.ast_parent = None
 
+        # For CST nodes, these flags indicate whether they come before or after
+        # the AST node they're associated with.
+        self.is_cst_prev_node = False
+        self.is_cst_next_node = False
+
         # Direct previous/next links to nodes in the CST.
         self.prev_cst_sibling = None
         self.next_cst_sibling = None

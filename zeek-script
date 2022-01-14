@@ -21,32 +21,18 @@ def node_str(node, indent, script):
         content = script.source[node.start_byte:node.end_byte][:100]
         # ... and render it such that we get backslash-escapes.
         content = str(repr(content.decode('ascii', 'ignore')))
-    prev_cst_summary, next_cst_summary = [], []
-    for n in node.prev_cst_siblings:
-        if n.is_nl():
-            prev_cst_summary.append('n')
-        elif n.is_minor_comment:
-            prev_cst_summary.append('m')
-        elif n.is_zeekygen_prev_comment():
-            prev_cst_summary.append('z')
-        else:
-            prev_cst_summary.append('?')
-    for n in node.next_cst_siblings:
-        if n.is_nl():
-            next_cst_summary.append('n')
-        elif n.is_minor_comment:
-            next_cst_summary.append('m')
-        elif n.is_zeekygen_next_comment():
-            next_cst_summary.append('z')
-        else:
-            next_cst_summary.append('?')
 
-    return ' ' * (4*indent) + '{} ({}.{},{}.{}) [{},{}] {}'.format(
-        node.type,
+    cst_indicator = ''
+    if not node.is_ast:
+        if node.is_cst_prev_node:
+            cst_indicator = 'v '
+        if node.is_cst_next_node:
+            cst_indicator = '^ '
+
+    return ' ' * (4*indent) + '{}{} ({}.{},{}.{}) {}'.format(
+        cst_indicator, node.type,
         node.start_point[0], node.start_point[1],
         node.end_point[0], node.end_point[1],
-        ''.join(prev_cst_summary),
-        ''.join(next_cst_summary),
         content)
 
 def create_parser():
@@ -76,6 +62,9 @@ def create_parser():
     sub_parser = command_parser.add_parser(
         'parse', help='Show Zeek script parse tree')
     sub_parser.set_defaults(run_cmd=cmd_parse)
+    sub_parser.add_argument(
+        '--concrete', '-c', action='store_true',
+        help='report concrete syntax tree (CST) instead of AST')
     sub_parser.add_argument(
         'script', metavar='FILE', nargs='?',
         help='Zeek script to parse. ' + file_help)
@@ -120,7 +109,7 @@ def cmd_parse(args):
         print_error('error: ' + str(err))
         return 1
 
-    for node, indent in script.traverse():
+    for node, indent in script.traverse(include_cst=args.concrete):
         print(node_str(node, indent, script))
 
     return 0

@@ -18,10 +18,14 @@ from .node import *
 
 
 class OutputStream:
-    """A column-aware wrapper for output streams."""
+    """A column-aware, trailing-whitespace-stripping wrapper for output streams."""
     def __init__(self, ostream):
         self._ostream = ostream
         self._col = 0 # 0-based column the next character goes into.
+        self._space_indent = 0
+
+    def set_space_indent(self, num):
+        self._space_indent = num
 
     def write(self, data):
         for chunk in data.splitlines(keepends=True):
@@ -32,7 +36,7 @@ class OutputStream:
             try:
                 if self._ostream == sys.stdout:
                     # Must write string here, not bytes. An alternative is to
-                    # use _ostream.buffer -- not sure how reliable that is.
+                    # use _ostream.buffer -- not sure how portable that is.
                     self._ostream.write(chunk.decode('UTF-8'))
                 else:
                     self._ostream.write(chunk)
@@ -46,16 +50,16 @@ class OutputStream:
             if chunk.endswith(b'\n'):
                 self._col = 0
 
+    def write_space_indent(self):
+        if self._space_indent > 0:
+            self.write(b' ' * 4 * self._space_indent)
+
     def get_column(self):
         return self._col
 
 
 class Parser:
-    """tree_sitter.Parser abstraction
-
-    Takes care of loading the TS Zeek language and provides error handling when
-    parsing encounters trouble.
-    """
+    """tree_sitter.Parser abstraction that takes care of loading the TS Zeek language."""
     TS_PARSER = None # A tree_sitter.Parser singleton
 
     def __init__(self):
@@ -114,14 +118,14 @@ class Script:
         self._clone_tree()
         self._patch_tree()
 
-    def traverse(self):
+    def traverse(self, include_cst=False):
         """Depth-first iterator for the script's syntax tree.
 
         This yields a tuple (node, indent) with a Node instance (ours, not
         tree_sitter's) and its indentation level.
         """
         assert self.root is not None, 'call Script.parse() before Script.traverse()'
-        for node, indent in self._visit(self.root):
+        for node, indent in self._visit(self.root, include_cst):
             yield node, indent
 
     def __getitem__(self, key):
@@ -142,7 +146,7 @@ class Script:
             formatter = fclass(self, self.root, OutputStream(ostream))
             formatter.format()
 
-    def _visit(self, node):
+    def _visit(self, node, include_cst=False):
         """A tree-traversing generator.
 
         Yields a tuple of (node, indentation depth) for every visited
@@ -151,7 +155,19 @@ class Script:
         queue = [(node, 0)]
         while queue:
             node, indent = queue.pop(0)
+
+            # If the caller wants the CST, we now need to iterate any
+            # preceeding/succeeding CST nodes this AST nodes has stored:
+            if include_cst:
+                for cst_node in node.prev_cst_siblings:
+                    yield cst_node, indent
+
             yield node, indent
+
+            if include_cst:
+                for cst_node in node.next_cst_siblings:
+                    yield cst_node, indent
+
             for child in reversed(node.children):
                 queue.insert(0, (child, indent+1))
 
@@ -267,6 +283,7 @@ class Script:
                 if ast_nodes_remaining == 0:
                     ast_node.next_cst_siblings.append(child)
                     child.ast_parent = ast_node
+                    child.is_cst_next_node = True
 
                 elif child.is_ast:
                     ast_nodes_remaining -= 1
@@ -278,19 +295,23 @@ class Script:
 
                 elif not ast_node:
                     prevs.append(child)
+                    child.is_cst_prev_node = True
 
                 elif child.is_zeekygen_prev_comment():
                     # Accept ##< comments. Newlines control how often we do so.
                     ast_node.next_cst_siblings.append(child)
+                    child.is_cst_next_node = True
                     child.ast_parent = ast_node
 
                 elif child.is_minor_comment() and last_child and last_child.is_ast:
                     # Accept a minor comment if it directly follows the AST node.
                     ast_node.next_cst_siblings.append(child)
+                    child.is_cst_next_node = True
                     child.ast_parent = ast_node
 
                 elif child.is_nl() and last_child and last_child.is_comment():
                     ast_node.next_cst_siblings.append(child)
+                    child.is_cst_next_node = True
                     child.ast_parent = ast_node
 
                 else:
@@ -298,6 +319,7 @@ class Script:
                     # of the prev CST nodes for the next AST.
                     ast_node = None
                     prevs = [child]
+                    child.is_cst_prev_node = True
 
                 last_child = child
 
