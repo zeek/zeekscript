@@ -88,12 +88,11 @@ class Parser:
 
 class Script:
     """Representation of a single Zeek script file."""
-    def __init__(self, fname, ofname=None):
+    def __init__(self, fname):
         self.name = fname # The file name to read the Zeek script from
         self.source = None # The file's full content
         self.ts_tree = None # The tree-sitter parse tree for the script
         self.root = None # The root node of our cloned (and malleable) tree
-        self.ofname = ofname # The output file name -- None if stdout
 
     def parse(self):
         """Parses the script and creates the internal concrete syntax tree.
@@ -135,16 +134,26 @@ class Script:
         """
         return self.source.__getitem__(key)
 
-    def format(self):
+    def format(self, output=None):
         """Formats the script and writes out the result.
 
-        The output destination is as configured in the constructor: stdout or to a file.
+        The output destination can be one of three things: a filename, a file
+        object, or None, which means stdout.
         """
         assert self.root is not None, 'call Script.parse() before Script.format()'
-        with open(self.ofname, 'wb') if self.ofname else sys.stdout as ostream:
+
+        def do_format(ostream):
             fclass, _ = Formatter.lookup(self.root)
             formatter = fclass(self, self.root, OutputStream(ostream))
             formatter.format()
+
+        if output is None:
+            do_format(sys.stdout)
+        elif isinstance(output, str):
+            with open(self.ofname, 'wb') as ostream:
+                do_format(ostream)
+        else:
+            do_format(output)
 
     def _visit(self, node, include_cst=False):
         """A tree-traversing generator.

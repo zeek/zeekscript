@@ -6,6 +6,7 @@ parse tree for the script.
 """
 # PYTHON_ARGCOMPLETE_OK
 import argparse
+import io
 import sys
 
 try:
@@ -86,22 +87,37 @@ def cmd_format(args):
     if not args.scripts:
         args.scripts = ['-']
 
+    def do_write(source):
+        with open(ofname, 'w') if ofname else sys.stdout as ostream:
+            ostream.write(source.decode('UTF-8'))
+
     for fname in args.scripts:
         inplace = args.inplace
         if fname == '-' and inplace:
             print_error('warning: ignoring --inplace when reading from stdin')
             inplace = False
 
+        script = zeekscript.Script(fname)
         ofname = fname if inplace else None
-        script = zeekscript.Script(fname, ofname)
 
         try:
             script.parse()
         except zeekscript.Error as err:
-            print_error('error: ' + str(err))
+            print_error('parsing error: ' + str(err))
+            do_write(script.source)
             return 1
 
-        script.format()
+        buf = io.BytesIO()
+
+        try:
+            script.format(buf)
+        except Exception as err:
+            print_error('formatting error: ' + str(err))
+            do_write(script.source)
+            return 1
+
+        # Write out the complete, reformatted source.
+        do_write(buf.getvalue())
 
     return 0
 
