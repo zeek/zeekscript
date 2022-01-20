@@ -4,8 +4,14 @@ This is a tool for processing Zeek scripts. It currently supports formatting
 scripts according to codified rules (no optionas at all atm), and showing a
 parse tree for the script.
 """
+# PYTHON_ARGCOMPLETE_OK
 import argparse
 import sys
+
+try:
+    import argcomplete
+except:
+    pass
 
 import zeekscript
 
@@ -68,6 +74,9 @@ def create_parser():
     sub_parser.add_argument(
         'script', metavar='FILE', nargs='?',
         help='Zeek script to parse. ' + file_help)
+
+    if 'argcomplete' in sys.modules:
+        argcomplete.autocomplete(parser)
 
     return parser
 
