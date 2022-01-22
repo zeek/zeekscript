@@ -229,71 +229,6 @@ class SpaceSeparatedFormatter(Formatter):
             self._format_token()
 
 
-class TypechangeFormatter(Formatter):
-    """A formatter that issues a newline after formatting when the next sibling
-    node has a different type, or isn't among a given list of types. This helps
-    with grouping "similar" nodes tightly, adding an extra newline only when a
-    group finishes.
-    """
-    def __init__(self, script, node, ostream, indent=0, parent=None, typelist=None):
-        super().__init__(script, node, ostream, indent, parent)
-        self._typelist = typelist
-
-    def format(self):
-        super().format()
-        if self._next_sibling_typechange():
-            self._write_nl()
-
-    def _next_sibling_typechange(self):
-        # There's no type change when there's nothing to compare to, or that
-        # thing isn't a complex node (for example, a '}' at the end of an export
-        # block).
-        if self._node.next_sibling is None or not self._node.next_sibling.is_named:
-            return False
-
-        nextsib = self._node.next_sibling
-
-        if self._typelist and nextsib.type not in self._typelist:
-            return False
-
-        if nextsib.type == self._node.type:
-            # For sequences of 'decl' this isn't very meaningful, so look at
-            # the children to decide.
-            try:
-                if (self._node.type == 'decl' and
-                    self._node.children[0].type != nextsib.children[0].type):
-                    return True
-            except IndexError:
-                pass
-
-            # Always separate uncommented record type definitions. (Comments
-            # already trigger a separate newline, since they count as a type
-            # change relative to decls.)
-            def is_record_decl(node):
-                try:
-                    return (node.children[0].type == 'type_decl' and
-                            node.children[0].children[3].children[0].type == 'record')
-                except IndexError:
-                    return False
-
-            if is_record_decl(self._node) or is_record_decl(nextsib):
-                return True
-
-            # Always separate functions, events, hooks with extra whitespace
-            def is_func_decl(node):
-                try:
-                    return node.type == 'decl' and node.children[0].type == 'func_decl'
-                except IndexError:
-                    return False
-
-            if is_func_decl(self._node) or is_func_decl(nextsib):
-                return True
-
-            return False
-
-        return True
-
-
 class ModuleDeclFormatter(Formatter):
     def format(self):
         self._format_child() # 'module'
@@ -968,15 +903,7 @@ class MinorCommentFormatter(Formatter):
             self._write_nl(is_midline=True)
 
 
-class ZeekygenHeadCommentFormatter(TypechangeFormatter):
-    def format(self):
-        self._format_token()
-        self._write_nl()
-        if self._next_sibling_typechange():
-            self._write_nl()
-
-
-class ZeekygenNextCommentFormatter(Formatter):
+class ZeekygenCommentFormatter(Formatter):
     def format(self):
         self._format_token()
         self._write_nl()
@@ -1037,5 +964,8 @@ Formatter.register('event', FuncHdrVariantFormatter)
 Formatter.register('capture', SpaceSeparatedFormatter)
 Formatter.register('attr_list', SpaceSeparatedFormatter)
 Formatter.register('interval', SpaceSeparatedFormatter)
+
+Formatter.register('zeekygen_head_comment', ZeekygenCommentFormatter)
+Formatter.register('zeekygen_next_comment', ZeekygenCommentFormatter)
 
 Formatter.register('nullnode', NullFormatter)
