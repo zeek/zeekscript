@@ -141,50 +141,44 @@ class Formatter:
         self._write(b'\n' * num)
 
     def _is_comment(self, offset=0):
-        node = self._get_child(offset=offset, skip_comments=False)
+        node = self._get_child(offset)
         return node and node.is_comment()
 
     def _is_zeekygen_prev_comment(self, offset=0):
-        node = self._get_child(offset=offset, skip_comments=False)
+        node = self._get_child(offset)
         return node and node.is_zeekygen_prev_comment()
 
     def _children_remaining(self):
-        remaining = 0
-        for child in self._node.children[self._cidx:]:
-            if not child.is_comment():
-                remaining += 1
-        return remaining
+        """Returns number of children of this node not yet visited."""
+        return len(self._node.children[self._cidx:])
 
-    def _get_child(self, offset=0, skip_comments=True):
+    def _get_child(self, offset=0):
         """Accessor for child nodes, without adjusting the offset index.
 
         Without additional options, it returns the current child node, ignoring
         any comment nodes. When using the offset argument, returns children
-        before/after the current child. If setting skip_comments=False, it does
-        not skip comment nodes.
+        before/after the current child.
         """
         direction = 1 if offset >= 0 else -1
         offset = abs(offset)
 
         for child in self._node.children[self._cidx::direction]:
-            if not skip_comments or not child.is_comment():
-                if offset == 0:
-                    return child
-                offset -= 1
+            if offset == 0:
+                return child
+            offset -= 1
 
         return None
 
-    def _get_child_type(self, offset=0, skip_comments=True):
+    def _get_child_type(self, offset=0):
         """Returns the type ("decl", "stmt", etc) of the current child node.
 
         When integer offset is provided, returns node before/after the current
         child (e.g., offset=-1 means the node before the current child).
-        Transparently skips any comment nodes, unless skip_comments=False.
         Never adjusts the child offset index. The returned type might refer to
-        a named node or a literal token, Returns '' when no matching node exists.
+        a named node or a literal token. Returns '' when no matching node exists.
         """
         try:
-            return self._get_child(offset, skip_comments).type
+            return self._get_child(offset).type
         except AttributeError:
             return ''
 
