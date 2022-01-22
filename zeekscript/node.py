@@ -88,6 +88,18 @@ class Node:
         """Returns True iff this is a Zeekygen "##<" comment."""
         return self.is_named and self.type and self.type == 'zeekygen_prev_comment'
 
+    def has_property(self, predicate):
+        """Returns a predicate's outcome for this node.
+
+        This catches attribute and index errors, simplifying predicate
+        evaluation for the caller because you do not need to check e.g. if
+        self.children exists or has the expected number of entries.
+        """
+        try:
+            return predicate(self)
+        except (AttributeError, IndexError):
+            return False
+
     def find_prev_cst_sibling(self, predicate):
         """Retrieve first preceeding CST sibling matching a predicate.
 

@@ -538,13 +538,10 @@ class StmtFormatter(TypedInitializerFormatter):
         """Looks ahead to see if the upcoming statement is { ... }.
         This decides surrounding whitespace in some situations below.
         """
-        try:
-            res = self._get_child().children[0].type == '{'
-            if res:
-                self.has_curly_block = True
-            return res
-        except (AttributeError, IndexError):
-            return False
+        if self._get_child().has_property(lambda n: n.children[0].type == '{'):
+            self.has_curly_block = True
+            return True
+        return False
 
     def _write_sp_or_nl(self):
         """Writes separator based on whether we have a curly block."""
@@ -624,22 +621,32 @@ class StmtFormatter(TypedInitializerFormatter):
             self._format_child() # ')'
 
             # We need to track whether the subsequent statement is a
-            # curly-braces block for several reasons: we write a newline now
-            # only when it's not, and we need to indent only if it's not such a
-            # block (because it takes care of it internally). An else-block also
-            # requires treatment.
+            # curly-braces block, for several reasons: we write a newline now
+            # only when it's not, and we need to indent only if it's not,
+            # because {}-blocks take care of it internally.
 
             curly = self._child_is_curly_stmt()
             self._write_sp_or_nl()
             self._format_child(indent=not curly) # <stmt>
 
+            # An else-{}-block also requires special treatment, as does "else
+            # if". We treat the latter as a special case, keeping "else" and
+            # "if" on the same line. Otherwise a cascade of if-else-if-else gets
+            # progressively indented.
             if self._get_child_type() == 'else':
                 if curly:
                     self._write_sp()
                 self._format_child() # 'else'
-                curly  = self._child_is_curly_stmt()
-                self._write_sp_or_nl()
-                self._format_child(indent=not curly) # <stmt>
+
+                if self._get_child().has_property(lambda n: n.children[0].type == 'if'):
+                    indent = False
+                    self._write_sp()
+                else:
+                    indent = not self._child_is_curly_stmt()
+                    self._write_sp_or_nl()
+
+                self._format_child(indent=indent) # <stmt>
+
                 if curly:
                     self._write_nl()
             elif curly:
@@ -861,6 +868,13 @@ class ExprFormatter(SpaceSeparatedFormatter):
 
 
 class NlFormatter(Formatter):
+    """Newline formatting.
+
+    Newlines get eliminated at the beginning or end of a sequence of child nodes
+    (because such leading and trailing whitespace looks weird), while repeated
+    newlines in mid-sequence are preserved but reduced to no more than one blank
+    line.
+    """
     def format(self):
         node = self._node
         # If this has another newline after it, do nothing.
