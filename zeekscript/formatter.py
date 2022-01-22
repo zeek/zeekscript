@@ -53,11 +53,8 @@ class Formatter:
         # Child node index for iteration
         self._cidx = 0
 
-        # Like tree_sitter.Node we use a parent/children structure, so a given
-        # formatter can access formatting state in its surroundings.
-        self.parent = parent
-        self.prev = None # We currently need no self.next
-        self.children = []
+        # Hook us into the node
+        node.formatter = self
 
     def format(self):
         if self._node.children:
@@ -78,10 +75,6 @@ class Formatter:
         formatter = fclass(self._script, node, self._ostream,
                            indent=self._indent + int(indent),
                            parent=self, **addl_args)
-
-        if self.children:
-            formatter.prev = self.children[-1]
-        self.children.append(formatter)
 
         formatter.format()
 
@@ -943,11 +936,11 @@ class NlFormatter(Formatter):
         # unless this sequence is at the beginning or end of the sequence.
 
         if not node.next_cst_sibling or node.next_cst_sibling.type == '}':
-            # It's at the end of a sequence.
+            # It's at the end of a NL sequence.
             return
 
         if node.prev_cst_sibling and node.prev_cst_sibling.is_nl():
-            # It's a sequence.
+            # It's a NL sequence.
             while node.prev_cst_sibling and node.prev_cst_sibling.is_nl():
                 node = node.prev_cst_sibling
 
@@ -997,12 +990,15 @@ class ZeekygenPrevCommentFormatter(Formatter):
 
     def format(self):
         # Handle indent explicitly here because of the transparent handling of
-        # comments. If we don't call this, nothing may force the indent for the
-        # comment if it's the only thing on the line.
+        # all comments. If we don't call this, nothing may force the indent for
+        # the comment if it's the only thing on the line.
         self._write_indent()
 
-        if isinstance(self.prev, ZeekygenPrevCommentFormatter):
-            self._write_sp(self.prev.column - self._ostream.get_column())
+        # If, newlines aside, another ##< comment came before us, space-align us
+        # to the same start column of that comment.
+        pnode = self._node.find_prev_cst_sibling(lambda n: not n.is_nl())
+        if pnode and pnode.is_zeekygen_prev_comment():
+            self._write_sp(pnode.formatter.column - self._ostream.get_column())
         else:
             self._write_sp()
 

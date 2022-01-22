@@ -30,6 +30,10 @@ class Node:
 
         # Additions over the TS node members below:
 
+        # A zeekscript.Formatter attached with this node. Formatters
+        # set this field as they get instantiated.
+        self.formatter = None
+
         # Whether this is an AST member
         self.is_ast = False
 
@@ -83,3 +87,29 @@ class Node:
     def is_zeekygen_prev_comment(self):
         """Returns True iff this is a Zeekygen "##<" comment."""
         return self.is_named and self.type and self.type == 'zeekygen_prev_comment'
+
+    def find_prev_cst_sibling(self, predicate):
+        """Retrieve first preceeding CST sibling matching a predicate.
+
+        The predicate is a function taking a single Node and returning T or F.
+        Returns sibling satisfying the predicate, or None when search fails.
+        """
+        node = self.prev_cst_sibling
+        while node:
+            if predicate(node):
+                return node
+            node = node.prev_cst_sibling
+        return None
+
+    def find_next_cst_sibling(self, predicate):
+        """Retrieve first succeeding CST sibling matching a predicate.
+
+        The predicate is a function taking a single Node and returning T or F.
+        Returns sibling satisfying the predicate, or None when search fails.
+        """
+        node = self.next_cst_sibling
+        while node:
+            if predicate(node):
+                return node
+            node = node.next_cst_sibling
+        return None
