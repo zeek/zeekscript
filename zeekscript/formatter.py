@@ -1,3 +1,11 @@
+"""This module provides a class hierarchy for formatting a zeekscript.Node tree.
+
+The root class, zeekscript.formatter.Formatter, provides primitives for
+formatting a node, including basic operations such as writing spaces and
+newlines. Derivations specialize this by writing specific node/symbol types in
+appropriate ways. The NodeMapper class maps symbol type names to formatter
+classes.
+"""
 import inspect
 import sys
 
@@ -49,7 +57,7 @@ MAP = NodeMapper()
 # ---- Symbol formatters -------------------------------------------------------
 
 class Formatter:
-    def __init__(self, script, node, ostream, indent=0, parent=None):
+    def __init__(self, script, node, ostream, indent=0):
         self._script = script
         self._node = node
         self._ostream = ostream
@@ -80,9 +88,7 @@ class Formatter:
     def _format_child_impl(self, node, indent):
         fclass = Formatter.lookup(node)
         formatter = fclass(self._script, node, self._ostream,
-                           indent=self._indent + int(indent),
-                           parent=self)
-
+                           indent=self._indent + int(indent))
         formatter.format()
 
     def _format_child(self, indent=False):
@@ -527,8 +533,8 @@ class CaptureListFormatter(Formatter):
 
 
 class StmtFormatter(TypedInitializerFormatter):
-    def __init__(self, script, node, ostream, indent=0, parent=None):
-        super().__init__(script, node, ostream, indent, parent)
+    def __init__(self, script, node, ostream, indent=0):
+        super().__init__(script, node, ostream, indent)
 
         # It's an if/for/while statement with a "{ ... }" block
         self.has_curly_block = False
@@ -924,8 +930,8 @@ class ZeekygenCommentFormatter(Formatter):
 
 class ZeekygenPrevCommentFormatter(Formatter):
     """A formatter for Zeekygen comments that refer to earlier items (##<)."""
-    def __init__(self, script, node, ostream, indent=0, parent=None):
-        super().__init__(script, node, ostream, indent, parent)
+    def __init__(self, script, node, ostream, indent=0):
+        super().__init__(script, node, ostream, indent)
         self.column = 0 # Column at which this comment lives
 
     def format(self):

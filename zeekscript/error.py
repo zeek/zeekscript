@@ -2,11 +2,9 @@
 
 class Error(Exception):
     """Base class for all zeekscript errors."""
-    pass
 
 class FileError(Error):
     """System errors while processing script files"""
-    pass
 
 class ParserError(Error):
     """Errors while parsing a script"""

@@ -150,9 +150,10 @@ class Script:
         if output is None:
             do_format(sys.stdout)
         elif isinstance(output, str):
-            with open(self.ofname, 'wb') as ostream:
+            with open(output, 'wb') as ostream:
                 do_format(ostream)
         else:
+            # output should be a file-like object
             do_format(output)
 
     def _visit(self, node, include_cst=False):
@@ -297,8 +298,8 @@ class Script:
                 elif child.is_ast:
                     ast_nodes_remaining -= 1
                     child.prev_cst_siblings = prevs
-                    for p in prevs:
-                        p.ast_parent = child
+                    for prev in prevs:
+                        prev.ast_parent = child
                     prevs = []
                     ast_node = child
 
