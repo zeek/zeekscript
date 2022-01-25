@@ -11,6 +11,8 @@ import sys
 import traceback
 
 try:
+    # Argcomplete provides command-line completion for users of argparse.
+    # We support it if available, but don't complain when it isn't.
     import argcomplete
 except:
     pass
