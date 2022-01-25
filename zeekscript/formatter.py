@@ -2,31 +2,38 @@ import inspect
 import sys
 
 class NodeMapper:
+    """Maps symbol names in the TS grammar (e.g "module_decl") to formatter classes."""
     def __init__(self):
         self._map = {}
 
-    def register(self, symbol_name, klass, addl_args=None):
-        self._map[symbol_name] = (klass, addl_args or {})
+    def register(self, symbol_name, klass):
+        """Map a given symbol name to a given formatter class."""
+        self._map[symbol_name] = klass
 
     def get(self, symbol_name):
-        # If we have an explicit mapping, use it:
+        """Returns a Formatter class for a given symbol name.
+
+        If an explicit mapping was established earlier, this returns its
+        result. Otherwise, it tries to map the symbol name to a corresponding
+        class name ("module_decl" -> "ModuleDeclFormatter"). When this fails as
+        well, it falls back to returning the Formatter class.
+        """
         if symbol_name in self._map:
             return self._map[symbol_name]
 
-        # Try deriving from symbol_name:
         self._find_class(symbol_name)
 
         if symbol_name in self._map:
             return self._map[symbol_name]
 
-        # Last straw: a default formatter:
-        return Formatter, {}
+        return Formatter
 
     def _find_class(self, symbol_name):
         """Locates a Formatter class based on a symbol name.
 
-        For example, this will try to resolve symbol name " module_decl" as
-        ModuleDeclFormatter. When found, adds a mapping to the internal _map.
+        For example, this will try to resolve symbol name "module_decl" as
+        ModuleDeclFormatter. When found, adds a mapping to the internal _map
+        so we don't have to resolve again next time.
         """
         name_parts = [part.title() for part in symbol_name.split('_')]
         derived = ''.join(name_parts) + 'Formatter'
@@ -34,7 +41,7 @@ class NodeMapper:
         classes = inspect.getmembers(sys.modules[__name__], pred)
 
         if classes:
-            self._map[symbol_name] = (classes[0][1], {})
+            self._map[symbol_name] = classes[0][1]
 
 MAP = NodeMapper()
 
@@ -71,10 +78,10 @@ class Formatter:
             return None
 
     def _format_child_impl(self, node, indent):
-        fclass, addl_args = Formatter.lookup(node)
+        fclass = Formatter.lookup(node)
         formatter = fclass(self._script, node, self._ostream,
                            indent=self._indent + int(indent),
-                           parent=self, **addl_args)
+                           parent=self)
 
         formatter.format()
 
@@ -183,24 +190,22 @@ class Formatter:
             return ''
 
     @staticmethod
-    def register(symbol_name, klass, addl_args=None):
-        return MAP.register(symbol_name, klass, addl_args)
+    def register(symbol_name, klass):
+        return MAP.register(symbol_name, klass)
 
     @staticmethod
     def lookup(node):
-        # If we're looking up a token node, automatically fall back
-        # to a dummy formatter.
+        """Formatter lookup for a zeekscript.Node, based on its type information."""
+        # If we're looking up a token node, always use a dummy formatter.
+        # This ensures that we don't confuse a node.type of the same name,
+        # e.g. a variable called 'decl'.
         if not node.is_named:
-            return Formatter, {}
+            return Formatter
         return MAP.get(node.type)
 
 
 class NullFormatter(Formatter):
-    """The null formatter doesn't output anything.
-
-    We add newlines manually throughout the tree, using existing ones only as a
-    guideline.
-    """
+    """The null formatter doesn't output anything."""
     def format(self):
         pass
 

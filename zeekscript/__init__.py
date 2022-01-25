@@ -143,7 +143,7 @@ class Script:
         assert self.root is not None, 'call Script.parse() before Script.format()'
 
         def do_format(ostream):
-            fclass, _ = Formatter.lookup(self.root)
+            fclass = Formatter.lookup(self.root)
             formatter = fclass(self, self.root, OutputStream(ostream))
             formatter.format()
 
