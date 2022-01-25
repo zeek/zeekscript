@@ -8,6 +8,7 @@ parse tree for the script.
 import argparse
 import io
 import sys
+import traceback
 
 try:
     import argcomplete
@@ -106,13 +107,19 @@ def cmd_format(args):
             print_error('parsing error: ' + str(err))
             do_write(script.source)
             return 1
+        except Exception as err:
+            print_error('internal error: ' + str(err))
+            traceback.print_exc(file=sys.stderr)
+            do_write(script.source)
+            return 1
 
         buf = io.BytesIO()
 
         try:
             script.format(buf)
         except Exception as err:
-            print_error('formatting error: ' + str(err))
+            print_error('internal error: ' + str(err))
+            traceback.print_exc(file=sys.stderr)
             do_write(script.source)
             return 1
 
