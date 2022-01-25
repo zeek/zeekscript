@@ -1,7 +1,18 @@
 import os
+import pathlib
 import sys
 
-from importlib.resources import files, as_file
+try:
+    # We use the following helpers when available (starting with Python 3.9) to
+    # locate the TS language .so shipped with the package. Without, we fall back
+    # to using local path navigation and hope for the best.
+    # https://importlib-resources.readthedocs.io/en/latest/using.html#file-system-or-zip-file
+    from importlib.resources import files, as_file
+except ImportError:
+    def files(_):
+        return pathlib.Path(os.path.dirname(os.path.realpath(__file__)))
+    def as_file(source):
+        return source
 
 try:
     import tree_sitter
@@ -81,7 +92,7 @@ class Parser:
             # https://importlib-resources.readthedocs.io/en/latest/using.html#file-system-or-zip-file
             source = files(__package__).joinpath('zeek-language.so')
             with as_file(source) as lib:
-                zeek_lang = tree_sitter.Language(lib, 'zeek')
+                zeek_lang = tree_sitter.Language(str(lib), 'zeek')
             cls.TS_PARSER = tree_sitter.Parser()
             cls.TS_PARSER.set_language(zeek_lang)
 
