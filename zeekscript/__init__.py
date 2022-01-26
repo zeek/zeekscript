@@ -31,6 +31,7 @@ from .node import *
 class OutputStream:
     """A column-aware, trailing-whitespace-stripping wrapper for output streams."""
     def __init__(self, ostream):
+        """OutputStream constructor. The ostream argument is a file-like object."""
         self._ostream = ostream
         self._col = 0 # 0-based column the next character goes into.
         self._space_indent = 0
@@ -99,9 +100,15 @@ class Parser:
 
 class Script:
     """Representation of a single Zeek script file."""
-    def __init__(self, fname):
-        self.name = fname # The file name to read the Zeek script from
-        self.source = None # The file's full content
+    def __init__(self, file):
+        """Script constructor.
+
+        The file argument can be a string providing a file name, a pathlib.Path
+        providing a file name, or a file-like object. The filename/path "-"
+        implies stdin.
+        """
+        self.file = file
+        self.source = None # The file's full content, once parsed
         self.ts_tree = None # The tree-sitter parse tree for the script
         self.root = None # The root node of our cloned (and malleable) tree
 
@@ -112,12 +119,21 @@ class Script:
         zeekscript.ParserError when the file didn't parse correctly.
         """
         try:
-            # tree-sitter expects bytes, not strings, as input.
-            if self.name == '-':
-                self.source = sys.stdin.read().encode('UTF-8')
+            if isinstance(self.file, (str, pathlib.Path)):
+                if str(self.file) == '-':
+                    # tree-sitter expects bytes, not strings, as input.
+                    self.source = sys.stdin.read().encode('UTF-8')
+                else:
+                    with open(self.file, 'rb') as hdl:
+                        self.source = hdl.read()
             else:
-                with open(self.name, 'rb') as hdl:
-                    self.source = hdl.read()
+                # Assume file-like object. Could check for the various io.*Base
+                # types here, though we'll need to error out anyway if it's not
+                # a file-like thing.
+                self.source = self.file.read()
+                # Need to ensure we have bytes now:
+                if isinstance(self.source, str):
+                    self.source = self.source.encode('UTF-8')
         except OSError as err:
             raise FileError(str(err)) from err
 

@@ -568,8 +568,6 @@ class StmtFormatter(TypedInitializerFormatter):
             self._write_nl()
 
     def _format_when(self):
-        # XXX when-timeout is almost redundant with if-else, though the timeout
-        # block differs in that curly braces are required. Could refactor a bit.
         self._format_child() # 'when'
         self._write_sp()
         if self._get_child_type() == 'capture_list':
