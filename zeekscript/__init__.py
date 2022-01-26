@@ -147,12 +147,14 @@ class Script:
     def traverse(self, include_cst=False):
         """Depth-first iterator for the script's syntax tree.
 
-        This yields a tuple (node, indent) with a Node instance (ours, not
-        tree_sitter's) and its indentation level.
+        This yields a tuple (node, nesting) with a Node instance (ours, not
+        tree_sitter's) and its integer nesting level: the root has nesting level
+        0, its children have nesting level 1, their children have nesting level
+        2, etc.
         """
         assert self.root is not None, 'call Script.parse() before Script.traverse()'
-        for node, indent in self._visit(self.root, include_cst):
-            yield node, indent
+        for node, nesting in self._visit(self.root, include_cst):
+            yield node, nesting
 
     def __getitem__(self, key):
         """Accessor to the script source text.
@@ -183,30 +185,82 @@ class Script:
             # output should be a file-like object
             do_format(output)
 
+    def write_tree(self, output=None, node_stringifier=None, include_cst=False):
+        """Writes the script's parse tree to the given output.
+
+        The output destination works as for Script.write().
+
+        node_stringifier, if supplied, controls how a given tree node gets
+        rendered to a string. It is a function that takes three arguments: a
+        zeekscript.Node, the node's nesting level in the tree (an integer), and
+        this script instance. When omitted, the function defaults to an internal
+        implementation.
+
+        include_cst controls whether the rendered tree shows only AST nodes
+        (i.e., "proper" members of the grammar, excluding TS's "extra" nodes
+        such as newlines and comments) or AST and CST nodes.
+        """
+        def node_str(node, nesting, script):
+            content = ''
+            if node.is_named:
+                # Cap the amount of script payload we show ...
+                content = script.source[node.start_byte:node.end_byte][:100]
+                # ... and render it such that we get backslash-escapes.
+                content = str(repr(content.decode('ascii', 'ignore')))
+
+            # CST node rendering. This only applies when the tree traversal
+            # actually produces these nodes.
+            cst_indicator = ''
+            if not node.is_ast:
+                if node.is_cst_prev_node:
+                    cst_indicator = 'v '
+                if node.is_cst_next_node:
+                    cst_indicator = '^ '
+
+            return ' ' * (4*nesting) + '{}{} ({}.{},{}.{}) {}'.format(
+                cst_indicator, node.type,
+                node.start_point[0], node.start_point[1],
+                node.end_point[0], node.end_point[1],
+                content)
+
+        def do_traverse(ostream):
+            stringifier = node_stringifier if node_stringifier else node_str
+            for node, nesting in self.traverse(include_cst):
+                ostream.write(stringifier(node, nesting, self) + os.linesep)
+
+        if output is None:
+            do_traverse(sys.stdout)
+        elif isinstance(output, str):
+            with open(output, 'w') as ostream:
+                do_traverse(ostream)
+        else:
+            # output should be a file-like object
+            do_traverse(output)
+
     def _visit(self, node, include_cst=False):
         """A tree-traversing generator.
 
-        Yields a tuple of (node, indentation depth) for every visited
-        node. Works for zeekscript Nodes as well as tree-sitter's tree nodes.
+        Yields a tuple of (node, nesting level) for every visited node. Works
+        for zeekscript Nodes as well as tree-sitter's tree nodes.
         """
         queue = [(node, 0)]
         while queue:
-            node, indent = queue.pop(0)
+            node, nesting = queue.pop(0)
 
             # If the caller wants the CST, we now need to iterate any
             # preceeding/succeeding CST nodes this AST nodes has stored:
             if include_cst:
                 for cst_node in node.prev_cst_siblings:
-                    yield cst_node, indent
+                    yield cst_node, nesting
 
-            yield node, indent
+            yield node, nesting
 
             if include_cst:
                 for cst_node in node.next_cst_siblings:
-                    yield cst_node, indent
+                    yield cst_node, nesting
 
             for child in reversed(node.children):
-                queue.insert(0, (child, indent+1))
+                queue.insert(0, (child, nesting+1))
 
     def _raise_parser_error(self):
         """Raises zeekscript.ParserError with info on trouble in the parse tree."""

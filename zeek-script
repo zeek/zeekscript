@@ -4,6 +4,7 @@ This is a tool for processing Zeek scripts. It currently supports formatting
 scripts according to codified rules (no optionas at all atm), and showing a
 parse tree for the script.
 """
+# https://pypi.org/project/argcomplete/#global-completion
 # PYTHON_ARGCOMPLETE_OK
 import argparse
 import io
@@ -23,27 +24,6 @@ import zeekscript
 
 def print_error(*args, **kwargs):
     print(*args, file=sys.stderr, **kwargs)
-
-def node_str(node, indent, script):
-    content = ''
-    if node.is_named:
-        # Cap the amount we show in the tree ...
-        content = script.source[node.start_byte:node.end_byte][:100]
-        # ... and render it such that we get backslash-escapes.
-        content = str(repr(content.decode('ascii', 'ignore')))
-
-    cst_indicator = ''
-    if not node.is_ast:
-        if node.is_cst_prev_node:
-            cst_indicator = 'v '
-        if node.is_cst_next_node:
-            cst_indicator = '^ '
-
-    return ' ' * (4*indent) + '{}{} ({}.{},{}.{}) {}'.format(
-        cst_indicator, node.type,
-        node.start_point[0], node.start_point[1],
-        node.end_point[0], node.end_point[1],
-        content)
 
 def create_parser():
     parser = argparse.ArgumentParser(description='A Zeek script analyzer')
@@ -143,8 +123,7 @@ def cmd_parse(args):
         print_error('error: ' + str(err))
         return 1
 
-    for node, indent in script.traverse(include_cst=args.concrete):
-        print(node_str(node, indent, script))
+    script.write_tree(include_cst=args.concrete)
 
     return 0
 
