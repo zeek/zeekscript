@@ -40,9 +40,9 @@ class OutputStream:
 
     def write(self, data):
         for chunk in data.splitlines(keepends=True):
-            if chunk.endswith(b'\n'):
+            if chunk.endswith(Formatter.NL):
                 # Remove any trailing whitespace
-                chunk = chunk.rstrip() + b'\n'
+                chunk = chunk.rstrip() + Formatter.NL
 
             try:
                 if self._ostream == sys.stdout:
@@ -58,7 +58,7 @@ class OutputStream:
                 sys.exit(1)
 
             self._col += len(chunk)
-            if chunk.endswith(b'\n'):
+            if chunk.endswith(Formatter.NL):
                 self._col = 0
 
     def write_space_indent(self):
@@ -221,7 +221,7 @@ class Script:
                 msg = 'missing grammer node "{}" on line {}, col {}'.format(
                     node.type, node.start_point[0], node.start_point[1])
 
-            line = self.source.split(b'\n')[node.start_point[0]]
+            line = self.source.split(Formatter.NL)[node.start_point[0]]
             line = line.decode('UTF-8')
             break
 

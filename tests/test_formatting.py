@@ -17,17 +17,24 @@ import zeekscript
 
 class TestFormatting(unittest.TestCase):
 
-    def test_file_formatting(self):
-        script = zeekscript.Script(os.path.join(DATA, 'test1.zeek'))
+    def _get_formatted_and_baseline(self, filename):
+        script = zeekscript.Script(os.path.join(DATA, filename))
         script.parse()
 
         buf = io.BytesIO()
         script.format(buf)
 
-        with open(os.path.join(DATA, 'test1.zeek.out'), 'rb') as hdl:
+        with open(os.path.join(DATA, filename + '.out'), 'rb') as hdl:
             result_wanted = hdl.read()
         result_is = buf.getvalue()
+        return result_wanted, result_is
 
+    def test_file_formatting(self):
+        result_wanted, result_is = self._get_formatted_and_baseline('test1.zeek')
+        self.assertEqual(result_wanted, result_is)
+
+    def test_dosfile_formatting(self):
+        result_wanted, result_is = self._get_formatted_and_baseline('test3.zeek')
         self.assertEqual(result_wanted, result_is)
 
     def test_parse_error(self):

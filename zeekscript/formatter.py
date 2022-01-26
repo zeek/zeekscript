@@ -7,6 +7,7 @@ appropriate ways. The NodeMapper class maps symbol type names to formatter
 classes.
 """
 import inspect
+import os
 import sys
 
 class NodeMapper:
@@ -57,6 +58,9 @@ MAP = NodeMapper()
 # ---- Symbol formatters -------------------------------------------------------
 
 class Formatter:
+    # Our newline bytestring
+    NL = os.linesep.encode('UTF-8')
+
     def __init__(self, script, node, ostream, indent=0):
         self._script = script
         self._node = node
@@ -124,7 +128,7 @@ class Formatter:
 
         # Transparently indent at the beginning of lines, but only if we're not
         # writing a newline anyway.
-        if not data.startswith(b'\n') and self._write_indent():
+        if not data.startswith(self.NL) and self._write_indent():
             # We just indented. Don't write any additional whitespace at the
             # beginning now. Such whitespace might exist from spacing that
             # would result without the presence of interrupting comments.
@@ -151,7 +155,7 @@ class Formatter:
         if self._ostream.get_column() == 0 and not force:
             return
 
-        self._write(b'\n' * num)
+        self._write(self.NL * num)
 
     def _is_comment(self, offset=0):
         node = self._get_child(offset)
@@ -220,7 +224,7 @@ class LineFormatter(Formatter):
     """This formatter separates all nodes with space and terminates with a newline."""
     def format(self):
         if self._node.children:
-            self._format_children(b' ', b'\n')
+            self._format_children(b' ', self.NL)
         else:
             self._format_token()
 
