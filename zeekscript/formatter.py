@@ -157,14 +157,6 @@ class Formatter:
 
         self._write(self.NL * num)
 
-    def _is_comment(self, offset=0):
-        node = self._get_child(offset)
-        return node and node.is_comment()
-
-    def _is_zeekygen_prev_comment(self, offset=0):
-        node = self._get_child(offset)
-        return node and node.is_zeekygen_prev_comment()
-
     def _children_remaining(self):
         """Returns number of children of this node not yet visited."""
         return len(self._node.children[self._cidx:])
