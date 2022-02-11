@@ -35,6 +35,7 @@ def test():
     return all((
         run(['--rcfile=' + RCFILE, '-E', os.path.join(ROOT, 'zeekscript')]),
         run(['--rcfile=' + RCFILE, '-E', os.path.join(ROOT, 'zeek-script')]),
+        run(['--rcfile=' + RCFILE, '-E', os.path.join(ROOT, 'zeek-format')]),
     ))
 
 if __name__ == '__main__':

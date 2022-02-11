@@ -46,7 +46,7 @@ setup(
     maintainer_email='info@zeek.org',
     url='https://github.com/ckreibich/zeek-script',
 
-    scripts=['zeek-script'],
+    scripts=['zeek-format', 'zeek-script'],
     packages=['zeekscript'],
     package_data={'zeekscript': ['zeek-language.so']},
 

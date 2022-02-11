@@ -1,0 +1,43 @@
+#! /usr/bin/env python
+"""
+This is a Zeek script formatter. It intentionally accepts no formatting
+arguments. It writes any errors during processing to stderr. When errors arise,
+it writes out unchanged input.
+"""
+# https://pypi.org/project/argcomplete/#global-completion
+# PYTHON_ARGCOMPLETE_OK
+import argparse
+import sys
+
+try:
+    # Argcomplete provides command-line completion for users of argparse.
+    # We support it if available, but don't complain when it isn't.
+    import argcomplete # pylint: disable=import-error
+except ImportError:
+    pass
+
+import zeekscript
+
+# ---- Helper functions --------------------------------------------------------
+
+def create_parser():
+    parser = argparse.ArgumentParser(description='A Zeek script formatter')
+    zeekscript.add_format_cmd(parser)
+
+    if 'argcomplete' in sys.modules:
+        argcomplete.autocomplete(parser)
+
+    return parser
+
+
+def main():
+    parser = create_parser()
+    args = parser.parse_args()
+
+    try:
+        return args.run_cmd(args)
+    except KeyboardInterrupt:
+        return 0
+
+if __name__ == '__main__':
+    sys.exit(main())
