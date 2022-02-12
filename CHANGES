@@ -1,3 +1,9 @@
+0.2.0-2 | 2022-02-11 18:43:53 -0800
+
+  * Fix CI badge in README and slightly tweak wording (Christian Kreibich, Corelight)
+
+  * Explicitly require at least Python 3.7 (Christian Kreibich, Corelight)
+
 
 0.2.0 | 2022-02-11 18:24:02 -0800
 

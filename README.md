@@ -1,8 +1,8 @@
-# A formatter and analyzer for Zeek scripts
+# A toolchain to parse, analyze, and format Zeek scripts
 
-[![Build and very adventurous tests](/actions/workflows/build_wheels.yml/badge.svg)](/actions/workflows/build_wheels.yml)
+[![Build and very adventurous tests](https://github.com/ckreibich/zeekscript/actions/workflows/build_wheels.yml/badge.svg)](https://github.com/ckreibich/zeekscript/actions/workflows/build_wheels.yml)
 
-This is a Python package that provides tooling to operate on [Zeek](https://zeek.org)
+`zeekscript` is a Python package that provides tooling to operate on [Zeek](https://zeek.org)
 scripts. `zeekscript` comes with command line tools that make common tasks accessible,
 but its functionality is just an `import zeekscript` away in your own Python tools.
 
