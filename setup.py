@@ -59,9 +59,11 @@ setup(
 
     setup_requires=['tree_sitter'],
     install_requires=['tree_sitter'],
+    python_requires='>3.7.0',
 
     classifiers=[
-        'Programming Language :: Python :: 3',
+        'Programming Language :: Python :: 3.7',
+        'License :: OSI Approved :: BSD License',
         'Topic :: Utilities',
     ],
 )
