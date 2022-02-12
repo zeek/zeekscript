@@ -40,7 +40,7 @@ class BuildCommand(setuptools.command.build_py.build_py):
 
 setup(
     name='zeekscript',
-    version='0.1.1',
+    version=open('VERSION').read().replace('-', '.dev', 1).strip(),
     description='A Zeek script formatter and analyzer',
     maintainer='The Zeek Project',
     maintainer_email='info@zeek.org',
