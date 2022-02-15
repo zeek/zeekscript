@@ -14,6 +14,7 @@ comments). The CST features such elements, whereas the AST does not. You can
 examine the difference by playing with `zeek-script parse ...` vs `zeek-script
 parse --concrete`.
 """
+import enum
 import inspect
 import os
 import sys
@@ -65,11 +66,23 @@ MAP = NodeMapper()
 
 # ---- Symbol formatters -------------------------------------------------------
 
+class Hint(enum.Flag):
+    """Linebreak hinting when we write out otherwise formatted lines.
+
+    The formatters provide these hints based on their surrounding context.
+    """
+    NONE = enum.auto()
+    GOOD_AFTER_LB = enum.auto() # A linebreak before this item is encouraged.
+    NO_LB_BEFORE = enum.auto() # Never line-break before this item.
+    NO_LB_AFTER = enum.auto() # Never line-break after this item.
+    ZERO_WIDTH = enum.auto() # This item doesn't contribute to length count.
+
+
 class Formatter:
     # Our newline bytestring
     NL = os.linesep.encode('UTF-8')
 
-    def __init__(self, script, node, ostream, indent=0):
+    def __init__(self, script, node, ostream, indent=0, hints=None):
         """Formatter constructor.
 
         The script argument is the zeekscript.Script instance we're
@@ -83,6 +96,7 @@ class Formatter:
         self.node = node
         self.ostream = ostream
         self.indent = indent
+        self.hints = hints or Hint.NONE
 
         # AST child node index for iteration
         self._cidx = 0
@@ -104,26 +118,27 @@ class Formatter:
         except IndexError:
             return None
 
-    def _format_child_impl(self, node, indent):
+    def _format_child_impl(self, node, indent, hints=None):
         fclass = Formatter.lookup(node)
         formatter = fclass(self.script, node, self.ostream,
-                           indent=self.indent + int(indent))
+                           indent=self.indent + int(indent),
+                           hints=hints)
         formatter.format()
 
-    def _format_child(self, indent=False):
+    def _format_child(self, indent=False, hints=None):
         node = self._next_child()
 
         for child in node.prev_cst_siblings:
-            self._format_child_impl(child, indent=indent)
+            self._format_child_impl(child, indent, hints)
 
-        self._format_child_impl(node, indent=indent)
+        self._format_child_impl(node, indent, hints)
 
         for child in node.next_cst_siblings:
-            self._format_child_impl(child, indent=indent)
+            self._format_child_impl(child, indent, hints)
 
-    def _format_child_range(self, num, indent=False):
+    def _format_child_range(self, num, indent=False, hints=None):
         for _ in range(num):
-            self._format_child(indent)
+            self._format_child(indent, hints)
 
     def _format_children(self, sep=None, final=None):
         while self._children_remaining():
@@ -293,7 +308,7 @@ class TypedInitializerFormatter(Formatter):
     """
     def _format_typed_initializer(self):
         if self._get_child_token() == ':':
-            self._format_child() # ':'
+            self._format_child(hints=Hint.NO_LB_AFTER) # ':'
             self._write_sp()
             self._format_child() # <type>
 
@@ -565,8 +580,8 @@ class CaptureListFormatter(Formatter):
 
 
 class StmtFormatter(TypedInitializerFormatter):
-    def __init__(self, script, node, ostream, indent=0):
-        super().__init__(script, node, ostream, indent)
+    def __init__(self, script, node, ostream, indent=0, hints=None):
+        super().__init__(script, node, ostream, indent, hints)
 
         # It's an if/for/while statement with a "{ ... }" block
         self.has_curly_block = False
@@ -962,8 +977,8 @@ class ZeekygenCommentFormatter(Formatter):
 
 class ZeekygenPrevCommentFormatter(Formatter):
     """A formatter for Zeekygen comments that refer to earlier items (##<)."""
-    def __init__(self, script, node, ostream, indent=0):
-        super().__init__(script, node, ostream, indent)
+    def __init__(self, script, node, ostream, indent=0, hints=None):
+        super().__init__(script, node, ostream, indent, hints)
         self.column = 0 # Start column of this comment.
 
     def format(self):
