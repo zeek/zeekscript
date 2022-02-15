@@ -79,12 +79,10 @@ class Formatter:
         argument, an integer, tracks the number of indentation levels we're
         currently writing at.
         """
-        self._script = script
-        self._node = node
-        self._ostream = ostream
-
-        # Number of tabs to indent with
-        self._indent = indent
+        self.script = script
+        self.node = node
+        self.ostream = ostream
+        self.indent = indent
 
         # AST child node index for iteration
         self._cidx = 0
@@ -93,14 +91,14 @@ class Formatter:
         node.formatter = self
 
     def format(self):
-        if self._node.children:
+        if self.node.children:
             self._format_children()
         else:
             self._format_token()
 
     def _next_child(self):
         try:
-            node = self._node.children[self._cidx]
+            node = self.node.children[self._cidx]
             self._cidx += 1
             return node
         except IndexError:
@@ -108,8 +106,8 @@ class Formatter:
 
     def _format_child_impl(self, node, indent):
         fclass = Formatter.lookup(node)
-        formatter = fclass(self._script, node, self._ostream,
-                           indent=self._indent + int(indent))
+        formatter = fclass(self.script, node, self.ostream,
+                           indent=self.indent + int(indent))
         formatter.format()
 
     def _format_child(self, indent=False):
@@ -136,7 +134,7 @@ class Formatter:
             self._write(final)
 
     def _format_token(self):
-        self._write(self._script[self._node.start_byte:self._node.end_byte])
+        self._write(self.script[self.node.start_byte:self.node.end_byte])
 
     def _write(self, data):
         if isinstance(data, str):
@@ -150,12 +148,12 @@ class Formatter:
             # would result without the presence of interrupting comments.
             data = data.lstrip()
 
-        self._ostream.write(data)
+        self.ostream.write(data)
 
     def _write_indent(self):
-        if self._ostream.get_column() == 0:
-            self._ostream.write(b'\t' * self._indent)
-            self._ostream.write_space_indent()
+        if self.ostream.get_column() == 0:
+            self.ostream.write(b'\t' * self.indent)
+            self.ostream.write_space_indent()
             return True
         return False
 
@@ -163,19 +161,19 @@ class Formatter:
         self._write(b' ' * num)
 
     def _write_nl(self, num=1, force=False, is_midline=False):
-        self._ostream.set_space_indent(is_midline)
+        self.ostream.set_space_indent(is_midline)
 
         # It's rare that we really want to write newlines multiple times in a
         # row. Normally, if we just wrote one, don't do so again unless we
         # force.
-        if self._ostream.get_column() == 0 and not force:
+        if self.ostream.get_column() == 0 and not force:
             return
 
         self._write(self.NL * num)
 
     def _children_remaining(self):
         """Returns number of children of this node not yet visited."""
-        return len(self._node.children[self._cidx:])
+        return len(self.node.children[self._cidx:])
 
     def _get_child(self, offset=0):
         """Accessor for child nodes, without adjusting the offset index.
@@ -187,7 +185,7 @@ class Formatter:
         direction = 1 if offset >= 0 else -1
         offset = abs(offset)
 
-        for child in self._node.children[self._cidx::direction]:
+        for child in self.node.children[self._cidx::direction]:
             if offset == 0:
                 return child
             offset -= 1
@@ -254,7 +252,7 @@ class NullFormatter(Formatter):
 class LineFormatter(Formatter):
     """This formatter separates all nodes with space and terminates with a newline."""
     def format(self):
-        if self._node.children:
+        if self.node.children:
             self._format_children(b' ', self.NL)
         else:
             self._format_token()
@@ -263,7 +261,7 @@ class LineFormatter(Formatter):
 class SpaceSeparatedFormatter(Formatter):
     """This formatter simply separates all nodes with a space."""
     def format(self):
-        if self._node.children:
+        if self.node.children:
             self._format_children(b' ')
         else:
             self._format_token()
@@ -915,7 +913,7 @@ class NlFormatter(Formatter):
     line.
     """
     def format(self):
-        node = self._node
+        node = self.node
         # If this has another newline after it, do nothing.
         if node.next_cst_sibling and node.next_cst_sibling.is_nl():
             return
@@ -939,7 +937,7 @@ class NlFormatter(Formatter):
 
 class MinorCommentFormatter(Formatter):
     def format(self):
-        node = self._node
+        node = self.node
         # There's something before us and it's not a newline, then
         # separate this comment from it with a space:
         if node.prev_cst_sibling and not node.prev_cst_sibling.is_nl():
@@ -976,23 +974,23 @@ class ZeekygenPrevCommentFormatter(Formatter):
 
         # If, newlines aside, another ##< comment came before us, space-align us
         # to the same start column of that comment.
-        pnode = self._node.find_prev_cst_sibling(lambda n: not n.is_nl())
+        pnode = self.node.find_prev_cst_sibling(lambda n: not n.is_nl())
         if pnode and pnode.is_zeekygen_prev_comment():
-            self._write_sp(pnode.formatter.column - self._ostream.get_column())
+            self._write_sp(pnode.formatter.column - self.ostream.get_column())
         else:
             self._write_sp()
 
         # Record the output column so potential subsequent Zeekygen
         # comments can use the same alignment.
-        self.column = self._ostream.get_column()
+        self.column = self.ostream.get_column()
 
         # Write comment itself
         self._format_token()
 
         # If this has another ##< comment after it, write the newline.
         try:
-            if (self._node.next_cst_sibling.is_nl() and
-                self._node.next_cst_sibling.next_cst_sibling.is_zeekygen_prev_comment()):
+            if (self.node.next_cst_sibling.is_nl() and
+                self.node.next_cst_sibling.next_cst_sibling.is_zeekygen_prev_comment()):
                 self._write_nl()
         except AttributeError:
             pass
