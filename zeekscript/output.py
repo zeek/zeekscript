@@ -22,7 +22,7 @@ class OutputStream:
 
             try:
                 if self._ostream == sys.stdout:
-                    # Must write string here, not bytes. An alternative is to
+                    # Clunky: must write string here, not bytes. We could
                     # use _ostream.buffer -- not sure how portable that is.
                     self._ostream.write(chunk.decode('UTF-8'))
                 else:

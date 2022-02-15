@@ -1,10 +1,18 @@
-"""This module provides a class hierarchy for formatting a zeekscript.Node tree.
+"""A class hierarchy for formatting a zeekscript.Node tree.
 
-The root class, zeekscript.formatter.Formatter, provides primitives for
-formatting a node, including basic operations such as writing spaces and
-newlines. Derivations specialize this by writing specific node/symbol types in
-appropriate ways. The NodeMapper class maps symbol type names to formatter
-classes.
+The root class, zeekscript.Formatter, provides methods for formatting a
+zeekscript.Node to a zeekscript.OutputStream, including basic operations such as
+writing spaces and newlines. Derivations specialize by formatting specific
+node/symbol types. The NodeMapper class maps symbol type names to formatters.
+
+The code frequently distinguishes abstract and concrete syntax trees (ASTs vs
+CSTs). By this we mean the difference between nodes resulting from regular
+production rules in the grammar vs "extra" rules. Tree-Sitter's notion of
+"extra" rules covers constructs that can occur anywhere in the text. In the Zeek
+grammar this includes newlines as well as comments (including Zeekygen
+comments). The CST features such elements, whereas the AST does not. You can
+examine the difference by playing with `zeek-script parse ...` vs `zeek-script
+parse --concrete`.
 """
 import inspect
 import os
@@ -38,11 +46,11 @@ class NodeMapper:
         return Formatter
 
     def _find_class(self, symbol_name):
-        """Locates a Formatter class based on a symbol name.
+        """Establishes symbol type -> Formatter class mapping.
 
-        For example, this will try to resolve symbol name "module_decl" as
-        ModuleDeclFormatter. When found, adds a mapping to the internal _map
-        so we don't have to resolve again next time.
+        For example, this will try to resolve symbol type "module_decl" as
+        ModuleDeclFormatter. When such a class exists, this adds a mapping to
+        the internal _map so we don't have to resolve next time.
         """
         name_parts = [part.title() for part in symbol_name.split('_')]
         derived = ''.join(name_parts) + 'Formatter'
@@ -62,6 +70,15 @@ class Formatter:
     NL = os.linesep.encode('UTF-8')
 
     def __init__(self, script, node, ostream, indent=0):
+        """Formatter constructor.
+
+        The script argument is the zeekscript.Script instance we're
+        formatting. node is a zeekscript.Node, and the actual syntax tree
+        element that this formatter instance will format. ostream is a
+        zeekscript.OutputStream that we're writing the formatting to. The indent
+        argument, an integer, tracks the number of indentation levels we're
+        currently writing at.
+        """
         self._script = script
         self._node = node
         self._ostream = ostream
@@ -69,7 +86,7 @@ class Formatter:
         # Number of tabs to indent with
         self._indent = indent
 
-        # Child node index for iteration
+        # AST child node index for iteration
         self._cidx = 0
 
         # Hook us into the node
@@ -119,8 +136,7 @@ class Formatter:
             self._write(final)
 
     def _format_token(self):
-        buf = self._script[self._node.start_byte:self._node.end_byte]
-        self._write(buf)
+        self._write(self._script[self._node.start_byte:self._node.end_byte])
 
     def _write(self, data):
         if isinstance(data, str):
@@ -386,7 +402,6 @@ class TypeDeclFormatter(Formatter):
 
 
 class TypeFormatter(SpaceSeparatedFormatter):
-
     def format(self):
         if self._get_child_token() == 'set':
             self._format_child() # 'set'
@@ -951,7 +966,7 @@ class ZeekygenPrevCommentFormatter(Formatter):
     """A formatter for Zeekygen comments that refer to earlier items (##<)."""
     def __init__(self, script, node, ostream, indent=0):
         super().__init__(script, node, ostream, indent)
-        self.column = 0 # Column at which this comment lives
+        self.column = 0 # Start column of this comment.
 
     def format(self):
         # Handle indent explicitly here because of the transparent handling of

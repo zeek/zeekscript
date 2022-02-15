@@ -332,7 +332,7 @@ class Script:
     def _patch_tree(self):
         """Tweak the syntax tree to simplify formatting."""
         # Move any dangling CST nodes (such as comments) down into the tree so
-        # they directly child-follow the node that they refers to. For example,
+        # they directly child-follow the node that they refer to. For example,
         # this turns ...
         #
         #       type (138.11,138.14)
@@ -348,6 +348,9 @@ class Script:
         #           ; (138.14,138.15)
         #           zeekygen_prev_comment (138.19,139.0) '##< A comment explaining the int\n'
         #           zeekygen_prev_comment (139.19,140.0) '##< continuing here.\n'
+        #
+        # This simplifies reasoning about such comments in the context of the
+        # directly preceding node, not some abstraction thereof.
         #
         for node, _ in self.traverse():
             if node.next_cst_siblings and node.children:
