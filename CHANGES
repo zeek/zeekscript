@@ -1,3 +1,7 @@
+0.2.0-3 | 2022-02-14 17:24:59 -0800
+
+  * Switch tree-sitter-zeek submodule URL to Zeek project (Christian Kreibich, Corelight)
+
 0.2.0-2 | 2022-02-11 18:43:53 -0800
 
   * Fix CI badge in README and slightly tweak wording (Christian Kreibich, Corelight)
