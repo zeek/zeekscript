@@ -446,10 +446,10 @@ class EnumBodyFormatter(Formatter):
 class FuncDeclFormatter(Formatter):
     def format(self):
         self._format_child() # <func_hdr>
-        if self._get_child_type() == 'preproc':
+        if self._get_child_type() == 'preproc_directive':
             self._write_nl()
-            while self._get_child_type() == 'preproc':
-                self._format_child() # <preproc>
+            while self._get_child_type() == 'preproc_directive':
+                self._format_child() # <preproc_directive>
                 self._write_nl()
         self._format_child() # <func_body>
         self._write_nl()
@@ -749,8 +749,8 @@ class StmtFormatter(TypedInitializerFormatter):
             self._format_child_range(2) # <expr> ';'
             self._write_nl()
 
-        elif start == 'preproc':
-            self._format_child() # <preproc>
+        elif start == 'preproc_directive':
+            self._format_child() # <preproc_directive>
             self._write_nl()
 
         elif start == ';':
@@ -963,7 +963,7 @@ class ZeekygenPrevCommentFormatter(Formatter):
 # NodeMapper.get() retrieves formatters not listed here by mapping symbol
 # names to class names, e.g. module_decl -> ModuleDeclFormatter.
 
-Formatter.register('preproc', LineFormatter)
+Formatter.register('preproc_directive', LineFormatter)
 
 Formatter.register('const_decl', GlobalDeclFormatter)
 Formatter.register('global_decl', GlobalDeclFormatter)
