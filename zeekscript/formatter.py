@@ -194,56 +194,58 @@ class Formatter:
         """Returns number of children of this node not yet visited."""
         return len(self.node.children[self._cidx:])
 
-    def _get_child(self, offset=0):
+    def _get_child(self, offset=0, absolute=False):
         """Accessor for child nodes, without adjusting the offset index.
 
         Without additional options, it returns the current child Node instance,
         ignoring any comment or other CST nodes. When using the offset argument,
-        returns children before/after the current child.
-        """
-        direction = 1 if offset >= 0 else -1
-        offset = abs(offset)
+        returns children before/after the current child. When absolute is True,
+        ignores the current child index and uses absolute indexing, starting
+        from 0.
 
-        for child in self.node.children[self._cidx::direction]:
-            if offset == 0:
-                return child
-            offset -= 1
+        When the resulting index isn't valid, returns None.
+        """
+        cidx = 0 if absolute else self._cidx
+
+        try:
+            return self.node.children[cidx + offset]
+        except IndexError:
+            return None
 
         return None
 
-    def _get_child_type(self, offset=0):
-        """Like _get_child(), but returns the TS type string of the child.
+    def _get_child_type(self, offset=0, absolute=False):
+        """Like _get_child(), but returns the TS type string ("decl", "stmt", etc).
 
         The returned type might refer to a named node or a literal token. Use
         _get_child_name() or _get_child_token() when possible, to avoid
         confusion between named and token nodes.
 
         Returns None when no matching node exists.
-
         """
         try:
-            return self._get_child(offset).type
+            return self._get_child(offset, absolute).type
         except AttributeError:
             return None
 
-    def _get_child_name(self, offset=0):
+    def _get_child_name(self, offset=0, absolute=False):
         """Like _get_child_type(), but for named nodes.
 
         Returns None of the child isn't a named node or no matching node exists.
         """
         try:
-            return self._get_child(offset).name()
+            return self._get_child(offset, absolute).name()
         except AttributeError:
             return None
 
-    def _get_child_token(self, offset=0):
+    def _get_child_token(self, offset=0, absolute=False):
         """Like _get_child_type(), but for terminal nodes.
 
         Returns None of the child doesn't represent a plain token or no matching
         node exists.
         """
         try:
-            return self._get_child(offset).token()
+            return self._get_child(offset, absolute).token()
         except AttributeError:
             return None
 
