@@ -110,6 +110,10 @@ class Formatter:
         else:
             self._format_token()
 
+    def content(self):
+        """Returns the script content bytes this formatter processes."""
+        return self.script[self.node.start_byte:self.node.end_byte]
+
     def _next_child(self):
         try:
             node = self.node.children[self._cidx]
@@ -149,7 +153,7 @@ class Formatter:
             self._write(final)
 
     def _format_token(self):
-        self._write(self.script[self.node.start_byte:self.node.end_byte])
+        self._write(self.content())
 
     def _write(self, data):
         if isinstance(data, str):
