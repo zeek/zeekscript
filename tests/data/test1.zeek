@@ -5,6 +5,10 @@
 
 @load foo/bar/baz.zeek    # A "preprocessor" line with comment
 
+@if(getenv("ZEEK_PORT") != "")
+redef Broker::default_port =  to_port(getenv( "ZEEK_PORT"));
+@endif
+
 module  Test;
 	
   export {
@@ -62,6 +66,9 @@ function blanklines() {
   
 	# With one comment
 	baz(); # and another comment
+
+	# String-like directives:
+	print @DIR,  @FILENAME;
 
 }
 

@@ -1,3 +1,7 @@
+0.2.0-6 | 2022-02-17 17:08:16 -0800
+
+  * GH-2: Update parser to pull in directive updates and reflect name changes (Christian Kreibich, Corelight)
+
 0.2.0-3 | 2022-02-14 17:24:59 -0800
 
   * Switch tree-sitter-zeek submodule URL to Zeek project (Christian Kreibich, Corelight)
