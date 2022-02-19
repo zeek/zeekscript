@@ -133,22 +133,42 @@ class Formatter:
         node = self._next_child()
 
         for child in node.prev_cst_siblings:
-            self._format_child_impl(child, indent, hints)
+            self._format_child_impl(child, indent)
 
+        # The hints apply to AST (not CST) nodes
         self._format_child_impl(node, indent, hints)
 
         for child in node.next_cst_siblings:
-            self._format_child_impl(child, indent, hints)
+            self._format_child_impl(child, indent)
 
     def _format_child_range(self, num, indent=False, hints=None):
-        for _ in range(num):
+        # Formatting a range of children implies that no line breaks can happen
+        # between them. We keep the first element as-is, and tuck NO_LB_BEFORE
+        # onto all subsequent ones.
+        hints = hints or Hint.NONE
+
+        if num > 0:
             self._format_child(indent, hints)
+        if num > 1:
+            for idx in range(num-1):
+                self._format_child(indent, hints | Hint.NO_LB_BEFORE)
 
     def _format_children(self, sep=None, final=None):
+        """Format all children of the node.
+
+        sep is an optional separator string placed between every child. final is
+        an optional string that terminates the sequence. The function propagates
+        any layouting hint in effect for this instance to the first child, so
+        the hint does not get lost on the path down the tree.
+        """
+        if self._children_remaining():
+            self._format_child(hints=self.hints)
+
         while self._children_remaining():
-            self._format_child()
-            if sep is not None and self._children_remaining() > 0:
+            if sep is not None:
                 self._write(sep)
+            self._format_child()
+
         if final is not None:
             self._write(final)
 
@@ -167,12 +187,12 @@ class Formatter:
             # would result without the presence of interrupting comments.
             data = data.lstrip()
 
-        self.ostream.write(data)
+        self.ostream.write(data, self)
 
     def _write_indent(self):
         if self.ostream.get_column() == 0:
-            self.ostream.write(b'\t' * self.indent)
-            self.ostream.write_space_indent()
+            self.ostream.write_tab_indent(self)
+            self.ostream.write_space_indent(self)
             return True
         return False
 
@@ -300,7 +320,7 @@ class ExportDeclFormatter(Formatter):
     def format(self):
         self._format_child() # 'export'
         self._write_sp()
-        self._format_child() # '{'
+        self._format_child(hints=Hint.NO_LB_BEFORE) # '{'
         self._write_nl()
         while self._get_child_name() == 'decl':
             self._format_child(indent=True)
@@ -336,7 +356,7 @@ class GlobalDeclFormatter(TypedInitializerFormatter):
         self._write_sp()
         self._format_child() # <id>
         self._format_typed_initializer()
-        self._format_child() # ';'
+        self._format_child(hints=Hint.NO_LB_BEFORE) # ';'
         self._write_nl()
 
 
@@ -351,14 +371,14 @@ class InitializerFormatter(Formatter):
 class InitFormatter(Formatter):
     def format(self):
         if self._get_child_token() == '{':
-            self._format_child() # '{'
+            self._format_child(hints=Hint.NO_LB_BEFORE) # '{'
             # Any number of expressions, comma-separated
             if self._get_child_name() == 'expr':
                 self._write_nl()
                 while self._get_child_name() == 'expr':
                     self._format_child(indent=True) # <expr>
                     if self._get_child_token() == ',':
-                        self._format_child() # ','
+                        self._format_child(hints=Hint.NO_LB_BEFORE) # ','
                     self._write_nl()
             else:
                 self._write_sp()
@@ -402,7 +422,7 @@ class RedefRecordDeclFormatter(Formatter):
         if self._get_child_name() == 'attr_list':
             self._write_sp()
             self._format_child() # <attr_list>
-        self._format_child() # ';'
+        self._format_child(hints=Hint.NO_LB_BEFORE) # ';'
         self._write_nl()
 
 
@@ -416,7 +436,7 @@ class TypeDeclFormatter(Formatter):
         if self._get_child_name() == 'attr_list':
             self._write_sp()
             self._format_child() # <attr_list>
-        self._format_child() # ';'
+        self._format_child(hints=Hint.NO_LB_BEFORE) # ';'
         self._write_nl()
 
 
@@ -460,34 +480,36 @@ class TypeFormatter(SpaceSeparatedFormatter):
             self._format_child_range(2) # 'function' <func_params>
 
         elif self._get_child_token() in ['event', 'hook']:
-            self._format_child_range(2) # 'event'/'hook' '('
+            self._format_child() # 'event'/'hook'
+            self._format_child(hints=Hint.NO_LB_BEFORE) # '('
             if self._get_child_name() == 'formal_args':
                 self._format_child()
-            self._format_child() # ')'
+            self._format_child(hints=Hint.NO_LB_BEFORE) # ')'
 
         else:
             # Format anything else with plain space separation, e.g. "vector of foo"
             super().format()
 
     def _format_typelist(self):
-        self._format_child() # '['
+        self._format_child(hints=Hint.NO_LB_BEFORE) # '['
         while self._get_child_name() == 'type':
             self._format_child() # <type>
             if self._get_child_token() == ',':
-                self._format_child() # ','
+                self._format_child(hints=Hint.NO_LB_BEFORE) # ','
                 self._write_sp()
-        self._format_child() # ']'
+        self._format_child(hints=Hint.NO_LB_BEFORE) # ']'
 
 
 class TypeSpecFormatter(Formatter):
     def format(self):
-        self._format_child_range(2) # <id> ':'
+        self._format_child(hints=Hint.NO_LB_AFTER) # <id>
+        self._format_child(hints=Hint.NO_LB_AFTER) # ':'
         self._write_sp()
         self._format_child() # <type>
         if self._get_child_name() == 'attr_list':
             self._write_sp()
             self._format_child()
-        self._format_child() # ';'
+        self._format_child(hints=Hint.NO_LB_BEFORE) # ';'
         self._write_nl()
 
 
@@ -496,7 +518,7 @@ class EnumBodyFormatter(Formatter):
         while self._get_child():
             self._format_child() # enum_body_elem
             if self._get_child():
-                self._format_child() # ',' (optional at the end of the list)
+                self._format_child(hints=Hint.NO_LB_BEFORE) # ',' (optional at the end of the list)
             self._write_nl()
 
 
@@ -532,12 +554,12 @@ class FuncHdrVariantFormatter(Formatter):
 
 class FuncParamsFormatter(Formatter):
     def format(self):
-        self._format_child() # '('
+        self._format_child(hints=Hint.NO_LB_BEFORE) # '('
         if self._get_child_name() == 'formal_args':
             self._format_child() # <formal_args>
-        self._format_child() # ')'
+        self._format_child(hints=Hint.NO_LB_BEFORE) # ')'
         if self._get_child_token() == ':':
-            self._format_child() # ':'
+            self._format_child(hints=Hint.NO_LB_AFTER) # ':'
             self._write_sp()
             self._format_child() # <type>
 
@@ -545,7 +567,7 @@ class FuncParamsFormatter(Formatter):
 class FuncBodyFormatter(Formatter):
     def format(self):
         self._write_sp()
-        self._format_child() # '{'
+        self._format_child(hints=Hint.NO_LB_BEFORE) # '{'
         if self._get_child_name() == 'stmt_list':
             self._write_nl()
             self._format_child(indent=True) # <stmt_list>
@@ -559,13 +581,14 @@ class FormalArgsFormatter(Formatter):
         while self._get_child_name() == 'formal_arg':
             self._format_child() # <formal_arg>
             if self._get_child():
-                self._format_child() # ',' or ';'
+                self._format_child(hints=Hint.NO_LB_BEFORE) # ',' or ';'
                 self._write_sp()
 
 
 class FormalArgFormatter(Formatter):
     def format(self):
-        self._format_child_range(2) # <id> ':'
+        self._format_child(hints=Hint.NO_LB_AFTER) # <id>
+        self._format_child(hints=Hint.NO_LB_AFTER) # ':'
         self._write_sp()
         self._format_child() # <type>
         if self._get_child_name() == 'attr_list':
@@ -575,13 +598,13 @@ class FormalArgFormatter(Formatter):
 
 class CaptureListFormatter(Formatter):
     def format(self):
-        self._format_child() # '['
+        self._format_child(hints=Hint.NO_LB_BEFORE) # '['
         while self._get_child_name() == 'capture':
             self._format_child() # <capture>
             if self._get_child_token() == ',':
-                self._format_child() # ','
+                self._format_child(hints=Hint.NO_LB_BEFORE) # ','
                 self._write_sp()
-        self._format_child() # ']'
+        self._format_child(hints=Hint.NO_LB_BEFORE) # ']'
         self._write_sp()
 
 
@@ -622,11 +645,11 @@ class StmtFormatter(TypedInitializerFormatter):
         if self._get_child_name() == 'capture_list':
             self._format_child() # <capture_list>
             self._write_sp()
-        self._format_child() # '('
+        self._format_child(hints=Hint.NO_LB_BEFORE) # '('
         self._write_sp()
         self._format_child() # <expr>
         self._write_sp()
-        self._format_child() # ')'
+        self._format_child(hints=Hint.NO_LB_BEFORE) # ')'
 
         curly = self._child_is_curly_stmt()
         self._write_sp_or_nl()
@@ -639,7 +662,7 @@ class StmtFormatter(TypedInitializerFormatter):
             self._write_sp()
             self._format_child() # <expr>
             self._write_sp()
-            self._format_child() # '{'
+            self._format_child(hints=Hint.NO_LB_BEFORE) # '{'
             self._write_nl()
             if self._get_child_name() == 'stmt_list':
                 self._format_child(indent=True) # <stmt_list>
@@ -654,7 +677,7 @@ class StmtFormatter(TypedInitializerFormatter):
         start_name, start_token = self._get_child_name(), self._get_child_token()
 
         if start_token == '{':
-            self._format_child() # '{'
+            self._format_child(hints=Hint.NO_LB_BEFORE) # '{'
             if self._get_child_name() == 'stmt_list':
                 self._write_nl()
                 self._format_child(indent=True)
@@ -671,11 +694,11 @@ class StmtFormatter(TypedInitializerFormatter):
         elif start_token == 'if':
             self._format_child() # 'if'
             self._write_sp()
-            self._format_child() # '('
+            self._format_child(hints=Hint.NO_LB_BEFORE) # '('
             self._write_sp()
             self._format_child() # <expr>
             self._write_sp()
-            self._format_child() # ')'
+            self._format_child(hints=Hint.NO_LB_BEFORE) # ')'
 
             # We need to track whether the subsequent statement is a
             # curly-braces block, for several reasons: we write a newline now
@@ -714,7 +737,7 @@ class StmtFormatter(TypedInitializerFormatter):
             self._write_sp()
             self._format_child() # <expr>
             self._write_sp()
-            self._format_child() # '{'
+            self._format_child(hints=Hint.NO_LB_BEFORE) # '{'
             if self._get_child_name() == 'case_list':
                 self._format_child(indent=True) # <case_list>
             else:
@@ -725,21 +748,21 @@ class StmtFormatter(TypedInitializerFormatter):
         elif start_token == 'for':
             self._format_child() # 'for'
             self._write_sp()
-            self._format_child() # '('
+            self._format_child(hints=Hint.NO_LB_BEFORE) # '('
             self._write_sp()
             if self._get_child_token() == '[':
-                self._format_child() # '['
+                self._format_child(hints=Hint.NO_LB_BEFORE) # '['
                 while self._get_child_token() != ']':
                     self._format_child() # <id>
                     if self._get_child_token() == ',':
-                        self._format_child() # ','
+                        self._format_child(hints=Hint.NO_LB_BEFORE) # ','
                         self._write_sp()
-                self._format_child() # ']'
+                self._format_child(hints=Hint.NO_LB_BEFORE) # ']'
             else:
                 self._format_child() # <id>
 
             while self._get_child_token() == ',':
-                self._format_child() # ','
+                self._format_child(hints=Hint.NO_LB_BEFORE) # ','
                 self._write_sp()
                 self._format_child() # <id>
             self._write_sp()
@@ -747,17 +770,17 @@ class StmtFormatter(TypedInitializerFormatter):
             self._write_sp()
             self._format_child() # <expr>
             self._write_sp()
-            self._format_child() # ')'
+            self._format_child(hints=Hint.NO_LB_BEFORE) # ')'
             self._format_block() # <stmt>
 
         elif start_token == 'while':
             self._format_child() # 'while'
             self._write_sp()
-            self._format_child() # '('
+            self._format_child(hints=Hint.NO_LB_BEFORE) # '('
             self._write_sp()
             self._format_child() # <expr>
             self._write_sp()
-            self._format_child() # ')'
+            self._format_child(hints=Hint.NO_LB_BEFORE) # ')'
             self._format_block() # <stmt>
 
         elif start_token in ['next', 'break', 'fallthrough']:
@@ -775,7 +798,7 @@ class StmtFormatter(TypedInitializerFormatter):
             if self._get_child_name() == 'expr':
                 self._write_sp()
                 self._format_child() # <expr>
-            self._format_child() # ';'
+            self._format_child(hints=Hint.NO_LB_BEFORE) # ';'
             self._write_nl()
 
         elif start_token in ['add', 'delete']:
@@ -789,7 +812,7 @@ class StmtFormatter(TypedInitializerFormatter):
             self._write_sp()
             self._format_child() # <id>
             self._format_typed_initializer()
-            self._format_child() # ';'
+            self._format_child(hints=Hint.NO_LB_BEFORE) # ';'
             self._write_nl()
 
         elif start_token == 'when':
@@ -821,7 +844,7 @@ class ExprListFormatter(Formatter):
         while self._get_child_name() == 'expr':
             self._format_child() # <expr>
             if self._get_child():
-                self._format_child() # ','
+                self._format_child(hints=Hint.NO_LB_BEFORE) # ','
                 self._write_sp()
 
 
@@ -851,78 +874,131 @@ class CaseTypeListFormatter(Formatter):
                 self._write_sp()
                 self._format_child() # <id>
             if self._get_child_token() == ',':
-                self._format_child() # ','
+                self._format_child(hints=Hint.NO_LB_BEFORE) # ','
                 self._write_sp()
 
 
 class EventHdrFormatter(Formatter):
     def format(self):
         self._format_child() # <id>
-        self._format_child() # '('
+        self._format_child(hints=Hint.NO_LB_BEFORE) # '('
         if self._get_child_name() == 'expr_list':
             self._format_child() # <expr_list>
-        self._format_child() # ')'
+        self._format_child(hints=Hint.NO_LB_BEFORE) # ')'
 
 
 class ExprFormatter(SpaceSeparatedFormatter):
     # Like statments, expressions aren't currently broken into specific symbol
-    # types, so we parse into them to identify how to layout them.
+    # types, so we use helpers or parse into them to identify what particular
+    # kind of expression we're facing.
+
+    def _is_binary_boolean(self):
+        """Predicate, returns true if this an || or && expression."""
+        return (len(self.node.children) == 3 and
+                self._get_child_token(offset=1, absolute=True) in ('||', '&&'))
+
     def format(self):
         cn1, cn2, cn3 = [self._get_child_name(offset=n) for n in (0,1,2)]
         ct1, ct2, ct3 = [self._get_child_token(offset=n) for n in (0,1,2)]
 
-        if cn1 == 'expr' and (ct2 in ['[', '$'] or cn2 == 'index_slice'):
+        if cn1 == 'expr' and ct2 == '[':
+            self._format_child() # <expr>
+            self._format_child(hints=Hint.NO_LB_BEFORE) # '['
+            self._format_child() # <expr_list>
+            self._format_child(hints=Hint.NO_LB_BEFORE) # ']'
+
+        elif cn1 == 'expr' and ct2 == '$':
+            self._format_child()
+            self._format_child(hints=Hint.NO_LB_BEFORE | Hint.NO_LB_AFTER)
+            while self._get_child():
+                self._format_child()
+
+        elif cn1 == 'expr' and cn2 == 'index_slice':
             while self._get_child():
                 self._format_child()
 
         elif ct1 in ['|', '++', '--', '!', '~', '-', '+']:
             # No space when those operators are involved
+            self._format_child(hints=Hint.NO_LB_AFTER)
             while self._get_child():
                 self._format_child()
 
         elif cn1 == 'expr' and ct2 == '!' and ct3 == 'in':
             self._format_child() # <expr>
             self._write_sp()
-            self._format_child_range(2) # '!in'
+            self._format_child(hints=Hint.NO_LB_AFTER) # '!'
+            self._format_child() # 'in'
             self._write_sp()
             self._format_child() # <expr>
 
         elif ct1 == '[':
-            self._format_child() # '['
+            self._format_child(hints=Hint.NO_LB_BEFORE) # '['
             if self._get_child_name() == 'expr_list':
                 self._format_child() # <expr_list>
             else:
                 self._write_sp()
-            self._format_child() # ']
+            self._format_child(hints=Hint.NO_LB_BEFORE) # ']
 
-        elif ct1 == '$':
+        elif ct1 == '$' and ct3 == '=':
+            self._format_child_range(4) # '$'<id> = <expr>, no line breaks
+
+        elif ct1 == '$': # The function version, with possible capture
             self._format_child_range(2) # '$'<id>
             self._write_sp()
-            super().format() # Handle rest space-separated
+            self._format_child(hints=Hint.NO_LB_BEFORE | Hint.NO_LB_AFTER) # <begin_lambda>
+            self._write_sp()
+            self._format_child(hints=Hint.NO_LB_BEFORE) # '='
+            self._write_sp()
+            self._format_child() # <func_body>
 
         elif ct1 == '(':
-            self._format_child_range(3) # '(' <expr> ')'
+            self._format_child(hints=Hint.NO_LB_BEFORE) # '('
+            self._format_child_range(2) # <expr> ')'
 
         elif ct1 == 'copy':
-            self._format_child_range(4) # 'copy' '(' <expr> ')'
+            self._format_child() # 'copy'
+            self._format_child(hints=Hint.NO_LB_BEFORE) # '('
+            self._format_child_range(2) # <expr> ')'
 
         elif ct2 == '?$':
             self._format_child_range(3) # <expr> '$?' <expr>
 
         elif ct2 == '(':
             # initializers such as table(...)
-            self._format_child_range(2) # 'table(' etc
+            self._format_child() # 'table' etc
+            self._format_child(hints=Hint.NO_LB_BEFORE) # '('
             if self._get_child_name() == 'expr_list':
                 self._format_child()
-            self._format_child() # ')'
+            self._format_child(hints=Hint.NO_LB_BEFORE) # ')'
             if self._get_child_name() == 'attr_list':
                 self._write_sp()
                 self._format_child()
 
+        elif self._is_binary_boolean():
+            # For Boolean AND/OR, check if this is a toplevel sequence of them,
+            # and if so, recommend the operator for linebreaks. "toplevel" means
+            # that this must be AND/OR and all parent expressions must be, up
+            # to something that isn't an expression (a statement, for example).
+            node = self.node.parent
+            hints = None
+
+            while (node and isinstance(node.formatter, ExprFormatter)
+                   and node.formatter._is_binary_boolean()):
+                node = node.parent
+
+            if node and not isinstance(node.formatter, ExprFormatter):
+                # Okay! It's AND/ORs all the way up to something not an expr.
+                hints = Hint.GOOD_AFTER_LB
+
+            self._format_child() # <expr>
+            self._write_sp()
+            self._format_child(hints=hints) # '&&' / '||'
+            self._write_sp()
+            self._format_child() # <expr>
+
         else:
             # Fall back to simple space-separation
             super().format()
-
 
 
 class NlFormatter(Formatter):
@@ -958,7 +1034,7 @@ class NlFormatter(Formatter):
 
 class AttrFormatter(Formatter):
     def format(self):
-        if self._get_child_type(offset=1) == '=':
+        if self._get_child_token(offset=1) == '=':
             # The range ensures we keep this on one line
             self._format_child_range(3)
         else:
