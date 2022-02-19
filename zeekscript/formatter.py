@@ -956,6 +956,15 @@ class NlFormatter(Formatter):
                 self._write_nl(force=True)
 
 
+class AttrFormatter(Formatter):
+    def format(self):
+        if self._get_child_type(offset=1) == '=':
+            # The range ensures we keep this on one line
+            self._format_child_range(3)
+        else:
+            self._format_child()
+
+
 class CommentFormatter(Formatter):
     """Base class for any kind of comment."""
     def __init__(self, script, node, ostream, indent=0, hints=None):
