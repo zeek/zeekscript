@@ -19,6 +19,8 @@ class OutputStream:
     output stream wrapper.
     """
     MAX_LINE_LEN = 80
+    MIN_LINE_ITEMS = 5
+    TAB_SIZE = 8
     SPACE_INDENT = 4
 
     def __init__(self, ostream):
@@ -67,6 +69,7 @@ class OutputStream:
         tbd = [] # Outputs to be done
         tbd_len = 0 # Length of the to-be-done output (in characters)
         using_break_hints = False # Whether we've used advisory linebreak hints yet
+        nonempty_items = 0
 
         def flush_tbd():
             nonlocal tbd, tbd_len, col_flushed
@@ -81,12 +84,16 @@ class OutputStream:
             self._write(Formatter.NL)
             self._write(b'\t' * self._tab_indent)
             self._write(b' ' * self.SPACE_INDENT)
-            col_flushed = self._tab_indent + self.SPACE_INDENT
+            col_flushed = self._tab_indent * self.TAB_SIZE + self.SPACE_INDENT
 
             # Remove any pure whitespace from the beginning of the
             # continuation of the line we just broke:
             while tbd and not tbd[0].data.strip():
                 tbd_len -= len(tbd.pop(0).data)
+
+        for out in self._linebuffer:
+            if out.data.strip():
+                nonempty_items += 1
 
         for out, out_next in zip(self._linebuffer, self._linebuffer[1:] + [None]):
             tbd.append(out)
@@ -117,10 +124,19 @@ class OutputStream:
                 using_break_hints = True
 
             # If we naturally exceed line length while flushing a line, break
-            # it, possibly repeatedly. But if we've ever used the GOOD_AFTER_LB
-            # hint, rely exclusively on it for breaks, because the resulting mix
-            # tends to look messy otherwise.
-            elif col_flushed + tbd_len > self.MAX_LINE_LEN and not using_break_hints:
+            # it, possibly repeatedly. But:
+            #
+            # - if we've ever used the GOOD_AFTER_LB hint, rely exclusively on
+            #   it for breaks, because the resulting mix tends to look messy
+            #   otherwise.
+            #
+            # - If there are only very few items on the line to begin with
+            #   (i.e., few output chunks), then don't bother: it too will look
+            #   silly.
+            #
+            elif (not using_break_hints
+                  and col_flushed + tbd_len > self.MAX_LINE_LEN
+                  and nonempty_items >= self.MIN_LINE_ITEMS):
                 write_linebreak()
 
             flush_tbd()
