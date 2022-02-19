@@ -956,7 +956,14 @@ class NlFormatter(Formatter):
                 self._write_nl(force=True)
 
 
-class MinorCommentFormatter(Formatter):
+class CommentFormatter(Formatter):
+    """Base class for any kind of comment."""
+    def __init__(self, script, node, ostream, indent=0, hints=None):
+        super().__init__(script, node, ostream, indent, hints)
+        self.hints |= Hint.ZERO_WIDTH # Commens never count toward line length
+
+
+class MinorCommentFormatter(CommentFormatter):
     def format(self):
         node = self.node
         # There's something before us and it's not a newline, then
@@ -975,13 +982,13 @@ class MinorCommentFormatter(Formatter):
             self._write_nl(is_midline=True)
 
 
-class ZeekygenCommentFormatter(Formatter):
+class ZeekygenCommentFormatter(CommentFormatter):
     def format(self):
         self._format_token()
         self._write_nl()
 
 
-class ZeekygenPrevCommentFormatter(Formatter):
+class ZeekygenPrevCommentFormatter(CommentFormatter):
     """A formatter for Zeekygen comments that refer to earlier items (##<)."""
     def __init__(self, script, node, ostream, indent=0, hints=None):
         super().__init__(script, node, ostream, indent, hints)
