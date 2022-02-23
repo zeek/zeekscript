@@ -32,7 +32,8 @@ export {
 	global a_function: function(foo: BAR): bool;
 }
 
-function a_function(a: int, b: count): bool {
+function a_function(a: int, b: count, another_argument_for_linewrapping: string)
+    : bool {
 	if ( foo in bar )
 		return somthing[foo$bar](bar);
 	else
@@ -54,6 +55,12 @@ function a_function(a: int, b: count): bool {
 		print "baz";
 	else
 		print "or else!";
+}
+
+function b_function(a: int, b: count,
+    another_argument_for_longer_linewrapping: string): string {
+	call( # with an interrupting comment
+	    arg1, arg2);
 }
 
 function blanklines() {
