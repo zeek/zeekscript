@@ -192,7 +192,7 @@ class Formatter:
     def _write_indent(self):
         if self.ostream.get_column() == 0:
             self.ostream.write_tab_indent(self)
-            self.ostream.write_space_indent(self)
+            self.ostream.write_space_align(self)
             return True
         return False
 
@@ -200,7 +200,7 @@ class Formatter:
         self._write(b' ' * num)
 
     def _write_nl(self, num=1, force=False, is_midline=False):
-        self.ostream.set_space_indent(is_midline)
+        self.ostream.set_space_align(is_midline)
 
         # It's rare that we really want to write newlines multiple times in a
         # row. Normally, if we just wrote one, don't do so again unless we
