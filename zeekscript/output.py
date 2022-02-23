@@ -42,13 +42,13 @@ class OutputStream:
         self._space_align = enable
 
     def write(self, data, formatter):
+        # For troubleshooting received hinting
+        # print_error('XXX "%s" %s' % (data, formatter.hints))
+
         for chunk in data.splitlines(keepends=True):
             if chunk.endswith(Formatter.NL):
                 # Remove any trailing whitespace
                 chunk = chunk.rstrip() + Formatter.NL
-
-            # For troubleshooting received hinting
-            # print_error('XXX "%s" %s' % (chunk, formatter.hints))
 
             # To disable linewraps, use this instead of the below:
             # self._write(chunk)

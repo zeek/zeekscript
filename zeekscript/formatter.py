@@ -153,13 +153,13 @@ class Formatter:
             for idx in range(num-1):
                 self._format_child(indent, hints | Hint.NO_LB_BEFORE)
 
-    def _format_children(self, sep=None, final=None):
+    def _format_children(self, sep=None):
         """Format all children of the node.
 
-        sep is an optional separator string placed between every child. final is
-        an optional string that terminates the sequence. The function propagates
-        any layouting hint in effect for this instance to the first child, so
-        the hint does not get lost on the path down the tree.
+        sep is an optional separator string placed between every child. The
+        function propagates any layouting hint in effect for this instance to
+        the first child, so the hint does not get lost on the path down the
+        tree.
         """
         if self._children_remaining():
             self._format_child(hints=self.hints)
@@ -168,9 +168,6 @@ class Formatter:
             if sep is not None:
                 self._write(sep)
             self._format_child()
-
-        if final is not None:
-            self._write(final)
 
     def _format_token(self):
         self._write(self.content())
@@ -200,15 +197,19 @@ class Formatter:
         self._write(b' ' * num)
 
     def _write_nl(self, num=1, force=False, is_midline=False):
-        self.ostream.set_space_align(is_midline)
-
-        # It's rare that we really want to write newlines multiple times in a
-        # row. Normally, if we just wrote one, don't do so again unless we
-        # force.
+        # It's rare that we really want to write newlines multiple times in
+        # a row. If we just wrote one, don't do so again unless forced.
+        # Still adjust space-alignment mode for the next write, though.
         if self.ostream.get_column() == 0 and not force:
+            self.ostream.set_space_align(is_midline)
             return
 
         self._write(self.NL * num)
+
+        # It's key here that space alignment mode is set after we write,
+        # otherwise we cannot cancel its effect upon a second NL because
+        # indentation/alignment will have already happened.
+        self.ostream.set_space_align(is_midline)
 
     def _children_remaining(self):
         """Returns number of children of this node not yet visited."""
@@ -294,7 +295,8 @@ class LineFormatter(Formatter):
     """This formatter separates all nodes with space and terminates with a newline."""
     def format(self):
         if self.node.children:
-            self._format_children(b' ', self.NL)
+            self._format_children(b' ')
+            self._write_nl()
         else:
             self._format_token()
 
@@ -1059,8 +1061,7 @@ class MinorCommentFormatter(CommentFormatter):
         self._format_token() # Write comment itself
 
         # If there's nothing or a newline before us, then this comment spans the
-        # whole line and we write a regular newline. Otherwise we indicate that
-        # this newline is likely an interruption to the current line.
+        # whole line and we write a regular newline.
         if node.prev_cst_sibling is None or node.prev_cst_sibling.is_nl():
             self._write_nl()
         else:

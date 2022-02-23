@@ -4,6 +4,7 @@
 ##! about this module. It spans two lines.
 
 @load foo/bar/baz.zeek    # A "preprocessor" line with comment
+@load  blum/frub
 
 module  Test;
 	
