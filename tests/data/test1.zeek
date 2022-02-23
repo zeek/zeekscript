@@ -28,8 +28,13 @@ module  Test;
         ## An option.
         option an_option: table[ string,count ] of string=table() &redef;
 
-        ## An function.
+        ## A function.
 	global a_function : function(foo: BAR) :bool;
+
+	 ## A lambda.
+	const a_lambda: function( foo: string ) = function (foo: string) {
+	} &redef;
+
 }
 
 function a_function ( a: int, b: count, another_argument_for_linewrapping: string ) : bool

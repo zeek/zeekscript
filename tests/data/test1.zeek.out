@@ -28,12 +28,16 @@ export {
 	## An option.
 	option an_option: table[string, count] of string = table() &redef;
 
-	## An function.
+	## A function.
 	global a_function: function(foo: BAR): bool;
+
+	## A lambda.
+	const a_lambda: function(foo: string) = function(foo: string) { } &redef;
 }
 
 function a_function(a: int, b: count, another_argument_for_linewrapping: string)
-    : bool {
+    : bool
+{
 	if ( foo in bar )
 		return somthing[foo$bar](bar);
 	else
@@ -58,12 +62,14 @@ function a_function(a: int, b: count, another_argument_for_linewrapping: string)
 }
 
 function b_function(a: int, b: count,
-    another_argument_for_longer_linewrapping: string): string {
+    another_argument_for_longer_linewrapping: string): string
+{
 	call( # with an interrupting comment
 	    arg1, arg2);
 }
 
-function blanklines() {
+function blanklines()
+{
 	foo();
 	bar();
 

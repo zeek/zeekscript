@@ -532,6 +532,8 @@ class FuncDeclFormatter(Formatter):
             while self._get_child_name() == 'preproc_directive':
                 self._format_child() # <preproc_directive>
                 self._write_nl()
+        # This newline produces K&R style functions/events/hooks:
+        self._write_nl()
         self._format_child() # <func_body>
         self._write_nl()
 
@@ -568,7 +570,6 @@ class FuncParamsFormatter(Formatter):
 
 class FuncBodyFormatter(Formatter):
     def format(self):
-        self._write_sp()
         self._format_child(hints=Hint.NO_LB_BEFORE) # '{'
         if self._get_child_name() == 'stmt_list':
             self._write_nl()
@@ -964,6 +965,11 @@ class ExprFormatter(SpaceSeparatedFormatter):
 
         elif ct2 == '?$':
             self._format_child_range(3) # <expr> '$?' <expr>
+
+        elif ct1 == 'function':
+            self._format_child_range(2) # 'function' <begin_lambda>
+            self._write_sp()
+            self._format_child() # <func_body>
 
         elif ct2 == '(':
             # initializers such as table(...)
