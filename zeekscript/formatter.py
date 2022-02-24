@@ -900,6 +900,25 @@ class ExprFormatter(SpaceSeparatedFormatter):
         return (len(self.node.children) == 3 and
                 self._get_child_token(offset=1, absolute=True) in ('||', '&&'))
 
+    def _is_binary_addition(self):
+        """Predicate, returns true if this an <expr> + <expr> expression."""
+        return (len(self.node.children) == 3 and
+                self._get_child_type(offset=1, absolute=True) == '+')
+
+    def _is_expr_chain_of(self, formatter_predicate):
+        """Predicate, returns true if the given predicate is true for all
+        formatters from this expression up to the first non-expression.
+        This helps identify chains of similar expressions, per the above
+        predicates.
+        """
+        node = self.node
+
+        while (node and isinstance(node.formatter, ExprFormatter)
+               and formatter_predicate(node.formatter)):
+            node = node.parent
+
+        return node and not isinstance(node.formatter, ExprFormatter)
+
     def format(self):
         cn1, cn2, cn3 = [self._get_child_name(offset=n) for n in (0,1,2)]
         ct1, ct2, ct3 = [self._get_child_token(offset=n) for n in (0,1,2)]
@@ -984,23 +1003,38 @@ class ExprFormatter(SpaceSeparatedFormatter):
 
         elif self._is_binary_boolean():
             # For Boolean AND/OR, check if this is a toplevel sequence of them,
-            # and if so, recommend the operator for linebreaks. "toplevel" means
-            # that this must be AND/OR and all parent expressions must be, up
-            # to something that isn't an expression (a statement, for example).
-            node = self.node.parent
+            # and if so, recommend the operator for linebreaks. ("toplevel"
+            # means that this must be AND/OR and all parent expressions must be,
+            # up to something that isn't an expression -- a statement, for
+            # example.)
+            #
+            # We do this so we can line-break complex boolean expressions so
+            # that each toplevel one ends on a new line, starting with the
+            # boolean operand. OutputStream's handling of the GOOD_AFTER_LB
+            # hint implements this.
             hints = None
 
-            while (node and isinstance(node.formatter, ExprFormatter)
-                   and node.formatter._is_binary_boolean()):
-                node = node.parent
-
-            if node and not isinstance(node.formatter, ExprFormatter):
+            if self._is_expr_chain_of(ExprFormatter._is_binary_boolean):
                 # Okay! It's AND/ORs all the way up to something not an expr.
                 hints = Hint.GOOD_AFTER_LB
 
             self._format_child() # <expr>
             self._write_sp()
             self._format_child(hints=hints) # '&&' / '||'
+            self._write_sp()
+            self._format_child() # <expr>
+
+        elif self._is_binary_addition():
+            # Same approach, but for additions. This helps OutputStream nicely
+            # align long strings broken into substrings concatenated by "+".
+            hints = None
+
+            if self._is_expr_chain_of(ExprFormatter._is_binary_addition):
+                hints = Hint.GOOD_AFTER_LB
+
+            self._format_child() # <expr>
+            self._write_sp()
+            self._format_child(hints=hints) # '+'
             self._write_sp()
             self._format_child() # <expr>
 
