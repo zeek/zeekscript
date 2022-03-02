@@ -198,7 +198,7 @@ class Script:
                 snippet = self.source[node.start_byte:node.end_byte]
                 if len(snippet) > 50:
                     snippet = snippet[:50] + b'[...]'
-                msg = 'missing grammer node "{}" on line {}, col {}'.format(
+                msg = 'missing grammar node "{}" on line {}, col {}'.format(
                     node.type, node.start_point[0], node.start_point[1])
 
             line = self.source.split(Formatter.NL)[node.start_point[0]]
@@ -227,8 +227,9 @@ class Script:
             new_node.has_error = node.has_error
             new_node.type = node.type
 
-            # Mark the node as AST-only if it's not a newline or comment.  Those
+            # Mark the node as AST-only if it's not a newline or comment. Those
             # are extras (in TS terminology) that occur anywhere in the tree.
+            # Would be nice if we didn't need to itemize these manually.
             if node.type != 'nl' and not node.type.endswith('_comment'):
                 new_node.is_ast = True
 
