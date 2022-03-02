@@ -9,6 +9,14 @@ class Node:
     We don't inherit from tree_sitter.Node because we can't: doing so yields
     TypeError: type 'tree_sitter.Node' is not an acceptable base type. One also
     cannot instantiate its nodes manually.
+
+    A distinction of CST and AST runs through this class. This distinction is
+    not strictly the textbook one, where the AST abstracts away syntactical
+    features not useful for language processing, and it also differs slightly
+    from that used in the TS docs. In this class, the AST is the CST without any
+    nodes that fall under TS's "extra" category, i.e., grammar constructs that
+    can occur anywhere in the language, including named symbols. For Zeek,
+    examples include newlines and comments.
     """
     def __init__(self):
         # AST navigation: these relationship omit nodes present only in the
@@ -26,6 +34,8 @@ class Node:
         self.is_named = False
         self.is_missing = False
         self.has_error = False
+
+        # Consider name() or token() below instead of accessing this directly
         self.type = None
 
         # Additions over the TS node members below:
@@ -71,6 +81,24 @@ class Node:
         #
         self.prev_cst_siblings = []
         self.next_cst_siblings = []
+
+    def name(self):
+        """Returns the type of a named node.
+
+        For nodes that are named in the grammar (such as expressions or
+        statements), this returns their type (e.g. "expr", "stmt", "decl"). When
+        this isn't a named node, returns None.
+        """
+        return self.type if self.is_named else None
+
+    def token(self):
+        """Returns token string if this is an unnamed (terminal) node.
+
+        This is the complement to name(): when this node is a terminal/token
+        (e.g. "print", "if", ";") this function returns its string. Otherwise
+        returns None.
+        """
+        return self.type if not self.is_named else None
 
     def is_nl(self):
         """Returns True iff this is a newline."""

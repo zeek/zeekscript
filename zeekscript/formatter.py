@@ -164,9 +164,9 @@ class Formatter:
     def _get_child(self, offset=0):
         """Accessor for child nodes, without adjusting the offset index.
 
-        Without additional options, it returns the current child node, ignoring
-        any comment nodes. When using the offset argument, returns children
-        before/after the current child.
+        Without additional options, it returns the current child Node instance,
+        ignoring any comment or other CST nodes. When using the offset argument,
+        returns children before/after the current child.
         """
         direction = 1 if offset >= 0 else -1
         offset = abs(offset)
@@ -179,17 +179,40 @@ class Formatter:
         return None
 
     def _get_child_type(self, offset=0):
-        """Returns the type ("decl", "stmt", etc) of the current child node.
+        """Like _get_child(), but returns the TS type string of the child.
 
-        When integer offset is provided, returns node before/after the current
-        child (e.g., offset=-1 means the node before the current child).
-        Never adjusts the child offset index. The returned type might refer to
-        a named node or a literal token. Returns '' when no matching node exists.
+        The returned type might refer to a named node or a literal token. Use
+        _get_child_name() or _get_child_token() when possible, to avoid
+        confusion between named and token nodes.
+
+        Returns None when no matching node exists.
+
         """
         try:
             return self._get_child(offset).type
         except AttributeError:
-            return ''
+            return None
+
+    def _get_child_name(self, offset=0):
+        """Like _get_child_type(), but for named nodes.
+
+        Returns None of the child isn't a named node or no matching node exists.
+        """
+        try:
+            return self._get_child(offset).name()
+        except AttributeError:
+            return None
+
+    def _get_child_token(self, offset=0):
+        """Like _get_child_type(), but for terminal nodes.
+
+        Returns None of the child doesn't represent a plain token or no matching
+        node exists.
+        """
+        try:
+            return self._get_child(offset).token()
+        except AttributeError:
+            return None
 
     @staticmethod
     def register(symbol_name, klass):
@@ -244,7 +267,7 @@ class ExportDeclFormatter(Formatter):
         self._write_sp()
         self._format_child() # '{'
         self._write_nl()
-        while self._get_child_type() == 'decl':
+        while self._get_child_name() == 'decl':
             self._format_child(indent=True)
         self._format_child() # '}'
         self._write_nl()
@@ -255,16 +278,16 @@ class TypedInitializerFormatter(Formatter):
     [:<type>] [<initializer] [attributes]
     """
     def _format_typed_initializer(self):
-        if self._get_child_type() == ':':
+        if self._get_child_token() == ':':
             self._format_child() # ':'
             self._write_sp()
             self._format_child() # <type>
 
-        if self._get_child_type() == 'initializer':
+        if self._get_child_name() == 'initializer':
             self._write_sp()
             self._format_child() # <initializer>
 
-        if self._get_child_type() == 'attr_list':
+        if self._get_child_name() == 'attr_list':
             self._write_sp()
             self._format_child()
 
@@ -284,7 +307,7 @@ class GlobalDeclFormatter(TypedInitializerFormatter):
 
 class InitializerFormatter(Formatter):
     def format(self):
-        if self._get_child_type() == 'init_class':
+        if self._get_child_name() == 'init_class':
             self._format_child() # '=', '+=', etc
             self._write_sp()
 
@@ -292,14 +315,14 @@ class InitializerFormatter(Formatter):
 
 class InitFormatter(Formatter):
     def format(self):
-        if self._get_child_type() == '{':
+        if self._get_child_token() == '{':
             self._format_child() # '{'
             # Any number of expressions, comma-separated
-            if self._get_child_type() == 'expr':
+            if self._get_child_name() == 'expr':
                 self._write_nl()
-                while self._get_child_type() == 'expr':
+                while self._get_child_name() == 'expr':
                     self._format_child(indent=True) # <expr>
-                    if self._get_child_type() == ',':
+                    if self._get_child_token() == ',':
                         self._format_child() # ','
                     self._write_nl()
             else:
@@ -338,10 +361,10 @@ class RedefRecordDeclFormatter(Formatter):
         self._write_sp()
         self._format_child() # '{'
         self._write_nl()
-        while self._get_child_type() == 'type_spec': # any number of type_specs
+        while self._get_child_name() == 'type_spec': # any number of type_specs
             self._format_child(indent=True)
         self._format_child() # '}'
-        if self._get_child_type() == 'attr_list':
+        if self._get_child_name() == 'attr_list':
             self._write_sp()
             self._format_child() # <attr_list>
         self._format_child() # ';'
@@ -355,7 +378,7 @@ class TypeDeclFormatter(Formatter):
         self._format_child_range(2) # <id> ':'
         self._write_sp()
         self._format_child() # <type>
-        if self._get_child_type() == 'attr_list':
+        if self._get_child_name() == 'attr_list':
             self._write_sp()
             self._format_child() # <attr_list>
         self._format_child() # ';'
@@ -365,11 +388,11 @@ class TypeDeclFormatter(Formatter):
 class TypeFormatter(SpaceSeparatedFormatter):
 
     def format(self):
-        if self._get_child_type() == 'set':
+        if self._get_child_token() == 'set':
             self._format_child() # 'set'
             self._format_typelist() # '[' ... ']'
 
-        elif self._get_child_type() == 'table':
+        elif self._get_child_token() == 'table':
             self._format_child() # 'table'
             self._format_typelist() # '[' ... ']'
             self._write_sp()
@@ -377,21 +400,21 @@ class TypeFormatter(SpaceSeparatedFormatter):
             self._write_sp()
             self._format_child() # <type>
 
-        elif self._get_child_type() == 'record':
+        elif self._get_child_token() == 'record':
             self._format_child() # 'record',
             self._write_sp()
             self._format_child() # '{'
 
-            if self._get_child_type() == 'type_spec': # any number of type_specs
+            if self._get_child_name() == 'type_spec': # any number of type_specs
                 self._write_nl()
-                while self._get_child_type() == 'type_spec':
+                while self._get_child_name() == 'type_spec':
                     self._format_child(indent=True)
             else:
                 self._write_sp() # empty record, keep on one line
 
             self._format_child() # '}'
 
-        elif self._get_child_type() == 'enum':
+        elif self._get_child_token() == 'enum':
             self._format_child() # 'enum'
             self._write_sp()
             self._format_child() # '{'
@@ -399,12 +422,12 @@ class TypeFormatter(SpaceSeparatedFormatter):
             self._format_child(indent=True) # enum_body
             self._format_child() # '}'
 
-        elif self._get_child_type() == 'function':
+        elif self._get_child_token() == 'function':
             self._format_child_range(2) # 'function' <func_params>
 
-        elif self._get_child_type() in ['event', 'hook']:
+        elif self._get_child_token() in ['event', 'hook']:
             self._format_child_range(2) # 'event'/'hook' '('
-            if self._get_child_type() == 'formal_args':
+            if self._get_child_name() == 'formal_args':
                 self._format_child()
             self._format_child() # ')'
 
@@ -414,9 +437,9 @@ class TypeFormatter(SpaceSeparatedFormatter):
 
     def _format_typelist(self):
         self._format_child() # '['
-        while self._get_child_type() == 'type':
+        while self._get_child_name() == 'type':
             self._format_child() # <type>
-            if self._get_child_type() == ',':
+            if self._get_child_token() == ',':
                 self._format_child() # ','
                 self._write_sp()
         self._format_child() # ']'
@@ -427,7 +450,7 @@ class TypeSpecFormatter(Formatter):
         self._format_child_range(2) # <id> ':'
         self._write_sp()
         self._format_child() # <type>
-        if self._get_child_type() == 'attr_list':
+        if self._get_child_name() == 'attr_list':
             self._write_sp()
             self._format_child()
         self._format_child() # ';'
@@ -446,9 +469,9 @@ class EnumBodyFormatter(Formatter):
 class FuncDeclFormatter(Formatter):
     def format(self):
         self._format_child() # <func_hdr>
-        if self._get_child_type() == 'preproc_directive':
+        if self._get_child_name() == 'preproc_directive':
             self._write_nl()
-            while self._get_child_type() == 'preproc_directive':
+            while self._get_child_name() == 'preproc_directive':
                 self._format_child() # <preproc_directive>
                 self._write_nl()
         self._format_child() # <func_body>
@@ -461,14 +484,14 @@ class FuncHdrFormatter(Formatter):
 
 class FuncHdrVariantFormatter(Formatter):
     def format(self):
-        if self._get_child_type() == 'redef':
+        if self._get_child_token() == 'redef':
             self._format_child() # 'redef'
             self._write_sp()
         self._format_child() # 'function', 'hook', or 'event'
         self._write_sp()
         self._format_child() # <id>
         self._format_child() # <func_params>
-        if self._get_child_type() == 'attr_list':
+        if self._get_child_name() == 'attr_list':
             self._write_sp()
             self._format_child() # <attr_list>
 
@@ -476,10 +499,10 @@ class FuncHdrVariantFormatter(Formatter):
 class FuncParamsFormatter(Formatter):
     def format(self):
         self._format_child() # '('
-        if self._get_child_type() == 'formal_args':
+        if self._get_child_name() == 'formal_args':
             self._format_child() # <formal_args>
         self._format_child() # ')'
-        if self._get_child_type() == ':':
+        if self._get_child_token() == ':':
             self._format_child() # ':'
             self._write_sp()
             self._format_child() # <type>
@@ -489,7 +512,7 @@ class FuncBodyFormatter(Formatter):
     def format(self):
         self._write_sp()
         self._format_child() # '{'
-        if self._get_child_type() == 'stmt_list':
+        if self._get_child_name() == 'stmt_list':
             self._write_nl()
             self._format_child(indent=True) # <stmt_list>
         else:
@@ -499,7 +522,7 @@ class FuncBodyFormatter(Formatter):
 
 class FormalArgsFormatter(Formatter):
     def format(self):
-        while self._get_child_type() == 'formal_arg':
+        while self._get_child_name() == 'formal_arg':
             self._format_child() # <formal_arg>
             if self._get_child():
                 self._format_child() # ',' or ';'
@@ -511,7 +534,7 @@ class FormalArgFormatter(Formatter):
         self._format_child_range(2) # <id> ':'
         self._write_sp()
         self._format_child() # <type>
-        if self._get_child_type() == 'attr_list':
+        if self._get_child_name() == 'attr_list':
             self._write_sp()
             self._format_child() # <attr_list>
 
@@ -519,9 +542,9 @@ class FormalArgFormatter(Formatter):
 class CaptureListFormatter(Formatter):
     def format(self):
         self._format_child() # '['
-        while self._get_child_type() == 'capture':
+        while self._get_child_name() == 'capture':
             self._format_child() # <capture>
-            if self._get_child_type() == ',':
+            if self._get_child_token() == ',':
                 self._format_child() # ','
                 self._write_sp()
         self._format_child() # ']'
@@ -562,7 +585,7 @@ class StmtFormatter(TypedInitializerFormatter):
     def _format_when(self):
         self._format_child() # 'when'
         self._write_sp()
-        if self._get_child_type() == 'capture_list':
+        if self._get_child_name() == 'capture_list':
             self._format_child() # <capture_list>
             self._write_sp()
         self._format_child() # '('
@@ -575,7 +598,7 @@ class StmtFormatter(TypedInitializerFormatter):
         self._write_sp_or_nl()
         self._format_child(indent=not curly) # <stmt>
 
-        if self._get_child_type() == 'timeout':
+        if self._get_child_token() == 'timeout':
             if curly:
                 self._write_sp()
             self._format_child() # 'timeout'
@@ -584,7 +607,7 @@ class StmtFormatter(TypedInitializerFormatter):
             self._write_sp()
             self._format_child() # '{'
             self._write_nl()
-            if self._get_child_type() == 'stmt_list':
+            if self._get_child_name() == 'stmt_list':
                 self._format_child(indent=True) # <stmt_list>
             self._format_child() # '}'
             self._write_nl()
@@ -593,24 +616,25 @@ class StmtFormatter(TypedInitializerFormatter):
 
     def format(self):
         # Statements aren't currently broken down into more specific symbol
-        # types in the grammer, so we just examine their beginning.
-        start = self._get_child_type()
-        if start == '{':
+        # types in the grammar, so we just examine their beginning.
+        start_name, start_token = self._get_child_name(), self._get_child_token()
+
+        if start_token == '{':
             self._format_child() # '{'
-            if self._get_child_type() == 'stmt_list':
+            if self._get_child_name() == 'stmt_list':
                 self._write_nl()
                 self._format_child(indent=True)
             else:
                 self._write_sp()
             self._format_child() # '}'
 
-        elif start in ['print', 'event']:
+        elif start_token in ['print', 'event']:
             self._format_child() # 'print'/'event'
             self._write_sp()
             self._format_child_range(2) # <expr_list>/<event_hdr> ';'
             self._write_nl()
 
-        elif start == 'if':
+        elif start_token == 'if':
             self._format_child() # 'if'
             self._write_sp()
             self._format_child() # '('
@@ -632,7 +656,7 @@ class StmtFormatter(TypedInitializerFormatter):
             # if". We treat the latter as a special case, keeping "else" and
             # "if" on the same line. Otherwise a cascade of if-else-if-else gets
             # progressively indented.
-            if self._get_child_type() == 'else':
+            if self._get_child_token() == 'else':
                 if curly:
                     self._write_sp()
                 self._format_child() # 'else'
@@ -651,36 +675,36 @@ class StmtFormatter(TypedInitializerFormatter):
             elif curly:
                 self._write_nl() # Finish the if's curly block.
 
-        elif start == 'switch':
+        elif start_token == 'switch':
             self._format_child() # 'switch'
             self._write_sp()
             self._format_child() # <expr>
             self._write_sp()
             self._format_child() # '{'
-            if self._get_child_type() == 'case_list':
+            if self._get_child_name() == 'case_list':
                 self._format_child(indent=True) # <case_list>
             else:
                 self._write_sp()
             self._format_child() # '}'
             self._write_nl()
 
-        elif start == 'for':
+        elif start_token == 'for':
             self._format_child() # 'for'
             self._write_sp()
             self._format_child() # '('
             self._write_sp()
-            if self._get_child_type() == '[':
+            if self._get_child_token() == '[':
                 self._format_child() # '['
-                while self._get_child_type() != ']':
+                while self._get_child_token() != ']':
                     self._format_child() # <id>
-                    if self._get_child_type() == ',':
+                    if self._get_child_token() == ',':
                         self._format_child() # ','
                         self._write_sp()
                 self._format_child() # ']'
             else:
                 self._format_child() # <id>
 
-            while self._get_child_type() == ',':
+            while self._get_child_token() == ',':
                 self._format_child() # ','
                 self._write_sp()
                 self._format_child() # <id>
@@ -692,7 +716,7 @@ class StmtFormatter(TypedInitializerFormatter):
             self._format_child() # ')'
             self._format_block() # <stmt>
 
-        elif start == 'while':
+        elif start_token == 'while':
             self._format_child() # 'while'
             self._write_sp()
             self._format_child() # '('
@@ -702,31 +726,31 @@ class StmtFormatter(TypedInitializerFormatter):
             self._format_child() # ')'
             self._format_block() # <stmt>
 
-        elif start in ['next', 'break', 'fallthrough']:
+        elif start_token in ['next', 'break', 'fallthrough']:
             self._format_child_range(2) # loop control statement, ';'
             self._write_nl()
 
-        elif start == 'return':
+        elif start_token == 'return':
             self._format_child() # 'return'
             # There's also an optional 'return" before when statements,
             # so detour in that case and be done.
-            if self._get_child_type() == 'when':
+            if self._get_child_token() == 'when':
                 self._write_sp()
                 self._format_when()
                 return
-            if self._get_child_type() == 'expr':
+            if self._get_child_name() == 'expr':
                 self._write_sp()
                 self._format_child() # <expr>
             self._format_child() # ';'
             self._write_nl()
 
-        elif start in ['add', 'delete']:
+        elif start_token in ['add', 'delete']:
             self._format_child() # set management
             self._write_sp()
             self._format_child_range(2) # <expr> ';'
             self._write_nl()
 
-        elif start in ['local', 'const']:
+        elif start_token in ['local', 'const']:
             self._format_child() # 'local'/'const'
             self._write_sp()
             self._format_child() # <id>
@@ -734,10 +758,10 @@ class StmtFormatter(TypedInitializerFormatter):
             self._format_child() # ';'
             self._write_nl()
 
-        elif start == 'when':
+        elif start_token == 'when':
             self._format_when()
 
-        elif start == 'index_slice':
+        elif start_name == 'index_slice':
             self._format_child() # <index_slice>
             self._write_sp()
             self._format_child() # '='
@@ -745,22 +769,22 @@ class StmtFormatter(TypedInitializerFormatter):
             self._format_child_range(2) # <expr> ';'
             self._write_nl()
 
-        elif start == 'expr':
+        elif start_name == 'expr':
             self._format_child_range(2) # <expr> ';'
             self._write_nl()
 
-        elif start == 'preproc_directive':
+        elif start_name == 'preproc_directive':
             self._format_child() # <preproc_directive>
             self._write_nl()
 
-        elif start == ';':
+        elif start_token == ';':
             self._format_child() # ';'
             self._write_nl()
 
 
 class ExprListFormatter(Formatter):
     def format(self):
-        while self._get_child_type() == 'expr':
+        while self._get_child_name() == 'expr':
             self._format_child() # <expr>
             if self._get_child():
                 self._format_child() # ','
@@ -770,29 +794,29 @@ class ExprListFormatter(Formatter):
 class CaseListFormatter(Formatter):
     def format(self):
         while self._get_child():
-            if self._get_child_type() == 'case':
+            if self._get_child_token() == 'case':
                 self._format_child() # 'case'
                 self._write_sp()
                 self._format_child_range(2) # <expr_list> or <case_type_list>, ':'
             else:
                 self._format_child_range(2) # 'default' ':'
             self._write_nl()
-            if self._get_child_type() == 'stmt_list':
+            if self._get_child_name() == 'stmt_list':
                 self._format_child(indent=True) # <stmt_list>
 
 
 class CaseTypeListFormatter(Formatter):
     def format(self):
-        while self._get_child_type() == 'type':
+        while self._get_child_token() == 'type':
             self._format_child() # 'type'
             self._write_sp()
             self._format_child() # <type>
-            if self._get_child_type() == 'as':
+            if self._get_child_token() == 'as':
                 self._write_sp()
                 self._format_child() # 'as'
                 self._write_sp()
                 self._format_child() # <id>
-            if self._get_child_type() == ',':
+            if self._get_child_token() == ',':
                 self._format_child() # ','
                 self._write_sp()
 
@@ -801,7 +825,7 @@ class EventHdrFormatter(Formatter):
     def format(self):
         self._format_child() # <id>
         self._format_child() # '('
-        if self._get_child_type() == 'expr_list':
+        if self._get_child_name() == 'expr_list':
             self._format_child() # <expr_list>
         self._format_child() # ')'
 
@@ -810,9 +834,10 @@ class ExprFormatter(SpaceSeparatedFormatter):
     # Like statments, expressions aren't currently broken into specific symbol
     # types, so we parse into them to identify how to layout them.
     def format(self):
-        ct1, ct2, ct3 = [self._get_child_type(offset=n) for n in (0,1,2)]
+        cn1, cn2, cn3 = [self._get_child_name(offset=n) for n in (0,1,2)]
+        ct1, ct2, ct3 = [self._get_child_token(offset=n) for n in (0,1,2)]
 
-        if ct1 == 'expr' and ct2 in ['[', 'index_slice', '$']:
+        if cn1 == 'expr' and (ct2 in ['[', '$'] or cn2 == 'index_slice'):
             while self._get_child():
                 self._format_child()
 
@@ -821,7 +846,7 @@ class ExprFormatter(SpaceSeparatedFormatter):
             while self._get_child():
                 self._format_child()
 
-        elif ct1 == 'expr' and ct2 == '!' and ct3 == 'in':
+        elif cn1 == 'expr' and ct2 == '!' and ct3 == 'in':
             self._format_child() # <expr>
             self._write_sp()
             self._format_child_range(2) # '!in'
@@ -830,7 +855,7 @@ class ExprFormatter(SpaceSeparatedFormatter):
 
         elif ct1 == '[':
             self._format_child() # '['
-            if self._get_child_type() == 'expr_list':
+            if self._get_child_name() == 'expr_list':
                 self._format_child() # <expr_list>
             else:
                 self._write_sp()
@@ -853,10 +878,10 @@ class ExprFormatter(SpaceSeparatedFormatter):
         elif ct2 == '(':
             # initializers such as table(...)
             self._format_child_range(2) # 'table(' etc
-            if self._get_child_type() == 'expr_list':
+            if self._get_child_name() == 'expr_list':
                 self._format_child()
             self._format_child() # ')'
-            if self._get_child_type() == 'attr_list':
+            if self._get_child_name() == 'attr_list':
                 self._write_sp()
                 self._format_child()
 
