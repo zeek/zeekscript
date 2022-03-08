@@ -142,16 +142,15 @@ class Formatter:
             self._format_child_impl(child, indent)
 
     def _format_child_range(self, num, indent=False, hints=None):
-        # Formatting a range of children implies that no line breaks can happen
-        # between them. We keep the first element as-is, and tuck NO_LB_BEFORE
-        # onto all subsequent ones.
-        hints = hints or Hint.NONE
+        """Format a given number of children of the node.
 
-        if num > 0:
-            self._format_child(indent, hints)
-        if num > 1:
-            for idx in range(num-1):
-                self._format_child(indent, hints | Hint.NO_LB_BEFORE)
+        Using this function implies that no line breaks can happen # between
+        those children.
+        """
+        hints = hints or Hint.NONE
+        for idx in range(num-1):
+            self._format_child(indent, hints | Hint.NO_LB_AFTER)
+        self._format_child(indent, hints)
 
     def _format_children(self, sep=None):
         """Format all children of the node.

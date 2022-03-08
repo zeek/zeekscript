@@ -77,6 +77,9 @@ function a_function ( a: int, b: count, another_argument_for_linewrapping: strin
 
 function b_function ( a: int, b: count, another_argument_for_longer_linewrapping: string ) : string
 	{
+	# Ensure we don't break around the "$bar=" here:
+	local foo = SomeRecord($foo=some_foo_making_function(), $bar=some$long_bar_field);
+
 	call( # with an interrupting comment
 		arg1, arg2);
 	}
