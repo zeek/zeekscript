@@ -111,13 +111,28 @@ class OutputStream:
         def all_blank(tbd):
             return all([len(out.data.strip()) == 0 for out in tbd])
 
+        # Count number of non-whitespace items on the line. This helps with some
+        # linebreak heuristics below.
         for out in self._linebuffer:
             if out.data.strip():
                 line_items += 1
 
-        # Iterate through the line in pairs of the current and next data chunk
-        for out, out_next in zip(self._linebuffer, self._linebuffer[1:] + [None]):
+        # It is logistically more difficult to honor NO_LB_BEFORE as it arises,
+        # because we need to cover all cases where such a "look-ahead" prevents
+        # breaking. To simplify, we reverse-iterate over the line's tokens
+        # and tuck NO_LB_AFTER onto the that precede NO_LB_BEFORE ones.
+        needs_no_lb_after = False
+        for out in self._linebuffer[::-1]:
+            if out.data.strip() and needs_no_lb_after:
+                out.formatter.hints |= Hint.NO_LB_AFTER
+                needs_no_lb_after = False
+            if Hint.NO_LB_BEFORE in out.formatter.hints:
+                needs_no_lb_after = True
+
+        # Now do the actual line processing.
+        for out in self._linebuffer:
             tbd.append(out)
+
             # Establish how long the pending chunk is, given hinting:
             if Hint.ZERO_WIDTH not in out.formatter.hints:
                 tbd_len += len(out.data)
@@ -129,23 +144,16 @@ class OutputStream:
             if not out.data.strip():
                 continue
 
-            # Honor hinted linebreak suppression around this chunk.
-            if Hint.NO_LB_AFTER in out.formatter.hints:
-                continue
-            if out_next is not None and Hint.NO_LB_BEFORE in out_next.formatter.hints:
-                continue
-            if Hint.NO_LB_BEFORE in out.formatter.hints and all_blank(tbd[:-1]):
-                # Tricky: this catches the case where the preceeding TBD is all
-                # whitespace, the current chunk hints NO_LB_BEFORE, _and_ it
-                # would trigger line-length violation below.
-                continue
-
             # If the line is too long and this chunk says it best follows a
             # break, then break now. This helps align e.g. multi-part boolean
-            # conditionals.
-            if Hint.GOOD_AFTER_LB in out.formatter.hints and self._col > self.MAX_LINE_LEN:
+            # conditionals. This needs to take precedence over NO_LB_AFTER.
+            elif Hint.GOOD_AFTER_LB in out.formatter.hints and self._col > self.MAX_LINE_LEN:
                 write_linebreak()
                 using_break_hints = True
+
+            # Honor hinted linebreak suppression around this chunk.
+            elif Hint.NO_LB_AFTER in out.formatter.hints:
+                continue
 
             # When we exceed max line length while flushing a formatted line,
             # break it, possibly repeatedly. But:

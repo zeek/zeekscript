@@ -53,6 +53,12 @@ function a_function(a: int, b: count, another_argument_for_linewrapping: string)
 		return T;
 	}
 
+	# This shouldn't break the closing ")" onto a new line
+	if ( another_very_long_access_to_some_member[foo] !in
+	    Some::other$nestedthing ) {
+		return T;
+	}
+
 	if ( |foo| > 0 )
 		print "foo";
 	else if ( bar && baz )
