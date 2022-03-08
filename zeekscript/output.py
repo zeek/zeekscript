@@ -20,6 +20,7 @@ class OutputStream:
     """
     MAX_LINE_LEN = 80 # Column at which we consider wrapping.
     MIN_LINE_ITEMS = 5 # Required items on a line to consider wrapping.
+    MIN_LINE_EXCESS = 10 # Minimum characters that a line needs to be too long.
     TAB_SIZE = 8 # How many visible characters we chalk up for a tab.
     SPACE_INDENT = 4 # When wrapping, add this many spaces onto tab-indentation.
 
@@ -155,17 +156,25 @@ class OutputStream:
             elif Hint.NO_LB_AFTER in out.formatter.hints:
                 continue
 
-            # When we exceed max line length while flushing a formatted line,
-            # break it, possibly repeatedly. But:
+            # Finally actually linebreak as needed, possibly repeatedly. But:
             #
             # - If we've used the GOOD_AFTER_LB hint rely exclusively on it for
             #   breaks, because a mix tends to look messy.
             #
+            # - If the TBD items would immediately exceed the line limit again
+            #   after wrapping, don't bother. This covers the case of e.g. very
+            #   long strings looking silly when broken onto a new line. (It -
+            #   doesn't interfere with bit-by-bit repeated linebreaks of a very
+            #   long line.)
+            #
+            # - If the line is just a little bit too long, don't bother.
+            #
             # - If there are only very few items on the line to begin with,
-            #   don't bother: it too looks messy.
+            #   don't bother: breaking these also looks messy.
             #
             elif (not using_break_hints
                   and col_flushed + tbd_len > self.MAX_LINE_LEN
+                  and tbd_len >= self.MIN_LINE_EXCESS
                   and line_items >= self.MIN_LINE_ITEMS):
                 write_linebreak()
 

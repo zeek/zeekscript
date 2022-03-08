@@ -37,7 +37,7 @@ module  Test;
 
 }
 
-function a_function ( a: int, b: count, another_argument_for_linewrapping: string ) : bool
+function a_function ( a: int, b: count, another_argument_for_linewrapping: string ) : a_long_boolean
 	{
 	if ( foo in bar )
 		return somthing [ foo$bar ] (bar) ;
@@ -61,6 +61,9 @@ function a_function ( a: int, b: count, another_argument_for_linewrapping: strin
 		{
 		return T;
 		}
+
+	# This shouldn't break the 0 index number onto a new line
+	another_very_long_access_to_some_member += yetanotherveryveryveryverylongthing[0];
 
 	if ( | foo | > 0 )
 		print "foo";
