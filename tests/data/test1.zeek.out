@@ -56,7 +56,10 @@ function a_function(a: int, b: count, another_argument_for_linewrapping: string)
 	# This shouldn't break the closing ")" onto a new line
 	if ( another_very_long_access_to_some_member[foo] !in
 	    Some::other$nestedthing ) {
+		# Directives should neither get indented nor wrapped:
+@if ( VERY_LOOOOOOOOOOOOONG_FOO && VERY_LOOOOOOOOOOOOONG_BAR && VERY_LOOOOOOOOOOOOONG_BAZ )
 		return T;
+@endif
 	}
 
 	# This shouldn't break the 0 index number onto a new line

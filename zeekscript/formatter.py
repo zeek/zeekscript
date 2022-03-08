@@ -75,7 +75,7 @@ class Hint(enum.Flag):
     GOOD_AFTER_LB = enum.auto() # A linebreak before this item is encouraged.
     NO_LB_BEFORE = enum.auto() # Never line-break before this item.
     NO_LB_AFTER = enum.auto() # Never line-break after this item.
-    ZERO_WIDTH = enum.auto() # This item doesn't contribute to length count.
+    ZERO_WIDTH = enum.auto() # This item doesn't contribute to line length.
 
 
 class Formatter:
@@ -200,7 +200,7 @@ class Formatter:
         # a row. If we just wrote one, don't do so again unless forced.
         # Still adjust space-alignment mode for the next write, though.
         if self.ostream.get_column() == 0 and not force:
-            self.ostream.set_space_align(is_midline)
+            self.ostream.use_space_align(is_midline)
             return
 
         self._write(self.NL * num)
@@ -208,7 +208,7 @@ class Formatter:
         # It's key here that space alignment mode is set after we write,
         # otherwise we cannot cancel its effect upon a second NL because
         # indentation/alignment will have already happened.
-        self.ostream.set_space_align(is_midline)
+        self.ostream.use_space_align(is_midline)
 
     def _children_remaining(self):
         """Returns number of children of this node not yet visited."""
@@ -307,6 +307,16 @@ class SpaceSeparatedFormatter(Formatter):
             self._format_children(b' ')
         else:
             self._format_token()
+
+
+class PreprocDirectiveFormatter(LineFormatter):
+    """@if and friends don't get indented or line-broken."""
+    def format(self):
+        self.ostream.use_tab_indent(False)
+        self.ostream.use_linebreaks(False)
+        super().format()
+        self.ostream.use_tab_indent(True)
+        self.ostream.use_linebreaks(True)
 
 
 class ModuleDeclFormatter(Formatter):
@@ -1153,8 +1163,6 @@ class ZeekygenPrevCommentFormatter(CommentFormatter):
 #
 # NodeMapper.get() retrieves formatters not listed here by mapping symbol
 # names to class names, e.g. module_decl -> ModuleDeclFormatter.
-
-Formatter.register('preproc_directive', LineFormatter)
 
 Formatter.register('const_decl', GlobalDeclFormatter)
 Formatter.register('global_decl', GlobalDeclFormatter)

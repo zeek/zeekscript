@@ -33,14 +33,23 @@ class OutputStream:
         # Series of Output objects that makes up a formatted but unbroken line.
         self._linebuffer = []
 
+        self._use_linebreaks = True # Whether line-breaking is in effect.
+        self._use_tab_indent = True # Whether tab-indentation is in effect.
+
         # Whether to tuck on space-alignments independently of our own linebreak
         # logic. (Some formatters request this.) These alignments don't
         # currently align properly to a particular character in the previous
         # line; they just add a few spaces.
-        self._space_align = False
+        self._use_space_align = False
 
-    def set_space_align(self, enable):
-        self._space_align = enable
+    def use_linebreaks(self, enable):
+        self._use_linebreaks = enable
+
+    def use_tab_indent(self, enable):
+        self._use_tab_indent = enable
+
+    def use_space_align(self, enable):
+        self._use_space_align = enable
 
     def write(self, data, formatter):
         # For troubleshooting received hinting
@@ -51,26 +60,25 @@ class OutputStream:
                 # Remove any trailing whitespace
                 chunk = chunk.rstrip() + Formatter.NL
 
-            # To disable linewraps, use this instead of the below:
-            # self._write(chunk)
-            # self._col += len(chunk)
-            # if chunk.endswith(Formatter.NL):
-            #     self._col = 0
-            # continue
-
-            self._linebuffer.append(Output(chunk, formatter))
             self._col += len(chunk)
 
-            if chunk.endswith(Formatter.NL):
-                self._flush_line()
+            if self._use_linebreaks:
+                self._linebuffer.append(Output(chunk, formatter))
+                if chunk.endswith(Formatter.NL):
+                    self._flush_line()
+            else:
+                self._write(chunk)
+                if chunk.endswith(Formatter.NL):
+                    self._col = 0
 
     def write_tab_indent(self, formatter):
-        self._tab_indent = formatter.indent
-        self.write(b'\t' * self._tab_indent, formatter)
+        if self._use_tab_indent:
+            self._tab_indent = formatter.indent
+            self.write(b'\t' * self._tab_indent, formatter)
 
     def write_space_align(self, formatter):
-        if self._space_align:
-            self.write(b' ' * 4 * self._space_align, formatter)
+        if self._use_space_align:
+            self.write(b' ' * 4, formatter)
 
     def get_column(self):
         return self._col
