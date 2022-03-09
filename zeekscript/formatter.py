@@ -953,7 +953,7 @@ class ExprFormatter(SpaceSeparatedFormatter):
 
         if cn1 == 'expr' and ct2 == '[':
             self._format_child() # <expr>
-            self._format_child(hints=Hint.NO_LB_BEFORE) # '['
+            self._format_child(hints=Hint.NO_LB_BEFORE | Hint.NO_LB_AFTER) # '['
             self._format_child() # <expr_list>
             self._format_child(hints=Hint.NO_LB_BEFORE) # ']'
 
