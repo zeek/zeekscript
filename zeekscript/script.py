@@ -127,11 +127,20 @@ class Script:
                 if node.is_cst_next_node:
                     cst_indicator = '^ '
 
-            return ' ' * (4*nesting) + '{}{} ({}.{},{}.{}) {}'.format(
+            errors = []
+            err = ''
+            if node.has_error:
+                errors.append('error')
+            if node.is_missing:
+                errors.append('missing')
+            if errors:
+                err = '[' + ', '.join(errors) + '] '
+
+            return ' ' * (4*nesting) + '{}{} ({}.{},{}.{}) {}{}'.format(
                 cst_indicator, node.type,
                 node.start_point[0], node.start_point[1],
                 node.end_point[0], node.end_point[1],
-                content)
+                err, content)
 
         def do_traverse(ostream):
             stringifier = node_stringifier if node_stringifier else node_str
