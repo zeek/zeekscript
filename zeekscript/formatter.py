@@ -141,16 +141,35 @@ class Formatter:
         for child in node.next_cst_siblings:
             self._format_child_impl(child, indent)
 
-    def _format_child_range(self, num, indent=False, hints=None):
+    def _format_child_range(self, num, hints=None, first_hints=None):
         """Format a given number of children of the node.
 
-        Using this function implies that no line breaks can happen # between
-        those children.
+        Using this function ensures that no line breaks can happen between the
+        requested children. "num" is the number of children to format, "hint" is
+        a set of hints to tuck onto every child, and "first_hints" is an
+        additional possible hint set for the first child only. (There's
+        currently no indent flag, since the concept doesn't make much sense for
+        a sequence of children. This might change in the future.)
         """
         hints = hints or Hint.NONE
-        for idx in range(num-1):
-            self._format_child(indent, hints | Hint.NO_LB_AFTER)
-        self._format_child(indent, hints)
+        first_hints = first_hints or Hint.NONE
+
+        if num <= 0:
+            return
+        elif num == 1:
+            # Single element: general and first-element hinting
+            self._format_child(hints=hints | first_hints)
+        else:
+            # First element of multiple: general hinting; first-element hinting;
+            # avoid line breaks after the element.
+            self._format_child(hints=hints | first_hints | Hint.NO_LB_AFTER)
+
+            # Inner elements: general hinting; avoid line breaks
+            for idx in range(num-2):
+                self._format_child(hints=hints | Hint.NO_LB_AFTER)
+
+            # Last element: general hinting only.
+            self._format_child(hints=hints)
 
     def _format_children(self, sep=None):
         """Format all children of the node.
@@ -971,10 +990,10 @@ class ExprFormatter(SpaceSeparatedFormatter):
             self._format_child(hints=Hint.NO_LB_BEFORE) # ']
 
         elif ct1 == '$' and ct3 == '=':
-            self._format_child_range(4) # '$'<id> = <expr>, no line breaks
+            self._format_child_range(4, first_hints=Hint.GOOD_AFTER_LB) # '$'<id> = <expr>
 
         elif ct1 == '$': # The function version, with possible capture
-            self._format_child_range(2) # '$'<id>
+            self._format_child_range(2, first_hints=Hint.GOOD_AFTER_LB) # '$'<id>
             self._write_sp()
             self._format_child(hints=Hint.NO_LB_BEFORE | Hint.NO_LB_AFTER) # <begin_lambda>
             self._write_sp()
