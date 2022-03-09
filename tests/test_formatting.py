@@ -36,9 +36,15 @@ class TestFormatting(unittest.TestCase):
 
     def test_parse_error(self):
         script = zeekscript.Script(os.path.join(DATA, 'test2.zeek'))
-        with self.assertRaises(zeekscript.ParserError) as cmgr:
-            script.parse()
-        self.assertEqual(str(cmgr.exception), 'cannot parse line 2, col 4: ")"')
+        # This script has a minor parse error, so we should not get
+        # an exception but useful error context:
+        self.assertFalse(script.parse())
+        self.assertTrue(script.has_error)
+
+        line, lineno, msg = script.get_error()
+        self.assertEqual(line, '\tfoo)();')
+        self.assertEqual(lineno, 2)
+        self.assertEqual(msg, 'cannot parse line 2, col 4: ")"')
 
 
 class TestDosfileFormatting(unittest.TestCase):

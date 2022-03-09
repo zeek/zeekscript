@@ -60,23 +60,32 @@ def cmd_format(args):
 
 
 def cmd_parse(args):
-    """This function implements Zeek-script parsing for the commandline. It takes a
-    single input file provided via the command line, parses it, and prints the
-    parse tree to stdout according to the provided flags."""
+    """This function implements Zeek-script parsing for the commandline.
 
+    It takes a single input file provided via the command line, parses it, and
+    prints the parse tree to stdout according to the provided flags.
+
+    Returns 0 when successful, 1 when a hard parse error came up that prevented
+    building a parse tree, and 2 when the resulting parse tree has erroneous
+    nodes.
+    """
     script = Script(args.script or '-')
 
     try:
         script.parse()
     except ParserError as err:
         print_error('parsing error: ' + str(err))
-        print_error('starting line: ' + err.line)
         return 1
     except Error as err:
         print_error('error: ' + str(err))
         return 1
 
     script.write_tree(include_cst=args.concrete)
+
+    if script.has_error():
+        _, _, msg = script.get_error()
+        print_error('parse tree has problems: %s' % msg)
+        return 2
 
     return 0
 

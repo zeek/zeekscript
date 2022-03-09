@@ -31,7 +31,10 @@ def create_parser():
     zeekscript.add_format_cmd(sub_parser)
 
     sub_parser = command_parser.add_parser(
-        'parse', help='Show Zeek script parse tree')
+        'parse', help='Show Zeek script parse tree with parser metadata.',
+        epilog='Exits with 0 on success, 1 on a hard parse error that '
+        'does not yield a parse tree, and 2 when parsing succeeds but '
+        'the parse tree contains erroneous nodes.')
     zeekscript.add_parse_cmd(sub_parser)
 
     if 'argcomplete' in sys.modules:
