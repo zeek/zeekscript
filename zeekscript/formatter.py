@@ -643,21 +643,20 @@ class StmtFormatter(TypedInitializerFormatter):
     def __init__(self, script, node, ostream, indent=0, hints=None):
         super().__init__(script, node, ostream, indent, hints)
 
-        # It's an if/for/while statement with a "{ ... }" block
-        self.has_curly_block = False
-
     def _child_is_curly_stmt(self):
         """Looks ahead to see if the upcoming statement is { ... }.
         This decides surrounding whitespace in some situations below.
         """
-        if self._get_child().has_property(lambda n: n.children[0].type == '{'):
-            self.has_curly_block = True
-            return True
-        return False
+        # This checks a property of the child's children: to trigger, the child
+        # is an if- or else-block, and 'if' is the first child token in that
+        return self._get_child().has_property(lambda n: n.children[0].token() == '{')
 
-    def _write_sp_or_nl(self):
-        """Writes separator based on whether we have a curly block."""
-        if self.has_curly_block:
+    def _write_sp_or_nl(self, do_sp):
+        """Writes separator based on sp_or_nl.
+
+        This guides whitespace depending on whether if et al. have a {}-block.
+        """
+        if do_sp:
             self._write_sp()
         else:
             self._write_nl()
@@ -665,7 +664,7 @@ class StmtFormatter(TypedInitializerFormatter):
     def _format_block(self):
         """Helper for formatting a statement that may be an { ... } block."""
         curly = self._child_is_curly_stmt()
-        self._write_sp_or_nl()
+        self._write_sp_or_nl(curly)
         self._format_child(indent=not curly) # <stmt>
         if curly:
             self._write_nl()
@@ -683,7 +682,7 @@ class StmtFormatter(TypedInitializerFormatter):
         self._format_child(hints=Hint.NO_LB_BEFORE) # ')'
 
         curly = self._child_is_curly_stmt()
-        self._write_sp_or_nl()
+        self._write_sp_or_nl(curly)
         self._format_child(indent=not curly) # <stmt>
 
         if self._get_child_token() == 'timeout':
@@ -731,35 +730,45 @@ class StmtFormatter(TypedInitializerFormatter):
             self._write_sp()
             self._format_child(hints=Hint.NO_LB_BEFORE) # ')'
 
-            # We need to track whether the subsequent statement is a
-            # curly-braces block, for several reasons: we write a newline now
-            # only when it's not, and we need to indent only if it's not,
-            # because {}-blocks take care of it internally.
+            # Our if-statement layout is either
+            #
+            #   if ( foo )
+            #           bar();
+            #   ...
+            #
+            # or
+            #
+            #   if ( foo ) {
+            #           bar();
+            #   } ...
+            #
+            # We need to establish whether the subsequent statement is a
+            # {}-block, because if it's not we write a newline and need to
+            # indent, because {}-blocks take care of indentation as another
+            # statement type (higher up in this function).
 
             curly = self._child_is_curly_stmt()
-            self._write_sp_or_nl()
+            self._write_sp_or_nl(curly)
             self._format_child(indent=not curly) # <stmt>
 
-            # An else-{}-block also requires special treatment, as does "else
-            # if". We treat the latter as a special case, keeping "else" and
-            # "if" on the same line. Otherwise a cascade of if-else-if-else gets
-            # progressively indented.
+            # An else-block also requires special treatment
             if self._get_child_token() == 'else':
                 if curly:
                     self._write_sp()
                 self._format_child() # 'else'
 
-                if self._get_child().has_property(lambda n: n.children[0].type == 'if'):
-                    indent = False
+                # Special treatment of "else if": we keep those on the same
+                # line, since otherwise, a switch-case-like cascade of if-else
+                # would get progressively more indented.
+                if self._get_child().has_property(lambda n: n.children[0].token() == 'if'):
                     self._write_sp()
+                    self._format_child() # <stmt>
                 else:
-                    indent = not self._child_is_curly_stmt()
-                    self._write_sp_or_nl()
-
-                self._format_child(indent=indent) # <stmt>
-
-                if curly:
-                    self._write_nl()
+                    curly = self._child_is_curly_stmt()
+                    self._write_sp_or_nl(curly)
+                    self._format_child(indent=not curly) # <stmt>
+                    if curly:
+                        self._write_nl()
             elif curly:
                 self._write_nl() # Finish the if's curly block.
 
@@ -1088,7 +1097,7 @@ class NlFormatter(Formatter):
         # Write a single newline for any sequence of blank lines in the input,
         # unless this sequence is at the beginning or end of the sequence.
 
-        if not node.next_cst_sibling or node.next_cst_sibling.type == '}':
+        if not node.next_cst_sibling or node.next_cst_sibling.token() == '}':
             # It's at the end of a NL sequence.
             return
 
@@ -1097,7 +1106,7 @@ class NlFormatter(Formatter):
             while node.prev_cst_sibling and node.prev_cst_sibling.is_nl():
                 node = node.prev_cst_sibling
 
-            if node.prev_cst_sibling and node.prev_cst_sibling.type != '{':
+            if node.prev_cst_sibling and node.prev_cst_sibling.token() != '{':
                 # There's something other than whitspace before this sequence.
                 self._write_nl(force=True)
 
