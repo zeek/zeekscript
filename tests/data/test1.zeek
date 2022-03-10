@@ -93,6 +93,13 @@ function b_function ( a: int, b: count, another_argument_for_longer_linewrapping
 
 	call( # with an interrupting comment
 		arg1, arg2);
+
+	switch ( foo ) {
+	case A: bar();
+	case B: bar();
+	default: bar();
+	}
+	
 	}
 
 function blanklines() {

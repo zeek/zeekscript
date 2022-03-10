@@ -779,6 +779,7 @@ class StmtFormatter(TypedInitializerFormatter):
             self._write_sp()
             self._format_child(hints=Hint.NO_LB_BEFORE) # '{'
             if self._get_child_name() == 'case_list':
+                self._write_nl()
                 self._format_child(indent=True) # <case_list>
             else:
                 self._write_sp()
