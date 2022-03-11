@@ -1019,7 +1019,10 @@ class ExprFormatter(SpaceSeparatedFormatter):
 
         elif ct1 == '(':
             self._format_child(hints=Hint.NO_LB_BEFORE) # '('
-            self._format_child_range(2) # <expr> ')'
+            self._write_sp()
+            self._format_child(hints=Hint.NO_LB_AFTER) # <expr>
+            self._write_sp()
+            self._format_child() # ')'
 
         elif ct1 == 'copy':
             self._format_child() # 'copy'
