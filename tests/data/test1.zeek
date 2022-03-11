@@ -50,7 +50,7 @@ function a_function ( a: int, b: count, another_argument_for_linewrapping: strin
 		bar();
 	} else baz();
 
-	if ( foo ) bar();
+	if ( !foo ) bar();
 	else { baz(); }
 
 	if ( a_long_var_a in a_long_var_b && ( c in d || e in f ) &&

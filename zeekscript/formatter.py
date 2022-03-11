@@ -977,7 +977,13 @@ class ExprFormatter(SpaceSeparatedFormatter):
             while self._get_child():
                 self._format_child()
 
-        elif ct1 in ['|', '++', '--', '!', '~', '-', '+']:
+        elif ct1 == '!':
+            # Negation looks better when spaced apart
+            self._format_child(hints=Hint.NO_LB_AFTER)
+            self._write_sp()
+            self._format_child()
+
+        elif ct1 in ['|', '++', '--', '~', '-', '+']:
             # No space when those operators are involved
             self._format_child(hints=Hint.NO_LB_AFTER)
             while self._get_child():
