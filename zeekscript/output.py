@@ -170,26 +170,34 @@ class OutputStream:
             elif Hint.NO_LB_AFTER in out.formatter.hints:
                 continue
 
-            # Finally actually linebreak as needed, possibly repeatedly. But:
+            # Finally actually linebreak as needed, possibly repeatedly:
             #
-            # - If we've used the GOOD_AFTER_LB hint rely exclusively on it for
-            #   breaks, because a mix tends to look messy.
+            # - If we used the GOOD_AFTER_LB hint above, rely exclusively on it
+            #   for future breaks, because a mix tends to look messy. So don't
+            #   break here in that case.
+            #
+            # - We need to exceed the MAX_LINE_LEN column limit by writing
+            #   what's pending.
+            #
+            # - The pending length must be "worth it". That is, don't break
+            #   if the TBD len is just a little bit.
+            #
+            # - If there are only very few items on the line to begin with,
+            #   don't bother: breaking these also looks messy. This often covers
+            #   the case of a line consisting mostly of a long string.
             #
             # - If the TBD items would immediately exceed the line limit again
             #   after wrapping, don't bother. This covers the case of e.g. very
-            #   long strings looking silly when broken onto a new line. (It -
+            #   long strings looking silly when alone on a new line. (This
             #   doesn't interfere with bit-by-bit repeated linebreaks of a very
-            #   long line.)
-            #
-            # - If the line is just a little bit too long, don't bother.
-            #
-            # - If there are only very few items on the line to begin with,
-            #   don't bother: breaking these also looks messy.
+            #   long line -- that still happens when we build up the next TBD
+            #   batch.)
             #
             elif (not using_break_hints
                   and col_flushed + tbd_len > self.MAX_LINE_LEN
                   and tbd_len >= self.MIN_LINE_EXCESS
-                  and line_items >= self.MIN_LINE_ITEMS):
+                  and line_items >= self.MIN_LINE_ITEMS
+                  and self._tab_indent * self.TAB_SIZE + tbd_len < self.MAX_LINE_LEN):
                 write_linebreak()
 
             flush_tbd()

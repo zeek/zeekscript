@@ -81,7 +81,10 @@ function a_function ( a: int, b: count, another_argument_for_linewrapping: strin
 	else if  (bar && baz)
 		print "bar";
 	else if ( baz)
-		print "baz";
+		# This comment should not move. Also, the following should
+		# _not_ wrap because the long string alone is too long for
+		# the line limit.
+		print fmt("%s", "Lovely patio around the fountain. Spent a lovely lunch on the patio.");
 	else
 		print "Lovely patio around the fountain. " + "Spent a lovely lunch on the patio. " + "The menu was inviting and lots of things I wanted to order. " + "Ordered the Eutropia pizza thin crust-YUM! " + "Will go back the next time I'm in Berkeley.";
 	}
