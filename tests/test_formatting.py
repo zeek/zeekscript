@@ -36,12 +36,48 @@ class TestFormatting(unittest.TestCase):
 
     def test_parse_error(self):
         script = zeekscript.Script(os.path.join(DATA, 'test2.zeek'))
-        with self.assertRaises(zeekscript.ParserError) as cmgr:
-            script.parse()
-        self.assertEqual(str(cmgr.exception), 'cannot parse line 2, col 4: ")"')
+        # This script has a minor parse error, so we should not get
+        # an exception but useful error context:
+        self.assertFalse(script.parse())
+        self.assertTrue(script.has_error)
 
-    def test_dosfile_formatting(self):
-        result_wanted, result_is = self._get_formatted_and_baseline('test3.zeek')
+        line, lineno, msg = script.get_error()
+        self.assertEqual(line, '\tfoo)();')
+        self.assertEqual(lineno, 2)
+        self.assertEqual(msg, 'cannot parse line 2, col 4: ")"')
+
+
+class TestDosfileFormatting(unittest.TestCase):
+
+    def _get_formatted_and_baseline(self, filename):
+        # If we run the following on Windows the newline substitution actually
+        # produces '\r\r\n' since the platform already substituted the existing
+        # newlines, and we get script parsing errors since newlines must be
+        # either \n or \r\n.
+        with open(os.path.join(DATA, filename), 'rb') as hdl:
+            data = hdl.read().replace(b'\n', b'\r\n')
+
+        buf = io.BytesIO(data)
+
+        script = zeekscript.Script(buf)
+        script.parse()
+
+        buf = io.BytesIO()
+        script.format(buf)
+
+        with open(os.path.join(DATA, filename + '.out'), 'rb') as hdl:
+            result_wanted = hdl.read()
+
+        result_is = buf.getvalue()
+        return result_wanted, result_is
+
+    @unittest.skipIf(sys.platform == 'win32', 'Not required on Windows')
+    def test_file_formatting(self):
+        # This test verifies correct processing when the line endings are not
+        # that of the platform. We run this only when not on Windows. On
+        # Windows, the above TestFormatting test(s) already cover Windows due to
+        # its transparent conversion of newlines.
+        result_wanted, result_is = self._get_formatted_and_baseline('test1.zeek')
         self.assertEqual(result_wanted, result_is)
 
 

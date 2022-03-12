@@ -1,48 +1,226 @@
 import os
 import sys
 
-from .formatter import Formatter
+from .formatter import Formatter, Hint
+
+class Output:
+    """A chunk of data to write out.
+
+    The OutputStream class uses this for buffering up data chunks that make up a
+    formatted line, deciding when/whether to intersperse additional line breaks.
+    """
+    def __init__(self, data, formatter):
+        self.data = data
+        self.formatter = formatter
+
 
 class OutputStream:
-    """A column-aware, trailing-whitespace-stripping wrapper for output streams."""
-    def __init__(self, ostream):
+    """An indenting, column-aware, line-buffered, line-wrapping,
+    trailing-whitespace-stripping output stream wrapper.
+    """
+    MAX_LINE_LEN = 80 # Column at which we consider wrapping.
+    MIN_LINE_ITEMS = 5 # Required items on a line to consider wrapping.
+    MIN_LINE_EXCESS = 10 # Minimum characters that a line needs to be too long.
+    TAB_SIZE = 8 # How many visible characters we chalk up for a tab.
+    SPACE_INDENT = 4 # When wrapping, add this many spaces onto tab-indentation.
+
+    def __init__(self, ostream, enable_linebreaks=True):
         """OutputStream constructor. The ostream argument is a file-like object."""
         self._ostream = ostream
         self._col = 0 # 0-based column the next character goes into.
-        self._space_indent = 0
+        self._tab_indent = 0 # Number of tabs indented in current line
 
-    def set_space_indent(self, num):
-        self._space_indent = num
+        # Series of Output objects that makes up a formatted but unbroken line.
+        self._linebuffer = []
 
-    def write(self, data):
+        # Whether we'll consider linebreaks at all. When False, long lines will
+        # never wrap. When True, linebreaks will generally happen, but
+        # formatters may pause them temporarily via the _use_linebreaks flag
+        # below.
+        self._enable_linebreaks = enable_linebreaks
+
+        self._use_linebreaks = True # Whether line-breaking is in effect.
+        self._use_tab_indent = True # Whether tab-indentation is in effect.
+
+        # Whether to tuck on space-alignments independently of our own linebreak
+        # logic. (Some formatters request this.) These alignments don't
+        # currently align properly to a particular character in the previous
+        # line; they just add a few spaces.
+        self._use_space_align = False
+
+    def use_linebreaks(self, enable):
+        self._use_linebreaks = enable
+
+    def use_tab_indent(self, enable):
+        self._use_tab_indent = enable
+
+    def use_space_align(self, enable):
+        self._use_space_align = enable
+
+    def write(self, data, formatter):
+        # For troubleshooting received hinting
+        # print_error('XXX "%s" %s' % (data, formatter.hints))
+
         for chunk in data.splitlines(keepends=True):
             if chunk.endswith(Formatter.NL):
                 # Remove any trailing whitespace
                 chunk = chunk.rstrip() + Formatter.NL
 
-            try:
-                if self._ostream == sys.stdout:
-                    # Must write string here, not bytes. An alternative is to
-                    # use _ostream.buffer -- not sure how portable that is.
-                    self._ostream.write(chunk.decode('UTF-8'))
-                else:
-                    self._ostream.write(chunk)
-            except BrokenPipeError:
-                #  https://docs.python.org/3/library/signal.html#note-on-sigpipe:
-                devnull = os.open(os.devnull, os.O_WRONLY)
-                os.dup2(devnull, sys.stdout.fileno())
-                sys.exit(1)
-
             self._col += len(chunk)
-            if chunk.endswith(Formatter.NL):
-                self._col = 0
 
-    def write_space_indent(self):
-        if self._space_indent > 0:
-            self.write(b' ' * 4 * self._space_indent)
+            if self._enable_linebreaks and self._use_linebreaks:
+                self._linebuffer.append(Output(chunk, formatter))
+                if chunk.endswith(Formatter.NL):
+                    self._flush_line()
+            else:
+                self._write(chunk)
+                if chunk.endswith(Formatter.NL):
+                    self._col = 0
+
+    def write_tab_indent(self, formatter):
+        if self._use_tab_indent:
+            self._tab_indent = formatter.indent
+            self.write(b'\t' * self._tab_indent, formatter)
+
+    def write_space_align(self, formatter):
+        if self._use_space_align:
+            self.write(b' ' * 4, formatter)
 
     def get_column(self):
         return self._col
+
+    def _flush_line(self):
+        """Helper that flushes out the built-up line buffer.
+
+        This iterates over the Output objects in self._linebuffer, deciding
+        whether to write them out right away or in to-be-done batches, possibly
+        after newlines, depending on line-breaking hints present in the
+        formatter objects linked from the Output instances.
+        """
+        col_flushed = 0 # Column up to which we've currently written a line
+        tbd = [] # Outputs to be done
+        tbd_len = 0 # Length of the to-be-done output (in characters)
+        line_items = 0 # Number of items (tokens, not whitespace) on formatted line
+        using_break_hints = False # Whether we've used advisory linebreak hints yet
+
+        def flush_tbd():
+            nonlocal tbd, tbd_len, col_flushed
+            for tbd_out in tbd:
+                self._write(tbd_out.data)
+                col_flushed += len(tbd_out.data)
+            tbd = []
+            tbd_len = 0
+
+        def write_linebreak():
+            nonlocal tbd, tbd_len, col_flushed
+            self._write(Formatter.NL)
+            self._write(b'\t' * self._tab_indent)
+            self._write(b' ' * self.SPACE_INDENT)
+            col_flushed = self._tab_indent * self.TAB_SIZE + self.SPACE_INDENT
+
+            # Remove any pure whitespace from the beginning of the
+            # continuation of the line we just broke:
+            while tbd and not tbd[0].data.strip():
+                tbd_len -= len(tbd.pop(0).data)
+
+        def all_blank(tbd):
+            return all([len(out.data.strip()) == 0 for out in tbd])
+
+        # Count number of non-whitespace items on the line. This helps with some
+        # linebreak heuristics below.
+        for out in self._linebuffer:
+            if out.data.strip():
+                line_items += 1
+
+        # It is logistically more difficult to honor NO_LB_BEFORE as it arises,
+        # because we need to cover all cases where such a "look-ahead" prevents
+        # breaking. To simplify, we reverse-iterate over the line's tokens
+        # and tuck NO_LB_AFTER onto the that precede NO_LB_BEFORE ones.
+        needs_no_lb_after = False
+        for out in self._linebuffer[::-1]:
+            if out.data.strip() and needs_no_lb_after:
+                out.formatter.hints |= Hint.NO_LB_AFTER
+                needs_no_lb_after = False
+            if Hint.NO_LB_BEFORE in out.formatter.hints:
+                needs_no_lb_after = True
+
+        # Now do the actual line processing.
+        for out in self._linebuffer:
+            tbd.append(out)
+
+            # Establish how long the pending chunk is, given hinting:
+            if Hint.ZERO_WIDTH not in out.formatter.hints:
+                tbd_len += len(out.data)
+
+            # Don't write mid-line whitespace right away: if content follows
+            # it that gets wrapped, we'd produce trailing whitespace. We instead
+            # push such whitespace onto the next line, where write_linebreak()
+            # suppresses it when needed.
+            if not out.data.strip():
+                continue
+
+            # If the line is too long and this chunk says it best follows a
+            # break, then break now. This helps align e.g. multi-part boolean
+            # conditionals. This needs to take precedence over NO_LB_AFTER.
+            elif Hint.GOOD_AFTER_LB in out.formatter.hints and self._col > self.MAX_LINE_LEN:
+                write_linebreak()
+                using_break_hints = True
+
+            # Honor hinted linebreak suppression around this chunk.
+            elif Hint.NO_LB_AFTER in out.formatter.hints:
+                continue
+
+            # Finally actually linebreak as needed, possibly repeatedly:
+            #
+            # - If we used the GOOD_AFTER_LB hint above, rely exclusively on it
+            #   for future breaks, because a mix tends to look messy. So don't
+            #   break here in that case.
+            #
+            # - We need to exceed the MAX_LINE_LEN column limit by writing
+            #   what's pending.
+            #
+            # - The pending length must be "worth it". That is, don't break
+            #   if the TBD len is just a little bit.
+            #
+            # - If there are only very few items on the line to begin with,
+            #   don't bother: breaking these also looks messy. This often covers
+            #   the case of a line consisting mostly of a long string.
+            #
+            # - If the TBD items would immediately exceed the line limit again
+            #   after wrapping, don't bother. This covers the case of e.g. very
+            #   long strings looking silly when alone on a new line. (This
+            #   doesn't interfere with bit-by-bit repeated linebreaks of a very
+            #   long line -- that still happens when we build up the next TBD
+            #   batch.)
+            #
+            elif (not using_break_hints
+                  and col_flushed + tbd_len > self.MAX_LINE_LEN
+                  and tbd_len >= self.MIN_LINE_EXCESS
+                  and line_items >= self.MIN_LINE_ITEMS
+                  and self._tab_indent * self.TAB_SIZE + tbd_len < self.MAX_LINE_LEN):
+                write_linebreak()
+
+            flush_tbd()
+
+        # Another flush to finish any leftovers
+        flush_tbd()
+
+        self._linebuffer = []
+        self._col = 0
+
+    def _write(self, data):
+        try:
+            if self._ostream == sys.stdout:
+                # Clunky: must write string here, not bytes. We could
+                # use _ostream.buffer -- not sure how portable that is.
+                self._ostream.write(data.decode('UTF-8'))
+            else:
+                self._ostream.write(data)
+        except BrokenPipeError:
+            #  https://docs.python.org/3/library/signal.html#note-on-sigpipe:
+            devnull = os.open(os.devnull, os.O_WRONLY)
+            os.dup2(devnull, sys.stdout.fileno())
+            sys.exit(1)
 
 
 def print_error(*args, **kwargs):

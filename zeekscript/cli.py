@@ -1,4 +1,5 @@
 """This module provides reusable command line parsers and tooling."""
+import argparse
 import io
 import sys
 import traceback
@@ -46,7 +47,7 @@ def cmd_format(args):
         buf = io.BytesIO()
 
         try:
-            script.format(buf)
+            script.format(buf, not args.no_linebreaks)
         except Exception as err:
             print_error('internal error: ' + str(err))
             traceback.print_exc(file=sys.stderr)
@@ -60,23 +61,32 @@ def cmd_format(args):
 
 
 def cmd_parse(args):
-    """This function implements Zeek-script parsing for the commandline. It takes a
-    single input file provided via the command line, parses it, and prints the
-    parse tree to stdout according to the provided flags."""
+    """This function implements Zeek-script parsing for the commandline.
 
+    It takes a single input file provided via the command line, parses it, and
+    prints the parse tree to stdout according to the provided flags.
+
+    Returns 0 when successful, 1 when a hard parse error came up that prevented
+    building a parse tree, and 2 when the resulting parse tree has erroneous
+    nodes.
+    """
     script = Script(args.script or '-')
 
     try:
         script.parse()
     except ParserError as err:
         print_error('parsing error: ' + str(err))
-        print_error('starting line: ' + err.line)
         return 1
     except Error as err:
         print_error('error: ' + str(err))
         return 1
 
     script.write_tree(include_cst=args.concrete)
+
+    if script.has_error():
+        _, _, msg = script.get_error()
+        print_error('parse tree has problems: %s' % msg)
+        return 2
 
     return 0
 
@@ -89,6 +99,8 @@ def add_format_cmd(parser):
     parser.add_argument(
         '--inplace', '-i', action='store_true',
         help='change provided files instead of writing to stdout')
+    parser.add_argument(
+        '--no-linebreaks', action='store_true', help=argparse.SUPPRESS)
     parser.add_argument(
         'scripts', metavar='FILES', nargs='*',
         help='Zeek script(s) to process. ' + FILE_HELP)

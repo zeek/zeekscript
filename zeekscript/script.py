@@ -26,7 +26,10 @@ class Script:
         """Parses the script and creates the internal concrete syntax tree.
 
         Raises zeekscript.FileError when the input file cannot be read, and
-        zeekscript.ParserError when the file didn't parse correctly.
+        zeekscript.ParserError when the file didn't parse at all.
+
+        Returns True of parsing succeeded throughout, and False if the resulting
+        parse tree has erroneous nodes.
         """
         try:
             if isinstance(self.file, (str, pathlib.Path)):
@@ -48,11 +51,75 @@ class Script:
             raise FileError(str(err)) from err
 
         self.ts_tree = Parser().parse(self.source)
-        if self.ts_tree.root_node and self.ts_tree.root_node.has_error:
-            self._raise_parser_error()
+
+        if self.ts_tree is None or self.ts_tree.root_node is None:
+            # This is a hard parse error and we need to bail. Smaller errors get
+            # reported on individual nodes in the resulting tree, and we can
+            # keep going.
+            raise ParserError('cannot parse script')
 
         self._clone_tree()
         self._patch_tree()
+
+        return not self.has_error()
+
+    def has_error(self):
+        """Predicate, returns True when parsing identified problems.
+
+        Problems can be of several kinds: for grammatical errors, tree nodes
+        have type string "ERROR". Missing nodes have their is_missing bit set,
+        and for subtler errors their has_error bit is set. This function
+        reports True when any of these conditions hold.
+        """
+        # Could cache this result while we don't support tree modifications
+        for node, _ in self._visit(self.ts_tree.root_node):
+            if node.type == 'ERROR' or node.is_missing or node.has_error:
+                return True
+
+        return False
+
+    def get_error(self):
+        """Return offending content line in the script, plus error message
+
+        This traverses the parse tree and returns a triplet of:
+
+        - The line on which a parse tree node has type "ERROR", has its
+          is_missing bit set, or has its has_error bit set and has no children
+          that also have it set. (This last part filters out the upward
+          propagation of the error state through the tree, selecting the node
+          that introduced the error.)
+
+        - That line's number in the script.
+
+        - An error message string that tries to explain the problem.
+        """
+        line, lineno, msg = None, None, None
+
+        for node, _ in self._visit(self.ts_tree.root_node):
+            snippet = self.source[node.start_byte:node.end_byte]
+            if len(snippet) > 50:
+                snippet = snippet[:50] + b'[...]'
+
+            if node.type == 'ERROR':
+                msg = 'cannot parse line {}, col {}: "{}"'.format(
+                    node.start_point[0], node.start_point[1],
+                    snippet.decode('UTF-8'))
+            elif node.is_missing:
+                msg = 'missing grammar node "{}" on line {}, col {}'.format(
+                    node.type, node.start_point[0], node.start_point[1])
+            elif node.has_error and (not node.children or
+                                     not any([kid.has_error for kid in node.children])):
+                msg = 'grammar node "{}" has error on line {}, col {}'.format(
+                    node.type, node.start_point[0], node.start_point[1])
+            else:
+                continue
+
+            line = self.source.split(Formatter.NL)[node.start_point[0]]
+            line = line.decode('UTF-8')
+            lineno = node.start_point[0]
+            break
+
+        return line, lineno, msg
 
     def traverse(self, include_cst=False):
         """Depth-first iterator for the script's syntax tree.
@@ -73,17 +140,19 @@ class Script:
         """
         return self.source.__getitem__(key)
 
-    def format(self, output=None):
+    def format(self, output=None, enable_linebreaks=True):
         """Formats the script and writes out the result.
 
         The output destination can be one of three things: a filename, a file
-        object, or None, which means stdout.
+        object, or None, which means stdout. enable_linebreaks, True by default,
+        controls whether to use linebreaks at all.
         """
         assert self.root is not None, 'call Script.parse() before Script.format()'
 
         def do_format(ostream):
             fclass = Formatter.lookup(self.root)
-            formatter = fclass(self, self.root, OutputStream(ostream))
+            ostream = OutputStream(ostream, enable_linebreaks)
+            formatter = fclass(self, self.root, ostream)
             formatter.format()
 
         if output is None:
@@ -114,9 +183,16 @@ class Script:
             content = ''
             if node.is_named:
                 # Cap the amount of script payload we show ...
-                content = script.source[node.start_byte:node.end_byte][:100]
+                content = script.source[node.start_byte:node.end_byte]
+                maxlen = 100
+                extra = ''
+
+                if len(content) > maxlen:
+                    extra = '[+%s]' % (len(content) - maxlen)
+                    content = content[:maxlen]
+
                 # ... and render it such that we get backslash-escapes.
-                content = str(repr(content.decode('ascii', 'ignore')))
+                content = str(repr(content.decode('ascii', 'ignore'))) + extra
 
             # CST node rendering. This only applies when the tree traversal
             # actually produces these nodes.
@@ -127,11 +203,20 @@ class Script:
                 if node.is_cst_next_node:
                     cst_indicator = '^ '
 
-            return ' ' * (4*nesting) + '{}{} ({}.{},{}.{}) {}'.format(
+            errors = []
+            err = ''
+            if node.has_error:
+                errors.append('error')
+            if node.is_missing:
+                errors.append('missing')
+            if errors:
+                err = '[' + ', '.join(errors) + '] '
+
+            return ' ' * (4*nesting) + '{}{} ({}.{},{}.{}) {}{}'.format(
                 cst_indicator, node.type,
                 node.start_point[0], node.start_point[1],
                 node.end_point[0], node.end_point[1],
-                content)
+                err, content)
 
         def do_traverse(ostream):
             stringifier = node_stringifier if node_stringifier else node_str
@@ -171,41 +256,6 @@ class Script:
 
             for child in reversed(node.children):
                 queue.insert(0, (child, nesting+1))
-
-    def _raise_parser_error(self):
-        """Raises zeekscript.ParserError with info on trouble in the parse tree."""
-
-        # There's no succinct error summary via tree-sitter, so compute
-        # one. Traverse the tree to call out the troubled node -- it will
-        # either have type "ERROR" or its is_missing flag is set.
-
-        msg = 'cannot parse document'
-        line = None
-
-        for node, _ in self._visit(self.ts_tree.root_node):
-            if node.type != 'ERROR' and not node.is_missing:
-                continue
-
-            snippet = self.source[node.start_byte:node.end_byte]
-            if len(snippet) > 50:
-                snippet = snippet[:50] + b'[...]'
-
-            if node.type == 'ERROR':
-                msg = 'cannot parse line {}, col {}: "{}"'.format(
-                    node.start_point[0], node.start_point[1],
-                    snippet.decode('UTF-8'))
-            elif node.is_missing:
-                snippet = self.source[node.start_byte:node.end_byte]
-                if len(snippet) > 50:
-                    snippet = snippet[:50] + b'[...]'
-                msg = 'missing grammar node "{}" on line {}, col {}'.format(
-                    node.type, node.start_point[0], node.start_point[1])
-
-            line = self.source.split(Formatter.NL)[node.start_point[0]]
-            line = line.decode('UTF-8')
-            break
-
-        raise ParserError(msg, line)
 
     def _clone_tree(self):
         """Deep-copy the TS tree to one consisting of zeekscript.Node instances.
@@ -332,7 +382,7 @@ class Script:
     def _patch_tree(self):
         """Tweak the syntax tree to simplify formatting."""
         # Move any dangling CST nodes (such as comments) down into the tree so
-        # they directly child-follow the node that they refers to. For example,
+        # they directly child-follow the node that they refer to. For example,
         # this turns ...
         #
         #       type (138.11,138.14)
@@ -348,6 +398,9 @@ class Script:
         #           ; (138.14,138.15)
         #           zeekygen_prev_comment (138.19,139.0) '##< A comment explaining the int\n'
         #           zeekygen_prev_comment (139.19,140.0) '##< continuing here.\n'
+        #
+        # This simplifies reasoning about such comments in the context of the
+        # directly preceding node, not some abstraction thereof.
         #
         for node, _ in self.traverse():
             if node.next_cst_siblings and node.children:

@@ -1,3 +1,38 @@
+0.2.0-40 | 2022-03-11 22:29:49 -0800
+
+  * Add linebreak support. (Christian Kreibich, Corelight)
+
+    - Avoid line breaks when a single excess bit is itself too long for a line.
+    - Add a hidden flag to suppress wrapping of long lines
+    - Style tweak: add spaces inside "( <expr> )"
+    - Style tweak: add space between negation operator and operand
+    - Bugfix in switch-case: forgot newline before first case
+    - Indentation bugfix around mixed {}-use in if-else-statements.
+    - Make regular parsing errors non-fatal
+    - Include node error state in the output of "zeek-script parse"
+    - Prevent linebreaks after the opening "[" of an indexing expression
+    - Better handling of field assignment expression lists
+    - Neither indent nor line-wrap "preprocessor" directives
+    - Robustness fix for preventing breaks around $foo=<expr> field assignments
+    - Add heuristic to avoid breaking very short excess bits onto new line
+    - Simplify the handling of NO_LB_BEFORE hint
+    - Use alignment logic of AND/OR expression chains also for "+"
+    - Expand formatting testcase to cover alignment of multi-clause booleans
+    - Move to K&R-style opening-brace placement for functions/events/hooks
+    - Expand formatting testcase and simplify DOS-format testing
+    - Bugfix: avoid erroneous space alignment after comments
+    - Additional rules for when to avoid linebreaks
+    - Broadly introduce linebreak hinting throughout the formatters
+    - Ensure that attributes with assignment don't get linewrapped
+    - Establish hinting that makes comments not count toward max line length
+    - Simplify Formatter._get_child()
+    - Add Formatter.content(), reporting the script content to format
+    - Support line buffering in OutputStream class
+    - Add notion of linebreak hinting in the Formatter class tree
+    - Make a number of Formatter class members public
+    - Additional comments and minor stylistic tweaks
+    - Bump tree-sitter grammar to pull in initializer-list fix
+
 0.2.0-8 | 2022-03-02 15:15:24 -0800
 
   * Differentiate named and unnamed TS nodes (Christian Kreibich, Corelight)
