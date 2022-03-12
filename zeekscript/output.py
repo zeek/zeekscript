@@ -24,7 +24,7 @@ class OutputStream:
     TAB_SIZE = 8 # How many visible characters we chalk up for a tab.
     SPACE_INDENT = 4 # When wrapping, add this many spaces onto tab-indentation.
 
-    def __init__(self, ostream):
+    def __init__(self, ostream, enable_linebreaks=True):
         """OutputStream constructor. The ostream argument is a file-like object."""
         self._ostream = ostream
         self._col = 0 # 0-based column the next character goes into.
@@ -32,6 +32,12 @@ class OutputStream:
 
         # Series of Output objects that makes up a formatted but unbroken line.
         self._linebuffer = []
+
+        # Whether we'll consider linebreaks at all. When False, long lines will
+        # never wrap. When True, linebreaks will generally happen, but
+        # formatters may pause them temporarily via the _use_linebreaks flag
+        # below.
+        self._enable_linebreaks = enable_linebreaks
 
         self._use_linebreaks = True # Whether line-breaking is in effect.
         self._use_tab_indent = True # Whether tab-indentation is in effect.
@@ -62,7 +68,7 @@ class OutputStream:
 
             self._col += len(chunk)
 
-            if self._use_linebreaks:
+            if self._enable_linebreaks and self._use_linebreaks:
                 self._linebuffer.append(Output(chunk, formatter))
                 if chunk.endswith(Formatter.NL):
                     self._flush_line()

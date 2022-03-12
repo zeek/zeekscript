@@ -140,17 +140,19 @@ class Script:
         """
         return self.source.__getitem__(key)
 
-    def format(self, output=None):
+    def format(self, output=None, enable_linebreaks=True):
         """Formats the script and writes out the result.
 
         The output destination can be one of three things: a filename, a file
-        object, or None, which means stdout.
+        object, or None, which means stdout. enable_linebreaks, True by default,
+        controls whether to use linebreaks at all.
         """
         assert self.root is not None, 'call Script.parse() before Script.format()'
 
         def do_format(ostream):
             fclass = Formatter.lookup(self.root)
-            formatter = fclass(self, self.root, OutputStream(ostream))
+            ostream = OutputStream(ostream, enable_linebreaks)
+            formatter = fclass(self, self.root, ostream)
             formatter.format()
 
         if output is None:

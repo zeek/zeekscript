@@ -1,4 +1,5 @@
 """This module provides reusable command line parsers and tooling."""
+import argparse
 import io
 import sys
 import traceback
@@ -46,7 +47,7 @@ def cmd_format(args):
         buf = io.BytesIO()
 
         try:
-            script.format(buf)
+            script.format(buf, not args.no_linebreaks)
         except Exception as err:
             print_error('internal error: ' + str(err))
             traceback.print_exc(file=sys.stderr)
@@ -98,6 +99,8 @@ def add_format_cmd(parser):
     parser.add_argument(
         '--inplace', '-i', action='store_true',
         help='change provided files instead of writing to stdout')
+    parser.add_argument(
+        '--no-linebreaks', action='store_true', help=argparse.SUPPRESS)
     parser.add_argument(
         'scripts', metavar='FILES', nargs='*',
         help='Zeek script(s) to process. ' + FILE_HELP)
