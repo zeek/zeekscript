@@ -1,5 +1,7 @@
 name: Build Python wheels
 
+# For reference, see https://cibuildwheel.readthedocs.io/en/1.x/setup/
+
 on:
   pull_request:
   push:
@@ -7,13 +9,26 @@ on:
     tags:
 
 jobs:
+  build_sdist:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          submodules: recursive
+
+      - name: Build SDist
+        run: python ./setup.py sdist
+
+      - uses: actions/upload-artifact@v2
+        with:
+          path: dist/*.tar.gz
+
   build_wheels:
     name: Build wheels on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
         os: [ubuntu-20.04, windows-2019, macos-10.15, macos-11]
-
     steps:
       - uses: actions/checkout@v2
         with:
@@ -29,3 +44,19 @@ jobs:
       - uses: actions/upload-artifact@v2
         with:
           path: ./wheelhouse/*.whl
+
+  upload_all:
+    needs: [build_sdist, build_wheels]
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags/v')
+    steps:
+    - uses: actions/download-artifact@v2
+      with:
+        # The above jobs yield a combined artifacts archive
+        name: artifact
+        path: dist
+
+    - uses: pypa/gh-action-pypi-publish@v1.4.2
+      with:
+        user: __token__
+        password: ${{ secrets.pypi_password }}
