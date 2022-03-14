@@ -1,3 +1,7 @@
+0.2.0-44 | 2022-03-14 12:25:25 -0700
+
+  * Expand README (Christian Kreibich, Corelight)
+
 0.2.0-42 | 2022-03-11 23:48:44 -0800
 
   * Expand Github action: build sdist, push to PyPI (Christian Kreibich, Corelight)
