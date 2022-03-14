@@ -14,7 +14,7 @@ to pull in the right version of the grammar and parser.
 
 ## Supported platforms and Python versions
 
-`zeekscript` supports Python 3.6+ on Linux, MacOS, and Windows.
+`zeekscript` supports Python 3.7+ on Linux, MacOS, and Windows.
 
 ## Installation
 
