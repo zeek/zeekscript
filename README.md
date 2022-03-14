@@ -1,6 +1,6 @@
 # A toolchain to parse, analyze, and format Zeek scripts
 
-[![Build and test](https://github.com/ckreibich/zeekscript/actions/workflows/build_wheels.yml/badge.svg)](https://github.com/ckreibich/zeekscript/actions/workflows/build_wheels.yml)
+[![Build and test](https://github.com/zeek/zeekscript/actions/workflows/build_wheels.yml/badge.svg)](https://github.com/zeek/zeekscript/actions/workflows/build_wheels.yml)
 
 `zeekscript` is a Python package that provides tooling to operate on [Zeek](https://zeek.org)
 scripts. `zeekscript` comes with command line tools that make common tasks accessible,

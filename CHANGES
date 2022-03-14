@@ -1,3 +1,7 @@
+1.0.1-1 | 2022-03-14 15:59:19 -0700
+
+  * Tweaks to prepare for migration to github.com/zeek/zeek (Christian Kreibich, Corelight)
+
 1.0.1 | 2022-03-14 14:13:22 -0700
 
   * This is 1.0.1. (Christian Kreibich, Corelight)
