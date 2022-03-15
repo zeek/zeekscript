@@ -47,7 +47,7 @@ setup(
     keywords='zeek scripts language formatter formatting indenter indenting parsing',
     maintainer='The Zeek Project',
     maintainer_email='info@zeek.org',
-    url='https://github.com/zeek/zeek-script',
+    url='https://github.com/zeek/zeekscript',
 
     scripts=['zeek-format', 'zeek-script'],
     packages=['zeekscript'],
