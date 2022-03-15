@@ -1,3 +1,9 @@
+1.0.2-6 | 2022-03-15 12:11:15 -0700
+
+  * Address some pylint warnings (Christian Kreibich, Corelight)
+
+  * Support recursive descent on directories when formatting scripts (Christian Kreibich, Corelight)
+
 1.0.2-3 | 2022-03-15 10:57:26 -0700
 
   * Add --version|-v to zeek-script and zeek-format to report version (Christian Kreibich, Corelight)

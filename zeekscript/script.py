@@ -108,7 +108,7 @@ class Script:
                 msg = 'missing grammar node "{}" on line {}, col {}'.format(
                     node.type, node.start_point[0], node.start_point[1])
             elif node.has_error and (not node.children or
-                                     not any([kid.has_error for kid in node.children])):
+                                     not any((kid.has_error for kid in node.children))):
                 msg = 'grammar node "{}" has error on line {}, col {}'.format(
                     node.type, node.start_point[0], node.start_point[1])
             else:

@@ -1,6 +1,7 @@
 """This module provides reusable command line parsers and tooling."""
 import argparse
 import io
+import os
 import sys
 import traceback
 
@@ -16,21 +17,46 @@ def cmd_format(args):
     determines input and output streams, parses each input into a Script object,
     applies formattinge, and writes out the result."""
 
+    if args.recursive and not args.inplace:
+        print_error('error: recursive file processing requires --inline')
+        return 1
+
     if not args.scripts:
         args.scripts = ['-']
+
+    scripts = [] # Final list of Zeek scripts to format.
+
+    for fname in args.scripts:
+        if fname == '-':
+            if args.inplace:
+                print_error('warning: cannot use --inplace when reading from '
+                            'stdin, skipping it')
+            else:
+                scripts.append(fname)
+
+        elif os.path.isdir(fname):
+            if args.recursive: # implies --inplace
+                for dirpath, _, filenames in os.walk(fname):
+                    filenames = [n for n in filenames if n.endswith('.zeek')]
+                    filenames = [os.path.join(dirpath, n) for n in filenames]
+                    scripts.extend(filenames)
+            else:
+                print_error('warning: "{}" is a directory but --recursive not '
+                            'set, skipping it'.format(fname))
+
+        elif os.path.isfile(fname):
+            scripts.append(fname)
+
+        else:
+            print_error('warning: skipping "{}"; not a supported file type')
 
     def do_write(source):
         with open(ofname, 'w') if ofname else sys.stdout as ostream:
             ostream.write(source.decode('UTF-8'))
 
-    for fname in args.scripts:
-        inplace = args.inplace
-        if fname == '-' and inplace:
-            print_error('warning: ignoring --inplace when reading from stdin')
-            inplace = False
-
+    for fname in scripts:
         script = Script(fname)
-        ofname = fname if inplace else None
+        ofname = fname if args.inplace else None
 
         try:
             script.parse()
@@ -56,6 +82,10 @@ def cmd_format(args):
 
         # Write out the complete, reformatted source.
         do_write(buf.getvalue())
+
+    if args.inplace:
+        print('{} file{} processed successfully'.format(
+            len(scripts), '' if len(scripts) == 1 else 's'))
 
     return 0
 
@@ -104,6 +134,10 @@ def add_format_cmd(parser):
     parser.add_argument(
         '--inplace', '-i', action='store_true',
         help='change provided files instead of writing to stdout')
+    parser.add_argument(
+        '--recursive', '-r', action='store_true',
+        help='process *.zeek files recursively when provided directories '
+        'instead of files. Requires --inplace.')
     parser.add_argument(
         '--no-linebreaks', action='store_true', help=argparse.SUPPRESS)
     parser.add_argument(
