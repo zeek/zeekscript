@@ -1,4 +1,4 @@
-__version__ = "1.0.2"
+__version__ = "1.0.2-3"
 __all__ = ['cli', 'error', 'formatter', 'node', 'output', 'parser', 'script']
 
 from .cli import *

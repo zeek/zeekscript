@@ -91,6 +91,11 @@ def cmd_parse(args):
     return 0
 
 
+def add_version_arg(parser):
+    parser.add_argument(
+        '--version', '-v', action='store_true', help='show version and exit')
+
+
 def add_format_cmd(parser):
     """This adds a Zeek script formatting CLI interface to the given argparse
     parser. It registers the cmd_format() callback as the parser's run_cmd

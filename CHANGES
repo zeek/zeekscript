@@ -1,3 +1,9 @@
+1.0.2-3 | 2022-03-15 10:57:26 -0700
+
+  * Add --version|-v to zeek-script and zeek-format to report version (Christian Kreibich, Corelight)
+
+  * Include the VERSION file in the source distribution (Christian Kreibich, Corelight)
+
 1.0.2 | 2022-03-14 17:25:50 -0700
 
   * This is 1.0.2 (Christian Kreibich, Corelight)

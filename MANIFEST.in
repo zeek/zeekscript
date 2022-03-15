@@ -4,3 +4,6 @@ exclude tree-sitter-zeek/src/.git
 
 # In a source distribution, never include any build bindings
 exclude zeekscript/*.so
+
+# setup.py needs the VERSION file for the build
+include VERSION
