@@ -22,6 +22,8 @@ import zeekscript
 
 def create_parser():
     parser = argparse.ArgumentParser(description='A Zeek script formatter')
+
+    zeekscript.add_version_arg(parser)
     zeekscript.add_format_cmd(parser)
 
     if 'argcomplete' in sys.modules:
@@ -33,6 +35,10 @@ def create_parser():
 def main():
     parser = create_parser()
     args = parser.parse_args()
+
+    if args.version:
+        print(zeekscript.__version__)
+        return 0
 
     try:
         return args.run_cmd(args)

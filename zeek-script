@@ -22,6 +22,9 @@ import zeekscript
 
 def create_parser():
     parser = argparse.ArgumentParser(description='A Zeek script analyzer')
+
+    zeekscript.add_version_arg(parser)
+
     command_parser = parser.add_subparsers(
         title='commands', dest='command',
         help='See `%(prog)s <command> -h` for per-command usage info.')
@@ -46,6 +49,10 @@ def create_parser():
 def main():
     parser = create_parser()
     args = parser.parse_args()
+
+    if args.version:
+        print(zeekscript.__version__)
+        return 0
 
     if not args.command:
         zeekscript.print_error('error: please provide a command to execute. See --help.')
