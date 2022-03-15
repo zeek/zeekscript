@@ -165,7 +165,7 @@ class Formatter:
             self._format_child(hints=hints | first_hints | Hint.NO_LB_AFTER)
 
             # Inner elements: general hinting; avoid line breaks
-            for idx in range(num-2):
+            for _ in range(num-2):
                 self._format_child(hints=hints | Hint.NO_LB_AFTER)
 
             # Last element: general hinting only.
@@ -640,9 +640,6 @@ class CaptureListFormatter(Formatter):
 
 
 class StmtFormatter(TypedInitializerFormatter):
-    def __init__(self, script, node, ostream, indent=0, hints=None):
-        super().__init__(script, node, ostream, indent, hints)
-
     def _child_is_curly_stmt(self):
         """Looks ahead to see if the upcoming statement is { ... }.
         This decides surrounding whitespace in some situations below.

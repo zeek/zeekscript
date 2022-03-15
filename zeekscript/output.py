@@ -123,9 +123,6 @@ class OutputStream:
             while tbd and not tbd[0].data.strip():
                 tbd_len -= len(tbd.pop(0).data)
 
-        def all_blank(tbd):
-            return all([len(out.data.strip()) == 0 for out in tbd])
-
         # Count number of non-whitespace items on the line. This helps with some
         # linebreak heuristics below.
         for out in self._linebuffer:
