@@ -37,26 +37,41 @@ provides it. Accordingly, it features zero options for tweaking the formatting:
 
 ```
 $ zeek-format --help
-usage: zeek-format [-h] [--inplace] [FILES ...]
+usage: zeek-format [-h] [--version] [--inplace] [--recursive] [FILES ...]
 
 A Zeek script formatter
 
 positional arguments:
-  FILES          Zeek script(s) to process. Use "-" to specify stdin as a filename. Omitting filenames entirely implies reading from stdin.
+  FILES            Zeek script(s) to process. Use "-" to specify stdin as a filename. Omitting filenames entirely implies
+                   reading from stdin.
 
 options:
-  -h, --help     show this help message and exit
-  --inplace, -i  change provided files instead of writing to stdout
+  -h, --help       show this help message and exit
+  --version, -v    show version and exit
+  --inplace, -i    change provided files instead of writing to stdout
+  --recursive, -r  process *.zeek files recursively when provided directories instead of files. Requires --inplace.
 ```
 
-In case of processing error, `zeek-format` exits with a non-zero exit code,
-reports the trouble it encountered to stderr, and reports its input unchanged.
+Parsing errors are not fatal, and `zeek-format` does its best to continue
+formatting.  In case of more severe processing errors `zeek-format` exits with a
+non-zero exit code, reports the trouble it encountered to stderr, and reports
+its input unchanged.
 
 ```
 $ echo 'event  foo( a:count ) {print("hi"); }' | zeek-format
-event foo(a: count) {
-        print ("hi");
+event foo(a: count)
+{
+        print ( "hi" );
 }
+```
+
+To format entire directory trees, combine `--inplace` and `--recursive`, and
+point it at a directory:
+
+```
+$ cd zeek
+$ zeek-format -ir scripts
+430 files processed successfully
 ```
 
 ### zeek-script
@@ -67,17 +82,18 @@ subcommands. (Okay, so far "range" == two, but expect that to grow in the future
 
 ```
 $ zeek-script --help
-usage: zeek-script [-h] {format,parse} ...
+usage: zeek-script [-h] [--version] {format,parse} ...
 
 A Zeek script analyzer
 
 options:
   -h, --help      show this help message and exit
+  --version, -v   show version and exit
 
 commands:
   {format,parse}  See `zeek-script <command> -h` for per-command usage info.
     format        Format/indent Zeek scripts
-    parse         Show Zeek script parse tree
+    parse         Show Zeek script parse tree with parser metadata.
 ```
 
 The `parse` command renders its script input as a parse tree. It resembles
@@ -99,6 +115,28 @@ source_file (0.0,1.0) 'event zeek_init() { }\n'
             func_body (0.18,0.21) '{ }'
                 { (0.18,0.19)
                 } (0.20,0.21)
+```
+
+Here's a syntax error:
+
+```
+$ echo 'event zeek_init)() { }' | zeek-script parse
+source_file (0.0,1.0) [error] 'event zeek_init)() { }\n'
+    decl (0.0,0.22) [error] 'event zeek_init)() { }'
+        func_decl (0.0,0.22) [error] 'event zeek_init)() { }'
+            func_hdr (0.0,0.18) [error] 'event zeek_init)()'
+                event (0.0,0.18) [error] 'event zeek_init)()'
+                    event (0.0,0.5)
+                    id (0.6,0.15) 'zeek_init'
+                    ERROR (0.15,0.16) [error] ')'
+                        ) (0.15,0.16)
+                    func_params (0.16,0.18) '()'
+                        ( (0.16,0.17)
+                        ) (0.17,0.18)
+            func_body (0.19,0.22) '{ }'
+                { (0.19,0.20)
+                } (0.21,0.22)
+parse tree has problems: cannot parse line 0, col 15: ")"
 ```
 
 See `zeek-script parse --help` for more information.
