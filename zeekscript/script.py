@@ -140,6 +140,15 @@ class Script:
         """
         return self.source.__getitem__(key)
 
+    def get_content(self, start_byte=None, end_byte=None):
+        """Returns a region of this script's content.
+
+        By default, this returns the entire content. start_byte and end_byte, if
+        provided, are numerical byte offsets in the script, behaving as usual
+        indices in slice notation.
+        """
+        return self.source[start_byte:end_byte]
+
     def format(self, output=None, enable_linebreaks=True):
         """Formats the script and writes out the result.
 
@@ -321,10 +330,13 @@ class Script:
                 new_children.append(nullnode)
 
             # Now figure out where to "cut" the sequence of CST nodes around the
-            # AST nodes. After an AST node we only allow a sequence of Zeekygen
-            # prev comments, or any regular comment up to the next newline. The
-            # rest gets associated with the subsequent AST node, unless there
-            # isn't one.
+            # AST nodes. Rules:
+            #
+            # - After an AST node we only allow a sequence of Zeekygen
+            #   prev comments, or any regular comment up to the next newline.
+            #
+            # - The rest gets associated with the subsequent AST node, unless
+            #   there isn't one.
 
             ast_node = None
             ast_nodes_remaining = len(new_node.children)
@@ -361,7 +373,9 @@ class Script:
                     child.is_cst_next_node = True
                     child.ast_parent = ast_node
 
-                elif child.is_nl() and last_child and last_child.is_comment():
+                elif child.is_nl() and last_child and (
+                        # Accept newline if it ends a comment or follows an error node.
+                        last_child.is_comment() or last_child.is_error()):
                     ast_node.next_cst_siblings.append(child)
                     child.is_cst_next_node = True
                     child.ast_parent = ast_node

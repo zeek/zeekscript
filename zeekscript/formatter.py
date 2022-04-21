@@ -115,10 +115,6 @@ class Formatter:
         else:
             self._format_token()
 
-    def content(self):
-        """Returns the script content bytes this formatter processes."""
-        return self.script[self.node.start_byte:self.node.end_byte]
-
     def _next_child(self):
         try:
             node = self.node.children[self._cidx]
@@ -134,8 +130,9 @@ class Formatter:
                            hints=hints)
         formatter.format()
 
-    def _format_child(self, indent=False, hints=None):
-        node = self._next_child()
+    def _format_child(self, node=None, indent=False, hints=None):
+        if node is None:
+            node = self._next_child()
 
         for child in node.prev_cst_siblings:
             self._format_child_impl(child, indent)
@@ -193,9 +190,9 @@ class Formatter:
             self._format_child()
 
     def _format_token(self):
-        self._write(self.content())
+        self._write(self.script.get_content(*self.node.script_range()))
 
-    def _write(self, data):
+    def _write(self, data, raw=False):
         if isinstance(data, str):
             data = data.encode('UTF-8')
 
@@ -207,7 +204,7 @@ class Formatter:
             # would result without the presence of interrupting comments.
             data = data.lstrip()
 
-        self.ostream.write(data, self)
+        self.ostream.write(data, self, raw)
 
     def _write_indent(self):
         if self.ostream.get_column() == 0:
@@ -312,6 +309,63 @@ class NullFormatter(Formatter):
     """The null formatter doesn't output anything."""
     def format(self):
         pass
+
+
+class ErrorFormatter(Formatter):
+    """This formatter handles parser errors reported by TreeSitter.
+
+    This is pretty tricky. Since we cannot really know what triggered the error,
+    this formatter preserves the node's byte range unmodified, expect for any
+    ranges covered by child nodes with their own nontrivial formatting (which
+    currently means child nodes that have children). This suits the behavior of
+    error nodes, which often still have functional child nodes, but surround
+    them with broken content.
+
+    If we rendered error nodes more simply, we'd either miss out on possible
+    formatting, introduce formatting that makes unpleasing changes (simple
+    space-separation will often look wrong, for example), or accidentally run
+    content together that the parser needs to remain whitespace-separated to
+    parse correctly.
+
+    To avoid merging the output directly with surrounding content (potentially
+    breaking subsequent script-parsing), this formatter adds a surrounding space
+    before and after the output. This could be optimized later via the notion of
+    an optional space that gets ignored when neighbored by other whitespace.
+    """
+    def format(self):
+        if not self.node.children:
+            content = self.script.get_content(*self.node.script_range())
+            self._write_sp()
+            self._write(content, raw=True)
+            self._write_sp()
+            return
+
+        start, _ = self.node.script_range()
+        _, end = self.node.script_range(with_cst=True)
+
+        # Before and after the error node's script range there may be
+        # non-newline whitespace skipped by the parser. It's tempting to tuck
+        # that onto the output, to preserve it. But, since formatting might
+        # itself tuck on whitespace, this can lead to repeated formatting
+        # continuously adding whitespace. So we ignore such space.
+
+        self._write_sp()
+
+        for node in self.node.children:
+            node_start, node_end = node.script_range()
+            if node.children:
+                if node_start > start:
+                    content = self.script.get_content(start, node_start)
+                    self._write(content, raw=True)
+
+                self._format_child(node=node)
+                start = node_end
+
+        if start < end:
+            content = self.script.get_content(start, end)
+            self._write(content, raw=True)
+
+        self._write_sp()
 
 
 class LineFormatter(Formatter):

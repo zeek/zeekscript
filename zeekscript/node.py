@@ -111,6 +111,47 @@ class Node:
         """
         return self.type if not self.is_named else None
 
+    def script_range(self, with_cst=False):
+        """Returns this node's start/end byte indices in the script, as a tuple.
+
+        By default this ignores potential CST nodes associated with this node
+        (preceding or succeeding it), but their ranges get included when
+        with_cst is True.
+        """
+        start, end = self.start_byte, self.end_byte
+
+        if with_cst:
+            node = self
+            while node:
+                if node.prev_cst_siblings:
+                    if node.prev_cst_siblings[0].start_byte < start:
+                        start = node.prev_cst_siblings[0].start_byte
+                    # No need to dig into child nodes, they won't have
+                    # any earlier content.
+                    break
+                node = node.children[0] if node.children else None
+
+            node = self
+            while node:
+                if node.next_cst_siblings:
+                    if node.next_cst_siblings[-1].end_byte > end:
+                        end = node.next_cst_siblings[-1].end_byte
+                    # No need to dig into child nodes, they won't have
+                    # any later content.
+                    break
+                node = node.children[-1] if node.children else None
+
+        return start, end
+
+    def is_error(self):
+        """Returns True iff this node summarizes a parsing error.
+
+        This currently refers to nodes with type string "ERROR" (i.e., nodes
+        that group problematic content under them, possibly alongside correctly
+        parsed material).
+        """
+        return self.is_named and self.type and self.type == 'ERROR'
+
     def is_nl(self):
         """Returns True iff this is a newline."""
         return self.is_named and self.type and self.type == 'nl'

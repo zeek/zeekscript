@@ -71,7 +71,14 @@ class OutputStream:
     def use_space_align(self, enable):
         self._use_space_align = enable
 
-    def write(self, data, formatter):
+    def write(self, data, formatter, raw=False):
+        if raw:
+            self._flush_line()
+            self._write(data)
+            # Sync column count as per last line content in raw data:
+            self._col = len(data.split(Formatter.NL)[-1])
+            return
+
         # For troubleshooting received hinting
         # print_error('XXX "%s" %s' % (data, formatter.hints))
 
