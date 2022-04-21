@@ -28,11 +28,22 @@ class Node:
         self.next_sibling = None
 
         self.start_byte = 0
-        self.end_byte = 0
+        self.end_byte = 0 # The first byte _after_ this node's content
         self.start_point = (0, 0)
         self.end_point = (0, 0)
+
+        # This terminology stems from TreeSitter and means that a node is typed,
+        # i.e., the root of a grammar rule. It is not a token.
         self.is_named = False
+
+        # In some cases TreeSitter can infer that a node is simply missing (such
+        # as a trailing semicolon). Implies has_error, but does not lead to an
+        # ERROR node higher up.
         self.is_missing = False
+
+        # This bit indicates whether there's a parser problem somewhere below
+        # this node. This problem can be of various forms, including parse
+        # errors (node type "ERROR") or missing nodes. Any others?
         self.has_error = False
 
         # Consider name() or token() below instead of accessing this directly
@@ -63,21 +74,21 @@ class Node:
         # succeeding this node. These lists are in tree-order: if a tree node's
         # sequence of children is ...
         #
-        #   <minor comment>  (CST)
+        #   <minor comment1> (CST)
         #   <nl>             (CST)
-        #   <minor comment>  (CST)
+        #   <minor comment2> (CST)
         #   <nl>             (CST)
         #   <expr>           (AST)
-        #   <minor_comment>  (CST)
+        #   <minor_comment3> (CST)
         #   <nl>             (CST)
         #
         # ... then the members of prev_cst_siblings are ...
         #
-        #   [ <minor comment>, <nl>, <minor comment>, <nl>]
+        #   [ <minor comment1>, <nl>, <minor comment2>, <nl>]
         #
         # ... and those of next_cst_siblings are:
         #
-        # [ <minor comment>, <nl>]
+        # [ <minor comment3>, <nl>]
         #
         self.prev_cst_siblings = []
         self.next_cst_siblings = []

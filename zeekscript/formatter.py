@@ -105,6 +105,11 @@ class Formatter:
         node.formatter = self
 
     def format(self):
+        """Default formatting for a tree node
+
+        This simply writes out children as per their own formatting, and writes
+        out tokens directly.
+        """
         if self.node.children:
             self._format_children()
         else:
@@ -295,9 +300,9 @@ class Formatter:
     @staticmethod
     def lookup(node):
         """Formatter lookup for a zeekscript.Node, based on its type information."""
-        # If we're looking up a token node, always use a dummy formatter.
-        # This ensures that we don't confuse a node.type of the same name,
-        # e.g. a variable called 'decl'.
+        # If we're looking up a token node, always use the fallback formatter,
+        # which writes it out directly.  This ensures that we don't confuse a
+        # node.type of the same name, e.g. a variable called 'decl'.
         if not node.is_named:
             return Formatter
         return MAP.get(node.type)
