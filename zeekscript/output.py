@@ -16,7 +16,9 @@ class Output:
 
 class OutputStream:
     """An indenting, column-aware, line-buffered, line-wrapping,
-    trailing-whitespace-stripping output stream wrapper.
+    trailing-whitespace-stripping output stream wrapper. When used as a context
+    manager, it also ensures that exiting context always finishes output with a
+    newline.
     """
     MAX_LINE_LEN = 80 # Column at which we consider wrapping.
     MIN_LINE_ITEMS = 5 # Required items on a line to consider wrapping.
@@ -52,6 +54,13 @@ class OutputStream:
         # currently align properly to a particular character in the previous
         # line; they just add a few spaces.
         self._use_space_align = False
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, _exc_type, _exc_value, _exc_traceback):
+        self._flush_line()
+        self._flush_writes()
 
     def use_linebreaks(self, enable):
         self._use_linebreaks = enable
@@ -208,6 +217,10 @@ class OutputStream:
 
         self._linebuffer = []
         self._col = 0
+
+    def _flush_writes(self):
+        if self._writebuffer and not self._writebuffer[-1].endswith(Formatter.NL):
+            self._write(Formatter.NL)
 
     def _write(self, data):
         self._writebuffer.append(data)

@@ -149,11 +149,11 @@ class Script:
         """
         assert self.root is not None, 'call Script.parse() before Script.format()'
 
-        def do_format(ostream):
-            fclass = Formatter.lookup(self.root)
-            ostream = OutputStream(ostream, enable_linebreaks)
-            formatter = fclass(self, self.root, ostream)
-            formatter.format()
+        def do_format(out):
+            with OutputStream(out, enable_linebreaks) as ostream:
+                fclass = Formatter.lookup(self.root)
+                formatter = fclass(self, self.root, ostream)
+                formatter.format()
 
         if output is None:
             do_format(sys.stdout)
