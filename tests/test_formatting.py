@@ -18,21 +18,36 @@ import zeekscript
 
 class TestFormatting(unittest.TestCase):
 
-    def _get_formatted_and_baseline(self, filename):
-        script = zeekscript.Script(os.path.join(DATA, filename))
-        script.parse()
+    def _get_input_and_baseline(self, filename):
+        with open(os.path.join(DATA, filename), 'rb') as hdl:
+            input = hdl.read()
+
+        with open(os.path.join(DATA, filename + '.out'), 'rb') as hdl:
+            output = hdl.read()
+
+        return input, output
+
+    def _format(self, content):
+        script = zeekscript.Script(io.BytesIO(content))
+
+        self.assertTrue(script.parse())
+        self.assertFalse(script.has_error())
 
         buf = io.BytesIO()
         script.format(buf)
 
-        with open(os.path.join(DATA, filename + '.out'), 'rb') as hdl:
-            result_wanted = hdl.read()
-        result_is = buf.getvalue()
-        return result_wanted, result_is
+        return buf.getvalue()
 
     def test_file_formatting(self):
-        result_wanted, result_is = self._get_formatted_and_baseline('test1.zeek')
-        self.assertEqual(result_wanted, result_is)
+        input, baseline = self._get_input_and_baseline('test1.zeek')
+
+        # Format the input data and compare to baseline:
+        result1 = self._format(input)
+        self.assertEqual(baseline, result1)
+
+        # Format the result again. There should be no change.
+        result2 = self._format(result1)
+        self.assertEqual(baseline, result2)
 
     def test_parse_error(self):
         script = zeekscript.Script(os.path.join(DATA, 'test2.zeek'))
