@@ -158,20 +158,22 @@ class Formatter:
 
         if num <= 0:
             return
-        elif num == 1:
+
+        if num == 1:
             # Single element: general and first-element hinting
             self._format_child(hints=hints | first_hints)
-        else:
-            # First element of multiple: general hinting; first-element hinting;
-            # avoid line breaks after the element.
-            self._format_child(hints=hints | first_hints | Hint.NO_LB_AFTER)
+            return
 
-            # Inner elements: general hinting; avoid line breaks
-            for _ in range(num-2):
-                self._format_child(hints=hints | Hint.NO_LB_AFTER)
+        # First element of multiple: general hinting; first-element hinting;
+        # avoid line breaks after the element.
+        self._format_child(hints=hints | first_hints | Hint.NO_LB_AFTER)
 
-            # Last element: general hinting only.
-            self._format_child(hints=hints)
+        # Inner elements: general hinting; avoid line breaks
+        for _ in range(num-2):
+            self._format_child(hints=hints | Hint.NO_LB_AFTER)
+
+        # Last element: general hinting only.
+        self._format_child(hints=hints)
 
     def _format_children(self, sep=None):
         """Format all children of the node.
