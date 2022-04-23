@@ -68,6 +68,11 @@ def cmd_format(args):
         try:
             if not script.parse():
                 ret = 1
+                _, _, msg = script.get_error()
+                if len(scripts) > 1:
+                    print_error('{}: {}'.format(fname, msg))
+                else:
+                    print_error(msg)
         except Error as err:
             print_error('parsing error: ' + str(err))
             do_write(script.source)
