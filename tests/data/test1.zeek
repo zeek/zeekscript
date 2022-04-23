@@ -1,6 +1,6 @@
 ##! A test script with all kinds of formatting errors.
 ##!
-##! This Zeekygen head comment has multiple lines with more detail
+##! This Zeekygen head comment has multiple lines with more detail  
 ##! about this module. It spans two lines.
 
 @load foo/bar/baz.zeek    # A "preprocessor" line with comment
@@ -10,14 +10,14 @@
 redef Broker::default_port =  to_port(getenv( "ZEEK_PORT"));
 @endif
 
-module  Test;
+module  Test;  
 	
   export {
-	# A regular comment
+	# A regular comment  
 	type An::ID: enum {
 	  ## A Zeekygen comment
 		ENUM_VAL1, ##< A Zeekygen post-comment
-		  ##< that continues on the next line
+		  ##< that continues on the next line 
 		## Anoter Zeekygen comment
 		PRINTLOG
 	};
@@ -32,7 +32,7 @@ module  Test;
 	global a_function : function(foo: BAR) :bool;
 
 	 ## A lambda.
-	const a_lambda: function( foo: string ) = function (foo: string) {
+	const a_lambda: function( foo: string ) = function (foo: string) {  
 	} &redef;
 
 }
