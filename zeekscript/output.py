@@ -30,8 +30,13 @@ class OutputStream:
         self._col = 0 # 0-based column the next character goes into.
         self._tab_indent = 0 # Number of tabs indented in current line
 
-        # Series of Output objects that makes up a formatted but unbroken line.
+        # Series of Output objects that makes up a formatted but un-wrapped line.
         self._linebuffer = []
+
+        # Series of byte sequences actually written out, post line-wrap. This is
+        # line-buffered, to allow removal of trailing whitespace. Details in
+        # self._write().
+        self._writebuffer = []
 
         # Whether we'll consider linebreaks at all. When False, long lines will
         # never wrap. When True, linebreaks will generally happen, but
@@ -61,21 +66,13 @@ class OutputStream:
         # For troubleshooting received hinting
         # print_error('XXX "%s" %s' % (data, formatter.hints))
 
+        # In case the data spans multiple lines, break up the lines now.
+        # Potential line-wrapping is applied when we flush individual lines.
         for chunk in data.splitlines(keepends=True):
-            if chunk.endswith(Formatter.NL):
-                # Remove any trailing whitespace
-                chunk = chunk.rstrip() + Formatter.NL
-
             self._col += len(chunk)
-
-            if self._enable_linebreaks and self._use_linebreaks:
-                self._linebuffer.append(Output(chunk, formatter))
-                if chunk.endswith(Formatter.NL):
-                    self._flush_line()
-            else:
-                self._write(chunk)
-                if chunk.endswith(Formatter.NL):
-                    self._col = 0
+            self._linebuffer.append(Output(chunk, formatter))
+            if chunk.endswith(Formatter.NL):
+                self._flush_line()
 
     def write_tab_indent(self, formatter):
         if self._use_tab_indent:
@@ -90,13 +87,23 @@ class OutputStream:
         return self._col
 
     def _flush_line(self):
-        """Helper that flushes out the built-up line buffer.
+        """Flushes out the line buffer, stripping trailing whitespace.
 
-        This iterates over the Output objects in self._linebuffer, deciding
-        whether to write them out right away or in to-be-done batches, possibly
+        Without linewrapping, this simply flushes the line buffer. With
+        linewrapping this iterates over the line buffer, deciding whether to
+        write out data chunks right away or in to-be-done batches, possibly
         after newlines, depending on line-breaking hints present in the
         formatter objects linked from the Output instances.
         """
+        # Without linebreaking active, just flush the buffer.
+        if not self._enable_linebreaks or not self._use_linebreaks:
+            for out in self._linebuffer:
+                self._write(out.data)
+
+            self._linebuffer = []
+            self._col = 0
+            return
+
         col_flushed = 0 # Column up to which we've currently written a line
         tbd = [] # Outputs to be done
         tbd_len = 0 # Length of the to-be-done output (in characters)
@@ -130,9 +137,9 @@ class OutputStream:
                 line_items += 1
 
         # It is logistically more difficult to honor NO_LB_BEFORE as it arises,
-        # because we need to cover all cases where such a "look-ahead" prevents
-        # breaking. To simplify, we reverse-iterate over the line's tokens
-        # and tuck NO_LB_AFTER onto the that precede NO_LB_BEFORE ones.
+        # because we need to "look-ahead" to prevent breaking. To simplify,
+        # reverse-iterate over the line's tokens and tuck NO_LB_AFTER onto
+        # tokens that precede NO_LB_BEFORE.
         needs_no_lb_after = False
         for out in self._linebuffer[::-1]:
             if out.data.strip() and needs_no_lb_after:
@@ -149,17 +156,14 @@ class OutputStream:
             if Hint.ZERO_WIDTH not in out.formatter.hints:
                 tbd_len += len(out.data)
 
-            # Don't write mid-line whitespace right away: if content follows
-            # it that gets wrapped, we'd produce trailing whitespace. We instead
-            # push such whitespace onto the next line, where write_linebreak()
-            # suppresses it when needed.
+            # Don't make line-wrapping decisions based on whitespace:
             if not out.data.strip():
                 continue
 
             # If the line is too long and this chunk says it best follows a
             # break, then break now. This helps align e.g. multi-part boolean
             # conditionals. This needs to take precedence over NO_LB_AFTER.
-            elif Hint.GOOD_AFTER_LB in out.formatter.hints and self._col > self.MAX_LINE_LEN:
+            if Hint.GOOD_AFTER_LB in out.formatter.hints and self._col > self.MAX_LINE_LEN:
                 write_linebreak()
                 using_break_hints = True
 
@@ -206,13 +210,25 @@ class OutputStream:
         self._col = 0
 
     def _write(self, data):
+        self._writebuffer.append(data)
+
+        # Data can only have newlines at the end, since we already split any
+        # mid-data newlines earlier. So check for trailing newlines, and if
+        # found, strip trailing whitespace and flush.
+        if not data.endswith(Formatter.NL):
+            return
+
+        output = b''.join(self._writebuffer)
+        output = output.rstrip() + Formatter.NL
+        self._writebuffer = []
+
         try:
             if self._ostream == sys.stdout:
                 # Clunky: must write string here, not bytes. We could
                 # use _ostream.buffer -- not sure how portable that is.
-                self._ostream.write(data.decode('UTF-8'))
+                self._ostream.write(output.decode('UTF-8'))
             else:
-                self._ostream.write(data)
+                self._ostream.write(output)
         except BrokenPipeError:
             #  https://docs.python.org/3/library/signal.html#note-on-sigpipe:
             devnull = os.open(os.devnull, os.O_WRONLY)

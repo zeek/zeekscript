@@ -1131,7 +1131,7 @@ class CommentFormatter(Formatter):
     """Base class for any kind of comment."""
     def __init__(self, script, node, ostream, indent=0, hints=None):
         super().__init__(script, node, ostream, indent, hints)
-        self.hints |= Hint.ZERO_WIDTH # Commens never count toward line length
+        self.hints |= Hint.ZERO_WIDTH # Comments never count toward line length
 
 
 class MinorCommentFormatter(CommentFormatter):
