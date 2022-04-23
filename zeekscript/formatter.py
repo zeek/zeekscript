@@ -130,18 +130,21 @@ class Formatter:
                            hints=hints)
         formatter.format()
 
-    def _format_child(self, node=None, indent=False, hints=None):
-        if node is None:
-            node = self._next_child()
+    def _format_child(self, child=None, indent=False, hints=None):
+        if child is None:
+            child = self._next_child()
 
-        for child in node.prev_cst_siblings:
-            self._format_child_impl(child, indent)
+        # XXX Pretty subtle that a child's CST nodes get handled in the
+        # parent. Might have to refactor in the future.
 
-        # The hints apply to AST (not CST) nodes
-        self._format_child_impl(node, indent, hints)
+        for node in child.prev_cst_siblings:
+            self._format_child_impl(node, indent)
 
-        for child in node.next_cst_siblings:
-            self._format_child_impl(child, indent)
+        # The hints apply to AST (not CST) nodes, so now:
+        self._format_child_impl(child, indent, hints)
+
+        for node in child.next_cst_siblings:
+            self._format_child_impl(node, indent)
 
     def _format_child_range(self, num, hints=None, first_hints=None):
         """Format a given number of children of the node.
@@ -360,7 +363,7 @@ class ErrorFormatter(Formatter):
                     content = self.script.get_content(start, node_start)
                     self._write(content, raw=True)
 
-                self._format_child(node=node)
+                self._format_child(child=node)
                 start = node_end
 
         if start < end:
