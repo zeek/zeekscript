@@ -54,7 +54,7 @@ class TestRecursion(unittest.TestCase):
              unittest.mock.patch('sys.stderr', new=io.StringIO()) as err:
             ret = args.run_cmd(args)
             self.assertEqual(ret, 0)
-            self.assertEqual(out.getvalue(), '4 files processed successfully\n')
+            self.assertEqual(out.getvalue(), '4 files processed, 0 errors\n')
 
         self.assertEqualContent(
             join(DATA, 'test1.zeek.out'), join('a', 'test1.zeek'))
@@ -99,7 +99,7 @@ class TestRecursion(unittest.TestCase):
              unittest.mock.patch('sys.stderr', new=io.StringIO()) as err:
             ret = args.run_cmd(args)
             self.assertEqual(ret, 1)
-            self.assertEqual(err.getvalue(), 'error: recursive file processing requires --inline\n')
+            self.assertEqual(err.getvalue(), 'error: recursive file processing requires --inplace\n')
 
 
 def test():

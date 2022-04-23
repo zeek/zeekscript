@@ -20,10 +20,10 @@ def cmd_format(args):
 
     Returns 0 in case of success, 1 in case of any errors -- this includes
     formatter-internal errors as well as any problems encountered during
-    parsing.
+    parsing. Encountered problems are written to stderr.
     """
     if args.recursive and not args.inplace:
-        print_error('error: recursive file processing requires --inline')
+        print_error('error: recursive file processing requires --inplace')
         return 1
 
     if not args.scripts:
@@ -59,7 +59,11 @@ def cmd_format(args):
         with open(ofname, 'wb') if ofname else sys.stdout.buffer as ostream:
             ostream.write(source)
 
-    ret = 0
+    if len(scripts) > 1 and not args.inplace:
+        print_error('error: processing multiple files requires --inplace')
+        return 1
+
+    errs = 0
 
     for fname in scripts:
         script = Script(fname)
@@ -67,7 +71,7 @@ def cmd_format(args):
 
         try:
             if not script.parse():
-                ret = 1
+                errs += 1
                 _, _, msg = script.get_error()
                 if len(scripts) > 1:
                     print_error('{}: {}'.format(fname, msg))
@@ -97,10 +101,11 @@ def cmd_format(args):
         do_write(buf.getvalue())
 
     if args.inplace:
-        print('{} file{} processed successfully'.format(
-            len(scripts), '' if len(scripts) == 1 else 's'))
+        print('{} file{} processed, {} error{}'.format(
+            len(scripts), '' if len(scripts) == 1 else 's',
+            errs, '' if errs == 1 else 's'))
 
-    return ret
+    return int(errs > 0)
 
 
 def cmd_parse(args):
