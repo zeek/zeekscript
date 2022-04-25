@@ -1,3 +1,11 @@
+1.1.0-8 | 2022-04-25 11:10:01 -0700
+
+  * Support flushing the OutputStream on close, and do so when formatting (Christian Kreibich, Corelight)
+
+  * Strip trailing whitespace properly (Christian Kreibich, Corelight)
+
+  * Add intentional trailing whitespace to formatting test file (Christian Kreibich, Corelight)
+
 1.1.0-4 | 2022-04-19 13:47:41 -0700
 
   * Modernize pyproject.toml (Christian Kreibich, Corelight)
