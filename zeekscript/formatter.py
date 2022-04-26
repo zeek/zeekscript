@@ -117,7 +117,7 @@ class Formatter:
 
     def _next_child(self):
         try:
-            node = self.node.children[self._cidx]
+            node = self.node.nonerr_children[self._cidx]
             self._cidx += 1
             return node
         except IndexError:
@@ -134,8 +134,15 @@ class Formatter:
         if child is None:
             child = self._next_child()
 
-        # XXX Pretty subtle that a child's CST nodes get handled in the
-        # parent. Might have to refactor in the future.
+        # XXX Pretty subtle that we handle the child's surrounding context here,
+        # in the parent. Might have to refactor in the future.
+
+        # If the node has any preceeding errors, render these out first.  Do
+        # this via _format_child(), not _format_child_impl(), since the error
+        # nodes are full-blown AST nodes potentially with their own CST
+        # neighborhood.
+        for node in child.prev_error_siblings:
+            self._format_child(node, indent)
 
         for node in child.prev_cst_siblings:
             self._format_child_impl(node, indent)
@@ -145,6 +152,10 @@ class Formatter:
 
         for node in child.next_cst_siblings:
             self._format_child_impl(node, indent)
+
+        # Mirroring the above, handle any trailing errors last.
+        for node in child.next_error_siblings:
+            self._format_child(node, indent)
 
     def _format_child_range(self, num, hints=None, first_hints=None):
         """Format a given number of children of the node.
@@ -238,7 +249,7 @@ class Formatter:
 
     def _children_remaining(self):
         """Returns number of children of this node not yet visited."""
-        return len(self.node.children[self._cidx:])
+        return len(self.node.nonerr_children[self._cidx:])
 
     def _get_child(self, offset=0, absolute=False):
         """Accessor for child nodes, without adjusting the offset index.
@@ -254,7 +265,7 @@ class Formatter:
         cidx = 0 if absolute else self._cidx
 
         try:
-            return self.node.children[cidx + offset]
+            return self.node.nonerr_children[cidx + offset]
         except IndexError:
             return None
 
@@ -710,7 +721,7 @@ class StmtFormatter(TypedInitializerFormatter):
         """
         # This checks a property of the child's children: to trigger, the child
         # is an if- or else-block, and 'if' is the first child token in that
-        return self._get_child().has_property(lambda n: n.children[0].token() == '{')
+        return self._get_child().has_property(lambda n: n.nonerr_children[0].token() == '{')
 
     def _write_sp_or_nl(self, do_sp):
         """Writes separator based on sp_or_nl.
@@ -821,7 +832,7 @@ class StmtFormatter(TypedInitializerFormatter):
                 # Special treatment of "else if": we keep those on the same
                 # line, since otherwise, a switch-case-like cascade of if-else
                 # would get progressively more indented.
-                if self._get_child().has_property(lambda n: n.children[0].token() == 'if'):
+                if self._get_child().has_property(lambda n: n.nonerr_children[0].token() == 'if'):
                     self._write_sp()
                     self._format_child() # <stmt>
                 else:
@@ -996,12 +1007,12 @@ class ExprFormatter(SpaceSeparatedFormatter):
 
     def _is_binary_boolean(self):
         """Predicate, returns true if this an || or && expression."""
-        return (len(self.node.children) == 3 and
+        return (len(self.node.nonerr_children) == 3 and
                 self._get_child_token(offset=1, absolute=True) in ('||', '&&'))
 
     def _is_binary_addition(self):
         """Predicate, returns true if this an <expr> + <expr> expression."""
-        return (len(self.node.children) == 3 and
+        return (len(self.node.nonerr_children) == 3 and
                 self._get_child_type(offset=1, absolute=True) == '+')
 
     def _is_expr_chain_of(self, formatter_predicate):
