@@ -49,7 +49,13 @@ class Node:
         # Consider name() or token() below instead of accessing this directly
         self.type = None
 
-        # Additions over the TS node members below:
+        # ---- Additions over the TS node members below ------------------------
+
+        # A variant of self.children, consisting only of the non-ERROR nodes.
+        # This subset is safe to navigate with expectation of node types
+        # (e.g. "the first node should be a type, the second a ':", etc), since
+        # it's free of CST and error nodes.
+        self.nonerr_children = []
 
         # A zeekscript.Formatter attached with this node. Formatters
         # set this field as they get instantiated.
@@ -92,6 +98,11 @@ class Node:
         #
         self.prev_cst_siblings = []
         self.next_cst_siblings = []
+
+        # Two arrays for AST nodes that represent any directly
+        # preceeding/succeeding ERROR nodes.
+        self.prev_error_siblings = []
+        self.next_error_siblings = []
 
     def name(self):
         """Returns the type of a named node.

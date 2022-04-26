@@ -284,6 +284,14 @@ class Script:
         # TS tree isn't malleable from Python. We can alter the structure of our
         # own tree freely, which helps during formatting. Second, we encode
         # additional metadata in the node structure.
+
+        def make_nullnode():
+            node = Node()
+            node.is_named = True
+            node.type = 'nullnode'
+            node.is_ast = True
+            return node
+
         def make_node(node):
             new_node = Node()
 
@@ -326,15 +334,12 @@ class Script:
                         new_node.children[-2].next_sibling = new_node.children[-1]
                         new_node.children[-1].prev_sibling = new_node.children[-2]
 
-            # Corner case: if we have no AST nodes (only comments in a statement
-            # block, for example), then create a dummy "null" node as AST node
-            # to house those elements. This node has a null formatter so will
-            # not produce any output.
+            # Corner case: if the new node has no AST children (only comments in
+            # a statement block, for example), then create a dummy "null" node
+            # as AST node to house those nodes. This node maps to NullFormatter,
+            # so will not produce any output.
             if new_children and not new_node.children:
-                nullnode = Node()
-                nullnode.is_named = True
-                nullnode.type = 'nullnode'
-                nullnode.is_ast = True
+                nullnode = make_nullnode()
                 new_node.children.append(nullnode)
                 new_children.append(nullnode)
 
@@ -397,6 +402,34 @@ class Script:
                     child.is_cst_prev_node = True
 
                 last_child = child
+
+            # Final edits: if the node has any ERROR nodes as children, unhook
+            # them from the sibling linkage and the parent's children list, to
+            # ensure the formatters' child node reasoning remains sound.
+
+            # Corner case: the new node only has ERROR children. We need to add
+            # an AST null node to have something to link the errors to.
+            if new_node.children and all([child.type == 'ERROR' for child in new_node.children]):
+                new_node.children.append(make_nullnode())
+                new_node.children[-2].next_sibling = new_node.children[-1]
+                new_node.children[-1].prev_sibling = new_node.children[-2]
+
+            pending_errors = []
+            last_nonerror = None
+
+            for child in new_node.children:
+                if child.type == 'ERROR':
+                    pending_errors.append(child)
+                    continue
+
+                new_node.nonerr_children.append(child)
+
+                if pending_errors:
+                    child.prev_error_siblings = pending_errors
+                    pending_errors = []
+
+            if pending_errors:
+                new_node.nonerr_children[-1].next_error_siblings = pending_errors
 
             return new_node
 
