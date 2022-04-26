@@ -71,8 +71,10 @@ class Script:
         and for subtler errors their has_error bit is set. This function
         reports True when any of these conditions hold.
         """
+        assert self.root is not None, 'call Script.parse() before Script.has_error()'
+
         # Could cache this result while we don't support tree modifications
-        for node, _ in self._visit(self.ts_tree.root_node):
+        for node, _ in self._visit(self.root):
             if node.type == 'ERROR' or node.is_missing or node.has_error:
                 return True
 
@@ -93,9 +95,11 @@ class Script:
 
         - An error message string that tries to explain the problem.
         """
+        assert self.root is not None, 'call Script.parse() before Script.get_error()'
+
         line, lineno, msg = None, None, None
 
-        for node, _ in self._visit(self.ts_tree.root_node):
+        for node, _ in self._visit(self.root):
             snippet = self.source[node.start_byte:node.end_byte]
             if len(snippet) > 50:
                 snippet = snippet[:50] + b'[...]'
@@ -130,6 +134,7 @@ class Script:
         2, etc.
         """
         assert self.root is not None, 'call Script.parse() before Script.traverse()'
+
         for node, nesting in self._visit(self.root, include_cst):
             yield node, nesting
 
@@ -138,6 +143,8 @@ class Script:
 
         This simplifies accessing specific text chunks in the source.
         """
+        assert self.root is not None, 'call Script.parse() before accessing content'
+
         return self.source.__getitem__(key)
 
     def get_content(self, start_byte=None, end_byte=None):
@@ -147,6 +154,8 @@ class Script:
         provided, are numerical byte offsets in the script, behaving as usual
         indices in slice notation.
         """
+        assert self.root is not None, 'call Script.parse() before Script.get_content()'
+
         return self.source[start_byte:end_byte]
 
     def format(self, output=None, enable_linebreaks=True):
