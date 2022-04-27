@@ -1,3 +1,13 @@
+1.1.0-15 | 2022-04-27 13:56:52 -0700
+
+  * Include directory recursion tests on Windows (Christian Kreibich, Corelight)
+
+  * Fix writing formatted output on Windows (Christian Kreibich, Corelight)
+
+  * Expand testsuite to verify portable newline handling (Christian Kreibich, Corelight)
+
+  * Ignore built shared-library artifacts on Windows (Christian Kreibich, Corelight)
+
 1.1.0-10 | 2022-04-27 09:50:22 -0700
 
   * Make the pylint tests optional (Christian Kreibich, Corelight)
