@@ -36,33 +36,37 @@ class TestRecursion(unittest.TestCase):
     def tearDown(self):
         shutil.rmtree('a', ignore_errors=True)
 
-    def _have_same_content(self, file1, file2):
+    def assertEqualContent(self, file1, file2):
         with open(file1) as hdl1, open(file2) as hdl2:
-            return hdl1.read() == hdl2.read()
+            self.assertEqual(hdl1.read(), hdl2.read())
 
-    @unittest.skipIf(sys.platform == 'win32', 'Not yet supported')
+    def assertNotEqualContent(self, file1, file2):
+        with open(file1) as hdl1, open(file2) as hdl2:
+            self.assertNotEqual(hdl1.read(), hdl2.read())
+
     def test_recursive_formatting(self):
         parser = argparse.ArgumentParser()
         zeekscript.add_format_cmd(parser)
         args = parser.parse_args(['-i', '-r', 'a'])
 
-        # Python < 3.10 does not yet support parentheses around these:
+        # Python < 3.10 does not yet support parenthesized context managers:
         with unittest.mock.patch('sys.stdout', new=io.StringIO()) as out, \
              unittest.mock.patch('sys.stderr', new=io.StringIO()) as err:
             ret = args.run_cmd(args)
             self.assertEqual(ret, 0)
             self.assertEqual(out.getvalue(), '4 files processed successfully\n')
 
-        self.assertTrue(self._have_same_content(
-            join(DATA, 'test1.zeek.out'), join('a', 'test1.zeek')))
-        self.assertTrue(self._have_same_content(
-            join(DATA, 'test1.zeek.out'), join('a', 'test2.zeek')))
-        self.assertFalse(self._have_same_content(
-            join(DATA, 'test1.zeek.out'), join('a', 'b', 'test3.txt')))
-        self.assertTrue(self._have_same_content(
-            join(DATA, 'test1.zeek.out'), join('a', 'b', 'test4.zeek')))
-        self.assertTrue(self._have_same_content(
-            join(DATA, 'test1.zeek.out'), join('a', 'b', 'c', 'test5.zeek')))
+        self.assertEqualContent(
+            join(DATA, 'test1.zeek.out'), join('a', 'test1.zeek'))
+        self.assertEqualContent(
+            join(DATA, 'test1.zeek.out'), join('a', 'test2.zeek'))
+        self.assertEqualContent(
+            join(DATA, 'test1.zeek.out'), join('a', 'b', 'test4.zeek'))
+        self.assertEqualContent(
+            join(DATA, 'test1.zeek.out'), join('a', 'b', 'c', 'test5.zeek'))
+
+        self.assertNotEqualContent(
+            join(DATA, 'test1.zeek.out'), join('a', 'b', 'test3.txt'))
 
     def test_recurse_inplace(self):
         parser = argparse.ArgumentParser()
