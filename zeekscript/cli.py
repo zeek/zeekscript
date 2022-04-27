@@ -51,8 +51,8 @@ def cmd_format(args):
             print_error('warning: skipping "{}"; not a supported file type')
 
     def do_write(source):
-        with open(ofname, 'w') if ofname else sys.stdout as ostream:
-            ostream.write(source.decode('UTF-8'))
+        with open(ofname, 'wb') if ofname else sys.stdout.buffer as ostream:
+            ostream.write(source)
 
     for fname in scripts:
         script = Script(fname)
