@@ -1,3 +1,7 @@
+1.1.0-10 | 2022-04-27 09:50:22 -0700
+
+  * Make the pylint tests optional (Christian Kreibich, Corelight)
+
 1.1.0-8 | 2022-04-25 11:10:01 -0700
 
   * Support flushing the OutputStream on close, and do so when formatting (Christian Kreibich, Corelight)
