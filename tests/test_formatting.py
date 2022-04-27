@@ -47,15 +47,20 @@ class TestFormatting(unittest.TestCase):
         self.assertEqual(msg, 'cannot parse line 2, col 4: ")"')
 
 
-class TestDosfileFormatting(unittest.TestCase):
+class TestNewlineFormatting(unittest.TestCase):
+    # This test verifies correct processing when line endings in the input
+    # differ from that normally used by the platform.
 
     def _get_formatted_and_baseline(self, filename):
-        # If we run the following on Windows the newline substitution actually
-        # produces '\r\r\n' since the platform already substituted the existing
-        # newlines, and we get script parsing errors since newlines must be
-        # either \n or \r\n.
+        # Swap line endings for something not native to the platform:
         with open(os.path.join(DATA, filename), 'rb') as hdl:
-            data = hdl.read().replace(b'\n', b'\r\n')
+            data = hdl.read()
+            if zeekscript.Formatter.NL == b'\n':
+                # Turn everything to \r\n, even if mixed
+                data = data.replace(b'\r\n', b'\n')
+                data = data.replace(b'\n', b'\r\n')
+            else:
+                data = data.replace(b'\r\n', b'\n')
 
         buf = io.BytesIO(data)
 
@@ -71,12 +76,7 @@ class TestDosfileFormatting(unittest.TestCase):
         result_is = buf.getvalue()
         return result_wanted, result_is
 
-    @unittest.skipIf(sys.platform == 'win32', 'Not required on Windows')
     def test_file_formatting(self):
-        # This test verifies correct processing when the line endings are not
-        # that of the platform. We run this only when not on Windows. On
-        # Windows, the above TestFormatting test(s) already cover Windows due to
-        # its transparent conversion of newlines.
         result_wanted, result_is = self._get_formatted_and_baseline('test1.zeek')
         self.assertEqual(result_wanted, result_is)
 
