@@ -28,17 +28,34 @@ class Node:
         self.next_sibling = None
 
         self.start_byte = 0
-        self.end_byte = 0
+        self.end_byte = 0 # The first byte _after_ this node's content
         self.start_point = (0, 0)
         self.end_point = (0, 0)
+
+        # This terminology stems from TreeSitter and means that a node is typed,
+        # i.e., the root of a grammar rule. It is not a token.
         self.is_named = False
+
+        # In some cases TreeSitter can infer that a node is simply missing (such
+        # as a trailing semicolon). Implies has_error, but does not lead to an
+        # ERROR node higher up.
         self.is_missing = False
+
+        # This bit indicates whether there's a parser problem somewhere below
+        # this node. This problem can be of various forms, including parse
+        # errors (node type "ERROR") or missing nodes. Any others?
         self.has_error = False
 
         # Consider name() or token() below instead of accessing this directly
         self.type = None
 
-        # Additions over the TS node members below:
+        # ---- Additions over the TS node members below ------------------------
+
+        # A variant of self.children, consisting only of the non-ERROR nodes.
+        # This subset is safe to navigate with expectation of node types
+        # (e.g. "the first node should be a type, the second a ':", etc), since
+        # it's free of CST and error nodes.
+        self.nonerr_children = []
 
         # A zeekscript.Formatter attached with this node. Formatters
         # set this field as they get instantiated.
@@ -63,24 +80,29 @@ class Node:
         # succeeding this node. These lists are in tree-order: if a tree node's
         # sequence of children is ...
         #
-        #   <minor comment>  (CST)
+        #   <minor comment1> (CST)
         #   <nl>             (CST)
-        #   <minor comment>  (CST)
+        #   <minor comment2> (CST)
         #   <nl>             (CST)
         #   <expr>           (AST)
-        #   <minor_comment>  (CST)
+        #   <minor_comment3> (CST)
         #   <nl>             (CST)
         #
         # ... then the members of prev_cst_siblings are ...
         #
-        #   [ <minor comment>, <nl>, <minor comment>, <nl>]
+        #   [ <minor comment1>, <nl>, <minor comment2>, <nl>]
         #
         # ... and those of next_cst_siblings are:
         #
-        # [ <minor comment>, <nl>]
+        # [ <minor comment3>, <nl>]
         #
         self.prev_cst_siblings = []
         self.next_cst_siblings = []
+
+        # Two arrays for AST nodes that represent any directly
+        # preceeding/succeeding ERROR nodes.
+        self.prev_error_siblings = []
+        self.next_error_siblings = []
 
     def name(self):
         """Returns the type of a named node.
@@ -99,6 +121,47 @@ class Node:
         returns None.
         """
         return self.type if not self.is_named else None
+
+    def script_range(self, with_cst=False):
+        """Returns this node's start/end byte indices in the script, as a tuple.
+
+        By default this ignores potential CST nodes associated with this node
+        (preceding or succeeding it), but their ranges get included when
+        with_cst is True.
+        """
+        start, end = self.start_byte, self.end_byte
+
+        if with_cst:
+            node = self
+            while node:
+                if node.prev_cst_siblings:
+                    if node.prev_cst_siblings[0].start_byte < start:
+                        start = node.prev_cst_siblings[0].start_byte
+                    # No need to dig into child nodes, they won't have
+                    # any earlier content.
+                    break
+                node = node.children[0] if node.children else None
+
+            node = self
+            while node:
+                if node.next_cst_siblings:
+                    if node.next_cst_siblings[-1].end_byte > end:
+                        end = node.next_cst_siblings[-1].end_byte
+                    # No need to dig into child nodes, they won't have
+                    # any later content.
+                    break
+                node = node.children[-1] if node.children else None
+
+        return start, end
+
+    def is_error(self):
+        """Returns True iff this node summarizes a parsing error.
+
+        This currently refers to nodes with type string "ERROR" (i.e., nodes
+        that group problematic content under them, possibly alongside correctly
+        parsed material).
+        """
+        return self.is_named and self.type and self.type == 'ERROR'
 
     def is_nl(self):
         """Returns True iff this is a newline."""

@@ -1,3 +1,29 @@
+1.1.0-29 | 2022-04-27 20:52:57 -0700
+
+  * Skip the PyPy builds on Windows (Christian Kreibich, Corelight)
+
+  * Move formatters to using Node.nonerr_children where required (Christian Kreibich, Corelight)
+
+  * When building up parse tree, track non-error nodes separately (Christian Kreibich, Corelight)
+
+  * Switch all script tree navigation to our cloned tree, not the TS one (Christian Kreibich, Corelight)
+
+  * Variable naming in the Formatter._format_child() method was backward (Christian Kreibich, Corelight)
+
+  * Disallow formatting multiple files without --inplace; better summary message (Christian Kreibich, Corelight)
+
+  * Write problems to stderr when hitting parse errors during formatting (Christian Kreibich, Corelight)
+
+  * Add unit tests for testing parsing errors and their formatting (Christian Kreibich, Corelight)
+
+  * Refactor format-testing setup a bit to be more reusable (Christian Kreibich, Corelight)
+
+  * Appease pylint (Christian Kreibich, Corelight)
+
+  * Exit formatting with error also when parsing encounters problems (Christian Kreibich, Corelight)
+
+  * Handle TreeSitter's ERROR-typed nodes explicitly (Christian Kreibich, Corelight)
+
 1.1.0-15 | 2022-04-27 13:56:52 -0700
 
   * Include directory recursion tests on Windows (Christian Kreibich, Corelight)

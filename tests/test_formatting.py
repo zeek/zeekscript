@@ -18,33 +18,134 @@ import zeekscript
 
 class TestFormatting(unittest.TestCase):
 
-    def _get_formatted_and_baseline(self, filename):
-        script = zeekscript.Script(os.path.join(DATA, filename))
-        script.parse()
+    def _get_input_and_baseline(self, filename):
+        with open(os.path.join(DATA, filename), 'rb') as hdl:
+            input = hdl.read()
+
+        with open(os.path.join(DATA, filename + '.out'), 'rb') as hdl:
+            output = hdl.read()
+
+        return input, output
+
+    def _format(self, content):
+        script = zeekscript.Script(io.BytesIO(content))
+
+        self.assertTrue(script.parse())
+        self.assertFalse(script.has_error())
 
         buf = io.BytesIO()
         script.format(buf)
 
-        with open(os.path.join(DATA, filename + '.out'), 'rb') as hdl:
-            result_wanted = hdl.read()
-        result_is = buf.getvalue()
-        return result_wanted, result_is
+        return buf.getvalue()
 
     def test_file_formatting(self):
-        result_wanted, result_is = self._get_formatted_and_baseline('test1.zeek')
-        self.assertEqual(result_wanted, result_is)
+        input, baseline = self._get_input_and_baseline('test1.zeek')
 
-    def test_parse_error(self):
-        script = zeekscript.Script(os.path.join(DATA, 'test2.zeek'))
-        # This script has a minor parse error, so we should not get
-        # an exception but useful error context:
+        # Format the input data and compare to baseline:
+        result1 = self._format(input)
+        self.assertEqual(baseline, result1)
+
+        # Format the result again. There should be no change.
+        result2 = self._format(result1)
+        self.assertEqual(baseline, result2)
+
+
+class TestFormattingErrors(unittest.TestCase):
+
+    def _to_bytes(self, content):
+        if type(content) != bytes:
+            out = content.encode('UTF-8')
+        else:
+            out = content
+
+        out = out.replace(b'\r\n', b'\n')
+        out = out.replace(b'\n', zeekscript.Formatter.NL)
+
+        return out
+
+    def _format(self, content):
+        script = zeekscript.Script(io.BytesIO(content))
+
+        # Everything passed in has a syntax error, so parsing should always
+        # fail, and has_error() should be True.
         self.assertFalse(script.parse())
-        self.assertTrue(script.has_error)
+        self.assertTrue(script.has_error())
 
-        line, lineno, msg = script.get_error()
-        self.assertEqual(line, '\tfoo)();')
-        self.assertEqual(lineno, 2)
-        self.assertEqual(msg, 'cannot parse line 2, col 4: ")"')
+        buf = io.BytesIO()
+        script.format(buf)
+
+        return buf.getvalue(), script.get_error()
+
+    def assertFormatting(self, input, baseline, error_baseline):
+        # Verify formatting and reported error
+        result1, error1 = self._format(self._to_bytes(input))
+        self.assertEqual(self._to_bytes(baseline), result1)
+        self.assertEqual(error_baseline, error1)
+
+        # Format again. There should be no change to the formatting.
+        result2, error2 = self._format(result1)
+        self.assertEqual(self._to_bytes(baseline), result2)
+
+    def test_start_error(self):
+        self.assertFormatting(
+            'xxx  function foo() { }',
+            """xxx function foo()
+{ }
+""",
+            ('xxx  function foo() { }', 0, 'cannot parse line 0, col 0: "xxx"'))
+
+    def test_mid_error(self):
+        self.assertFormatting(
+            """module Foo;
+
+function foo) { print  "hi" ; }
+""",
+            """module Foo;
+
+function foo) {
+	print "hi";
+}
+""", ('function foo) { print  "hi" ; }', 2, 'cannot parse line 2, col 0: "function foo)"'))
+
+    def test_mid_record_error(self):
+        self.assertFormatting(
+            """type foo: record {
+	a: count; ##< A field
+	b count; ##< A broken field
+	c: count; ##< Another field, better not skipped!
+	d: count; ##< Ditto.
+};
+""",
+            """type foo: record {
+	a: count; ##< A field
+	b count; ##< A broken field
+	c: count; ##< Another field, better not skipped!
+	d: count; ##< Ditto.
+};
+""", ('\tb count; ##< A broken field', 2, 'cannot parse line 2, col 1: "b count;"'))
+
+    def test_single_char_mid_error(self):
+        # In this example, the error node spans just a single character:
+        self.assertFormatting(
+            'event zeek_init() { foo)(); }',
+            """event zeek_init()
+{
+	foo ) ();
+}
+""",
+            ('event zeek_init() { foo)(); }', 0, 'cannot parse line 0, col 23: ")"'))
+
+    def test_tail_error_no_nl(self):
+        self.assertFormatting(
+            'function foo( )  { if (',
+            'function foo()  { if (\n',
+            ('function foo( )  { if (', 0, 'cannot parse line 0, col 0: "function foo( )  { if ("'))
+
+    def test_tail_error_nl(self):
+        self.assertFormatting(
+            'function foo( ) { if (\n',
+            'function foo() { if (\n',
+            ('function foo( ) { if (', 0, 'cannot parse line 0, col 0: "function foo( ) { if ("'))
 
 
 class TestNewlineFormatting(unittest.TestCase):

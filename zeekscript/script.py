@@ -71,8 +71,10 @@ class Script:
         and for subtler errors their has_error bit is set. This function
         reports True when any of these conditions hold.
         """
+        assert self.root is not None, 'call Script.parse() before Script.has_error()'
+
         # Could cache this result while we don't support tree modifications
-        for node, _ in self._visit(self.ts_tree.root_node):
+        for node, _ in self._visit(self.root):
             if node.type == 'ERROR' or node.is_missing or node.has_error:
                 return True
 
@@ -93,9 +95,11 @@ class Script:
 
         - An error message string that tries to explain the problem.
         """
+        assert self.root is not None, 'call Script.parse() before Script.get_error()'
+
         line, lineno, msg = None, None, None
 
-        for node, _ in self._visit(self.ts_tree.root_node):
+        for node, _ in self._visit(self.root):
             snippet = self.source[node.start_byte:node.end_byte]
             if len(snippet) > 50:
                 snippet = snippet[:50] + b'[...]'
@@ -130,6 +134,7 @@ class Script:
         2, etc.
         """
         assert self.root is not None, 'call Script.parse() before Script.traverse()'
+
         for node, nesting in self._visit(self.root, include_cst):
             yield node, nesting
 
@@ -138,7 +143,20 @@ class Script:
 
         This simplifies accessing specific text chunks in the source.
         """
+        assert self.root is not None, 'call Script.parse() before accessing content'
+
         return self.source.__getitem__(key)
+
+    def get_content(self, start_byte=None, end_byte=None):
+        """Returns a region of this script's content.
+
+        By default, this returns the entire content. start_byte and end_byte, if
+        provided, are numerical byte offsets in the script, behaving as usual
+        indices in slice notation.
+        """
+        assert self.root is not None, 'call Script.parse() before Script.get_content()'
+
+        return self.source[start_byte:end_byte]
 
     def format(self, output=None, enable_linebreaks=True):
         """Formats the script and writes out the result.
@@ -266,6 +284,14 @@ class Script:
         # TS tree isn't malleable from Python. We can alter the structure of our
         # own tree freely, which helps during formatting. Second, we encode
         # additional metadata in the node structure.
+
+        def make_nullnode():
+            node = Node()
+            node.is_named = True
+            node.type = 'nullnode'
+            node.is_ast = True
+            return node
+
         def make_node(node):
             new_node = Node()
 
@@ -308,23 +334,23 @@ class Script:
                         new_node.children[-2].next_sibling = new_node.children[-1]
                         new_node.children[-1].prev_sibling = new_node.children[-2]
 
-            # Corner case: if we have no AST nodes (only comments in a statement
-            # block, for example), then create a dummy "null" node as AST node
-            # to house those elements. This node has a null formatter so will
-            # not produce any output.
+            # Corner case: if the new node has no AST children (only comments in
+            # a statement block, for example), then create a dummy "null" node
+            # as AST node to house those nodes. This node maps to NullFormatter,
+            # so will not produce any output.
             if new_children and not new_node.children:
-                nullnode = Node()
-                nullnode.is_named = True
-                nullnode.type = 'nullnode'
-                nullnode.is_ast = True
+                nullnode = make_nullnode()
                 new_node.children.append(nullnode)
                 new_children.append(nullnode)
 
             # Now figure out where to "cut" the sequence of CST nodes around the
-            # AST nodes. After an AST node we only allow a sequence of Zeekygen
-            # prev comments, or any regular comment up to the next newline. The
-            # rest gets associated with the subsequent AST node, unless there
-            # isn't one.
+            # AST nodes. Rules:
+            #
+            # - After an AST node we only allow a sequence of Zeekygen
+            #   prev comments, or any regular comment up to the next newline.
+            #
+            # - The rest gets associated with the subsequent AST node, unless
+            #   there isn't one.
 
             ast_node = None
             ast_nodes_remaining = len(new_node.children)
@@ -361,7 +387,9 @@ class Script:
                     child.is_cst_next_node = True
                     child.ast_parent = ast_node
 
-                elif child.is_nl() and last_child and last_child.is_comment():
+                elif child.is_nl() and last_child and (
+                        # Accept newline if it ends a comment or follows an error node.
+                        last_child.is_comment() or last_child.is_error()):
                     ast_node.next_cst_siblings.append(child)
                     child.is_cst_next_node = True
                     child.ast_parent = ast_node
@@ -374,6 +402,34 @@ class Script:
                     child.is_cst_prev_node = True
 
                 last_child = child
+
+            # Final edits: if the node has any ERROR nodes as children, unhook
+            # them from the sibling linkage and the parent's children list, to
+            # ensure the formatters' child node reasoning remains sound.
+
+            # Corner case: the new node only has ERROR children. We need to add
+            # an AST null node to have something to link the errors to.
+            if new_node.children and all([child.type == 'ERROR' for child in new_node.children]):
+                new_node.children.append(make_nullnode())
+                new_node.children[-2].next_sibling = new_node.children[-1]
+                new_node.children[-1].prev_sibling = new_node.children[-2]
+
+            pending_errors = []
+            last_nonerror = None
+
+            for child in new_node.children:
+                if child.type == 'ERROR':
+                    pending_errors.append(child)
+                    continue
+
+                new_node.nonerr_children.append(child)
+
+                if pending_errors:
+                    child.prev_error_siblings = pending_errors
+                    pending_errors = []
+
+            if pending_errors:
+                new_node.nonerr_children[-1].next_error_siblings = pending_errors
 
             return new_node
 

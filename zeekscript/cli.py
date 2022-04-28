@@ -13,12 +13,17 @@ FILE_HELP = ('Use "-" to specify stdin as a filename. Omitting '
              'filenames entirely implies reading from stdin.')
 
 def cmd_format(args):
-    """This function implements Zeek script formatting for the command line. It
-    determines input and output streams, parses each input into a Script object,
-    applies formattinge, and writes out the result."""
+    """This function implements Zeek script formatting for the command line.
 
+    It determines input and output streams, parses each input into a Script
+    object, applies formattinge, and writes out the result.
+
+    Returns 0 in case of success, 1 in case of any errors -- this includes
+    formatter-internal errors as well as any problems encountered during
+    parsing. Encountered problems are written to stderr.
+    """
     if args.recursive and not args.inplace:
-        print_error('error: recursive file processing requires --inline')
+        print_error('error: recursive file processing requires --inplace')
         return 1
 
     if not args.scripts:
@@ -54,12 +59,24 @@ def cmd_format(args):
         with open(ofname, 'wb') if ofname else sys.stdout.buffer as ostream:
             ostream.write(source)
 
+    if len(scripts) > 1 and not args.inplace:
+        print_error('error: processing multiple files requires --inplace')
+        return 1
+
+    errs = 0
+
     for fname in scripts:
         script = Script(fname)
         ofname = fname if args.inplace else None
 
         try:
-            script.parse()
+            if not script.parse():
+                errs += 1
+                _, _, msg = script.get_error()
+                if len(scripts) > 1:
+                    print_error('{}: {}'.format(fname, msg))
+                else:
+                    print_error(msg)
         except Error as err:
             print_error('parsing error: ' + str(err))
             do_write(script.source)
@@ -84,10 +101,11 @@ def cmd_format(args):
         do_write(buf.getvalue())
 
     if args.inplace:
-        print('{} file{} processed successfully'.format(
-            len(scripts), '' if len(scripts) == 1 else 's'))
+        print('{} file{} processed, {} error{}'.format(
+            len(scripts), '' if len(scripts) == 1 else 's',
+            errs, '' if errs == 1 else 's'))
 
-    return 0
+    return int(errs > 0)
 
 
 def cmd_parse(args):

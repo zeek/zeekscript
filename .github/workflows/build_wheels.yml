@@ -39,6 +39,9 @@ jobs:
       - name: Build and test wheels
         uses: pypa/cibuildwheel@v2.3.1
         env:
+          # We currently skip all PyPy builds on Windows due to hard
+          # exits of the Python interpreter with some input trees.
+          CIBW_SKIP: pp*-win*
           CIBW_TEST_REQUIRES: pylint
           CIBW_TEST_COMMAND: python {project}/tests/test_all.py
           CIBW_TEST_COMMAND_WINDOWS: python.exe {project}/tests/test_all.py

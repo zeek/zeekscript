@@ -105,18 +105,19 @@ class Formatter:
         node.formatter = self
 
     def format(self):
+        """Default formatting for a tree node
+
+        This simply writes out children as per their own formatting, and writes
+        out tokens directly.
+        """
         if self.node.children:
             self._format_children()
         else:
             self._format_token()
 
-    def content(self):
-        """Returns the script content bytes this formatter processes."""
-        return self.script[self.node.start_byte:self.node.end_byte]
-
     def _next_child(self):
         try:
-            node = self.node.children[self._cidx]
+            node = self.node.nonerr_children[self._cidx]
             self._cidx += 1
             return node
         except IndexError:
@@ -129,17 +130,32 @@ class Formatter:
                            hints=hints)
         formatter.format()
 
-    def _format_child(self, indent=False, hints=None):
-        node = self._next_child()
+    def _format_child(self, child=None, indent=False, hints=None):
+        if child is None:
+            child = self._next_child()
 
-        for child in node.prev_cst_siblings:
-            self._format_child_impl(child, indent)
+        # XXX Pretty subtle that we handle the child's surrounding context here,
+        # in the parent. Might have to refactor in the future.
 
-        # The hints apply to AST (not CST) nodes
-        self._format_child_impl(node, indent, hints)
+        # If the node has any preceeding errors, render these out first.  Do
+        # this via _format_child(), not _format_child_impl(), since the error
+        # nodes are full-blown AST nodes potentially with their own CST
+        # neighborhood.
+        for node in child.prev_error_siblings:
+            self._format_child(node, indent)
 
-        for child in node.next_cst_siblings:
-            self._format_child_impl(child, indent)
+        for node in child.prev_cst_siblings:
+            self._format_child_impl(node, indent)
+
+        # The hints apply to AST (not CST) nodes, so now:
+        self._format_child_impl(child, indent, hints)
+
+        for node in child.next_cst_siblings:
+            self._format_child_impl(node, indent)
+
+        # Mirroring the above, handle any trailing errors last.
+        for node in child.next_error_siblings:
+            self._format_child(node, indent)
 
     def _format_child_range(self, num, hints=None, first_hints=None):
         """Format a given number of children of the node.
@@ -156,20 +172,22 @@ class Formatter:
 
         if num <= 0:
             return
-        elif num == 1:
+
+        if num == 1:
             # Single element: general and first-element hinting
             self._format_child(hints=hints | first_hints)
-        else:
-            # First element of multiple: general hinting; first-element hinting;
-            # avoid line breaks after the element.
-            self._format_child(hints=hints | first_hints | Hint.NO_LB_AFTER)
+            return
 
-            # Inner elements: general hinting; avoid line breaks
-            for _ in range(num-2):
-                self._format_child(hints=hints | Hint.NO_LB_AFTER)
+        # First element of multiple: general hinting; first-element hinting;
+        # avoid line breaks after the element.
+        self._format_child(hints=hints | first_hints | Hint.NO_LB_AFTER)
 
-            # Last element: general hinting only.
-            self._format_child(hints=hints)
+        # Inner elements: general hinting; avoid line breaks
+        for _ in range(num-2):
+            self._format_child(hints=hints | Hint.NO_LB_AFTER)
+
+        # Last element: general hinting only.
+        self._format_child(hints=hints)
 
     def _format_children(self, sep=None):
         """Format all children of the node.
@@ -188,9 +206,9 @@ class Formatter:
             self._format_child()
 
     def _format_token(self):
-        self._write(self.content())
+        self._write(self.script.get_content(*self.node.script_range()))
 
-    def _write(self, data):
+    def _write(self, data, raw=False):
         if isinstance(data, str):
             data = data.encode('UTF-8')
 
@@ -202,7 +220,7 @@ class Formatter:
             # would result without the presence of interrupting comments.
             data = data.lstrip()
 
-        self.ostream.write(data, self)
+        self.ostream.write(data, self, raw)
 
     def _write_indent(self):
         if self.ostream.get_column() == 0:
@@ -231,7 +249,7 @@ class Formatter:
 
     def _children_remaining(self):
         """Returns number of children of this node not yet visited."""
-        return len(self.node.children[self._cidx:])
+        return len(self.node.nonerr_children[self._cidx:])
 
     def _get_child(self, offset=0, absolute=False):
         """Accessor for child nodes, without adjusting the offset index.
@@ -247,7 +265,7 @@ class Formatter:
         cidx = 0 if absolute else self._cidx
 
         try:
-            return self.node.children[cidx + offset]
+            return self.node.nonerr_children[cidx + offset]
         except IndexError:
             return None
 
@@ -295,9 +313,9 @@ class Formatter:
     @staticmethod
     def lookup(node):
         """Formatter lookup for a zeekscript.Node, based on its type information."""
-        # If we're looking up a token node, always use a dummy formatter.
-        # This ensures that we don't confuse a node.type of the same name,
-        # e.g. a variable called 'decl'.
+        # If we're looking up a token node, always use the fallback formatter,
+        # which writes it out directly.  This ensures that we don't confuse a
+        # node.type of the same name, e.g. a variable called 'decl'.
         if not node.is_named:
             return Formatter
         return MAP.get(node.type)
@@ -307,6 +325,63 @@ class NullFormatter(Formatter):
     """The null formatter doesn't output anything."""
     def format(self):
         pass
+
+
+class ErrorFormatter(Formatter):
+    """This formatter handles parser errors reported by TreeSitter.
+
+    This is pretty tricky. Since we cannot really know what triggered the error,
+    this formatter preserves the node's byte range unmodified, expect for any
+    ranges covered by child nodes with their own nontrivial formatting (which
+    currently means child nodes that have children). This suits the behavior of
+    error nodes, which often still have functional child nodes, but surround
+    them with broken content.
+
+    If we rendered error nodes more simply, we'd either miss out on possible
+    formatting, introduce formatting that makes unpleasing changes (simple
+    space-separation will often look wrong, for example), or accidentally run
+    content together that the parser needs to remain whitespace-separated to
+    parse correctly.
+
+    To avoid merging the output directly with surrounding content (potentially
+    breaking subsequent script-parsing), this formatter adds a surrounding space
+    before and after the output. This could be optimized later via the notion of
+    an optional space that gets ignored when neighbored by other whitespace.
+    """
+    def format(self):
+        if not self.node.children:
+            content = self.script.get_content(*self.node.script_range())
+            self._write_sp()
+            self._write(content, raw=True)
+            self._write_sp()
+            return
+
+        start, _ = self.node.script_range()
+        _, end = self.node.script_range(with_cst=True)
+
+        # Before and after the error node's script range there may be
+        # non-newline whitespace skipped by the parser. It's tempting to tuck
+        # that onto the output, to preserve it. But, since formatting might
+        # itself tuck on whitespace, this can lead to repeated formatting
+        # continuously adding whitespace. So we ignore such space.
+
+        self._write_sp()
+
+        for node in self.node.children:
+            node_start, node_end = node.script_range()
+            if node.children:
+                if node_start > start:
+                    content = self.script.get_content(start, node_start)
+                    self._write(content, raw=True)
+
+                self._format_child(child=node)
+                start = node_end
+
+        if start < end:
+            content = self.script.get_content(start, end)
+            self._write(content, raw=True)
+
+        self._write_sp()
 
 
 class LineFormatter(Formatter):
@@ -646,7 +721,7 @@ class StmtFormatter(TypedInitializerFormatter):
         """
         # This checks a property of the child's children: to trigger, the child
         # is an if- or else-block, and 'if' is the first child token in that
-        return self._get_child().has_property(lambda n: n.children[0].token() == '{')
+        return self._get_child().has_property(lambda n: n.nonerr_children[0].token() == '{')
 
     def _write_sp_or_nl(self, do_sp):
         """Writes separator based on sp_or_nl.
@@ -757,7 +832,7 @@ class StmtFormatter(TypedInitializerFormatter):
                 # Special treatment of "else if": we keep those on the same
                 # line, since otherwise, a switch-case-like cascade of if-else
                 # would get progressively more indented.
-                if self._get_child().has_property(lambda n: n.children[0].token() == 'if'):
+                if self._get_child().has_property(lambda n: n.nonerr_children[0].token() == 'if'):
                     self._write_sp()
                     self._format_child() # <stmt>
                 else:
@@ -932,12 +1007,12 @@ class ExprFormatter(SpaceSeparatedFormatter):
 
     def _is_binary_boolean(self):
         """Predicate, returns true if this an || or && expression."""
-        return (len(self.node.children) == 3 and
+        return (len(self.node.nonerr_children) == 3 and
                 self._get_child_token(offset=1, absolute=True) in ('||', '&&'))
 
     def _is_binary_addition(self):
         """Predicate, returns true if this an <expr> + <expr> expression."""
-        return (len(self.node.children) == 3 and
+        return (len(self.node.nonerr_children) == 3 and
                 self._get_child_type(offset=1, absolute=True) == '+')
 
     def _is_expr_chain_of(self, formatter_predicate):
