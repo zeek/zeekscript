@@ -191,11 +191,37 @@ class Node:
         except (AttributeError, IndexError):
             return False
 
+    def has_only_whitespace_before(self):
+        """True if this node is has only whitespace before it at its tree level.
+
+        This predicate scans the preceding CST node siblings, verifying that
+        they are all whitespace. The scan stops when it hits an AST node, which
+        counts as success. Absence of preceding CST nodes is also success.
+        """
+        res = self.find_prev_cst_sibling(
+            lambda node: not node.is_nl())
+        return res is None or res.is_ast
+
+    def has_only_whitespace_after(self):
+        """True if this node is has only whitespace after it at its tree level.
+
+        This predicate scans the succeeding CST node siblings, verifying that
+        they are all whitespace. The scan stops when it hits an AST node, which
+        counts as success. Absence of suceeding CST nodes is also success.
+        """
+        node = self.find_next_cst_sibling(
+            lambda node: not node.is_nl())
+        return node is None or node.is_ast
+
     def find_prev_cst_sibling(self, predicate):
         """Retrieve first preceeding CST sibling matching a predicate.
 
         The predicate is a function taking a single Node and returning T or F.
         Returns sibling satisfying the predicate, or None when search fails.
+
+        Note that this search does not stop after exhausting the node's
+        prev_cst_nodes list, i.e., the CST nodes grouped with this node. It
+        continues through the entire sibling level in the parse tree.
         """
         node = self.prev_cst_sibling
         while node:
@@ -209,6 +235,10 @@ class Node:
 
         The predicate is a function taking a single Node and returning T or F.
         Returns sibling satisfying the predicate, or None when search fails.
+
+        Note that this search does not stop after exhausting the node's
+        next_cst_nodes list, i.e., the CST nodes grouped with this node. It
+        continues through the entire sibling level in the parse tree.
         """
         node = self.next_cst_sibling
         while node:
