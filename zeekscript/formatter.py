@@ -137,7 +137,7 @@ class Formatter:
         # XXX Pretty subtle that we handle the child's surrounding context here,
         # in the parent. Might have to refactor in the future.
 
-        # If the node has any preceeding errors, render these out first.  Do
+        # If the node has any preceding errors, render these out first.  Do
         # this via _format_child(), not _format_child_impl(), since the error
         # nodes are full-blown AST nodes potentially with their own CST
         # neighborhood.

@@ -76,7 +76,7 @@ class Node:
         self.prev_cst_sibling = None
         self.next_cst_sibling = None
 
-        # If this is an AST node: full sequences of CST nodes preceeding/
+        # If this is an AST node: full sequences of CST nodes preceding/
         # succeeding this node. These lists are in tree-order: if a tree node's
         # sequence of children is ...
         #
@@ -100,7 +100,7 @@ class Node:
         self.next_cst_siblings = []
 
         # Two arrays for AST nodes that represent any directly
-        # preceeding/succeeding ERROR nodes.
+        # preceding/succeeding ERROR nodes.
         self.prev_error_siblings = []
         self.next_error_siblings = []
 
@@ -155,7 +155,7 @@ class Node:
         return start, end
 
     def is_error(self):
-        """Returns True iff this node summarizes a parsing error.
+        """Returns True if this node summarizes a parsing error.
 
         This currently refers to nodes with type string "ERROR" (i.e., nodes
         that group problematic content under them, possibly alongside correctly
@@ -164,19 +164,19 @@ class Node:
         return self.is_named and self.type and self.type == 'ERROR'
 
     def is_nl(self):
-        """Returns True iff this is a newline."""
+        """Returns True if this is a newline."""
         return self.is_named and self.type and self.type == 'nl'
 
     def is_comment(self):
-        """Returns True iff this is any kind of comment."""
+        """Returns True if this is any kind of comment."""
         return self.is_named and self.type and self.type.endswith('_comment')
 
     def is_minor_comment(self):
-        """Returns True iff this is a minor comment ("# foo")."""
+        """Returns True if this is a minor comment ("# foo")."""
         return self.is_named and self.type and self.type == 'minor_comment'
 
     def is_zeekygen_prev_comment(self):
-        """Returns True iff this is a Zeekygen "##<" comment."""
+        """Returns True if this is a Zeekygen "##<" comment."""
         return self.is_named and self.type and self.type == 'zeekygen_prev_comment'
 
     def has_property(self, predicate):
@@ -214,7 +214,7 @@ class Node:
         return node is None or node.is_ast
 
     def find_prev_cst_sibling(self, predicate):
-        """Retrieve first preceeding CST sibling matching a predicate.
+        """Retrieve first preceding CST sibling matching a predicate.
 
         The predicate is a function taking a single Node and returning T or F.
         Returns sibling satisfying the predicate, or None when search fails.
