@@ -22,6 +22,12 @@ module  Test;
 		PRINTLOG
 	};
 
+	# An enum with assignments
+	type AssigedEnum: enum {
+	  FOO=1,
+	  BAR=10,
+	};
+
         ## A constant.
         const a_constant=T  &redef ;
 
