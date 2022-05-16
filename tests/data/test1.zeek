@@ -78,15 +78,21 @@ function a_function ( a: int, b: count, another_argument_for_linewrapping: strin
 
 	if ( | foo | > 0 )
 		print "foo";
-	else if  (bar && baz)
+	else if  (bar && baz) {
 		print "bar";
-	else if ( baz)
+	} else if ( baz)
 		# This comment should not move. Also, the following should
 		# _not_ wrap because the long string alone is too long for
 		# the line limit.
 		print fmt("%s", "Lovely patio around the fountain. Spent a lovely lunch on the patio.");
 	else
 		print "Lovely patio around the fountain. " + "Spent a lovely lunch on the patio. " + "The menu was inviting and lots of things I wanted to order. " + "Ordered the Eutropia pizza thin crust-YUM! " + "Will go back the next time I'm in Berkeley.";
+
+	when ((local x=foo()) && x == 42)
+	{ print x; } timeout 5sec
+	{
+        print "timeout";
+	}
 	}
 
 function b_function ( a: int, b: count, another_argument_for_longer_linewrapping: string ) : string
@@ -98,11 +104,22 @@ function b_function ( a: int, b: count, another_argument_for_longer_linewrapping
 		arg1, arg2);
 
 	switch (  foo  )  {
-	case A: bar();
-	case B: bar();
-	default: bar();
+	case A: bar(); fallthrough;
+	case B: bar(); break;
+	default: bar(); baz();
 	}
-	
+
+	while ( T )
+		do_one_thing();
+
+	while ( ! F ) { do_another_thing(); and_another(); }
+
+	for ( i in some_set )
+		do_one_thing();
+	for ( i in some_set )
+		{ do_one_thing(); and_another(); }
+
+	{ a_block_for_the_sake_of_it(); }
 	}
 
 function blanklines() {
