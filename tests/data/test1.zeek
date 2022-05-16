@@ -88,7 +88,7 @@ function a_function ( a: int, b: count, another_argument_for_linewrapping: strin
 	else
 		print "Lovely patio around the fountain. " + "Spent a lovely lunch on the patio. " + "The menu was inviting and lots of things I wanted to order. " + "Ordered the Eutropia pizza thin crust-YUM! " + "Will go back the next time I'm in Berkeley.";
 
-	when ((local x=foo()) && x == 42)
+	when [x]((local x=foo()) && x == 42)
 	{ print x; } timeout 5sec
 	{
         print "timeout";

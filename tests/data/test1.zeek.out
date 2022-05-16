@@ -103,7 +103,7 @@ function a_function(a: int, b: count, another_argument_for_linewrapping: string)
 		    + "Ordered the Eutropia pizza thin crust-YUM! "
 		    + "Will go back the next time I'm in Berkeley.";
 
-	when ( ( local x = foo() ) && x == 42 )
+	when [x] ( ( local x = foo() ) && x == 42 )
 		{
 		print x;
 		}

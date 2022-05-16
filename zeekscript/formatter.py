@@ -732,7 +732,6 @@ class CaptureListFormatter(Formatter):
                 self._format_child(hints=Hint.NO_LB_BEFORE) # ','
                 self._write_sp()
         self._format_child(hints=Hint.NO_LB_BEFORE) # ']'
-        self._write_sp()
 
 
 class StmtFormatter(TypedInitializerFormatter):
