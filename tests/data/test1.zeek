@@ -135,4 +135,15 @@ function blanklines() {
 
 }
 
+# This verifies handling of comment-only content in a block
+function comments()
+       {
+       # TODO: fix this
+       # and this too
+       }
+
+function no_comments()
+       {
+       }
+
 
