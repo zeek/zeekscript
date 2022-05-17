@@ -1,3 +1,11 @@
+1.1.0-33 | 2022-05-17 16:51:32 -0700
+
+  * Update formatting testcases to Whitesmith (Christian Kreibich, Corelight)
+
+  * GH-9: Move to Whitesmith indentation (Christian Kreibich, Corelight)
+
+  * Expand formatting testcase with a few more scenarios (Christian Kreibich, Corelight)
+
 1.1.0-29 | 2022-04-27 20:52:57 -0700
 
   * Skip the PyPy builds on Windows (Christian Kreibich, Corelight)

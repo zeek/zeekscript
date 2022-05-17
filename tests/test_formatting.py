@@ -90,7 +90,7 @@ class TestFormattingErrors(unittest.TestCase):
         self.assertFormatting(
             'xxx  function foo() { }',
             """xxx function foo()
-{ }
+	{ }
 """,
             ('xxx  function foo() { }', 0, 'cannot parse line 0, col 0: "xxx"'))
 
@@ -103,7 +103,7 @@ function foo) { print  "hi" ; }
             """module Foo;
 
 function foo) {
-	print "hi";
+print "hi";
 }
 """, ('function foo) { print  "hi" ; }', 2, 'cannot parse line 2, col 0: "function foo)"'))
 
@@ -129,9 +129,9 @@ function foo) {
         self.assertFormatting(
             'event zeek_init() { foo)(); }',
             """event zeek_init()
-{
+	{
 	foo ) ();
-}
+	}
 """,
             ('event zeek_init() { foo)(); }', 0, 'cannot parse line 0, col 23: ")"'))
 

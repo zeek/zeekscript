@@ -208,6 +208,29 @@ class Formatter:
     def _format_token(self):
         self._write(self.script.get_content(*self.node.script_range()))
 
+    def _format_curly_statement_list(self, indent=True):
+        """Format a child sequence of '{' <stmt_list>? '}'
+
+        The statement list is optional, and we need to take into account
+        comments to tweak the layout to "{ }" if there's really nothing between
+        the braces. The need to indent depends on the caller's context.
+        """
+        self._format_child(indent=indent, hints=Hint.NO_LB_BEFORE) # '{'
+
+        # Shorten braces to "{ }" if there is at most whitespace between them.
+        if (self._get_child_token() == '}' and
+            self._get_child().has_only_whitespace_before()):
+            self._write_sp()
+            self._format_child() # '}'
+            return
+
+        self._write_nl()
+
+        if self._get_child_type() == 'stmt_list':
+            self._format_child(indent=indent) # <stmt_list>
+            self._write_nl()
+        self._format_child(indent=indent) # '}'
+
     def _write(self, data, raw=False):
         if isinstance(data, str):
             data = data.encode('UTF-8')
@@ -423,6 +446,7 @@ class ModuleDeclFormatter(Formatter):
 
 class ExportDeclFormatter(Formatter):
     def format(self):
+        # No Whitesmith here: "{" on same line, closing "}" unindented.
         self._format_child() # 'export'
         self._write_sp()
         self._format_child(hints=Hint.NO_LB_BEFORE) # '{'
@@ -560,6 +584,7 @@ class TypeFormatter(SpaceSeparatedFormatter):
             self._format_child() # <type>
 
         elif self._get_child_token() == 'record':
+            # No Whitesmith here: "{" on same line, closing "}" unindented.
             self._format_child() # 'record',
             self._write_sp()
             self._format_child() # '{'
@@ -574,6 +599,7 @@ class TypeFormatter(SpaceSeparatedFormatter):
             self._format_child() # '}'
 
         elif self._get_child_token() == 'enum':
+            # No Whitesmith here: "{" on same line, closing "}" unindented.
             self._format_child() # 'enum'
             self._write_sp()
             self._format_child() # '{'
@@ -673,13 +699,8 @@ class FuncParamsFormatter(Formatter):
 
 class FuncBodyFormatter(Formatter):
     def format(self):
-        self._format_child(hints=Hint.NO_LB_BEFORE) # '{'
-        if self._get_child_name() == 'stmt_list':
-            self._write_nl()
-            self._format_child(indent=True) # <stmt_list>
-        else:
-            self._write_sp()
-        self._format_child() # '}'
+        self._write_nl()
+        self._format_curly_statement_list()
 
 
 class FormalArgsFormatter(Formatter):
@@ -715,31 +736,14 @@ class CaptureListFormatter(Formatter):
 
 
 class StmtFormatter(TypedInitializerFormatter):
-    def _child_is_curly_stmt(self):
-        """Looks ahead to see if the upcoming statement is { ... }.
-        This decides surrounding whitespace in some situations below.
+    def _format_stmt_block(self):
+        """Helper for formatting a block of statements.
+
+        This may either be an { ... } block or a single-line statement.
         """
-        # This checks a property of the child's children: to trigger, the child
-        # is an if- or else-block, and 'if' is the first child token in that
-        return self._get_child().has_property(lambda n: n.nonerr_children[0].token() == '{')
-
-    def _write_sp_or_nl(self, do_sp):
-        """Writes separator based on sp_or_nl.
-
-        This guides whitespace depending on whether if et al. have a {}-block.
-        """
-        if do_sp:
-            self._write_sp()
-        else:
-            self._write_nl()
-
-    def _format_block(self):
-        """Helper for formatting a statement that may be an { ... } block."""
-        curly = self._child_is_curly_stmt()
-        self._write_sp_or_nl(curly)
-        self._format_child(indent=not curly) # <stmt>
-        if curly:
-            self._write_nl()
+        self._write_nl()
+        self._format_child(indent=True) # <stmt>
+        self._write_nl()
 
     def _format_when(self):
         self._format_child() # 'when'
@@ -752,26 +756,15 @@ class StmtFormatter(TypedInitializerFormatter):
         self._format_child() # <expr>
         self._write_sp()
         self._format_child(hints=Hint.NO_LB_BEFORE) # ')'
-
-        curly = self._child_is_curly_stmt()
-        self._write_sp_or_nl(curly)
-        self._format_child(indent=not curly) # <stmt>
+        self._format_stmt_block()
 
         if self._get_child_token() == 'timeout':
-            if curly:
-                self._write_sp()
             self._format_child() # 'timeout'
             self._write_sp()
             self._format_child() # <expr>
-            self._write_sp()
-            self._format_child(hints=Hint.NO_LB_BEFORE) # '{'
             self._write_nl()
-            if self._get_child_name() == 'stmt_list':
-                self._format_child(indent=True) # <stmt_list>
-            self._format_child() # '}'
+            self._format_curly_statement_list() # '{' <stmt_list> '}'
             self._write_nl()
-        elif curly:
-            self._write_nl() # Finish the when's curly block.
 
     def format(self):
         # Statements aren't currently broken down into more specific symbol
@@ -779,13 +772,9 @@ class StmtFormatter(TypedInitializerFormatter):
         start_name, start_token = self._get_child_name(), self._get_child_token()
 
         if start_token == '{':
-            self._format_child(hints=Hint.NO_LB_BEFORE) # '{'
-            if self._get_child_name() == 'stmt_list':
-                self._write_nl()
-                self._format_child(indent=True)
-            else:
-                self._write_sp()
-            self._format_child() # '}'
+            # We don't have to do anything re. Whitesmith here: if this needs
+            # to be indented, the caller has already ensured so via indent=True.
+            self._format_curly_statement_list(indent=False) # '{' <stmt_list> '}'
 
         elif start_token in ['print', 'event']:
             self._format_child() # 'print'/'event'
@@ -810,23 +799,21 @@ class StmtFormatter(TypedInitializerFormatter):
             #
             # or
             #
-            #   if ( foo ) {
+            #   if ( foo )
+            #           {
             #           bar();
-            #   } ...
+            #           }
+            #   ...
             #
             # We need to establish whether the subsequent statement is a
-            # {}-block, because if it's not we write a newline and need to
-            # indent, because {}-blocks take care of indentation as another
-            # statement type (higher up in this function).
+            # {}-block: if it's not, we write a newline and need to indent,
+            # because {}-blocks take care of indentation as another statement
+            # type (higher up in this function).
 
-            curly = self._child_is_curly_stmt()
-            self._write_sp_or_nl(curly)
-            self._format_child(indent=not curly) # <stmt>
+            self._format_stmt_block()
 
             # An else-block also requires special treatment
             if self._get_child_token() == 'else':
-                if curly:
-                    self._write_sp()
                 self._format_child() # 'else'
 
                 # Special treatment of "else if": we keep those on the same
@@ -836,26 +823,25 @@ class StmtFormatter(TypedInitializerFormatter):
                     self._write_sp()
                     self._format_child() # <stmt>
                 else:
-                    curly = self._child_is_curly_stmt()
-                    self._write_sp_or_nl(curly)
-                    self._format_child(indent=not curly) # <stmt>
-                    if curly:
-                        self._write_nl()
-            elif curly:
-                self._write_nl() # Finish the if's curly block.
+                    self._format_stmt_block()
 
         elif start_token == 'switch':
             self._format_child() # 'switch'
             self._write_sp()
             self._format_child() # <expr>
-            self._write_sp()
-            self._format_child(hints=Hint.NO_LB_BEFORE) # '{'
-            if self._get_child_name() == 'case_list':
-                self._write_nl()
-                self._format_child(indent=True) # <case_list>
-            else:
+            self._write_nl()
+            self._format_child(indent=True) # '{'
+            # Shorten braces to "{ }" if there is at most whitespace between them.
+            if (self._get_child_token() == '}' and
+                self._get_child().has_only_whitespace_before()):
                 self._write_sp()
-            self._format_child() # '}'
+                self._format_child() # '}'
+            else:
+                if self._get_child_name() == 'case_list':
+                    self._write_nl()
+                    self._format_child(indent=True) # <case_list>
+                self._write_nl()
+                self._format_child(indent=True) # '}'
             self._write_nl()
 
         elif start_token == 'for':
@@ -884,7 +870,7 @@ class StmtFormatter(TypedInitializerFormatter):
             self._format_child() # <expr>
             self._write_sp()
             self._format_child(hints=Hint.NO_LB_BEFORE) # ')'
-            self._format_block() # <stmt>
+            self._format_stmt_block() # <stmt>
 
         elif start_token == 'while':
             self._format_child() # 'while'
@@ -894,7 +880,7 @@ class StmtFormatter(TypedInitializerFormatter):
             self._format_child() # <expr>
             self._write_sp()
             self._format_child(hints=Hint.NO_LB_BEFORE) # ')'
-            self._format_block() # <stmt>
+            self._format_stmt_block() # <stmt>
 
         elif start_token in ['next', 'break', 'fallthrough']:
             self._format_child_range(2) # loop control statement, ';'

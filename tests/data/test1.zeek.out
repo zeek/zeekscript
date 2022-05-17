@@ -32,12 +32,13 @@ export {
 	global a_function: function(foo: BAR): bool;
 
 	## A lambda.
-	const a_lambda: function(foo: string) = function(foo: string) { } &redef;
+	const a_lambda: function(foo: string) = function(foo: string)
+		{ } &redef;
 }
 
 function a_function(a: int, b: count, another_argument_for_linewrapping: string)
     : a_long_boolean
-{
+	{
 	if ( foo in bar )
 		return somthing[foo$bar](bar);
 	else
@@ -45,34 +46,40 @@ function a_function(a: int, b: count, another_argument_for_linewrapping: string)
 		return T;
 
 	# Mixed {}-blocks in these if-else statements:
-	if ( foo ) {
+	if ( foo )
+		{
 		bar();
-	} else
+		}
+	else
 		baz();
 
 	if ( ! foo )
 		bar();
-	else {
+	else
+		{
 		baz();
-	}
+		}
 
 	if ( a_long_var_a in a_long_var_b
 	    && ( c in d || e in f )
-	    && a_long_var_g in a_long_var_h ) {
+	    && a_long_var_g in a_long_var_h )
+		{
 		return somthing[foo$bar](bar);
-	} else {
+		}
+	else
+		{
 		# A comment
 		return T;
-	}
+		}
 
 	# This shouldn't break the closing ")" onto a new line
-	if ( another_very_long_access_to_some_member[foo] !in
-	    Some::other$nestedthing ) {
+	if ( another_very_long_access_to_some_member[foo] !in Some::other$nestedthing )
+		{
 		# Directives should neither get indented nor wrapped:
 @if ( VERY_LOOOOOOOOOOOOONG_FOO && VERY_LOOOOOOOOOOOOONG_BAR && VERY_LOOOOOOOOOOOOONG_BAZ )
 		return T;
 @endif
-	}
+		}
 
 	# This shouldn't break the 0 index number onto a new line
 	another_very_long_access_to_some_member +=
@@ -81,7 +88,9 @@ function a_function(a: int, b: count, another_argument_for_linewrapping: string)
 	if ( |foo| > 0 )
 		print "foo";
 	else if ( bar && baz )
+		{
 		print "bar";
+		}
 	else if ( baz )
 		# This comment should not move. Also, the following should
 		# _not_ wrap because the long string alone is too long for
@@ -93,11 +102,20 @@ function a_function(a: int, b: count, another_argument_for_linewrapping: string)
 		    + "The menu was inviting and lots of things I wanted to order. "
 		    + "Ordered the Eutropia pizza thin crust-YUM! "
 		    + "Will go back the next time I'm in Berkeley.";
-}
+
+	when ( ( local x = foo() ) && x == 42 )
+		{
+		print x;
+		}
+	timeout 5 sec
+		{
+		print "timeout";
+		}
+	}
 
 function b_function(a: int, b: count,
     another_argument_for_longer_linewrapping: string): string
-{
+	{
 	# Ensure we don't break around the "$bar=" here and align every field assignment.
 	local foo = SomeRecord(
 	    $foo=some_foo_making_function(),
@@ -106,18 +124,43 @@ function b_function(a: int, b: count,
 	call( # with an interrupting comment
 	    arg1, arg2);
 
-	switch ( foo ) {
+	switch ( foo )
+		{
 		case A:
 			bar();
+			fallthrough;
 		case B:
 			bar();
+			break;
 		default:
 			bar();
+			baz();
+		}
+
+	while ( T )
+		do_one_thing();
+
+	while ( ! F )
+		{
+		do_another_thing();
+		and_another();
+		}
+
+	for ( i in some_set )
+		do_one_thing();
+	for ( i in some_set )
+		{
+		do_one_thing();
+		and_another();
+		}
+
+	{
+	a_block_for_the_sake_of_it();
 	}
-}
+	}
 
 function blanklines()
-{
+	{
 	foo();
 	bar();
 
@@ -126,4 +169,14 @@ function blanklines()
 
 	# String-like directives:
 	print @DIR, @FILENAME;
-}
+	}
+
+# This verifies handling of comment-only content in a block
+function comments()
+	{
+	# TODO: fix this
+	# and this too
+	}
+
+function no_comments()
+	{ }
