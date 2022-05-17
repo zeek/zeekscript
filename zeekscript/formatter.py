@@ -189,8 +189,8 @@ class Formatter:
         for _ in range(num-2):
             self._format_child(hints=hints | Hint.NO_LB_AFTER)
 
-        # Last element: general hinting only.
-        self._format_child(hints=hints)
+        # Last element: general hinting; avoid line break before
+        self._format_child(hints=hints | Hint.NO_LB_BEFORE)
 
     def _format_children(self, sep=None):
         """Format all children of the node.
@@ -625,7 +625,7 @@ class RedefEnumDeclFormatter(Formatter, EnumBodyFormatterMixin):
         self._format_child() # '+='
         self._write_sp()
         self._format_curly_enum_body()
-        self._format_child() # ';'
+        self._format_child(hints=Hint.NO_LB_BEFORE) # ';'
         self._write_nl()
 
 
@@ -1039,7 +1039,7 @@ class StmtFormatter(TypedInitializerFormatter):
             self._write_nl()
 
         elif start_token == ';':
-            self._format_child() # ';'
+            self._format_child(hints=Hint.NO_LB_BEFORE) # ';'
             self._write_nl()
 
 
