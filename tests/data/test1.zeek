@@ -22,6 +22,15 @@ module  Test;
 		PRINTLOG
 	};
 
+	# An enum, with assignments, on multiple lines, which should remain.
+	type AssigedEnum: enum {
+	  FOO=1,
+	  BAR=10,
+	};
+
+	# Another one that we put on one line. That should also remain
+	type SingeLineEnum: enum { FOO, BAR };
+	
         ## A constant.
         const a_constant=T  &redef ;
 
@@ -36,6 +45,14 @@ module  Test;
 	} &redef;
 
 }
+
+# Another type of sequence where zeek-format considers existing linebreaks.
+# This one should stay as-is...
+const deltas1: vector of double = { 0.01, 0.01, 0.01, 0.01, 0.01, 0.01 };
+# ... while this one gets fully line-broken:
+const deltas2: vector of double = { 0.01, 0.02, # WHOA!
+    0.01, 0.03, # DOUBLE whoa!
+    0.01, 0.01 };
 
 function a_function ( a: int, b: count, another_argument_for_linewrapping: string ) : a_long_boolean
 	{
@@ -88,7 +105,7 @@ function a_function ( a: int, b: count, another_argument_for_linewrapping: strin
 	else
 		print "Lovely patio around the fountain. " + "Spent a lovely lunch on the patio. " + "The menu was inviting and lots of things I wanted to order. " + "Ordered the Eutropia pizza thin crust-YUM! " + "Will go back the next time I'm in Berkeley.";
 
-	when ((local x=foo()) && x == 42)
+	when [x]((local x=foo()) && x == 42)
 	{ print x; } timeout 5sec
 	{
         print "timeout";
@@ -97,8 +114,12 @@ function a_function ( a: int, b: count, another_argument_for_linewrapping: strin
 
 function b_function ( a: int, b: count, another_argument_for_longer_linewrapping: string ) : string
 	{
-	# Ensure we don't break around the "$bar=" here and align every field assignment.
-	local foo = SomeRecord($foo=some_foo_making_function(), $bar=some$long_bar_field);
+	# This should stay on one line:
+	local r1 = SomeRecord($foo=some_foo(), $bar=some$long_bar());
+	# This should not:
+	local t2 = SomeRecord($foo=some_foo(),
+	    $bar=some$long_bar()
+	    );
 
 	call( # with an interrupting comment
 		arg1, arg2);

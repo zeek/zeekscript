@@ -74,7 +74,7 @@ class Script:
         assert self.root is not None, 'call Script.parse() before Script.has_error()'
 
         # Could cache this result while we don't support tree modifications
-        for node, _ in self._visit(self.root):
+        for node, _ in self.root.traverse():
             if node.type == 'ERROR' or node.is_missing or node.has_error:
                 return True
 
@@ -99,7 +99,7 @@ class Script:
 
         line, lineno, msg = None, None, None
 
-        for node, _ in self._visit(self.root):
+        for node, _ in self.root.traverse():
             snippet = self.source[node.start_byte:node.end_byte]
             if len(snippet) > 50:
                 snippet = snippet[:50] + b'[...]'
@@ -135,7 +135,7 @@ class Script:
         """
         assert self.root is not None, 'call Script.parse() before Script.traverse()'
 
-        for node, nesting in self._visit(self.root, include_cst):
+        for node, nesting in self.root.traverse(include_cst):
             yield node, nesting
 
     def __getitem__(self, key):
@@ -249,31 +249,6 @@ class Script:
         else:
             # output should be a file-like object
             do_traverse(output)
-
-    def _visit(self, node, include_cst=False):
-        """A tree-traversing generator.
-
-        Yields a tuple of (node, nesting level) for every visited node. Works
-        for zeekscript Nodes as well as tree-sitter's tree nodes.
-        """
-        queue = [(node, 0)]
-        while queue:
-            node, nesting = queue.pop(0)
-
-            # If the caller wants the CST, we now need to iterate any
-            # preceeding/succeeding CST nodes this AST nodes has stored:
-            if include_cst:
-                for cst_node in node.prev_cst_siblings:
-                    yield cst_node, nesting
-
-            yield node, nesting
-
-            if include_cst:
-                for cst_node in node.next_cst_siblings:
-                    yield cst_node, nesting
-
-            for child in reversed(node.children):
-                queue.insert(0, (child, nesting+1))
 
     def _clone_tree(self):
         """Deep-copy the TS tree to one consisting of zeekscript.Node instances.

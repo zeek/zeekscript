@@ -22,7 +22,7 @@ class OutputStream:
     """
     MAX_LINE_LEN = 80 # Column at which we consider wrapping.
     MIN_LINE_ITEMS = 5 # Required items on a line to consider wrapping.
-    MIN_LINE_EXCESS = 10 # Minimum characters that a line needs to be too long.
+    MIN_LINE_EXCESS = 5 # Minimum characters that a line needs to be too long.
     TAB_SIZE = 8 # How many visible characters we chalk up for a tab.
     SPACE_INDENT = 4 # When wrapping, add this many spaces onto tab-indentation.
 
@@ -176,45 +176,64 @@ class OutputStream:
             if not out.data.strip():
                 continue
 
+            # We name the various conditions going into the linebreak decision,
+            # so we can report them for troubleshooting and act on them below
+
+            # If the line is too long and this chunk says it best follows a
+            # break, then break now. This helps align e.g. multi-part boolean
+            # conditionals. This needs to take precedence over NO_LB_AFTER,
+            # see next condition.
+            cnd_good_after_lb = (Hint.GOOD_AFTER_LB in out.formatter.hints and
+                                 self._col > self.MAX_LINE_LEN)
+
+            # If the caller requested no line break, abide.
+            cnd_no_lb_after = Hint.NO_LB_AFTER in out.formatter.hints
+
+            # Similarly, if we git GOOD_AFTER_LB earlier, abide.
+            cnd_no_break_hints = not using_break_hints
+
+            # We need to exceed the MAX_LINE_LEN limit with what's pending.
+            cnd_line_too_long = col_flushed + tbd_len > self.MAX_LINE_LEN
+
+            # The pending length must be "worth it". That is, don't break if the
+            # TBD len is just a little bit over. But do so if we're just too
+            # long overall now.
+            cnd_enough_excess = (tbd_len >= self.MIN_LINE_EXCESS or
+                                 col_flushed > self.MAX_LINE_LEN + self.MIN_LINE_EXCESS)
+
+            # If there are only very few items on the line to begin with, don't
+            # bother: breaking these also looks messy. This often covers the
+            # case of a line consisting mostly of a long string.
+            cnd_enough_line_items = line_items >= self.MIN_LINE_ITEMS
+
+            # If the TBD items would immediately exceed the line limit again
+            # after wrapping, don't bother. This covers the case of e.g. very
+            # long strings looking silly when alone on a new line. (This doesn't
+            # interfere with bit-by-bit repeated linebreaks of a very long line
+            # -- that still happens when we build up the next TBD batch.)
+            cnd_no_addl_wrap =  self._tab_indent * self.TAB_SIZE + tbd_len < self.MAX_LINE_LEN
+
+            # Helpful for tracing linebreak decision-making:
+            # print_error('XXX gal:%d nla:%d nbh:%d tl:%d ex:%d ei:%d naw:%d | %s %s %s' % (
+            #    cnd_good_after_lb, cnd_no_lb_after, cnd_no_break_hints,
+            #    cnd_line_too_long, cnd_enough_excess, cnd_enough_line_items,
+            #    cnd_no_addl_wrap, out.data, col_flushed, tbd_len))
+
             # If the line is too long and this chunk says it best follows a
             # break, then break now. This helps align e.g. multi-part boolean
             # conditionals. This needs to take precedence over NO_LB_AFTER.
-            if Hint.GOOD_AFTER_LB in out.formatter.hints and self._col > self.MAX_LINE_LEN:
+            if cnd_good_after_lb:
                 write_linebreak()
                 using_break_hints = True
 
             # Honor hinted linebreak suppression around this chunk.
-            elif Hint.NO_LB_AFTER in out.formatter.hints:
+            elif cnd_no_lb_after:
                 continue
 
-            # Finally actually linebreak as needed, possibly repeatedly:
-            #
-            # - If we used the GOOD_AFTER_LB hint above, rely exclusively on it
-            #   for future breaks, because a mix tends to look messy. So don't
-            #   break here in that case.
-            #
-            # - We need to exceed the MAX_LINE_LEN column limit by writing
-            #   what's pending.
-            #
-            # - The pending length must be "worth it". That is, don't break
-            #   if the TBD len is just a little bit.
-            #
-            # - If there are only very few items on the line to begin with,
-            #   don't bother: breaking these also looks messy. This often covers
-            #   the case of a line consisting mostly of a long string.
-            #
-            # - If the TBD items would immediately exceed the line limit again
-            #   after wrapping, don't bother. This covers the case of e.g. very
-            #   long strings looking silly when alone on a new line. (This
-            #   doesn't interfere with bit-by-bit repeated linebreaks of a very
-            #   long line -- that still happens when we build up the next TBD
-            #   batch.)
-            #
-            elif (not using_break_hints
-                  and col_flushed + tbd_len > self.MAX_LINE_LEN
-                  and tbd_len >= self.MIN_LINE_EXCESS
-                  and line_items >= self.MIN_LINE_ITEMS
-                  and self._tab_indent * self.TAB_SIZE + tbd_len < self.MAX_LINE_LEN):
+            # Finally actually linebreak as needed:
+            elif (cnd_no_break_hints and cnd_line_too_long and
+                  cnd_enough_excess and cnd_enough_line_items and
+                  cnd_no_addl_wrap):
                 write_linebreak()
 
             flush_tbd()

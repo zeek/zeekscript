@@ -76,7 +76,7 @@ class Node:
         self.prev_cst_sibling = None
         self.next_cst_sibling = None
 
-        # If this is an AST node: full sequences of CST nodes preceeding/
+        # If this is an AST node: full sequences of CST nodes preceding/
         # succeeding this node. These lists are in tree-order: if a tree node's
         # sequence of children is ...
         #
@@ -100,7 +100,7 @@ class Node:
         self.next_cst_siblings = []
 
         # Two arrays for AST nodes that represent any directly
-        # preceeding/succeeding ERROR nodes.
+        # preceding/succeeding ERROR nodes.
         self.prev_error_siblings = []
         self.next_error_siblings = []
 
@@ -154,8 +154,44 @@ class Node:
 
         return start, end
 
+    def traverse(self, include_cst=False, predicate=None):
+        """A tree-traversing generator for this node and its subtree.
+
+        Yields a tuple of (node, nesting level) for every visited node. When
+        include_cst is True, traversal also includes CST nodes. When predicate
+        is not None, it filters visited nodes: a function taking a visited node
+        as input, it returns a Boolen that determines whether to return the node
+        or not.
+        """
+        queue = [(self, 0)]
+
+        # Default the filter to accept-all if absent
+        if predicate is None:
+            predicate = lambda node: True
+
+        while queue:
+            node, nesting = queue.pop(0)
+
+            # If the caller wants the CST, we now need to iterate any
+            # preceeding/succeeding CST nodes this AST nodes has stored:
+            if include_cst:
+                for cst_node in node.prev_cst_siblings:
+                    if predicate(cst_node):
+                        yield cst_node, nesting
+
+            if predicate(node):
+                yield node, nesting
+
+            if include_cst:
+                for cst_node in node.next_cst_siblings:
+                    if predicate(cst_node):
+                        yield cst_node, nesting
+
+            for child in reversed(node.children):
+                queue.insert(0, (child, nesting+1))
+
     def is_error(self):
-        """Returns True iff this node summarizes a parsing error.
+        """Returns True if this node summarizes a parsing error.
 
         This currently refers to nodes with type string "ERROR" (i.e., nodes
         that group problematic content under them, possibly alongside correctly
@@ -164,19 +200,19 @@ class Node:
         return self.is_named and self.type and self.type == 'ERROR'
 
     def is_nl(self):
-        """Returns True iff this is a newline."""
+        """Returns True if this is a newline."""
         return self.is_named and self.type and self.type == 'nl'
 
     def is_comment(self):
-        """Returns True iff this is any kind of comment."""
+        """Returns True if this is any kind of comment."""
         return self.is_named and self.type and self.type.endswith('_comment')
 
     def is_minor_comment(self):
-        """Returns True iff this is a minor comment ("# foo")."""
+        """Returns True if this is a minor comment ("# foo")."""
         return self.is_named and self.type and self.type == 'minor_comment'
 
     def is_zeekygen_prev_comment(self):
-        """Returns True iff this is a Zeekygen "##<" comment."""
+        """Returns True if this is a Zeekygen "##<" comment."""
         return self.is_named and self.type and self.type == 'zeekygen_prev_comment'
 
     def has_property(self, predicate):
@@ -214,7 +250,7 @@ class Node:
         return node is None or node.is_ast
 
     def find_prev_cst_sibling(self, predicate):
-        """Retrieve first preceeding CST sibling matching a predicate.
+        """Retrieve first preceding CST sibling matching a predicate.
 
         The predicate is a function taking a single Node and returning T or F.
         Returns sibling satisfying the predicate, or None when search fails.

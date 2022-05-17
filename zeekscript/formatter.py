@@ -69,13 +69,16 @@ MAP = NodeMapper()
 class Hint(enum.Flag):
     """Linebreak hinting when we write out otherwise formatted lines.
 
-    The formatters provide these hints based on their surrounding context.
+    The formatters provide these hints based on their surrounding context.  On
+    occasion, hinting is also used to pass flags from higher-level (in the tree)
+    to lower-level Formatters.
     """
     NONE = enum.auto()
     GOOD_AFTER_LB = enum.auto() # A linebreak before this item is encouraged.
     NO_LB_BEFORE = enum.auto() # Never line-break before this item.
     NO_LB_AFTER = enum.auto() # Never line-break after this item.
     ZERO_WIDTH = enum.auto() # This item doesn't contribute to line length.
+    COMPLEX_BLOCK = enum.auto() # A {}-block is complex enough to linebreak
 
 
 class Formatter:
@@ -137,7 +140,7 @@ class Formatter:
         # XXX Pretty subtle that we handle the child's surrounding context here,
         # in the parent. Might have to refactor in the future.
 
-        # If the node has any preceeding errors, render these out first.  Do
+        # If the node has any preceding errors, render these out first.  Do
         # this via _format_child(), not _format_child_impl(), since the error
         # nodes are full-blown AST nodes potentially with their own CST
         # neighborhood.
@@ -186,8 +189,8 @@ class Formatter:
         for _ in range(num-2):
             self._format_child(hints=hints | Hint.NO_LB_AFTER)
 
-        # Last element: general hinting only.
-        self._format_child(hints=hints)
+        # Last element: general hinting; avoid line break before
+        self._format_child(hints=hints | Hint.NO_LB_BEFORE)
 
     def _format_children(self, sep=None):
         """Format all children of the node.
@@ -489,6 +492,46 @@ class GlobalDeclFormatter(TypedInitializerFormatter):
         self._write_nl()
 
 
+class ComplexSequenceFormatterMixin():
+    """A mixin to figure out whether to line-break the (remaining) children.
+
+    The idea here is to determine if any one child is "complex". If so, the
+    entire sequence is to be written in individual lines. The formatting of
+    these lines doesn't happen in this mixin, only the complexity decision.
+
+    The default complexity decision simply looks for comments in the subtree.
+    """
+    def is_complex(self):
+        return self.is_complex_node(self.node)
+
+    def is_complex_node(self, node):
+        for node, _ in node.traverse(include_cst=True):
+            if node.is_comment():
+                return True
+        return False
+
+
+class ComplexBlockFormatterMixin(ComplexSequenceFormatterMixin):
+    """A mixin to figure out when a {}-block is "complex" enough to line-break it."""
+    def is_complex(self):
+        # The heuristic here is as in the parent class, but we don't operate on
+        # this formatter's whole tree. Instead, focus on the upcoming sequence
+        # of children, bounded by '{' and '}' tokens, since such sequences can
+        # be part of the node's larger sequence of children.
+        if not self._get_child() or self._get_child_token() != '{':
+            return False
+
+        offset = 0
+        while self._get_child(offset=offset):
+            if self.is_complex_node(self._get_child(offset=offset)):
+                return True
+            if self._get_child_token(offset=offset) == '}':
+                return False
+            offset += 1
+
+        return False
+
+
 class InitializerFormatter(Formatter):
     def format(self):
         if self._get_child_name() == 'init_class':
@@ -497,26 +540,81 @@ class InitializerFormatter(Formatter):
 
         self._format_child() # <init>
 
-class InitFormatter(Formatter):
+
+class InitFormatter(Formatter, ComplexBlockFormatterMixin):
+    """Initializers expand on the block "complexity" detection: in addition to the
+    newline logic, non-atomic expressions (things other than IDs and constants)
+    trigger line-breaking.
+    """
+    def is_complex_node(self, node):
+        if super().is_complex_node(node):
+            return True
+
+        # We only consider expressions here, so declare anything else simple.
+        if node.name() != 'expr':
+            return False
+
+        # Only "atomic" expressions (IDs, constants -- including patterns) count
+        # as simple.
+        return not (len(node.nonerr_children) == 1 and
+                    node.nonerr_children[0].name() in ('id', 'constant', 'pattern'))
+
     def format(self):
         if self._get_child_token() == '{':
+            # Any number of expressions, comma-separated, with optional final
+            # comma. We use the same heuristic as for enums: by default we keep
+            # elements on a single line, but in the presence of comments we
+            # break each expr onto a new line.
+            do_linebreak = self.is_complex() # Must call before we consume '{'
             self._format_child(hints=Hint.NO_LB_BEFORE) # '{'
-            # Any number of expressions, comma-separated
+
             if self._get_child_name() == 'expr':
-                self._write_nl()
-                while self._get_child_name() == 'expr':
-                    self._format_child(indent=True) # <expr>
-                    if self._get_child_token() == ',':
-                        self._format_child(hints=Hint.NO_LB_BEFORE) # ','
+                if do_linebreak:
                     self._write_nl()
+                    while self._get_child_name() == 'expr':
+                        self._format_child(indent=True) # <expr>
+                        if self._get_child_token() == ',':
+                            self._format_child(hints=Hint.NO_LB_BEFORE) # ','
+                        self._write_nl()
+                else:
+                    self._write_sp()
+                    while self._get_child_name() == 'expr':
+                        self._format_child(indent=True) # <expr>
+                        if self._get_child_token() == ',':
+                            self._format_child(hints=Hint.NO_LB_BEFORE) # ','
+                        if self._get_child_name() == 'expr':
+                            self._write_sp()
+                    self._write_sp()
             else:
+                # Just a space when the initializer list has no members.
                 self._write_sp()
+
             self._format_child() # '}'
         else:
             self._format_child() # <expr>
 
 
-class RedefEnumDeclFormatter(Formatter):
+class EnumBodyFormatterMixin(ComplexBlockFormatterMixin):
+    """A mixin that knows when to break an enum_body onto lines."""
+    def _format_curly_enum_body(self):
+        """Formats an '{' <enum_body> '}' sequence."""
+        do_linebreak = self.is_complex() # Must call before we consume '{'
+
+        self._format_child() # '{'
+
+        if do_linebreak:
+            self._write_nl()
+            self._format_child(indent=True, hints=Hint.COMPLEX_BLOCK) # enum_body
+            self._write_nl()
+        else:
+            self._write_sp()
+            self._format_child(indent=True) # enum_body
+            self._write_sp()
+
+        self._format_child() # '}'
+
+
+class RedefEnumDeclFormatter(Formatter, EnumBodyFormatterMixin):
     def format(self):
         self._format_child() # 'redef'
         self._write_sp()
@@ -526,10 +624,8 @@ class RedefEnumDeclFormatter(Formatter):
         self._write_sp()
         self._format_child() # '+='
         self._write_sp()
-        self._format_child() # '{'
-        self._write_nl()
-        self._format_child(indent=True) # enum_body
-        self._format_child_range(2) # '}' ';'
+        self._format_curly_enum_body()
+        self._format_child(hints=Hint.NO_LB_BEFORE) # ';'
         self._write_nl()
 
 
@@ -569,7 +665,7 @@ class TypeDeclFormatter(Formatter):
         self._write_nl()
 
 
-class TypeFormatter(SpaceSeparatedFormatter):
+class TypeFormatter(SpaceSeparatedFormatter, EnumBodyFormatterMixin):
     def format(self):
         if self._get_child_token() == 'set':
             self._format_child() # 'set'
@@ -602,10 +698,7 @@ class TypeFormatter(SpaceSeparatedFormatter):
             # No Whitesmith here: "{" on same line, closing "}" unindented.
             self._format_child() # 'enum'
             self._write_sp()
-            self._format_child() # '{'
-            self._write_nl()
-            self._format_child(indent=True) # enum_body
-            self._format_child() # '}'
+            self._format_curly_enum_body()
 
         elif self._get_child_token() == 'function':
             self._format_child_range(2) # 'function' <func_params>
@@ -646,11 +739,23 @@ class TypeSpecFormatter(Formatter):
 
 class EnumBodyFormatter(Formatter):
     def format(self):
-        while self._get_child():
-            self._format_child() # enum_body_elem
-            if self._get_child():
-                self._format_child(hints=Hint.NO_LB_BEFORE) # ',' (optional at the end of the list)
-            self._write_nl()
+        if Hint.COMPLEX_BLOCK in self.hints:
+            # Treat this as a "complex": break every value onto a new line.
+            while self._get_child():
+                self._format_child() # enum_body_elem
+                # ',' is optional at the end of the list:
+                if self._get_child():
+                    self._format_child(hints=Hint.NO_LB_BEFORE)
+                self._write_nl()
+        else:
+            # Keep on a single line. We may still linewrap later.
+            while self._get_child():
+                self._format_child() # enum_body_elem
+                # ',' is optional at the end of the list:
+                if self._get_child():
+                    self._format_child(hints=Hint.NO_LB_BEFORE)
+                if self._get_child():
+                    self._write_sp()
 
 
 class FuncDeclFormatter(Formatter):
@@ -665,6 +770,7 @@ class FuncDeclFormatter(Formatter):
         self._write_nl()
         self._format_child() # <func_body>
         self._write_nl()
+
 
 class FuncHdrFormatter(Formatter):
     def format(self):
@@ -732,7 +838,6 @@ class CaptureListFormatter(Formatter):
                 self._format_child(hints=Hint.NO_LB_BEFORE) # ','
                 self._write_sp()
         self._format_child(hints=Hint.NO_LB_BEFORE) # ']'
-        self._write_sp()
 
 
 class StmtFormatter(TypedInitializerFormatter):
@@ -934,17 +1039,24 @@ class StmtFormatter(TypedInitializerFormatter):
             self._write_nl()
 
         elif start_token == ';':
-            self._format_child() # ';'
+            self._format_child(hints=Hint.NO_LB_BEFORE) # ';'
             self._write_nl()
 
 
-class ExprListFormatter(Formatter):
+class ExprListFormatter(Formatter, ComplexSequenceFormatterMixin):
     def format(self):
-        while self._get_child_name() == 'expr':
-            self._format_child() # <expr>
-            if self._get_child():
-                self._format_child(hints=Hint.NO_LB_BEFORE) # ','
-                self._write_sp()
+        if self.is_complex():
+            while self._get_child_name() == 'expr':
+                self._format_child(indent=True) # <expr>
+                if self._get_child():
+                    self._format_child(hints=Hint.NO_LB_BEFORE) # ','
+                    self._write_nl()
+        else:
+            while self._get_child_name() == 'expr':
+                self._format_child() # <expr>
+                if self._get_child():
+                    self._format_child(hints=Hint.NO_LB_BEFORE) # ','
+                    self._write_sp()
 
 
 class CaseListFormatter(Formatter):
@@ -1064,10 +1176,10 @@ class ExprFormatter(SpaceSeparatedFormatter):
             self._format_child(hints=Hint.NO_LB_BEFORE) # ']
 
         elif ct1 == '$' and ct3 == '=':
-            self._format_child_range(4, first_hints=Hint.GOOD_AFTER_LB) # '$'<id> = <expr>
+            self._format_child_range(4) # '$'<id> = <expr>
 
         elif ct1 == '$': # The function version, with possible capture
-            self._format_child_range(2, first_hints=Hint.GOOD_AFTER_LB) # '$'<id>
+            self._format_child_range(2) # '$'<id>
             self._write_sp()
             self._format_child(hints=Hint.NO_LB_BEFORE | Hint.NO_LB_AFTER) # <begin_lambda>
             self._write_sp()
@@ -1272,6 +1384,7 @@ Formatter.register('event', FuncHdrVariantFormatter)
 Formatter.register('capture', SpaceSeparatedFormatter)
 Formatter.register('attr_list', SpaceSeparatedFormatter)
 Formatter.register('interval', SpaceSeparatedFormatter)
+Formatter.register('enum_body_elem', SpaceSeparatedFormatter)
 
 Formatter.register('zeekygen_head_comment', ZeekygenCommentFormatter)
 Formatter.register('zeekygen_next_comment', ZeekygenCommentFormatter)

@@ -1,3 +1,21 @@
+1.1.0-42 | 2022-05-17 16:59:20 -0700
+
+  * Refactor linewrap decision logic to aid troubleshooting (Christian Kreibich, Corelight)
+
+  * Threshold tweak in linewrap logic: allow smaller excess chunk size (Christian Kreibich, Corelight)
+
+  * Fix a few instances where linewraps before ";" were still permitted (Christian Kreibich, Corelight)
+
+  * GH-3: Improve linebreaks in enum declarations and initializer lists (Christian Kreibich, Corelight)
+
+  * Move node traversal logic from Script to Node class (Christian Kreibich, Corelight)
+
+  * Comment-only tweaks (Christian Kreibich, Corelight)
+
+  * Use space separation when defining specific enum values (Christian Kreibich, Corelight)
+
+  * Avoid double-space after capture list in when-statements (Christian Kreibich, Corelight)
+
 1.1.0-33 | 2022-05-17 16:51:32 -0700
 
   * Update formatting testcases to Whitesmith (Christian Kreibich, Corelight)
