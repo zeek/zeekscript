@@ -154,6 +154,42 @@ class Node:
 
         return start, end
 
+    def traverse(self, include_cst=False, predicate=None):
+        """A tree-traversing generator for this node and its subtree.
+
+        Yields a tuple of (node, nesting level) for every visited node. When
+        include_cst is True, traversal also includes CST nodes. When predicate
+        is not None, it filters visited nodes: a function taking a visited node
+        as input, it returns a Boolen that determines whether to return the node
+        or not.
+        """
+        queue = [(self, 0)]
+
+        # Default the filter to accept-all if absent
+        if predicate is None:
+            predicate = lambda node: True
+
+        while queue:
+            node, nesting = queue.pop(0)
+
+            # If the caller wants the CST, we now need to iterate any
+            # preceeding/succeeding CST nodes this AST nodes has stored:
+            if include_cst:
+                for cst_node in node.prev_cst_siblings:
+                    if predicate(cst_node):
+                        yield cst_node, nesting
+
+            if predicate(node):
+                yield node, nesting
+
+            if include_cst:
+                for cst_node in node.next_cst_siblings:
+                    if predicate(cst_node):
+                        yield cst_node, nesting
+
+            for child in reversed(node.children):
+                queue.insert(0, (child, nesting+1))
+
     def is_error(self):
         """Returns True if this node summarizes a parsing error.
 
