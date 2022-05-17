@@ -22,7 +22,7 @@ class OutputStream:
     """
     MAX_LINE_LEN = 80 # Column at which we consider wrapping.
     MIN_LINE_ITEMS = 5 # Required items on a line to consider wrapping.
-    MIN_LINE_EXCESS = 10 # Minimum characters that a line needs to be too long.
+    MIN_LINE_EXCESS = 5 # Minimum characters that a line needs to be too long.
     TAB_SIZE = 8 # How many visible characters we chalk up for a tab.
     SPACE_INDENT = 4 # When wrapping, add this many spaces onto tab-indentation.
 
