@@ -93,6 +93,9 @@ function a_function ( a: int, b: count, another_argument_for_linewrapping: strin
 	# This shouldn't break the 0 index number onto a new line
 	another_very_long_access_to_some_member += yetanotherveryveryveryverylongthing[0];
 
+	# Normal arithmetic should not always break around "+", in contrast to strings (see below):
+	local length = bytestring_to_count(data[ mres$off - 1 + 8 : mres$off - 1 + 10 + 23 / 15 - 3]);
+
 	if ( | foo | > 0 )
 		print "foo";
 	else if  (bar && baz) {
