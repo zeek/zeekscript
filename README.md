@@ -14,17 +14,22 @@ to pull in the right version of the grammar and parser.
 
 ## Supported platforms and Python versions
 
-`zeekscript` supports Python 3.7+ on Linux, MacOS, and Windows.
+`zeekscript` supports Python 3.7+ on Linux, MacOS, and Windows. We recommend
+CPython. PyPy looks prone to crashing on Windows and MacOS, and we're not
+currently building PyPy wheels on those platforms. (We've not investigated PyPy
+in depth and feedback is welcome.)
 
 ## Installation
 
+Ready-made Python wheels are available via:
+
     $ pip install zeekscript
 
-For local installation, say `pip install .` in a (recursive!) clone of the
-repository. Please report any hiccups during the installation as bugs. There's a
-lot going on behind the scene in this package, since the `tree_sitter` Python
-package compiles the language parser into a native-code shared library on the
-fly.
+For local installation from source, say `pip install .` in a (recursive!) clone
+of the repository. You need a C compiler toolchain installed for this.
+`zeekscript` itself has no native code, but the `tree_sitter` Python package
+does: it compiles the Zeek language grammar into a native-code shared library on
+the fly. Please report any hiccups during the installation as bugs.
 
 ## Usage
 
@@ -53,16 +58,16 @@ options:
 ```
 
 Parsing errors are not fatal, and `zeek-format` does its best to continue
-formatting.  In case of more severe processing errors `zeek-format` exits with a
-non-zero exit code, reports the trouble it encountered to stderr, and reports
-its input unchanged.
+formatting in the presence of errors. When it encounters parser errors,
+`zeek-format` exits with a non-zero exit code and reports the trouble it
+encountered to stderr.
 
 ```
-$ echo 'event  foo( a:count ) {print("hi"); }' | zeek-format
+$ echo 'event  foo( a:count ) {print  "hi" ; }' | zeek-format
 event foo(a: count)
-{
-        print ( "hi" );
-}
+        {
+        print "hi";
+        }
 ```
 
 To format entire directory trees, combine `--inplace` and `--recursive`, and
@@ -140,6 +145,11 @@ parse tree has problems: cannot parse line 0, col 15: ")"
 ```
 
 See `zeek-script parse --help` for more information.
+
+## Autocomplete
+
+`zeekscript` features command-line auto-completion for users of
+[argcomplete](https://github.com/kislyuk/argcomplete).
 
 ## Integration into text editors
 
