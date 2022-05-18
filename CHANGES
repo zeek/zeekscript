@@ -1,3 +1,13 @@
+1.1.0-47 | 2022-05-17 23:13:38 -0700
+
+  * Skip PyPy on MacOS too, it suffers spurious segfaults in CI (Christian Kreibich, Corelight)
+
+  * Update README (Christian Kreibich, Corelight)
+
+  * Disable fail-fast for the build matrix (Christian Kreibich, Corelight)
+
+  * Fix permissions on a test script (Christian Kreibich, Corelight)
+
 1.1.0-42 | 2022-05-17 16:59:20 -0700
 
   * Refactor linewrap decision logic to aid troubleshooting (Christian Kreibich, Corelight)
