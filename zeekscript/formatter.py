@@ -829,6 +829,16 @@ class FormalArgFormatter(Formatter):
             self._format_child() # <attr_list>
 
 
+class IndexSliceFormatter(Formatter):
+    def format(self):
+        self._format_child(hints=Hint.NO_LB_BEFORE) # '['
+        while self._get_child_token() != ']':
+            self._format_child()
+            if self._get_child_token() != ']':
+                self._write_sp()
+        self._format_child(hints=Hint.NO_LB_BEFORE) # ']'
+
+
 class CaptureListFormatter(Formatter):
     def format(self):
         self._format_child(hints=Hint.NO_LB_BEFORE) # '['
@@ -1108,10 +1118,25 @@ class ExprFormatter(SpaceSeparatedFormatter):
         return (len(self.node.nonerr_children) == 3 and
                 self._get_child_token(offset=1, absolute=True) in ('||', '&&'))
 
-    def _is_binary_addition(self):
-        """Predicate, returns true if this an <expr> + <expr> expression."""
-        return (len(self.node.nonerr_children) == 3 and
-                self._get_child_type(offset=1, absolute=True) == '+')
+    def _is_string_concat(self):
+        """Predicate, returns true if this a <string> + <string> expression."""
+        def is_constant_expr(node):
+            return (node.name() == 'expr' and
+                    len(node.nonerr_children) == 1 and
+                    node.nonerr_children[0].name() == 'constant' and
+                    len(node.nonerr_children[0].nonerr_children) == 1 and
+                    node.nonerr_children[0].nonerr_children[0].name() == 'string')
+
+        def is_concat_expr(node):
+            return (node.name() == 'expr' and
+                    len(node.nonerr_children) == 3 and
+                    (is_constant_expr(node.nonerr_children[0]) or
+                     is_concat_expr(node.nonerr_children[0])) and
+                    node.nonerr_children[1].token() == '+' and
+                    (is_constant_expr(node.nonerr_children[2]) or
+                     is_concat_expr(node.nonerr_children[2])))
+
+        return is_concat_expr(self.node)
 
     def _is_expr_chain_of(self, formatter_predicate):
         """Predicate, returns true if the given predicate is true for all
@@ -1241,17 +1266,12 @@ class ExprFormatter(SpaceSeparatedFormatter):
             self._write_sp()
             self._format_child() # <expr>
 
-        elif self._is_binary_addition():
-            # Same approach, but for additions. This helps OutputStream nicely
-            # align long strings broken into substrings concatenated by "+".
-            hints = None
-
-            if self._is_expr_chain_of(ExprFormatter._is_binary_addition):
-                hints = Hint.GOOD_AFTER_LB
-
+        elif self._is_string_concat():
+            # This helps OutputStream nicely align long strings broken into
+            # substrings concatenated by "+".
             self._format_child() # <expr>
             self._write_sp()
-            self._format_child(hints=hints) # '+'
+            self._format_child(hints=Hint.GOOD_AFTER_LB) # '+'
             self._write_sp()
             self._format_child() # <expr>
 
