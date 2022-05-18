@@ -829,6 +829,16 @@ class FormalArgFormatter(Formatter):
             self._format_child() # <attr_list>
 
 
+class IndexSliceFormatter(Formatter):
+    def format(self):
+        self._format_child(hints=Hint.NO_LB_BEFORE) # '['
+        while self._get_child_token() != ']':
+            self._format_child()
+            if self._get_child_token() != ']':
+                self._write_sp()
+        self._format_child(hints=Hint.NO_LB_BEFORE) # ']'
+
+
 class CaptureListFormatter(Formatter):
     def format(self):
         self._format_child(hints=Hint.NO_LB_BEFORE) # '['
