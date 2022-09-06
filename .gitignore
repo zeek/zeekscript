@@ -5,3 +5,4 @@ zeekscript/zeek-language.so
 zeekscript/zeek-language.exp
 zeekscript/zeek-language.lib
 __pycache__
+.idea/
