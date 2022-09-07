@@ -38,7 +38,7 @@ jobs:
           submodules: recursive
 
       - name: Build and test wheels
-        uses: pypa/cibuildwheel@v2.3.1
+        uses: pypa/cibuildwheel@v2.9.0
         env:
           # We currently skip all PyPy builds on Windows and MacOS due to hard
           # exits and segfaults of the Python interpreter with some input trees.
