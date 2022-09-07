@@ -12,11 +12,12 @@ from .output import print_error
 FILE_HELP = ('Use "-" to specify stdin as a filename. Omitting '
              'filenames entirely implies reading from stdin.')
 
+
 def cmd_format(args):
     """This function implements Zeek script formatting for the command line.
 
     It determines input and output streams, parses each input into a Script
-    object, applies formattinge, and writes out the result.
+    object, applies formatting, and writes out the result.
 
     Returns 0 in case of success, 1 in case of any errors -- this includes
     formatter-internal errors as well as any problems encountered during
@@ -29,7 +30,7 @@ def cmd_format(args):
     if not args.scripts:
         args.scripts = ['-']
 
-    scripts = [] # Final list of Zeek scripts to format.
+    scripts = []  # Final list of Zeek scripts to format.
 
     for fname in args.scripts:
         if fname == '-':
@@ -40,7 +41,7 @@ def cmd_format(args):
                 scripts.append(fname)
 
         elif os.path.isdir(fname):
-            if args.recursive: # implies --inplace
+            if args.recursive:  # implies --inplace
                 for dirpath, _, filenames in os.walk(fname):
                     filenames = [n for n in filenames if n.endswith('.zeek')]
                     filenames = [os.path.join(dirpath, n) for n in filenames]
@@ -123,17 +124,21 @@ def cmd_parse(args):
     try:
         script.parse()
     except ParserError as err:
-        print_error('parsing error: ' + str(err))
+        if not args.quiet:
+            print_error('parsing error: ' + str(err))
         return 1
     except Error as err:
-        print_error('error: ' + str(err))
+        if not args.quiet:
+            print_error('error: ' + str(err))
         return 1
 
-    script.write_tree(include_cst=args.concrete)
+    if not args.quiet:
+        script.write_tree(include_cst=args.concrete)
 
     if script.has_error():
-        _, _, msg = script.get_error()
-        print_error('parse tree has problems: %s' % msg)
+        if not args.quiet:
+            _, _, msg = script.get_error()
+            print_error('parse tree has problems: %s' % msg)
         return 2
 
     return 0
@@ -173,3 +178,6 @@ def add_parse_cmd(parser):
     parser.add_argument(
         'script', metavar='FILE', nargs='?',
         help='Zeek script to parse. ' + FILE_HELP)
+    parser.add_argument(
+        '--quiet', '-q', action='store_true',
+        help='suppress output and just return success or failure')

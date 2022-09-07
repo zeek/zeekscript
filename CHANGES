@@ -1,3 +1,13 @@
+1.1.0-56 | 2022-09-06 22:16:02 -0700
+
+  * Add ability to surpress output for parse (Otto Fowler)
+
+  * Suppress pylint false positive on E1131 and "|" (Christian Kreibich, Corelight)
+
+  * Bump cibuildwheel action to 2.9.0 (Christian Kreibich, Corelight)
+
+  * Bump tree-sitter-zeek submodule for &broker_allow_complex_type fix (Christian Kreibich, Corelight)
+
 1.1.0-50 | 2022-05-18 12:14:21 -0700
 
   * Focus the string concatenation layout heuristic on ... strings (Christian Kreibich, Corelight)
