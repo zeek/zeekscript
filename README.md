@@ -8,9 +8,7 @@ but its functionality is just an `import zeekscript` away in your own Python too
 
 `zeekscript` is powered by [Tree-Sitter](https://tree-sitter.github.io/tree-sitter/),
 its [Python bindings](https://github.com/tree-sitter/py-tree-sitter), and our
-[tree-sitter-zeek](https://github.com/zeek/tree-sitter-zeek) grammar. When
-working from source, make sure to clone this repository recursively in order
-to pull in the right version of the grammar and parser.
+[tree-sitter-zeek](https://github.com/zeek/tree-sitter-zeek) grammar.
 
 ## Supported platforms and Python versions
 
@@ -21,15 +19,57 @@ in depth and feedback is welcome.)
 
 ## Installation
 
-Ready-made Python wheels are available via:
+To install our ready-made Python wheels, say:
 
     $ pip install zeekscript
 
-For local installation from source, say `pip install .` in a (recursive!) clone
-of the repository. You need a C compiler toolchain installed for this.
-`zeekscript` itself has no native code, but the `tree_sitter` Python package
-does: it compiles the Zeek language grammar into a native-code shared library on
-the fly. Please report any hiccups during the installation as bugs.
+For a full list of available builds, you can check out the
+[PyPI downloads](https://pypi.org/project/zeekscript/#files) or take a look at our
+[CI build matrix](https://github.com/zeek/zeekscript/blob/main/.github/workflows/build_wheels.yml).
+
+The `zeekscript` package includes native code (the compiled [tree-sitter Zeek
+grammar](https://github.com/zeek/tree-sitter-zeek)). We strive to provide wheels
+for popular platforms and Python versions. In case your setup isn't covered, the
+installation process will build the package locally on your system, for which
+some dependencies need to be available. Read on for details, and feel free to
+file a ticket detailing your setup.
+
+### Building from source
+
+If our build matrix doesn't cover your platform and Python version, or if you'd
+simply like to build and install the `zeekscript` package yourself, you need to
+provide two dependencies:
+
+* The [tree-sitter Python bindings](https://pypi.org/project/tree-sitter/), available via
+
+    $ pip install tree_sitter
+
+* A C compiler, such as `gcc` or `clang`.
+
+To obtain the sources, please clone this repository. **Note**: make sure to
+clone recursively (`git clone --recurse-submodules`), since this pulls in the
+needed Zeek grammar. We don't provide source packages on Github, but all
+releases are tagged in `git`.
+
+For installation from local sources, say:
+
+    $ pip install .
+
+The `zeekscript` package doesn't implement the Zeek grammar compilation itself,
+it outsources it to the `tree-sitter` Python bindings, which provide this
+ability directly from Python. `zeekscript` merely initiates compilation during
+the package build. See our
+[setup.py](https://github.com/zeek/zeekscript/blob/main/setup.py) for details.
+
+### Testing
+
+The package comes with a testsuite. To run it, say
+
+    $ make
+
+from the toplevel. If `pylint` is available on your system, testing includes a
+`pylint` run to check for problems. For details on the tests, take a look at the
+`tests` directory.
 
 ## Usage
 
