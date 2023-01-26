@@ -12,7 +12,7 @@
 
 1.1.0-56 | 2022-09-06 22:16:02 -0700
 
-  * Add ability to surpress output for parse (Otto Fowler)
+  * Add ability to suppress output for parse (Otto Fowler)
 
   * Suppress pylint false positive on E1131 and "|" (Christian Kreibich, Corelight)
 
