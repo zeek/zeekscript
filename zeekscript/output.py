@@ -223,10 +223,11 @@ class OutputStream:
             )
 
             # Helpful for tracing linebreak decision-making:
-            # print_error('XXX gal:%d nla:%d nbh:%d tl:%d ex:%d ei:%d naw:%d | %s %s %s' % (
-            #    cnd_good_after_lb, cnd_no_lb_after, cnd_no_break_hints,
-            #    cnd_line_too_long, cnd_enough_excess, cnd_enough_line_items,
-            #    cnd_no_addl_wrap, out.data, col_flushed, tbd_len))
+            # print_error('XXX gal:%d nla:%d nbh:%d tl:%d ex:%d ei:%d naw:%d
+            # | %s %s %s' % ( cnd_good_after_lb, cnd_no_lb_after,
+            #    cnd_no_break_hints, cnd_line_too_long, cnd_enough_excess,
+            #    cnd_enough_line_items, cnd_no_addl_wrap, out.data,
+            #    col_flushed, tbd_len))
 
             # If the line is too long and this chunk says it best follows a
             # break, then break now. This helps align e.g. multi-part boolean

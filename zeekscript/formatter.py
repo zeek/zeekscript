@@ -1434,7 +1434,7 @@ class ZeekygenPrevCommentFormatter(CommentFormatter):
         try:
             if (
                 self.node.next_cst_sibling.is_nl()
-                and self.node.next_cst_sibling.next_cst_sibling.is_zeekygen_prev_comment()
+                and self.node.next_cst_sibling.next_cst_sibling.is_zeekygen_prev_comment()  # noqa: E501
             ):
                 self._write_nl()
         except AttributeError:

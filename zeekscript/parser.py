@@ -28,7 +28,7 @@ except ImportError:
 
 
 class Parser:
-    """tree_sitter.Parser abstraction that takes care of loading the TS Zeek language."""
+    """tree_sitter.Parser abstraction for loading the TS Zeek language."""
 
     TS_PARSER = None  # A tree_sitter.Parser singleton
 

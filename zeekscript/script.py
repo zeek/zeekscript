@@ -408,7 +408,6 @@ class Script:
                 new_node.children[-1].prev_sibling = new_node.children[-2]
 
             pending_errors = []
-            last_nonerror = None
 
             for child in new_node.children:
                 if child.type == "ERROR":

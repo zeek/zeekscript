@@ -1,0 +1,19 @@
+[flake8]
+# E203: whitespace before ':' (black / flake8 disagreement)
+# E731: do not assign a lambda expression, use a def
+# W503: line break before binary operator (black / flake8 disagreement)
+ignore=E203,E731,W503
+# E101: indentation contains mixed spaces and tabs ( formatting test strings )
+# E402: module level import not at top of file
+# E501: line too long ( for zeek script samples in comments )
+# F405: may be undefined, or defined from star imports
+# F403: from .manager import *' used; unable to detect undefined names
+# F841: local variable name is assigned but never used
+# W191: indentation contains tabs ( formatting test strings )
+per-file-ignores = */__init__.py: F405,F403,E402 tests/*.py: E101,E402,F841,W191 zeekscript/script.py: E501
+
+max-line-length = 88
+
+# Do not check sub modules
+exclude =
+    tree-sitter-zeek,

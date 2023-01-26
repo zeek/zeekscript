@@ -5,21 +5,25 @@ repos:
   rev: v4.4.0
   hooks:
   - id: trailing-whitespace
-    exclude: testing/baselines
   - id: end-of-file-fixer
-    exclude: testing/baselines
   - id: check-yaml
   - id: check-added-large-files
 - repo: https://github.com/psf/black
   rev: 23.1a1
   hooks:
   - id: black
+    types: [ python ]
 - repo: https://github.com/asottile/pyupgrade
   rev: v3.3.1
   hooks:
   - id: pyupgrade
     args: ["--py37-plus"]
-
+    types: [ python ]
+- repo: https://github.com/pycqa/flake8
+  rev: 5.0.4  # 6.0.0 requires Python 3.8
+  hooks:
+  - id: flake8
+    types: [ python ]
 exclude: |
             (?x)^(
                 tests/data|
