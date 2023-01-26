@@ -12,21 +12,25 @@ try:
     # https://importlib-resources.readthedocs.io/en/latest/using.html#file-system-or-zip-file
     from importlib.resources import files, as_file
 except ImportError:
+
     def files(_):
         return pathlib.Path(os.path.dirname(os.path.realpath(__file__)))
+
     def as_file(source):
         return source
+
 
 try:
     import tree_sitter
 except ImportError:
-    print('This package requires the tree_sitter package.')
+    print("This package requires the tree_sitter package.")
     sys.exit(1)
 
 
 class Parser:
     """tree_sitter.Parser abstraction that takes care of loading the TS Zeek language."""
-    TS_PARSER = None # A tree_sitter.Parser singleton
+
+    TS_PARSER = None  # A tree_sitter.Parser singleton
 
     def __init__(self):
         Parser.load_parser()
@@ -45,8 +49,8 @@ class Parser:
             # Python voodoo to access the bindings library contained in this
             # package regardless of how we're loading the package. Details:
             # https://importlib-resources.readthedocs.io/en/latest/using.html#file-system-or-zip-file
-            source = files(__package__).joinpath('zeek-language.so')
+            source = files(__package__).joinpath("zeek-language.so")
             with as_file(source) as lib:
-                zeek_lang = tree_sitter.Language(str(lib), 'zeek')
+                zeek_lang = tree_sitter.Language(str(lib), "zeek")
             cls.TS_PARSER = tree_sitter.Parser()
             cls.TS_PARSER.set_language(zeek_lang)

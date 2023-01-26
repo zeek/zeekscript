@@ -9,8 +9,10 @@ from .error import Error, ParserError
 from .script import Script
 from .output import print_error
 
-FILE_HELP = ('Use "-" to specify stdin as a filename. Omitting '
-             'filenames entirely implies reading from stdin.')
+FILE_HELP = (
+    'Use "-" to specify stdin as a filename. Omitting '
+    "filenames entirely implies reading from stdin."
+)
 
 
 def cmd_format(args):
@@ -24,31 +26,35 @@ def cmd_format(args):
     parsing. Encountered problems are written to stderr.
     """
     if args.recursive and not args.inplace:
-        print_error('error: recursive file processing requires --inplace')
+        print_error("error: recursive file processing requires --inplace")
         return 1
 
     if not args.scripts:
-        args.scripts = ['-']
+        args.scripts = ["-"]
 
     scripts = []  # Final list of Zeek scripts to format.
 
     for fname in args.scripts:
-        if fname == '-':
+        if fname == "-":
             if args.inplace:
-                print_error('warning: cannot use --inplace when reading from '
-                            'stdin, skipping it')
+                print_error(
+                    "warning: cannot use --inplace when reading from "
+                    "stdin, skipping it"
+                )
             else:
                 scripts.append(fname)
 
         elif os.path.isdir(fname):
             if args.recursive:  # implies --inplace
                 for dirpath, _, filenames in os.walk(fname):
-                    filenames = [n for n in filenames if n.endswith('.zeek')]
+                    filenames = [n for n in filenames if n.endswith(".zeek")]
                     filenames = [os.path.join(dirpath, n) for n in filenames]
                     scripts.extend(filenames)
             else:
-                print_error('warning: "{}" is a directory but --recursive not '
-                            'set, skipping it'.format(fname))
+                print_error(
+                    'warning: "{}" is a directory but --recursive not '
+                    "set, skipping it".format(fname)
+                )
 
         elif os.path.isfile(fname):
             scripts.append(fname)
@@ -57,11 +63,11 @@ def cmd_format(args):
             print_error('warning: skipping "{}"; not a supported file type')
 
     def do_write(source):
-        with open(ofname, 'wb') if ofname else sys.stdout.buffer as ostream:
+        with open(ofname, "wb") if ofname else sys.stdout.buffer as ostream:
             ostream.write(source)
 
     if len(scripts) > 1 and not args.inplace:
-        print_error('error: processing multiple files requires --inplace')
+        print_error("error: processing multiple files requires --inplace")
         return 1
 
     errs = 0
@@ -75,15 +81,15 @@ def cmd_format(args):
                 errs += 1
                 _, _, msg = script.get_error()
                 if len(scripts) > 1:
-                    print_error('{}: {}'.format(fname, msg))
+                    print_error(f"{fname}: {msg}")
                 else:
                     print_error(msg)
         except Error as err:
-            print_error('parsing error: ' + str(err))
+            print_error("parsing error: " + str(err))
             do_write(script.source)
             return 1
         except Exception as err:
-            print_error('internal error: ' + str(err))
+            print_error("internal error: " + str(err))
             traceback.print_exc(file=sys.stderr)
             do_write(script.source)
             return 1
@@ -93,7 +99,7 @@ def cmd_format(args):
         try:
             script.format(buf, not args.no_linebreaks)
         except Exception as err:
-            print_error('internal error: ' + str(err))
+            print_error("internal error: " + str(err))
             traceback.print_exc(file=sys.stderr)
             do_write(script.source)
             return 1
@@ -102,9 +108,14 @@ def cmd_format(args):
         do_write(buf.getvalue())
 
     if args.inplace:
-        print('{} file{} processed, {} error{}'.format(
-            len(scripts), '' if len(scripts) == 1 else 's',
-            errs, '' if errs == 1 else 's'))
+        print(
+            "{} file{} processed, {} error{}".format(
+                len(scripts),
+                "" if len(scripts) == 1 else "s",
+                errs,
+                "" if errs == 1 else "s",
+            )
+        )
 
     return int(errs > 0)
 
@@ -119,17 +130,17 @@ def cmd_parse(args):
     building a parse tree, and 2 when the resulting parse tree has erroneous
     nodes.
     """
-    script = Script(args.script or '-')
+    script = Script(args.script or "-")
 
     try:
         script.parse()
     except ParserError as err:
         if not args.quiet:
-            print_error('parsing error: ' + str(err))
+            print_error("parsing error: " + str(err))
         return 1
     except Error as err:
         if not args.quiet:
-            print_error('error: ' + str(err))
+            print_error("error: " + str(err))
         return 1
 
     if not args.quiet:
@@ -138,7 +149,7 @@ def cmd_parse(args):
     if script.has_error():
         if not args.quiet:
             _, _, msg = script.get_error()
-            print_error('parse tree has problems: %s' % msg)
+            print_error("parse tree has problems: %s" % msg)
         return 2
 
     return 0
@@ -146,7 +157,8 @@ def cmd_parse(args):
 
 def add_version_arg(parser):
     parser.add_argument(
-        '--version', '-v', action='store_true', help='show version and exit')
+        "--version", "-v", action="store_true", help="show version and exit"
+    )
 
 
 def add_format_cmd(parser):
@@ -155,17 +167,25 @@ def add_format_cmd(parser):
     default."""
     parser.set_defaults(run_cmd=cmd_format)
     parser.add_argument(
-        '--inplace', '-i', action='store_true',
-        help='change provided files instead of writing to stdout')
+        "--inplace",
+        "-i",
+        action="store_true",
+        help="change provided files instead of writing to stdout",
+    )
     parser.add_argument(
-        '--recursive', '-r', action='store_true',
-        help='process *.zeek files recursively when provided directories '
-        'instead of files. Requires --inplace.')
+        "--recursive",
+        "-r",
+        action="store_true",
+        help="process *.zeek files recursively when provided directories "
+        "instead of files. Requires --inplace.",
+    )
+    parser.add_argument("--no-linebreaks", action="store_true", help=argparse.SUPPRESS)
     parser.add_argument(
-        '--no-linebreaks', action='store_true', help=argparse.SUPPRESS)
-    parser.add_argument(
-        'scripts', metavar='FILES', nargs='*',
-        help='Zeek script(s) to process. ' + FILE_HELP)
+        "scripts",
+        metavar="FILES",
+        nargs="*",
+        help="Zeek script(s) to process. " + FILE_HELP,
+    )
 
 
 def add_parse_cmd(parser):
@@ -173,11 +193,17 @@ def add_parse_cmd(parser):
     registers the cmd_parse() callback as the parser's run_cmd default."""
     parser.set_defaults(run_cmd=cmd_parse)
     parser.add_argument(
-        '--concrete', '-c', action='store_true',
-        help='report concrete syntax tree (CST) instead of AST')
+        "--concrete",
+        "-c",
+        action="store_true",
+        help="report concrete syntax tree (CST) instead of AST",
+    )
     parser.add_argument(
-        'script', metavar='FILE', nargs='?',
-        help='Zeek script to parse. ' + FILE_HELP)
+        "script", metavar="FILE", nargs="?", help="Zeek script to parse. " + FILE_HELP
+    )
     parser.add_argument(
-        '--quiet', '-q', action='store_true',
-        help='suppress output and just return success or failure')
+        "--quiet",
+        "-q",
+        action="store_true",
+        help="suppress output and just return success or failure",
+    )

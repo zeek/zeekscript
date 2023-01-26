@@ -8,8 +8,10 @@ from .node import Node
 from .output import OutputStream
 from .parser import Parser
 
+
 class Script:
     """Representation of a single Zeek script file."""
+
     def __init__(self, file):
         """Script constructor.
 
@@ -18,9 +20,9 @@ class Script:
         implies stdin.
         """
         self.file = file
-        self.source = None # The file's full content, once parsed
-        self.ts_tree = None # The tree-sitter parse tree for the script
-        self.root = None # The root node of our cloned (and malleable) tree
+        self.source = None  # The file's full content, once parsed
+        self.ts_tree = None  # The tree-sitter parse tree for the script
+        self.root = None  # The root node of our cloned (and malleable) tree
 
     def parse(self):
         """Parses the script and creates the internal concrete syntax tree.
@@ -33,11 +35,11 @@ class Script:
         """
         try:
             if isinstance(self.file, (str, pathlib.Path)):
-                if str(self.file) == '-':
+                if str(self.file) == "-":
                     # tree-sitter expects bytes, not strings, as input.
-                    self.source = sys.stdin.read().encode('UTF-8')
+                    self.source = sys.stdin.read().encode("UTF-8")
                 else:
-                    with open(self.file, 'rb') as hdl:
+                    with open(self.file, "rb") as hdl:
                         self.source = hdl.read()
             else:
                 # Assume file-like object. Could check for the various io.*Base
@@ -46,7 +48,7 @@ class Script:
                 self.source = self.file.read()
                 # Need to ensure we have bytes now:
                 if isinstance(self.source, str):
-                    self.source = self.source.encode('UTF-8')
+                    self.source = self.source.encode("UTF-8")
         except OSError as err:
             raise FileError(str(err)) from err
 
@@ -56,7 +58,7 @@ class Script:
             # This is a hard parse error and we need to bail. Smaller errors get
             # reported on individual nodes in the resulting tree, and we can
             # keep going.
-            raise ParserError('cannot parse script')
+            raise ParserError("cannot parse script")
 
         self._clone_tree()
         self._patch_tree()
@@ -71,11 +73,11 @@ class Script:
         and for subtler errors their has_error bit is set. This function
         reports True when any of these conditions hold.
         """
-        assert self.root is not None, 'call Script.parse() before Script.has_error()'
+        assert self.root is not None, "call Script.parse() before Script.has_error()"
 
         # Could cache this result while we don't support tree modifications
         for node, _ in self.root.traverse():
-            if node.type == 'ERROR' or node.is_missing or node.has_error:
+            if node.type == "ERROR" or node.is_missing or node.has_error:
                 return True
 
         return False
@@ -95,31 +97,34 @@ class Script:
 
         - An error message string that tries to explain the problem.
         """
-        assert self.root is not None, 'call Script.parse() before Script.get_error()'
+        assert self.root is not None, "call Script.parse() before Script.get_error()"
 
         line, lineno, msg = None, None, None
 
         for node, _ in self.root.traverse():
-            snippet = self.source[node.start_byte:node.end_byte]
+            snippet = self.source[node.start_byte : node.end_byte]
             if len(snippet) > 50:
-                snippet = snippet[:50] + b'[...]'
+                snippet = snippet[:50] + b"[...]"
 
-            if node.type == 'ERROR':
+            if node.type == "ERROR":
                 msg = 'cannot parse line {}, col {}: "{}"'.format(
-                    node.start_point[0], node.start_point[1],
-                    snippet.decode('UTF-8'))
+                    node.start_point[0], node.start_point[1], snippet.decode("UTF-8")
+                )
             elif node.is_missing:
                 msg = 'missing grammar node "{}" on line {}, col {}'.format(
-                    node.type, node.start_point[0], node.start_point[1])
-            elif node.has_error and (not node.children or
-                                     not any((kid.has_error for kid in node.children))):
+                    node.type, node.start_point[0], node.start_point[1]
+                )
+            elif node.has_error and (
+                not node.children or not any(kid.has_error for kid in node.children)
+            ):
                 msg = 'grammar node "{}" has error on line {}, col {}'.format(
-                    node.type, node.start_point[0], node.start_point[1])
+                    node.type, node.start_point[0], node.start_point[1]
+                )
             else:
                 continue
 
             line = self.source.split(Formatter.NL)[node.start_point[0]]
-            line = line.decode('UTF-8')
+            line = line.decode("UTF-8")
             lineno = node.start_point[0]
             break
 
@@ -133,17 +138,16 @@ class Script:
         0, its children have nesting level 1, their children have nesting level
         2, etc.
         """
-        assert self.root is not None, 'call Script.parse() before Script.traverse()'
+        assert self.root is not None, "call Script.parse() before Script.traverse()"
 
-        for node, nesting in self.root.traverse(include_cst):
-            yield node, nesting
+        yield from self.root.traverse(include_cst)
 
     def __getitem__(self, key):
         """Accessor to the script source text.
 
         This simplifies accessing specific text chunks in the source.
         """
-        assert self.root is not None, 'call Script.parse() before accessing content'
+        assert self.root is not None, "call Script.parse() before accessing content"
 
         return self.source.__getitem__(key)
 
@@ -154,7 +158,7 @@ class Script:
         provided, are numerical byte offsets in the script, behaving as usual
         indices in slice notation.
         """
-        assert self.root is not None, 'call Script.parse() before Script.get_content()'
+        assert self.root is not None, "call Script.parse() before Script.get_content()"
 
         return self.source[start_byte:end_byte]
 
@@ -165,7 +169,7 @@ class Script:
         object, or None, which means stdout. enable_linebreaks, True by default,
         controls whether to use linebreaks at all.
         """
-        assert self.root is not None, 'call Script.parse() before Script.format()'
+        assert self.root is not None, "call Script.parse() before Script.format()"
 
         def do_format(out):
             with OutputStream(out, enable_linebreaks) as ostream:
@@ -176,7 +180,7 @@ class Script:
         if output is None:
             do_format(sys.stdout)
         elif isinstance(output, str):
-            with open(output, 'wb') as ostream:
+            with open(output, "wb") as ostream:
                 do_format(ostream)
         else:
             # output should be a file-like object
@@ -197,44 +201,50 @@ class Script:
         (i.e., "proper" members of the grammar, excluding TS's "extra" nodes
         such as newlines and comments) or AST and CST nodes.
         """
+
         def node_str(node, nesting, script):
-            content = ''
+            content = ""
             if node.is_named:
                 # Cap the amount of script payload we show ...
-                content = script.source[node.start_byte:node.end_byte]
+                content = script.source[node.start_byte : node.end_byte]
                 maxlen = 100
-                extra = ''
+                extra = ""
 
                 if len(content) > maxlen:
-                    extra = '[+%s]' % (len(content) - maxlen)
+                    extra = "[+%s]" % (len(content) - maxlen)
                     content = content[:maxlen]
 
                 # ... and render it such that we get backslash-escapes.
-                content = str(repr(content.decode('ascii', 'ignore'))) + extra
+                content = str(repr(content.decode("ascii", "ignore"))) + extra
 
             # CST node rendering. This only applies when the tree traversal
             # actually produces these nodes.
-            cst_indicator = ''
+            cst_indicator = ""
             if not node.is_ast:
                 if node.is_cst_prev_node:
-                    cst_indicator = 'v '
+                    cst_indicator = "v "
                 if node.is_cst_next_node:
-                    cst_indicator = '^ '
+                    cst_indicator = "^ "
 
             errors = []
-            err = ''
+            err = ""
             if node.has_error:
-                errors.append('error')
+                errors.append("error")
             if node.is_missing:
-                errors.append('missing')
+                errors.append("missing")
             if errors:
-                err = '[' + ', '.join(errors) + '] '
+                err = "[" + ", ".join(errors) + "] "
 
-            return ' ' * (4*nesting) + '{}{} ({}.{},{}.{}) {}{}'.format(
-                cst_indicator, node.type,
-                node.start_point[0], node.start_point[1],
-                node.end_point[0], node.end_point[1],
-                err, content)
+            return " " * (4 * nesting) + "{}{} ({}.{},{}.{}) {}{}".format(
+                cst_indicator,
+                node.type,
+                node.start_point[0],
+                node.start_point[1],
+                node.end_point[0],
+                node.end_point[1],
+                err,
+                content,
+            )
 
         def do_traverse(ostream):
             stringifier = node_stringifier if node_stringifier else node_str
@@ -244,7 +254,7 @@ class Script:
         if output is None:
             do_traverse(sys.stdout)
         elif isinstance(output, str):
-            with open(output, 'w') as ostream:
+            with open(output, "w") as ostream:
                 do_traverse(ostream)
         else:
             # output should be a file-like object
@@ -263,7 +273,7 @@ class Script:
         def make_nullnode():
             node = Node()
             node.is_named = True
-            node.type = 'nullnode'
+            node.type = "nullnode"
             node.is_ast = True
             return node
 
@@ -281,7 +291,7 @@ class Script:
             # Mark the node as AST-only if it's not a newline or comment. Those
             # are extras (in TS terminology) that occur anywhere in the tree.
             # Would be nice if we didn't need to itemize these manually.
-            if node.type != 'nl' and not node.type.endswith('_comment'):
+            if node.type != "nl" and not node.type.endswith("_comment"):
                 new_node.is_ast = True
 
             new_children = []
@@ -362,9 +372,15 @@ class Script:
                     child.is_cst_next_node = True
                     child.ast_parent = ast_node
 
-                elif child.is_nl() and last_child and (
+                elif (
+                    child.is_nl()
+                    and last_child
+                    and (
                         # Accept newline if it ends a comment or follows an error node.
-                        last_child.is_comment() or last_child.is_error()):
+                        last_child.is_comment()
+                        or last_child.is_error()
+                    )
+                ):
                     ast_node.next_cst_siblings.append(child)
                     child.is_cst_next_node = True
                     child.ast_parent = ast_node
@@ -384,7 +400,9 @@ class Script:
 
             # Corner case: the new node only has ERROR children. We need to add
             # an AST null node to have something to link the errors to.
-            if new_node.children and all([child.type == 'ERROR' for child in new_node.children]):
+            if new_node.children and all(
+                [child.type == "ERROR" for child in new_node.children]
+            ):
                 new_node.children.append(make_nullnode())
                 new_node.children[-2].next_sibling = new_node.children[-1]
                 new_node.children[-1].prev_sibling = new_node.children[-2]
@@ -393,7 +411,7 @@ class Script:
             last_nonerror = None
 
             for child in new_node.children:
-                if child.type == 'ERROR':
+                if child.type == "ERROR":
                     pending_errors.append(child)
                     continue
 
@@ -438,8 +456,12 @@ class Script:
                 node.next_cst_sibling = None
 
                 if node.children[-1].next_cst_siblings:
-                    node.children[-1].next_cst_siblings[-1].next_cst_sibling = node.next_cst_siblings[0]
-                    node.next_cst_siblings[0].prev_cst_sibling = node.children[-1].next_cst_siblings[-1]
+                    node.children[-1].next_cst_siblings[
+                        -1
+                    ].next_cst_sibling = node.next_cst_siblings[0]
+                    node.next_cst_siblings[0].prev_cst_sibling = node.children[
+                        -1
+                    ].next_cst_siblings[-1]
 
                 node.children[-1].next_cst_siblings += node.next_cst_siblings
                 node.next_cst_siblings = []

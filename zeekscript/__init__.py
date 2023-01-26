@@ -1,5 +1,5 @@
 __version__ = "1.2.0"
-__all__ = ['cli', 'error', 'formatter', 'node', 'output', 'parser', 'script']
+__all__ = ["cli", "error", "formatter", "node", "output", "parser", "script"]
 
 from .cli import *
 from .error import *
