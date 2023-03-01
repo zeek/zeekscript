@@ -23,6 +23,9 @@ module  Test;
 	};
 
 	# An enum, with assignments, on multiple lines, which should remain.
+	# Also, we separate via an empty minor comment, which used to
+	# trigger zeek/tree-sitter-zeek#9:
+	#
 	type AssigedEnum: enum {
 	  FOO=1,
 	  BAR=10,
