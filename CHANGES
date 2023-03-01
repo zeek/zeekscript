@@ -1,3 +1,15 @@
+1.2.1 | 2023-02-28 22:38:13 -0800
+
+  * Merge branch 'topic/christian/bump-tree-sitter' (Christian Kreibich, Corelight)
+
+    * topic/christian/bump-tree-sitter:
+      Pull in tree-sitter-zeek bump to fix handling of "bare" minor comments
+
+  * GH-9: Pull in tree-sitter-zeek bump to fix handling of "bare" minor comments (Christian Kreibich, Corelight)
+
+    This also expands the general formatting test by including the construct that
+    triggered zeek/tree-sitter-zeek#9.
+
 1.2.0 | 2022-12-15 14:41:07 -0800
 
   * Release 1.2.0.
