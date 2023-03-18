@@ -104,6 +104,11 @@ class Node:
         self.prev_error_siblings = []
         self.next_error_siblings = []
 
+    def __eq__(self, other):
+        """Two nodes are equal when the cover the same range in the script."""
+        return (self.start_byte == other.start_byte and
+                self.end_byte == other.end_byte)
+
     def name(self):
         """Returns the type of a named node.
 
