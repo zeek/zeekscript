@@ -499,102 +499,39 @@ class ComplexSequenceFormatterMixin():
     entire sequence is to be written in individual lines. The formatting of
     these lines doesn't happen in this mixin, only the complexity decision.
 
-    The default complexity decision simply looks for comments in the subtree.
+    The default complexity decision looks for comments in the subtree.
     """
     def is_complex(self):
         return self.is_complex_node(self.node)
 
     def is_complex_node(self, node):
-        for node, _ in node.traverse(include_cst=True):
-            if node.is_comment():
+        for n, _ in node.traverse(include_cst=True):
+            if n == node: # Skip the start node itself
+                continue
+            if n.is_comment():
                 return True
-        return False
 
-
-class ComplexBlockFormatterMixin(ComplexSequenceFormatterMixin):
-    """A mixin to figure out when a {}-block is "complex" enough to line-break it."""
-    def is_complex(self):
-        # The heuristic here is as in the parent class, but we don't operate on
-        # this formatter's whole tree. Instead, focus on the upcoming sequence
-        # of children, bounded by '{' and '}' tokens, since such sequences can
-        # be part of the node's larger sequence of children.
-        if not self._get_child() or self._get_child_token() != '{':
-            return False
-
-        offset = 0
-        while self._get_child(offset=offset):
-            if self.is_complex_node(self._get_child(offset=offset)):
-                return True
-            if self._get_child_token(offset=offset) == '}':
-                return False
-            offset += 1
+            # This logic used to be in place specifically for { ... }
+            # blocks initializing enums. It seems too strict, but can
+            # be revisited later.
+            # if (n.name() == 'expr' and
+            #    (len(n.nonerr_children) != 1 or
+            #     n.nonerr_children[0].name() not in ('id', 'constant', 'pattern'))):
+            #    return True
 
         return False
 
 
 class InitializerFormatter(Formatter):
     def format(self):
-        if self._get_child_name() == 'init_class':
-            self._format_child() # '=', '+=', etc
-            self._write_sp()
-
-        self._format_child() # <init>
-
-
-class InitFormatter(Formatter, ComplexBlockFormatterMixin):
-    """Initializers expand on the block "complexity" detection: in addition to the
-    newline logic, non-atomic expressions (things other than IDs and constants)
-    trigger line-breaking.
-    """
-    def is_complex_node(self, node):
-        if super().is_complex_node(node):
-            return True
-
-        # We only consider expressions here, so declare anything else simple.
-        if node.name() != 'expr':
-            return False
-
-        # Only "atomic" expressions (IDs, constants -- including patterns) count
-        # as simple.
-        return not (len(node.nonerr_children) == 1 and
-                    node.nonerr_children[0].name() in ('id', 'constant', 'pattern'))
-
-    def format(self):
-        if self._get_child_token() == '{':
-            # Any number of expressions, comma-separated, with optional final
-            # comma. We use the same heuristic as for enums: by default we keep
-            # elements on a single line, but in the presence of comments we
-            # break each expr onto a new line.
-            do_linebreak = self.is_complex() # Must call before we consume '{'
-            self._format_child(hints=Hint.NO_LB_BEFORE) # '{'
-
-            if self._get_child_name() == 'expr':
-                if do_linebreak:
-                    self._write_nl()
-                    while self._get_child_name() == 'expr':
-                        self._format_child(indent=True) # <expr>
-                        if self._get_child_token() == ',':
-                            self._format_child(hints=Hint.NO_LB_BEFORE) # ','
-                        self._write_nl()
-                else:
-                    self._write_sp()
-                    while self._get_child_name() == 'expr':
-                        self._format_child(indent=True) # <expr>
-                        if self._get_child_token() == ',':
-                            self._format_child(hints=Hint.NO_LB_BEFORE) # ','
-                        if self._get_child_name() == 'expr':
-                            self._write_sp()
-                    self._write_sp()
-            else:
-                # Just a space when the initializer list has no members.
-                self._write_sp()
-
-            self._format_child() # '}'
-        else:
-            self._format_child() # <expr>
+        # This is just space-separation, really. I'm leaving the class in place
+        # for now since I think initializer handling isn't fully settled.
+        self._format_child() # '=', '+=', etc
+        self._write_sp()
+        self._format_child() # <expr>
 
 
-class EnumBodyFormatterMixin(ComplexBlockFormatterMixin):
+class EnumBodyFormatterMixin(ComplexSequenceFormatterMixin):
     """A mixin that knows when to break an enum_body onto lines."""
     def _format_curly_enum_body(self):
         """Formats an '{' <enum_body> '}' sequence."""
@@ -1055,7 +992,7 @@ class StmtFormatter(TypedInitializerFormatter):
 
 class ExprListFormatter(Formatter, ComplexSequenceFormatterMixin):
     def format(self):
-        if self.is_complex():
+        if Hint.COMPLEX_BLOCK in self.hints or self.is_complex():
             while self._get_child_name() == 'expr':
                 self._format_child(indent=True) # <expr>
                 if self._get_child():
@@ -1108,7 +1045,7 @@ class EventHdrFormatter(Formatter):
         self._format_child(hints=Hint.NO_LB_BEFORE) # ')'
 
 
-class ExprFormatter(SpaceSeparatedFormatter):
+class ExprFormatter(SpaceSeparatedFormatter, ComplexSequenceFormatterMixin):
     # Like statments, expressions aren't currently broken into specific symbol
     # types, so we use helpers or parse into them to identify what particular
     # kind of expression we're facing.
@@ -1192,13 +1129,31 @@ class ExprFormatter(SpaceSeparatedFormatter):
             self._write_sp()
             self._format_child() # <expr>
 
-        elif ct1 == '[':
-            self._format_child(hints=Hint.NO_LB_BEFORE) # '['
+        elif ct1 == '{' or ct1 == '[':
+            # Vector/table/set initializers: '['/'{' <expr_list> ']'/'}'
+            do_linebreak = self.is_complex() # Must call before we consume opener
+            self._format_child(hints=Hint.NO_LB_BEFORE) # '{' / '['
             if self._get_child_name() == 'expr_list':
-                self._format_child() # <expr_list>
+                if do_linebreak:
+                    self._write_nl()
+                    self._format_child(hints=Hint.COMPLEX_BLOCK) # expr_list
+                    self._write_nl()
+                else:
+                    self._write_sp()
+                    self._format_child() # expr_list
+                    self._write_sp()
             else:
+                # Just a space when the initializer list has no members.
                 self._write_sp()
-            self._format_child(hints=Hint.NO_LB_BEFORE) # ']
+
+            self._format_child() # '}' / ']'
+
+        elif ct1 == '(':
+            self._format_child(hints=Hint.NO_LB_BEFORE) # '('
+            self._write_sp()
+            self._format_child(hints=Hint.NO_LB_AFTER) # <expr>
+            self._write_sp()
+            self._format_child() # ')'
 
         elif ct1 == '$' and ct3 == '=':
             self._format_child_range(4) # '$'<id> = <expr>
@@ -1211,13 +1166,6 @@ class ExprFormatter(SpaceSeparatedFormatter):
             self._format_child(hints=Hint.NO_LB_BEFORE) # '='
             self._write_sp()
             self._format_child() # <func_body>
-
-        elif ct1 == '(':
-            self._format_child(hints=Hint.NO_LB_BEFORE) # '('
-            self._write_sp()
-            self._format_child(hints=Hint.NO_LB_AFTER) # <expr>
-            self._write_sp()
-            self._format_child() # ')'
 
         elif ct1 == 'copy':
             self._format_child() # 'copy'
