@@ -75,6 +75,7 @@ class TestFormattingErrors(unittest.TestCase):
 
         return buf.getvalue(), script.get_error()
 
+    # pylint: disable-next=invalid-name
     def assertFormatting(self, input, baseline, error_baseline):
         # Verify formatting and reported error
         result1, error1 = self._format(self._to_bytes(input))

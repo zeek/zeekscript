@@ -533,10 +533,10 @@ class ComplexSequenceFormatterMixin:
         return self.is_complex_node(self.node)
 
     def is_complex_node(self, node):
-        for n, _ in node.traverse(include_cst=True):
-            if n == node:  # Skip the start node itself
+        for child, _ in node.traverse(include_cst=True):
+            if child == node:  # Skip the start node itself
                 continue
-            if n.is_comment():
+            if child.is_comment():
                 return True
 
             # This logic used to be in place specifically for { ... }

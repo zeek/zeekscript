@@ -36,12 +36,14 @@ class TestRecursion(unittest.TestCase):
     def tearDown(self):
         shutil.rmtree("a", ignore_errors=True)
 
+    # pylint: disable-next=invalid-name
     def assertEqualContent(self, file1, file2):
         with open(file1, encoding="utf-8") as hdl1, open(
             file2, encoding="utf-8"
         ) as hdl2:
             self.assertEqual(hdl1.read(), hdl2.read())
 
+    # pylint: disable-next=invalid-name
     def assertNotEqualContent(self, file1, file2):
         with open(file1, encoding="utf-8") as hdl1, open(
             file2, encoding="utf-8"
