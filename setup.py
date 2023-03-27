@@ -49,11 +49,23 @@ class BuildCommand(setuptools.command.build_py.build_py):
         )
 
 
+def get_version():
+    """Get the version from the version file."""
+    with open("VERSION", encoding="utf-8") as version:
+        return version.read().replace("-", ".dev", 1).strip()
+
+
+def get_readme():
+    """Get text of the README."""
+    with open("README.md", encoding="utf-8") as readme:
+        return readme.read()
+
+
 setup(
     name="zeekscript",
-    version=open("VERSION", encoding="utf-8").read().replace("-", ".dev", 1).strip(),
+    version=get_version(),
     description="A Zeek script formatter and analyzer",
-    long_description=open("README.md", encoding="utf-8").read(),
+    long_description=get_readme(),
     long_description_content_type="text/markdown",
     keywords="zeek scripts language formatter formatting indenter indenting parsing",
     maintainer="The Zeek Project",
