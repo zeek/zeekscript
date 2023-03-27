@@ -173,9 +173,12 @@ class Node:
         """
         queue = [(self, 0)]
 
+        def always_true(_):
+            return True
+
         # Default the filter to accept-all if absent
         if predicate is None:
-            predicate = lambda node: True
+            predicate = always_true
 
         while queue:
             node, nesting = queue.pop(0)

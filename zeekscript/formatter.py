@@ -57,7 +57,10 @@ class NodeMapper:
         """
         name_parts = [part.title() for part in symbol_name.split("_")]
         derived = "".join(name_parts) + "Formatter"
-        pred = lambda mem: inspect.isclass(mem) and mem.__name__ == derived
+
+        def pred(mem):
+            return inspect.isclass(mem) and mem.__name__ == derived
+
         classes = inspect.getmembers(sys.modules[__name__], pred)
 
         if classes:
