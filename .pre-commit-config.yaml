@@ -13,3 +13,9 @@ repos:
   rev: 23.3.0
   hooks:
   - id: black
+
+- repo: https://github.com/asottile/pyupgrade
+  rev: v3.3.2
+  hooks:
+  - id: pyupgrade
+    args: ["--py37-plus"]
