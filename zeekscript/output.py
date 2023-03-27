@@ -5,6 +5,7 @@ import sys
 from .formatter import Formatter, Hint
 
 
+# pylint: disable-next=too-few-public-methods
 class Output:
     """A chunk of data to write out.
 
