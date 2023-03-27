@@ -53,7 +53,7 @@ class TestFormatting(unittest.TestCase):
 
 class TestFormattingErrors(unittest.TestCase):
     def _to_bytes(self, content):
-        if type(content) != bytes:
+        if not isinstance(content, bytes):
             out = content.encode("UTF-8")
         else:
             out = content
