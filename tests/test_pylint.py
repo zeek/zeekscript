@@ -24,6 +24,7 @@ class TestPylint(unittest.TestCase):
             # The easiest way to get the return code out of a pylint run
             # seems to be allowing it to try to exit and catch its SystemExit.
             pylint.lint.Run(args)
+            assert False, "unreachable code"
         except SystemExit as err:
             return err.code == 0
 
