@@ -230,8 +230,9 @@ class TestScriptConstruction(unittest.TestCase):
             os.unlink(self.TMPFILE)
 
     def test_stdin(self):
+        oldstdin = sys.stdin
+
         try:
-            oldstdin = sys.stdin
             sys.stdin = io.StringIO(self.DATA)
             script = zeekscript.Script("-")
             script.parse()
