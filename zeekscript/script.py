@@ -402,7 +402,7 @@ class Script:
             # Corner case: the new node only has ERROR children. We need to add
             # an AST null node to have something to link the errors to.
             if new_node.children and all(
-                [child.type == "ERROR" for child in new_node.children]
+                child.type == "ERROR" for child in new_node.children
             ):
                 new_node.children.append(make_nullnode())
                 new_node.children[-2].next_sibling = new_node.children[-1]
