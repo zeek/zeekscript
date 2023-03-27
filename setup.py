@@ -16,6 +16,10 @@ class BinaryDistribution(Distribution):
 class InstallPlatlib(install):
     """Additional tweak to treat the package as platform-specific."""
 
+    def __init__(self, dist: Distribution) -> None:
+        self.install_lib = None
+        super().__init__(dist)
+
     # https://github.com/google/or-tools/issues/616#issuecomment-371480314
     def finalize_options(self):
         install.finalize_options(self)
