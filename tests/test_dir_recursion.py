@@ -18,7 +18,7 @@ DATA = os.path.normpath(join(TESTS, "data"))
 # package build though, so the .so bindings library gets created.)
 sys.path.insert(0, ROOT)
 
-import zeekscript
+import zeekscript  # pylint: disable=wrong-import-position
 
 
 class TestRecursion(unittest.TestCase):
