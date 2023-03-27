@@ -37,11 +37,15 @@ class TestRecursion(unittest.TestCase):
         shutil.rmtree("a", ignore_errors=True)
 
     def assertEqualContent(self, file1, file2):
-        with open(file1) as hdl1, open(file2) as hdl2:
+        with open(file1, encoding="utf-8") as hdl1, open(
+            file2, encoding="utf-8"
+        ) as hdl2:
             self.assertEqual(hdl1.read(), hdl2.read())
 
     def assertNotEqualContent(self, file1, file2):
-        with open(file1) as hdl1, open(file2) as hdl2:
+        with open(file1, encoding="utf-8") as hdl1, open(
+            file2, encoding="utf-8"
+        ) as hdl2:
             self.assertNotEqual(hdl1.read(), hdl2.read())
 
     def test_recursive_formatting(self):

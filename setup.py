@@ -46,9 +46,9 @@ class BuildCommand(setuptools.command.build_py.build_py):
 
 setup(
     name="zeekscript",
-    version=open("VERSION").read().replace("-", ".dev", 1).strip(),
+    version=open("VERSION", encoding="utf-8").read().replace("-", ".dev", 1).strip(),
     description="A Zeek script formatter and analyzer",
-    long_description=open("README.md").read(),
+    long_description=open("README.md", encoding="utf-8").read(),
     long_description_content_type="text/markdown",
     keywords="zeek scripts language formatter formatting indenter indenting parsing",
     maintainer="The Zeek Project",

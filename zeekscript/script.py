@@ -253,7 +253,7 @@ class Script:
         if output is None:
             do_traverse(sys.stdout)
         elif isinstance(output, str):
-            with open(output, "w") as ostream:
+            with open(output, "w", encoding="utf-8") as ostream:
                 do_traverse(ostream)
         else:
             # output should be a file-like object

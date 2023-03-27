@@ -213,7 +213,7 @@ class TestScriptConstruction(unittest.TestCase):
         # tempfile.NamedTemporaryFile doesn't seem to support reading while
         # still existing on some platforms, so going manual here:
         try:
-            with open(self.TMPFILE, "w") as hdl:
+            with open(self.TMPFILE, "w", encoding="utf-8") as hdl:
                 hdl.write(self.DATA)
             script = zeekscript.Script(self.TMPFILE)
             script.parse()
@@ -222,7 +222,7 @@ class TestScriptConstruction(unittest.TestCase):
 
     def test_path(self):
         try:
-            with open(self.TMPFILE, "w") as hdl:
+            with open(self.TMPFILE, "w", encoding="utf-8") as hdl:
                 hdl.write(self.DATA)
             script = zeekscript.Script(pathlib.Path(hdl.name))
             script.parse()
