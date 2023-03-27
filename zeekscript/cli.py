@@ -81,7 +81,7 @@ def cmd_format(args):
                 errs += 1
                 _, _, msg = script.get_error()
                 if len(scripts) > 1:
-                    print_error("{}: {}".format(fname, msg))
+                    print_error(f"{fname}: {msg}")
                 else:
                     print_error(msg)
         except Error as err:

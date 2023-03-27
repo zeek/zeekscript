@@ -115,7 +115,7 @@ class Script:
                     node.type, node.start_point[0], node.start_point[1]
                 )
             elif node.has_error and (
-                not node.children or not any((kid.has_error for kid in node.children))
+                not node.children or not any(kid.has_error for kid in node.children)
             ):
                 msg = 'grammar node "{}" has error on line {}, col {}'.format(
                     node.type, node.start_point[0], node.start_point[1]
@@ -140,8 +140,7 @@ class Script:
         """
         assert self.root is not None, "call Script.parse() before Script.traverse()"
 
-        for node, nesting in self.root.traverse(include_cst):
-            yield node, nesting
+        yield from self.root.traverse(include_cst)
 
     def __getitem__(self, key):
         """Accessor to the script source text.

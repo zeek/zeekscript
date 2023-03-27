@@ -1136,8 +1136,8 @@ class ExprFormatter(SpaceSeparatedFormatter, ComplexSequenceFormatterMixin):
         return node and not isinstance(node.formatter, ExprFormatter)
 
     def format(self):
-        cn1, cn2, cn3 = [self._get_child_name(offset=n) for n in (0, 1, 2)]
-        ct1, ct2, ct3 = [self._get_child_token(offset=n) for n in (0, 1, 2)]
+        cn1, cn2, cn3 = (self._get_child_name(offset=n) for n in (0, 1, 2))
+        ct1, ct2, ct3 = (self._get_child_token(offset=n) for n in (0, 1, 2))
 
         if cn1 == "expr" and ct2 == "[":
             self._format_child()  # <expr>
