@@ -794,11 +794,22 @@ class FormalArgFormatter(Formatter):
 
 class IndexSliceFormatter(Formatter):
     def format(self):
+        # If any of the limits is a compound node and not a literal, constant,
+        # or empty, surround the `:` of the slice with spaces. This mirrors
+        # black's style for Python.
+        use_space_around_colon = any(
+            map(lambda x: len(x.children) > 1, self.node.children)
+        )
+
         self._format_child(hints=Hint.NO_LB_BEFORE)  # '['
+
         while self._get_child_token() != "]":
             self._format_child()
-            if self._get_child_token() != "]":
+
+            # Do not add extra space after end index.
+            if self._get_child_token() != "]" and use_space_around_colon:
                 self._write_sp()
+
         self._format_child(hints=Hint.NO_LB_BEFORE)  # ']'
 
 

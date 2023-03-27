@@ -50,6 +50,23 @@ class TestFormatting(unittest.TestCase):
         result2 = self._format(result1)
         self.assertEqual(baseline, result2)
 
+    def test_index_slice(self):
+        # Use compact layout if neither side is a constant or id.
+        self.assertEqual(self._format(b"xs[  0   :1  ];").rstrip(), b"xs[0:1];")
+
+        # # If either side is unspecified do not use use compact layout, but do
+        # not add additional whitespace if both sides are omitted.
+        self.assertEqual(self._format(b"xs[  0   :  ];").rstrip(), b"xs[0:];")
+        self.assertEqual(self._format(b"xs[  : 1 ];").rstrip(), b"xs[:1];")
+        self.assertEqual(self._format(b"data[1-1:];").rstrip(), b"data[1 - 1 :];")
+        self.assertEqual(self._format(b"data[:1-1];").rstrip(), b"data[: 1 - 1];")
+        self.assertEqual(self._format(b"data[   :   ];").rstrip(), b"data[:];")
+
+        # Else surround `:` with spaces.
+        self.assertEqual(self._format(b"data[1-1:1];").rstrip(), b"data[1 - 1 : 1];")
+        self.assertEqual(self._format(b"data[1 :1-1];").rstrip(), b"data[1 : 1 - 1];")
+        self.assertEqual(self._format(b"data[f(): ];").rstrip(), b"data[f() :];")
+
 
 class TestFormattingErrors(unittest.TestCase):
     def _to_bytes(self, content):
