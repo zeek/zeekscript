@@ -52,8 +52,7 @@ def cmd_format(args):
                     scripts.extend(filenames)
             else:
                 print_error(
-                    'warning: "{}" is a directory but --recursive not '
-                    "set, skipping it".format(fname)
+                    f'warning: "{fname}" is a directory but --recursive not set, skipping it'
                 )
 
         elif os.path.isfile(fname):
@@ -109,12 +108,8 @@ def cmd_format(args):
 
     if args.inplace:
         print(
-            "{} file{} processed, {} error{}".format(
-                len(scripts),
-                "" if len(scripts) == 1 else "s",
-                errs,
-                "" if errs == 1 else "s",
-            )
+            f"{len(scripts)} file{'' if len(scripts) == 1 else 's'} processed, "
+            f"{errs} error{'' if errs == 1 else 's'}"
         )
 
     return int(errs > 0)
@@ -149,7 +144,7 @@ def cmd_parse(args):
     if script.has_error():
         if not args.quiet:
             _, _, msg = script.get_error()
-            print_error("parse tree has problems: %s" % msg)
+            print_error(f"parse tree has problems: {msg}")
         return 2
 
     return 0

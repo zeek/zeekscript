@@ -107,18 +107,21 @@ class Script:
                 snippet = snippet[:50] + b"[...]"
 
             if node.type == "ERROR":
-                msg = 'cannot parse line {}, col {}: "{}"'.format(
-                    node.start_point[0], node.start_point[1], snippet.decode("UTF-8")
+                msg = (
+                    f"cannot parse line {node.start_point[0]}, col {node.start_point[1]}: "
+                    f'"{snippet.decode("UTF-8")}"'
                 )
             elif node.is_missing:
-                msg = 'missing grammar node "{}" on line {}, col {}'.format(
-                    node.type, node.start_point[0], node.start_point[1]
+                msg = (
+                    f'missing grammar node "{node.type}" on '
+                    "line {node.start_point[0]}, col {node.start_point[1]}"
                 )
             elif node.has_error and (
                 not node.children or not any(kid.has_error for kid in node.children)
             ):
-                msg = 'grammar node "{}" has error on line {}, col {}'.format(
-                    node.type, node.start_point[0], node.start_point[1]
+                msg = (
+                    f'grammar node "{node.type}" has error on '
+                    "line {node.start_point[0]}, col {node.start_point[1]}"
                 )
             else:
                 continue
@@ -211,7 +214,7 @@ class Script:
                 extra = ""
 
                 if len(content) > maxlen:
-                    extra = "[+%s]" % (len(content) - maxlen)
+                    extra = f"[+{len(content) - maxlen}]"
                     content = content[:maxlen]
 
                 # ... and render it such that we get backslash-escapes.
@@ -235,15 +238,11 @@ class Script:
             if errors:
                 err = "[" + ", ".join(errors) + "] "
 
-            return " " * (4 * nesting) + "{}{} ({}.{},{}.{}) {}{}".format(
-                cst_indicator,
-                node.type,
-                node.start_point[0],
-                node.start_point[1],
-                node.end_point[0],
-                node.end_point[1],
-                err,
-                content,
+            return " " * (4 * nesting) + (
+                f"{cst_indicator}{node.type} "
+                "({node.start_point[0]}.{node.start_point[1]},"
+                "{node.end_point[0]}.{node.end_point[1]}) "
+                "{err}{content}"
             )
 
         def do_traverse(ostream):
@@ -408,7 +407,6 @@ class Script:
                 new_node.children[-1].prev_sibling = new_node.children[-2]
 
             pending_errors = []
-            last_nonerror = None
 
             for child in new_node.children:
                 if child.type == "ERROR":
