@@ -236,7 +236,7 @@ class Script:
             if node.is_missing:
                 errors.append("missing")
             if errors:
-                err = "[" + ", ".join(errors) + "] "
+                err += "[" + ", ".join(errors) + "] "
 
             return " " * (4 * nesting) + (
                 f"{cst_indicator}{node.type} "

@@ -83,7 +83,7 @@ class TestFormattingErrors(unittest.TestCase):
         self.assertEqual(error_baseline, error1)
 
         # Format again. There should be no change to the formatting.
-        result2, error2 = self._format(result1)
+        result2, _ = self._format(result1)
         self.assertEqual(self._to_bytes(baseline), result2)
 
     def test_start_error(self):
