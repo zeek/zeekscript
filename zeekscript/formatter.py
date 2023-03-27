@@ -1178,7 +1178,7 @@ class ExprFormatter(SpaceSeparatedFormatter, ComplexSequenceFormatterMixin):
             self._write_sp()
             self._format_child()  # <expr>
 
-        elif ct1 == "{" or ct1 == "[":
+        elif ct1 in ("{", "["):
             # Vector/table/set initializers: '['/'{' <expr_list> ']'/'}'
             do_linebreak = self.is_complex()  # Must call before we consume opener
             self._format_child(hints=Hint.NO_LB_BEFORE)  # '{' / '['
