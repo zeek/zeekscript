@@ -20,12 +20,12 @@ import zeekscript
 class TestFormatting(unittest.TestCase):
     def _get_input_and_baseline(self, filename):
         with open(os.path.join(DATA, filename), "rb") as hdl:
-            input = hdl.read()
+            input_ = hdl.read()
 
         with open(os.path.join(DATA, filename + ".out"), "rb") as hdl:
             output = hdl.read()
 
-        return input, output
+        return input_, output
 
     def _format(self, content):
         script = zeekscript.Script(io.BytesIO(content))
@@ -39,10 +39,10 @@ class TestFormatting(unittest.TestCase):
         return buf.getvalue()
 
     def test_file_formatting(self):
-        input, baseline = self._get_input_and_baseline("test1.zeek")
+        input_, baseline = self._get_input_and_baseline("test1.zeek")
 
         # Format the input data and compare to baseline:
-        result1 = self._format(input)
+        result1 = self._format(input_)
         self.assertEqual(baseline, result1)
 
         # Format the result again. There should be no change.
@@ -76,9 +76,9 @@ class TestFormattingErrors(unittest.TestCase):
         return buf.getvalue(), script.get_error()
 
     # pylint: disable-next=invalid-name
-    def assertFormatting(self, input, baseline, error_baseline):
+    def assertFormatting(self, input_, baseline, error_baseline):
         # Verify formatting and reported error
-        result1, error1 = self._format(self._to_bytes(input))
+        result1, error1 = self._format(self._to_bytes(input_))
         self.assertEqual(self._to_bytes(baseline), result1)
         self.assertEqual(error_baseline, error1)
 
