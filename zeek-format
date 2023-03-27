@@ -12,7 +12,7 @@ import sys
 try:
     # Argcomplete provides command-line completion for users of argparse.
     # We support it if available, but don't complain when it isn't.
-    import argcomplete # pylint: disable=import-error
+    import argcomplete  # pylint: disable=import-error
 except ImportError:
     pass
 
@@ -20,13 +20,14 @@ import zeekscript
 
 # ---- Helper functions --------------------------------------------------------
 
+
 def create_parser():
-    parser = argparse.ArgumentParser(description='A Zeek script formatter')
+    parser = argparse.ArgumentParser(description="A Zeek script formatter")
 
     zeekscript.add_version_arg(parser)
     zeekscript.add_format_cmd(parser)
 
-    if 'argcomplete' in sys.modules:
+    if "argcomplete" in sys.modules:
         argcomplete.autocomplete(parser)
 
     return parser
@@ -45,5 +46,6 @@ def main():
     except KeyboardInterrupt:
         return 0
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     sys.exit(main())

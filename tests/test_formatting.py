@@ -6,8 +6,8 @@ import sys
 import unittest
 
 TESTS = os.path.dirname(os.path.realpath(__file__))
-ROOT = os.path.normpath(os.path.join(TESTS, '..'))
-DATA = os.path.normpath(os.path.join(TESTS, 'data'))
+ROOT = os.path.normpath(os.path.join(TESTS, ".."))
+DATA = os.path.normpath(os.path.join(TESTS, "data"))
 
 # Prepend the tree's root folder to the module searchpath so we find zeekscript
 # via it. This allows tests to run without package installation. (We do need a
@@ -16,13 +16,13 @@ sys.path.insert(0, ROOT)
 
 import zeekscript
 
-class TestFormatting(unittest.TestCase):
 
+class TestFormatting(unittest.TestCase):
     def _get_input_and_baseline(self, filename):
-        with open(os.path.join(DATA, filename), 'rb') as hdl:
+        with open(os.path.join(DATA, filename), "rb") as hdl:
             input = hdl.read()
 
-        with open(os.path.join(DATA, filename + '.out'), 'rb') as hdl:
+        with open(os.path.join(DATA, filename + ".out"), "rb") as hdl:
             output = hdl.read()
 
         return input, output
@@ -39,7 +39,7 @@ class TestFormatting(unittest.TestCase):
         return buf.getvalue()
 
     def test_file_formatting(self):
-        input, baseline = self._get_input_and_baseline('test1.zeek')
+        input, baseline = self._get_input_and_baseline("test1.zeek")
 
         # Format the input data and compare to baseline:
         result1 = self._format(input)
@@ -51,15 +51,14 @@ class TestFormatting(unittest.TestCase):
 
 
 class TestFormattingErrors(unittest.TestCase):
-
     def _to_bytes(self, content):
         if type(content) != bytes:
-            out = content.encode('UTF-8')
+            out = content.encode("UTF-8")
         else:
             out = content
 
-        out = out.replace(b'\r\n', b'\n')
-        out = out.replace(b'\n', zeekscript.Formatter.NL)
+        out = out.replace(b"\r\n", b"\n")
+        out = out.replace(b"\n", zeekscript.Formatter.NL)
 
         return out
 
@@ -88,11 +87,12 @@ class TestFormattingErrors(unittest.TestCase):
 
     def test_start_error(self):
         self.assertFormatting(
-            'xxx  function foo() { }',
+            "xxx  function foo() { }",
             """xxx function foo()
 	{ }
 """,
-            ('xxx  function foo() { }', 0, 'cannot parse line 0, col 0: "xxx"'))
+            ("xxx  function foo() { }", 0, 'cannot parse line 0, col 0: "xxx"'),
+        )
 
     def test_mid_error(self):
         self.assertFormatting(
@@ -105,7 +105,13 @@ function foo) { print  "hi" ; }
 function foo) {
 print "hi";
 }
-""", ('function foo) { print  "hi" ; }', 2, 'cannot parse line 2, col 0: "function foo)"'))
+""",
+            (
+                'function foo) { print  "hi" ; }',
+                2,
+                'cannot parse line 2, col 0: "function foo)"',
+            ),
+        )
 
     def test_mid_record_error(self):
         self.assertFormatting(
@@ -122,30 +128,47 @@ print "hi";
 	c: count; ##< Another field, better not skipped!
 	d: count; ##< Ditto.
 };
-""", ('\tb count; ##< A broken field', 2, 'cannot parse line 2, col 1: "b count;"'))
+""",
+            (
+                "\tb count; ##< A broken field",
+                2,
+                'cannot parse line 2, col 1: "b count;"',
+            ),
+        )
 
     def test_single_char_mid_error(self):
         # In this example, the error node spans just a single character:
         self.assertFormatting(
-            'event zeek_init() { foo)(); }',
+            "event zeek_init() { foo)(); }",
             """event zeek_init()
 	{
 	foo ) ();
 	}
 """,
-            ('event zeek_init() { foo)(); }', 0, 'cannot parse line 0, col 23: ")"'))
+            ("event zeek_init() { foo)(); }", 0, 'cannot parse line 0, col 23: ")"'),
+        )
 
     def test_tail_error_no_nl(self):
         self.assertFormatting(
-            'function foo( )  { if (',
-            'function foo()  { if (\n',
-            ('function foo( )  { if (', 0, 'cannot parse line 0, col 0: "function foo( )  { if ("'))
+            "function foo( )  { if (",
+            "function foo()  { if (\n",
+            (
+                "function foo( )  { if (",
+                0,
+                'cannot parse line 0, col 0: "function foo( )  { if ("',
+            ),
+        )
 
     def test_tail_error_nl(self):
         self.assertFormatting(
-            'function foo( ) { if (\n',
-            'function foo() { if (\n',
-            ('function foo( ) { if (', 0, 'cannot parse line 0, col 0: "function foo( ) { if ("'))
+            "function foo( ) { if (\n",
+            "function foo() { if (\n",
+            (
+                "function foo( ) { if (",
+                0,
+                'cannot parse line 0, col 0: "function foo( ) { if ("',
+            ),
+        )
 
 
 class TestNewlineFormatting(unittest.TestCase):
@@ -154,14 +177,14 @@ class TestNewlineFormatting(unittest.TestCase):
 
     def _get_formatted_and_baseline(self, filename):
         # Swap line endings for something not native to the platform:
-        with open(os.path.join(DATA, filename), 'rb') as hdl:
+        with open(os.path.join(DATA, filename), "rb") as hdl:
             data = hdl.read()
-            if zeekscript.Formatter.NL == b'\n':
+            if zeekscript.Formatter.NL == b"\n":
                 # Turn everything to \r\n, even if mixed
-                data = data.replace(b'\r\n', b'\n')
-                data = data.replace(b'\n', b'\r\n')
+                data = data.replace(b"\r\n", b"\n")
+                data = data.replace(b"\n", b"\r\n")
             else:
-                data = data.replace(b'\r\n', b'\n')
+                data = data.replace(b"\r\n", b"\n")
 
         buf = io.BytesIO(data)
 
@@ -171,26 +194,26 @@ class TestNewlineFormatting(unittest.TestCase):
         buf = io.BytesIO()
         script.format(buf)
 
-        with open(os.path.join(DATA, filename + '.out'), 'rb') as hdl:
+        with open(os.path.join(DATA, filename + ".out"), "rb") as hdl:
             result_wanted = hdl.read()
 
         result_is = buf.getvalue()
         return result_wanted, result_is
 
     def test_file_formatting(self):
-        result_wanted, result_is = self._get_formatted_and_baseline('test1.zeek')
+        result_wanted, result_is = self._get_formatted_and_baseline("test1.zeek")
         self.assertEqual(result_wanted, result_is)
 
 
 class TestScriptConstruction(unittest.TestCase):
-    DATA = 'event zeek_init() { }'
-    TMPFILE = 'tmp.zeek'
+    DATA = "event zeek_init() { }"
+    TMPFILE = "tmp.zeek"
 
     def test_file(self):
         # tempfile.NamedTemporaryFile doesn't seem to support reading while
         # still existing on some platforms, so going manual here:
         try:
-            with open(self.TMPFILE, 'w') as hdl:
+            with open(self.TMPFILE, "w") as hdl:
                 hdl.write(self.DATA)
             script = zeekscript.Script(self.TMPFILE)
             script.parse()
@@ -199,7 +222,7 @@ class TestScriptConstruction(unittest.TestCase):
 
     def test_path(self):
         try:
-            with open(self.TMPFILE, 'w') as hdl:
+            with open(self.TMPFILE, "w") as hdl:
                 hdl.write(self.DATA)
             script = zeekscript.Script(pathlib.Path(hdl.name))
             script.parse()
@@ -210,7 +233,7 @@ class TestScriptConstruction(unittest.TestCase):
         try:
             oldstdin = sys.stdin
             sys.stdin = io.StringIO(self.DATA)
-            script = zeekscript.Script('-')
+            script = zeekscript.Script("-")
             script.parse()
         finally:
             sys.stdin = oldstdin
@@ -221,7 +244,7 @@ class TestScriptConstruction(unittest.TestCase):
         script.parse()
 
     def test_bytes_fileobj(self):
-        obj = io.BytesIO(self.DATA.encode('UTF-8'))
+        obj = io.BytesIO(self.DATA.encode("UTF-8"))
         script = zeekscript.Script(obj)
         script.parse()
 
@@ -235,5 +258,6 @@ def test():
     # This is how unittest.main() implements the exit code itself:
     return res.result.wasSuccessful()
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     sys.exit(not test())
