@@ -195,23 +195,17 @@ class Formatter:
 
         # First element of multiple: general hinting; first-element hinting;
         # avoid line breaks after the element.
-        self._format_child(
-            hints=hints
-            | first_hints
-            | Hint.NO_LB_AFTER  # pylint: disable=unsupported-binary-operation
-        )
+        # pylint: disable=unsupported-binary-operation
+        self._format_child(hints=hints | first_hints | Hint.NO_LB_AFTER)
 
         # Inner elements: general hinting; avoid line breaks
         for _ in range(num - 2):
-            self._format_child(
-                hints=hints
-                | Hint.NO_LB_AFTER  # pylint: disable=unsupported-binary-operation
-            )
+            # pylint: disable=unsupported-binary-operation
+            self._format_child(hints=hints | Hint.NO_LB_AFTER)
 
         # Last element: general hinting; avoid line break before
-        self._format_child(
-            hints=hints | Hint.NO_LB_BEFORE
-        )  # pylint: disable=unsupported-binary-operation
+        # pylint: disable=unsupported-binary-operation
+        self._format_child(hints=hints | Hint.NO_LB_BEFORE)
 
     def _format_children(self, sep=None):
         """Format all children of the node.
