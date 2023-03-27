@@ -35,7 +35,7 @@ class BuildCommand(setuptools.command.build_py.build_py):
 
     def refresh_bindings(self):
         try:
-            import tree_sitter
+            import tree_sitter  # pylint: disable=import-outside-toplevel
         except ImportError:
             print("Warning: tree_sitter module not found, not refreshing bindings")
             return
