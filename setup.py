@@ -1,3 +1,4 @@
+"""Installation setup."""
 import setuptools.command.build_py
 
 from setuptools import setup

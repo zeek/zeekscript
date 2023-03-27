@@ -1,3 +1,5 @@
+"""Components implementing the CLI interface."""
+
 import os
 import pathlib
 import sys

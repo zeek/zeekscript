@@ -1,3 +1,4 @@
+"""Functionality related to output."""
 import os
 import sys
 

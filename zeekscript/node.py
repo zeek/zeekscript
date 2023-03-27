@@ -1,3 +1,6 @@
+"""Node-related functionality."""
+
+
 class Node:
     """A relative of tree_sitter.Node.
 
