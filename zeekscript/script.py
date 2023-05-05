@@ -240,11 +240,14 @@ class Script:
             if errors:
                 err += "[" + ", ".join(errors) + "] "
 
-            return " " * (4 * nesting) + (
-                f"{cst_indicator}{node.type} "
-                f"({node.start_point[0]}.{node.start_point[1]},"
-                f"{node.end_point[0]}.{node.end_point[1]}) "
-                f"{err}{content}"
+            return (
+                " " * (4 * nesting)
+                + (
+                    f"{cst_indicator}{node.type} "
+                    f"({node.start_point[0]}.{node.start_point[1]},"
+                    f"{node.end_point[0]}.{node.end_point[1]}) "
+                    f"{err}{content}"
+                ).rstrip()
             )
 
         def do_traverse(ostream):
