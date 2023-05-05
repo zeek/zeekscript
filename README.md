@@ -67,9 +67,8 @@ The package comes with a testsuite. To run it, say
 
     $ make
 
-from the toplevel. If `pylint` is available on your system, testing includes a
-`pylint` run to check for problems. For details on the tests, take a look at the
-`tests` directory.
+from the toplevel. For details on the tests, take a look at the `tests`
+directory.
 
 ## Usage
 

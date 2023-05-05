@@ -1,3 +1,9 @@
+1.2.1-37 | 2023-05-05 09:55:48 -0700
+
+  * Remove pylint from CI requirements and README (Christian Kreibich and Benjamin Bannier, Corelight)
+
+  * Remove the existing pylint testcase, since pre-commit now covers pylint. (Christian Kreibich, Corelight)
+
 1.2.1-34 | 2023-05-04 18:00:18 -0700
 
   * Run all pylint checkers for pre-commit hook (Benjamin Bannier, Corelight)
