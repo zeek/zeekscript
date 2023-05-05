@@ -10,15 +10,10 @@ import unittest.mock
 
 from os.path import join
 
-TESTS = os.path.dirname(os.path.realpath(__file__))
-ROOT = os.path.normpath(join(TESTS, ".."))
-DATA = os.path.normpath(join(TESTS, "data"))
+# Sets up sys.path and provides helpers
+import testutils as tu
 
-# Prepend the tree's root folder to the module searchpath so we find zeekscript
-# via it. This allows tests to run without package installation. (We do need a
-# package build though, so the .so bindings library gets created.)
-sys.path.insert(0, ROOT)
-
+# This imports the tree-local zeekscript
 import zeekscript  # pylint: disable=wrong-import-position
 
 
@@ -28,11 +23,11 @@ class TestRecursion(unittest.TestCase):
         shutil.rmtree("a", ignore_errors=True)
         os.makedirs(join("a", "b", "c"))
 
-        shutil.copy(join(DATA, "test1.zeek"), join("a", "test1.zeek"))
-        shutil.copy(join(DATA, "test1.zeek"), join("a", "test2.zeek"))
-        shutil.copy(join(DATA, "test1.zeek"), join("a", "b", "test3.txt"))
-        shutil.copy(join(DATA, "test1.zeek"), join("a", "b", "test4.zeek"))
-        shutil.copy(join(DATA, "test1.zeek"), join("a", "b", "c", "test5.zeek"))
+        shutil.copy(join(tu.DATA, "test1.zeek"), join("a", "test1.zeek"))
+        shutil.copy(join(tu.DATA, "test1.zeek"), join("a", "test2.zeek"))
+        shutil.copy(join(tu.DATA, "test1.zeek"), join("a", "b", "test3.txt"))
+        shutil.copy(join(tu.DATA, "test1.zeek"), join("a", "b", "test4.zeek"))
+        shutil.copy(join(tu.DATA, "test1.zeek"), join("a", "b", "c", "test5.zeek"))
 
     def tearDown(self):
         shutil.rmtree("a", ignore_errors=True)
@@ -64,17 +59,21 @@ class TestRecursion(unittest.TestCase):
             self.assertEqual(ret, 0)
             self.assertEqual(out.getvalue(), "4 files processed, 0 errors\n")
 
-        self.assertEqualContent(join(DATA, "test1.zeek.out"), join("a", "test1.zeek"))
-        self.assertEqualContent(join(DATA, "test1.zeek.out"), join("a", "test2.zeek"))
         self.assertEqualContent(
-            join(DATA, "test1.zeek.out"), join("a", "b", "test4.zeek")
+            join(tu.DATA, "test1.zeek.out"), join("a", "test1.zeek")
         )
         self.assertEqualContent(
-            join(DATA, "test1.zeek.out"), join("a", "b", "c", "test5.zeek")
+            join(tu.DATA, "test1.zeek.out"), join("a", "test2.zeek")
+        )
+        self.assertEqualContent(
+            join(tu.DATA, "test1.zeek.out"), join("a", "b", "test4.zeek")
+        )
+        self.assertEqualContent(
+            join(tu.DATA, "test1.zeek.out"), join("a", "b", "c", "test5.zeek")
         )
 
         self.assertNotEqualContent(
-            join(DATA, "test1.zeek.out"), join("a", "b", "test3.txt")
+            join(tu.DATA, "test1.zeek.out"), join("a", "b", "test3.txt")
         )
 
     def test_recurse_inplace(self):
@@ -122,15 +121,5 @@ class TestRecursion(unittest.TestCase):
             )
 
 
-def test():
-    """Entry point for testing this module.
-
-    Returns True if successful, False otherwise.
-    """
-    res = unittest.main(sys.modules[__name__], verbosity=0, exit=False)
-    # This is how unittest.main() implements the exit code itself:
-    return res.result.wasSuccessful()
-
-
 if __name__ == "__main__":
-    sys.exit(not test())
+    sys.exit(not tu.test(__name__))

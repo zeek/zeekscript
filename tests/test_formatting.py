@@ -6,24 +6,19 @@ import pathlib
 import sys
 import unittest
 
-TESTS = os.path.dirname(os.path.realpath(__file__))
-ROOT = os.path.normpath(os.path.join(TESTS, ".."))
-DATA = os.path.normpath(os.path.join(TESTS, "data"))
+# Sets up sys.path and provides helpers
+import testutils as tu
 
-# Prepend the tree's root folder to the module searchpath so we find zeekscript
-# via it. This allows tests to run without package installation. (We do need a
-# package build though, so the .so bindings library gets created.)
-sys.path.insert(0, ROOT)
-
+# This imports the tree-local zeekscript
 import zeekscript  # pylint: disable=wrong-import-position
 
 
 class TestFormatting(unittest.TestCase):
     def _get_input_and_baseline(self, filename):
-        with open(os.path.join(DATA, filename), "rb") as hdl:
+        with open(os.path.join(tu.DATA, filename), "rb") as hdl:
             input_ = hdl.read()
 
-        with open(os.path.join(DATA, filename + ".out"), "rb") as hdl:
+        with open(os.path.join(tu.DATA, filename + ".out"), "rb") as hdl:
             output = hdl.read()
 
         return input_, output
@@ -52,17 +47,6 @@ class TestFormatting(unittest.TestCase):
 
 
 class TestFormattingErrors(unittest.TestCase):
-    def _to_bytes(self, content):
-        if not isinstance(content, bytes):
-            out = content.encode("UTF-8")
-        else:
-            out = content
-
-        out = out.replace(b"\r\n", b"\n")
-        out = out.replace(b"\n", zeekscript.Formatter.NL)
-
-        return out
-
     def _format(self, content):
         script = zeekscript.Script(io.BytesIO(content))
 
@@ -79,13 +63,13 @@ class TestFormattingErrors(unittest.TestCase):
     # pylint: disable-next=invalid-name
     def assertFormatting(self, input_, baseline, error_baseline):
         # Verify formatting and reported error
-        result1, error1 = self._format(self._to_bytes(input_))
-        self.assertEqual(self._to_bytes(baseline), result1)
+        result1, error1 = self._format(tu.normalize(input_))
+        self.assertEqual(tu.normalize(baseline), result1)
         self.assertEqual(error_baseline, error1)
 
         # Format again. There should be no change to the formatting.
         result2, _ = self._format(result1)
-        self.assertEqual(self._to_bytes(baseline), result2)
+        self.assertEqual(tu.normalize(baseline), result2)
 
     def test_start_error(self):
         self.assertFormatting(
@@ -179,7 +163,7 @@ class TestNewlineFormatting(unittest.TestCase):
 
     def _get_formatted_and_baseline(self, filename):
         # Swap line endings for something not native to the platform:
-        with open(os.path.join(DATA, filename), "rb") as hdl:
+        with open(os.path.join(tu.DATA, filename), "rb") as hdl:
             data = hdl.read()
             if zeekscript.Formatter.NL == b"\n":
                 # Turn everything to \r\n, even if mixed
@@ -196,7 +180,7 @@ class TestNewlineFormatting(unittest.TestCase):
         buf = io.BytesIO()
         script.format(buf)
 
-        with open(os.path.join(DATA, filename + ".out"), "rb") as hdl:
+        with open(os.path.join(tu.DATA, filename + ".out"), "rb") as hdl:
             result_wanted = hdl.read()
 
         result_is = buf.getvalue()
@@ -252,15 +236,5 @@ class TestScriptConstruction(unittest.TestCase):
         script.parse()
 
 
-def test():
-    """Entry point for testing this module.
-
-    Returns True if successful, False otherwise.
-    """
-    res = unittest.main(sys.modules[__name__], verbosity=0, exit=False)
-    # This is how unittest.main() implements the exit code itself:
-    return res.result.wasSuccessful()
-
-
 if __name__ == "__main__":
-    sys.exit(not test())
+    sys.exit(not tu.test(__name__))
