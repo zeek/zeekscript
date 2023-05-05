@@ -43,7 +43,6 @@ jobs:
           # We currently skip all PyPy builds on Windows and MacOS due to hard
           # exits and segfaults of the Python interpreter with some input trees.
           CIBW_SKIP: pp*-win* pp*-macosx*
-          CIBW_TEST_REQUIRES: pylint
           CIBW_TEST_COMMAND: python {project}/tests/test_all.py
           CIBW_TEST_COMMAND_WINDOWS: python.exe {project}/tests/test_all.py
 
