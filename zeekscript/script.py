@@ -242,9 +242,9 @@ class Script:
 
             return " " * (4 * nesting) + (
                 f"{cst_indicator}{node.type} "
-                "({node.start_point[0]}.{node.start_point[1]},"
-                "{node.end_point[0]}.{node.end_point[1]}) "
-                "{err}{content}"
+                f"({node.start_point[0]}.{node.start_point[1]},"
+                f"{node.end_point[0]}.{node.end_point[1]}) "
+                f"{err}{content}"
             )
 
         def do_traverse(ostream):
