@@ -1,3 +1,6 @@
+"""Node-related functionality."""
+
+
 class Node:
     """A relative of tree_sitter.Node.
 
@@ -18,6 +21,7 @@ class Node:
     can occur anywhere in the language, including named symbols. For Zeek,
     examples include newlines and comments.
     """
+
     def __init__(self):
         # AST navigation: these relationship omit nodes present only in the
         # concrete tree, such as comments and whitespace. The following members
@@ -28,7 +32,7 @@ class Node:
         self.next_sibling = None
 
         self.start_byte = 0
-        self.end_byte = 0 # The first byte _after_ this node's content
+        self.end_byte = 0  # The first byte _after_ this node's content
         self.start_point = (0, 0)
         self.end_point = (0, 0)
 
@@ -106,8 +110,7 @@ class Node:
 
     def __eq__(self, other):
         """Two nodes are equal when the cover the same range in the script."""
-        return (self.start_byte == other.start_byte and
-                self.end_byte == other.end_byte)
+        return self.start_byte == other.start_byte and self.end_byte == other.end_byte
 
     def name(self):
         """Returns the type of a named node.
@@ -170,9 +173,12 @@ class Node:
         """
         queue = [(self, 0)]
 
+        def always_true(_):
+            return True
+
         # Default the filter to accept-all if absent
         if predicate is None:
-            predicate = lambda node: True
+            predicate = always_true
 
         while queue:
             node, nesting = queue.pop(0)
@@ -193,7 +199,7 @@ class Node:
                         yield cst_node, nesting
 
             for child in reversed(node.children):
-                queue.insert(0, (child, nesting+1))
+                queue.insert(0, (child, nesting + 1))
 
     def is_error(self):
         """Returns True if this node summarizes a parsing error.
@@ -202,23 +208,23 @@ class Node:
         that group problematic content under them, possibly alongside correctly
         parsed material).
         """
-        return self.is_named and self.type and self.type == 'ERROR'
+        return self.is_named and self.type and self.type == "ERROR"
 
     def is_nl(self):
         """Returns True if this is a newline."""
-        return self.is_named and self.type and self.type == 'nl'
+        return self.is_named and self.type and self.type == "nl"
 
     def is_comment(self):
         """Returns True if this is any kind of comment."""
-        return self.is_named and self.type and self.type.endswith('_comment')
+        return self.is_named and self.type and self.type.endswith("_comment")
 
     def is_minor_comment(self):
         """Returns True if this is a minor comment ("# foo")."""
-        return self.is_named and self.type and self.type == 'minor_comment'
+        return self.is_named and self.type and self.type == "minor_comment"
 
     def is_zeekygen_prev_comment(self):
         """Returns True if this is a Zeekygen "##<" comment."""
-        return self.is_named and self.type and self.type == 'zeekygen_prev_comment'
+        return self.is_named and self.type and self.type == "zeekygen_prev_comment"
 
     def has_property(self, predicate):
         """Returns a predicate's outcome for this node.
@@ -239,8 +245,7 @@ class Node:
         they are all whitespace. The scan stops when it hits an AST node, which
         counts as success. Absence of preceding CST nodes is also success.
         """
-        res = self.find_prev_cst_sibling(
-            lambda node: not node.is_nl())
+        res = self.find_prev_cst_sibling(lambda node: not node.is_nl())
         return res is None or res.is_ast
 
     def has_only_whitespace_after(self):
@@ -250,8 +255,7 @@ class Node:
         they are all whitespace. The scan stops when it hits an AST node, which
         counts as success. Absence of suceeding CST nodes is also success.
         """
-        node = self.find_next_cst_sibling(
-            lambda node: not node.is_nl())
+        node = self.find_next_cst_sibling(lambda node: not node.is_nl())
         return node is None or node.is_ast
 
     def find_prev_cst_sibling(self, predicate):

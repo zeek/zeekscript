@@ -1,14 +1,18 @@
+"""Functionality related to output."""
 import os
 import sys
 
 from .formatter import Formatter, Hint
 
+
+# pylint: disable-next=too-few-public-methods
 class Output:
     """A chunk of data to write out.
 
     The OutputStream class uses this for buffering up data chunks that make up a
     formatted line, deciding when/whether to intersperse additional line breaks.
     """
+
     def __init__(self, data, formatter):
         self.data = data
         self.formatter = formatter
@@ -20,17 +24,18 @@ class OutputStream:
     manager, it also ensures that exiting context always finishes output with a
     newline.
     """
-    MAX_LINE_LEN = 80 # Column at which we consider wrapping.
-    MIN_LINE_ITEMS = 5 # Required items on a line to consider wrapping.
-    MIN_LINE_EXCESS = 5 # Minimum characters that a line needs to be too long.
-    TAB_SIZE = 8 # How many visible characters we chalk up for a tab.
-    SPACE_INDENT = 4 # When wrapping, add this many spaces onto tab-indentation.
+
+    MAX_LINE_LEN = 80  # Column at which we consider wrapping.
+    MIN_LINE_ITEMS = 5  # Required items on a line to consider wrapping.
+    MIN_LINE_EXCESS = 5  # Minimum characters that a line needs to be too long.
+    TAB_SIZE = 8  # How many visible characters we chalk up for a tab.
+    SPACE_INDENT = 4  # When wrapping, add this many spaces onto tab-indentation.
 
     def __init__(self, ostream, enable_linebreaks=True):
         """OutputStream constructor. The ostream argument is a file-like object."""
         self._ostream = ostream
-        self._col = 0 # 0-based column the next character goes into.
-        self._tab_indent = 0 # Number of tabs indented in current line
+        self._col = 0  # 0-based column the next character goes into.
+        self._tab_indent = 0  # Number of tabs indented in current line
 
         # Series of Output objects that makes up a formatted but un-wrapped line.
         self._linebuffer = []
@@ -46,8 +51,8 @@ class OutputStream:
         # below.
         self._enable_linebreaks = enable_linebreaks
 
-        self._use_linebreaks = True # Whether line-breaking is in effect.
-        self._use_tab_indent = True # Whether tab-indentation is in effect.
+        self._use_linebreaks = True  # Whether line-breaking is in effect.
+        self._use_tab_indent = True  # Whether tab-indentation is in effect.
 
         # Whether to tuck on space-alignments independently of our own linebreak
         # logic. (Some formatters request this.) These alignments don't
@@ -93,11 +98,11 @@ class OutputStream:
     def write_tab_indent(self, formatter):
         if self._use_tab_indent:
             self._tab_indent = formatter.indent
-            self.write(b'\t' * self._tab_indent, formatter)
+            self.write(b"\t" * self._tab_indent, formatter)
 
     def write_space_align(self, formatter):
         if self._use_space_align:
-            self.write(b' ' * 4, formatter)
+            self.write(b" " * 4, formatter)
 
     def get_column(self):
         return self._col
@@ -111,6 +116,8 @@ class OutputStream:
         after newlines, depending on line-breaking hints present in the
         formatter objects linked from the Output instances.
         """
+        # pylint: disable=too-many-locals
+
         # Without linebreaking active, just flush the buffer.
         if not self._enable_linebreaks or not self._use_linebreaks:
             for out in self._linebuffer:
@@ -120,11 +127,11 @@ class OutputStream:
             self._col = 0
             return
 
-        col_flushed = 0 # Column up to which we've currently written a line
-        tbd = [] # Outputs to be done
-        tbd_len = 0 # Length of the to-be-done output (in characters)
-        line_items = 0 # Number of items (tokens, not whitespace) on formatted line
-        using_break_hints = False # Whether we've used advisory linebreak hints yet
+        col_flushed = 0  # Column up to which we've currently written a line
+        tbd = []  # Outputs to be done
+        tbd_len = 0  # Length of the to-be-done output (in characters)
+        line_items = 0  # Number of items (tokens, not whitespace) on formatted line
+        using_break_hints = False  # Whether we've used advisory linebreak hints yet
 
         def flush_tbd():
             nonlocal tbd, tbd_len, col_flushed
@@ -137,8 +144,8 @@ class OutputStream:
         def write_linebreak():
             nonlocal tbd, tbd_len, col_flushed
             self._write(Formatter.NL)
-            self._write(b'\t' * self._tab_indent)
-            self._write(b' ' * self.SPACE_INDENT)
+            self._write(b"\t" * self._tab_indent)
+            self._write(b" " * self.SPACE_INDENT)
             col_flushed = self._tab_indent * self.TAB_SIZE + self.SPACE_INDENT
 
             # Remove any pure whitespace from the beginning of the
@@ -183,8 +190,10 @@ class OutputStream:
             # break, then break now. This helps align e.g. multi-part boolean
             # conditionals. This needs to take precedence over NO_LB_AFTER,
             # see next condition.
-            cnd_good_after_lb = (Hint.GOOD_AFTER_LB in out.formatter.hints and
-                                 self._col > self.MAX_LINE_LEN)
+            cnd_good_after_lb = (
+                Hint.GOOD_AFTER_LB in out.formatter.hints
+                and self._col > self.MAX_LINE_LEN
+            )
 
             # If the caller requested no line break, abide.
             cnd_no_lb_after = Hint.NO_LB_AFTER in out.formatter.hints
@@ -198,8 +207,10 @@ class OutputStream:
             # The pending length must be "worth it". That is, don't break if the
             # TBD len is just a little bit over. But do so if we're just too
             # long overall now.
-            cnd_enough_excess = (tbd_len >= self.MIN_LINE_EXCESS or
-                                 col_flushed > self.MAX_LINE_LEN + self.MIN_LINE_EXCESS)
+            cnd_enough_excess = (
+                tbd_len >= self.MIN_LINE_EXCESS
+                or col_flushed > self.MAX_LINE_LEN + self.MIN_LINE_EXCESS
+            )
 
             # If there are only very few items on the line to begin with, don't
             # bother: breaking these also looks messy. This often covers the
@@ -211,7 +222,9 @@ class OutputStream:
             # long strings looking silly when alone on a new line. (This doesn't
             # interfere with bit-by-bit repeated linebreaks of a very long line
             # -- that still happens when we build up the next TBD batch.)
-            cnd_no_addl_wrap =  self._tab_indent * self.TAB_SIZE + tbd_len < self.MAX_LINE_LEN
+            cnd_no_addl_wrap = (
+                self._tab_indent * self.TAB_SIZE + tbd_len < self.MAX_LINE_LEN
+            )
 
             # Helpful for tracing linebreak decision-making:
             # print_error('XXX gal:%d nla:%d nbh:%d tl:%d ex:%d ei:%d naw:%d | %s %s %s' % (
@@ -231,9 +244,13 @@ class OutputStream:
                 continue
 
             # Finally actually linebreak as needed:
-            elif (cnd_no_break_hints and cnd_line_too_long and
-                  cnd_enough_excess and cnd_enough_line_items and
-                  cnd_no_addl_wrap):
+            elif (
+                cnd_no_break_hints
+                and cnd_line_too_long
+                and cnd_enough_excess
+                and cnd_enough_line_items
+                and cnd_no_addl_wrap
+            ):
                 write_linebreak()
 
             flush_tbd()
@@ -257,7 +274,7 @@ class OutputStream:
         if not data.endswith(Formatter.NL):
             return
 
-        output = b''.join(self._writebuffer)
+        output = b"".join(self._writebuffer)
         output = output.rstrip() + Formatter.NL
         self._writebuffer = []
 
@@ -265,7 +282,7 @@ class OutputStream:
             if self._ostream == sys.stdout:
                 # Clunky: must write string here, not bytes. We could
                 # use _ostream.buffer -- not sure how portable that is.
-                self._ostream.write(output.decode('UTF-8'))
+                self._ostream.write(output.decode("UTF-8"))
             else:
                 self._ostream.write(output)
         except BrokenPipeError:

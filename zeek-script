@@ -1,4 +1,5 @@
-#! /usr/bin/env python
+#!/usr/bin/env python
+# pylint: disable=invalid-name
 """
 This is a tool for processing Zeek scripts. It currently supports formatting
 scripts according to codified rules (no optionas at all atm), and showing a
@@ -12,7 +13,7 @@ import sys
 try:
     # Argcomplete provides command-line completion for users of argparse.
     # We support it if available, but don't complain when it isn't.
-    import argcomplete # pylint: disable=import-error
+    import argcomplete  # pylint: disable=import-error
 except ImportError:
     pass
 
@@ -20,27 +21,31 @@ import zeekscript
 
 # ---- Helper functions --------------------------------------------------------
 
+
 def create_parser():
-    parser = argparse.ArgumentParser(description='A Zeek script analyzer')
+    parser = argparse.ArgumentParser(description="A Zeek script analyzer")
 
     zeekscript.add_version_arg(parser)
 
     command_parser = parser.add_subparsers(
-        title='commands', dest='command',
-        help='See `%(prog)s <command> -h` for per-command usage info.')
+        title="commands",
+        dest="command",
+        help="See `%(prog)s <command> -h` for per-command usage info.",
+    )
 
-    sub_parser = command_parser.add_parser(
-        'format', help='Format/indent Zeek scripts')
+    sub_parser = command_parser.add_parser("format", help="Format/indent Zeek scripts")
     zeekscript.add_format_cmd(sub_parser)
 
     sub_parser = command_parser.add_parser(
-        'parse', help='Show Zeek script parse tree with parser metadata.',
-        epilog='Exits with 0 on success, 1 on a hard parse error that '
-        'does not yield a parse tree, and 2 when parsing succeeds but '
-        'the parse tree contains erroneous nodes.')
+        "parse",
+        help="Show Zeek script parse tree with parser metadata.",
+        epilog="Exits with 0 on success, 1 on a hard parse error that "
+        "does not yield a parse tree, and 2 when parsing succeeds but "
+        "the parse tree contains erroneous nodes.",
+    )
     zeekscript.add_parse_cmd(sub_parser)
 
-    if 'argcomplete' in sys.modules:
+    if "argcomplete" in sys.modules:
         argcomplete.autocomplete(parser)
 
     return parser
@@ -55,7 +60,9 @@ def main():
         return 0
 
     if not args.command:
-        zeekscript.print_error('error: please provide a command to execute. See --help.')
+        zeekscript.print_error(
+            "error: please provide a command to execute. See --help."
+        )
         return 1
 
     try:
@@ -63,5 +70,6 @@ def main():
     except KeyboardInterrupt:
         return 0
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     sys.exit(main())
