@@ -1,3 +1,7 @@
+1.2.1-39 | 2023-05-05 14:54:33 -0700
+
+  * Drop unsupported macos-10.15 runner, add macos-12 (Benjamin Bannier, Corelight)
+
 1.2.1-37 | 2023-05-05 09:55:48 -0700
 
   * Remove pylint from CI requirements and README (Christian Kreibich and Benjamin Bannier, Corelight)
