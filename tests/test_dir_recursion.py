@@ -4,7 +4,6 @@ import argparse
 import io
 import os
 import shutil
-import sys
 import unittest
 import unittest.mock
 
@@ -119,7 +118,3 @@ class TestRecursion(unittest.TestCase):
             self.assertEqual(
                 err.getvalue(), "error: recursive file processing requires --inplace\n"
             )
-
-
-if __name__ == "__main__":
-    sys.exit(not tu.test(__name__))

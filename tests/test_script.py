@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 """Tests for the zeekscript.Script class."""
 import io
-import sys
 import unittest
 
 # Sets up sys.path and provides helpers
@@ -97,7 +96,3 @@ event zeek_init() { }
 
         self.assertTrue(script.parse())
         self.assertTreeBinary(script, baseline, include_cst=True)
-
-
-if __name__ == "__main__":
-    sys.exit(not tu.test(__name__))

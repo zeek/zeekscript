@@ -234,7 +234,3 @@ class TestScriptConstruction(unittest.TestCase):
         obj = io.BytesIO(self.DATA.encode("UTF-8"))
         script = zeekscript.Script(obj)
         script.parse()
-
-
-if __name__ == "__main__":
-    sys.exit(not tu.test(__name__))

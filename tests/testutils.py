@@ -1,7 +1,6 @@
 """Helpers for the various test_*.py files."""
 import os
 import sys
-import unittest
 
 TESTS = os.path.dirname(os.path.realpath(__file__))
 ROOT = os.path.normpath(os.path.join(TESTS, ".."))
@@ -37,13 +36,3 @@ def normalize(content):
         out = content
 
     return fix_lineseps(out)
-
-
-def test(module):
-    """Entry point for testing this module.
-
-    Returns True if successful, False otherwise.
-    """
-    res = unittest.main(sys.modules[module], verbosity=0, exit=False)
-    # This is how unittest.main() implements the exit code itself:
-    return res.result.wasSuccessful()
