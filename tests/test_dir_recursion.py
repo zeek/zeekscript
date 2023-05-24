@@ -14,7 +14,7 @@ from os.path import join
 import testutils as tu
 
 # This imports the tree-local zeekscript
-import zeekscript  # pylint: disable=wrong-import-position
+from testutils import zeekscript
 
 
 class TestRecursion(unittest.TestCase):
