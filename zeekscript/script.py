@@ -1,5 +1,6 @@
 """Components implementing the CLI interface."""
 
+import io
 import os
 import pathlib
 import sys
@@ -194,7 +195,7 @@ class Script:
     def write_tree(self, output=None, node_stringifier=None, include_cst=False):
         """Writes the script's parse tree to the given output.
 
-        The output destination works as for Script.write().
+        The output destination works as for Script.format().
 
         node_stringifier, if supplied, controls how a given tree node gets
         rendered to a string. It is a function that takes three arguments: a
@@ -240,17 +241,27 @@ class Script:
             if errors:
                 err += "[" + ", ".join(errors) + "] "
 
-            return " " * (4 * nesting) + (
-                f"{cst_indicator}{node.type} "
-                "({node.start_point[0]}.{node.start_point[1]},"
-                "{node.end_point[0]}.{node.end_point[1]}) "
-                "{err}{content}"
+            return (
+                " " * (4 * nesting)
+                + (
+                    f"{cst_indicator}{node.type} "
+                    f"({node.start_point[0]}.{node.start_point[1]},"
+                    f"{node.end_point[0]}.{node.end_point[1]}) "
+                    f"{err}{content}"
+                ).rstrip()
             )
 
         def do_traverse(ostream):
+            # Pylint wants def instead of lambdas here, which black then wants
+            # to format, turning two simple lines into an abomination. Suppress:
+            # pylint: disable=unnecessary-lambda-assignment
+            if isinstance(ostream, io.TextIOBase):
+                encode = lambda x: x + os.linesep
+            else:
+                encode = lambda x: x.encode("UTF-8") + Formatter.NL
             stringifier = node_stringifier if node_stringifier else node_str
             for node, nesting in self.traverse(include_cst):
-                ostream.write(stringifier(node, nesting, self) + os.linesep)
+                ostream.write(encode(stringifier(node, nesting, self)))
 
         if output is None:
             do_traverse(sys.stdout)
