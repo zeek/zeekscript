@@ -1,5 +1,6 @@
 [project]
 name = "zeekscript"
+dynamic = ["version"]
 
 [build-system]
 requires = [ "setuptools", "wheel" ]
