@@ -1,3 +1,7 @@
+1.2.3 | 2023-06-21 10:35:46 +0200
+
+  * Release 1.2.3.
+
 1.2.1-53 | 2023-06-21 10:35:31 +0200
 
   * Add required version to pyproject.toml (Benjamin Bannier, Corelight)
