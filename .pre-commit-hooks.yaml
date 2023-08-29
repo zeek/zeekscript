@@ -1,0 +1,9 @@
+# File configures zeek-format to be used as a git hook with https://github.com/pre-commit/pre-commit
+
+- id: zeek-format
+  name: zeek-format
+  description: "A formatter for Zeek files."
+  entry: zeek-format
+  args: [-i] #inplace
+  language: python
+  files: '.*zeek'
