@@ -4,4 +4,4 @@ build:
 	python setup.py build
 
 test:
-	pytest
+	cd tests && python -m unittest
