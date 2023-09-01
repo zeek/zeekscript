@@ -117,14 +117,14 @@ class Script:
             elif node.is_missing:
                 msg = (
                     f'missing grammar node "{node.type}" on '
-                    "line {node.start_point[0]}, col {node.start_point[1]}"
+                    f"line {node.start_point[0]}, col {node.start_point[1]}"
                 )
             elif node.has_error and (
                 not node.children or not any(kid.has_error for kid in node.children)
             ):
                 msg = (
                     f'grammar node "{node.type}" has error on '
-                    "line {node.start_point[0]}, col {node.start_point[1]}"
+                    f"line {node.start_point[0]}, col {node.start_point[1]}"
                 )
             else:
                 continue
