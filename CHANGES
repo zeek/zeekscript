@@ -1,3 +1,9 @@
+1.2.4-3 | 2023-09-04 09:57:52 +0200
+
+  * Add languages to README code blocks (Benjamin Bannier, Corelight)
+
+  * Mention pre-commit hook now that we got a release (Benjamin Bannier, Corelight)
+
 1.2.4 | 2023-09-01 09:50:15 +0200
 
   * Fix mutilated f-strings (Benjamin Bannier, Corelight)
