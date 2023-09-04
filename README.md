@@ -21,7 +21,9 @@ in depth and feedback is welcome.)
 
 To install our ready-made Python wheels, say:
 
-    $ pip install zeekscript
+```console
+pip install zeekscript
+```
 
 For a full list of available builds, you can check out the
 [PyPI downloads](https://pypi.org/project/zeekscript/#files) or take a look at our
@@ -40,9 +42,12 @@ If our build matrix doesn't cover your platform and Python version, or if you'd
 simply like to build and install the `zeekscript` package yourself, you need to
 provide two dependencies:
 
-* The [tree-sitter Python bindings](https://pypi.org/project/tree-sitter/), available via
+* The [tree-sitter Python bindings](https://pypi.org/project/tree-sitter/),
+  available via
 
-    $ pip install tree_sitter
+  ```console
+  pip install tree_sitter
+  ```
 
 * A C compiler, such as `gcc` or `clang`.
 
@@ -53,7 +58,9 @@ releases are tagged in `git`.
 
 For installation from local sources, say:
 
-    $ pip install .
+```console
+pip install .
+```
 
 The `zeekscript` package doesn't implement the Zeek grammar compilation itself,
 it outsources it to the `tree-sitter` Python bindings, which provide this
@@ -65,7 +72,9 @@ the package build. See our
 
 The package comes with a testsuite. To run it, say
 
-    $ make
+```console
+make
+```
 
 from the toplevel. For details on the tests, take a look at the `tests`
 directory.
@@ -79,7 +88,7 @@ scripts. Our philosophy is similar to `gofmt` and the opposite of
 `clang-format`: there is only one way to layout Zeek scripts, and this tool
 provides it. Accordingly, it features zero options for tweaking the formatting:
 
-```
+```console
 $ zeek-format --help
 usage: zeek-format [-h] [--version] [--inplace] [--recursive] [FILES ...]
 
@@ -101,7 +110,7 @@ formatting in the presence of errors. When it encounters parser errors,
 `zeek-format` exits with a non-zero exit code and reports the trouble it
 encountered to stderr.
 
-```
+```console
 $ echo 'event  foo( a:count ) {print  "hi" ; }' | zeek-format
 event foo(a: count)
         {
@@ -112,7 +121,7 @@ event foo(a: count)
 To format entire directory trees, combine `--inplace` and `--recursive`, and
 point it at a directory:
 
-```
+```console
 $ cd zeek
 $ zeek-format -ir scripts
 430 files processed successfully
@@ -124,7 +133,7 @@ The `zeek-script` command is the Swiss army knife in the toolbox: it provides
 access to a range of script-processing tools (including formatting) via
 subcommands. (Okay, so far "range" == two, but expect that to grow in the future.)
 
-```
+```console
 $ zeek-script --help
 usage: zeek-script [-h] [--version] {format,parse} ...
 
@@ -144,7 +153,7 @@ The `parse` command renders its script input as a parse tree. It resembles
 `tree-sitter parse`, but shows more context about the relevant snippets of
 content, including parsing errors.
 
-```
+```console
 $ echo 'event zeek_init() { }' | zeek-script parse
 source_file (0.0,1.0) 'event zeek_init() { }\n'
     decl (0.0,0.21) 'event zeek_init() { }'
@@ -163,7 +172,7 @@ source_file (0.0,1.0) 'event zeek_init() { }\n'
 
 Here's a syntax error:
 
-```
+```console
 $ echo 'event zeek_init)() { }' | zeek-script parse
 source_file (0.0,1.0) [error] 'event zeek_init)() { }\n'
     decl (0.0,0.22) [error] 'event zeek_init)() { }'
@@ -205,7 +214,7 @@ for script formatting and parse tree inspection via keyboard shortcuts.
 
 The following snippet hooks up `zeek-format` to format the current script:
 
-```
+```vim
 function RunZeekScript()
     " Create a new undo block for reverting formatting without changing cursor
     " position. https://github.com/rhysd/vim-clang-format/pull/55
