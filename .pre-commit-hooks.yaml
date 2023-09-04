@@ -6,4 +6,4 @@
   entry: zeek-format
   args: [-i] #inplace
   language: python
-  files: '.*zeek'
+  files: \.zeek$
