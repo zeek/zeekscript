@@ -217,3 +217,14 @@ endfunction
 
 nnoremap <silent><buffer> <leader>cf :call RunZeekScript()<CR>
 ```
+
+## Using `zeek-format` with [pre-commit](https://pre-commit.com/)
+
+Add this to your [`.pre-commit-config.yaml`](https://pre-commit.com/#adding-pre-commit-plugins-to-your-project):
+
+```yaml
+- repo: https://github.com/zeek/zeekscript
+  rev: ''  # Use the SHA/tag you want to point at.
+  hooks:
+  - id: zeek-format
+```
