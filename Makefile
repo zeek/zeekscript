@@ -1,7 +1,9 @@
-all: build test
+.PHONY: build test
+
+all: test
 
 build:
 	python setup.py build
 
-test:
+test: build
 	cd tests && python -m unittest
