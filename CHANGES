@@ -1,3 +1,21 @@
+1.2.4-7 | 2023-09-22 08:41:33 +0200
+
+  * Fix race in project Makefile (Benjamin Bannier, Corelight)
+
+    The Makefile did not work correctly when used with `-jN` with `N>1`
+    since `test` did not declare its dependency on `build`.
+
+    This patch makes that dependency explicit, and also declares `build` as
+    PHONY so it is always run.
+
+  * Fix file selection of pre-commit hook (Benjamin Bannier, Corelight)
+
+    The `files` field expects a regexp, not a shell glob. We'd previously
+    select any file containing `zeek` in its name instead of files ending in
+    `.zeek`.
+
+    With this patch we use the intended selection.
+
 1.2.4-3 | 2023-09-04 09:57:52 +0200
 
   * Add languages to README code blocks (Benjamin Bannier, Corelight)
