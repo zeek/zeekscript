@@ -1417,7 +1417,7 @@ Formatter.register("event", FuncHdrVariantFormatter)
 
 Formatter.register("capture", SpaceSeparatedFormatter)
 Formatter.register("attr_list", SpaceSeparatedFormatter)
-Formatter.register("interval", SpaceSeparatedFormatter)
+Formatter.register("interval", Formatter)
 Formatter.register("enum_body_elem", SpaceSeparatedFormatter)
 
 Formatter.register("zeekygen_head_comment", ZeekygenCommentFormatter)
