@@ -68,7 +68,8 @@ class TestFormatting(unittest.TestCase):
         regression test for #62."""
 
         self.assertEqual(
-            self._format(b"global x = 42;   # Inline.\n"), b"global x = 42; # Inline.\n"
+            self._format(b"global x = 42;   # Inline.").rstrip(),
+            b"global x = 42; # Inline.",
         )
 
         code = textwrap.dedent(
