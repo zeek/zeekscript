@@ -1336,10 +1336,15 @@ class CommentFormatter(Formatter):
 class MinorCommentFormatter(CommentFormatter):
     def format(self):
         node = self.node
-        # There's something before us and it's not a newline, then
-        # separate this comment from it with a space:
-        if node.prev_cst_sibling and not node.prev_cst_sibling.is_nl():
-            self._write_sp()
+
+        # Preserve separator to previous node if any.
+        if node.prev_cst_sibling:
+            if node.prev_cst_sibling.is_nl():
+                # Keep newlines verbatim.
+                self._write_nl()
+            else:
+                # If we are on the same line, normalize to exactly one space.
+                self._write_sp()
 
         self._format_token()  # Write comment itself
 

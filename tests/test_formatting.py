@@ -5,6 +5,7 @@ import os
 import pathlib
 import sys
 import unittest
+import textwrap
 
 # Sets up sys.path and provides helpers
 import testutils as tu
@@ -61,6 +62,34 @@ class TestFormatting(unittest.TestCase):
         self.assertEqual(self._format(b"data[1-1:1];").rstrip(), b"data[1 - 1 : 1];")
         self.assertEqual(self._format(b"data[1 :1-1];").rstrip(), b"data[1 : 1 - 1];")
         self.assertEqual(self._format(b"data[f(): ];").rstrip(), b"data[f() :];")
+
+    def test_format_comment_separator(self):
+        """Validates that we preserve the separator before a comment. This is a
+        regression test for #62."""
+
+        self.assertEqual(
+            self._format(b"global x = 42;   # Inline.\n"), b"global x = 42; # Inline.\n"
+        )
+
+        code = textwrap.dedent(
+            """\
+               event zeek_init() {}
+               # Comment on next line.
+            """
+        )
+
+        expected = textwrap.dedent(
+            """\
+            event zeek_init()
+            \t{ }
+            # Comment on next line.
+            """
+        )
+
+        # We split out lines here to work around different line endings on Windows.
+        self.assertEqual(
+            self._format(code.encode()).decode().splitlines(), expected.splitlines()
+        )
 
 
 class TestFormattingErrors(unittest.TestCase):

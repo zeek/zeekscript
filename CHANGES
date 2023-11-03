@@ -1,3 +1,9 @@
+1.2.5 | 2023-11-03 12:19:41 +0100
+
+  * GH-62: Preserve newlines before comments (Benjamin Bannier, Corelight)
+
+  * Bump pre-commit hooks (Benjamin Bannier, Corelight)
+
 1.2.4-7 | 2023-09-22 08:41:33 +0200
 
   * Fix race in project Makefile (Benjamin Bannier, Corelight)
