@@ -1,3 +1,7 @@
+1.2.7 | 2023-11-07 08:50:02 +0100
+
+  * GH-51: Format intervals without space between value and unit (Benjamin Bannier, Corelight)
+
 1.2.6 | 2023-11-03 13:13:45 +0100
 
   * Fix test for Windows line endings (Benjamin Bannier, Corelight)

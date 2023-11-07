@@ -46,6 +46,11 @@ class TestFormatting(unittest.TestCase):
         result2 = self._format(result1)
         self.assertEqual(baseline, result2)
 
+    def test_interval(self):
+        self.assertEqual(self._format(b"1 sec;").rstrip(), b"1sec;")
+        self.assertEqual(self._format(b"1min;").rstrip(), b"1min;")
+        self.assertEqual(self._format(b"3.5  hrs;").rstrip(), b"3.5hrs;")
+
     def test_index_slice(self):
         # Use compact layout if neither side is a constant or id.
         self.assertEqual(self._format(b"xs[  0   :1  ];").rstrip(), b"xs[0:1];")

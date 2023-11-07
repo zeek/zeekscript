@@ -133,7 +133,7 @@ function a_function(a: int, b: count, another_argument_for_linewrapping: string)
 		{
 		print x;
 		}
-	timeout 5 sec
+	timeout 5sec
 		{
 		print "timeout";
 		}
