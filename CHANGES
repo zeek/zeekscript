@@ -1,3 +1,24 @@
+1.2.8 | 2023-12-01 11:28:07 +0100
+
+  * Skip building pypy wheels on Linux as well (Benjamin Bannier, Corelight)
+
+    This also shows segfaults now, so extend the skipped platforms.
+
+  * Bump pypa/cibuildwheel GH action (Benjamin Bannier, Corelight)
+
+  * Add macos-13, drop macos-11 for CI (Benjamin Bannier, Corelight)
+
+  * Remove `pyproject.toml` `[project]` section (Benjamin Bannier, Corelight)
+
+    It seems newer versions of the installation toolchain require either the
+    majority of keywords from `setup.py` declared in `pyproject.toml`, or
+    none at all (in that case there should be no `[project]` section at
+    all). As written the project configuration is rejected and it is
+    impossible to install this package.
+
+    Since we use a build controlled by `setup.py` remove the `[project]`
+    section in `pyproject.toml`.
+
 1.2.7 | 2023-11-07 08:50:02 +0100
 
   * GH-51: Format intervals without space between value and unit (Benjamin Bannier, Corelight)
