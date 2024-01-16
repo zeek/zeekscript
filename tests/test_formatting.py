@@ -97,6 +97,16 @@ class TestFormatting(unittest.TestCase):
             self._format(code.encode()).decode().splitlines(), expected.splitlines()
         )
 
+    def test_multiple_function_calls(self):
+        """Validates correct line break when a expression with function calls
+        need to be broken. This is a regression test for #69."""
+        code = "f(x) " + "+ f(x)" * 20 + ";"
+        formatted = self._format(code.encode()).decode()
+        self.assertTrue(
+            formatted.splitlines()[0].endswith("("),
+            "expression should not break function calls across lines",
+        )
+
 
 class TestFormattingErrors(unittest.TestCase):
     def _format(self, content):
