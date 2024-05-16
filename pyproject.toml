@@ -25,10 +25,11 @@ keywords = [
     "parsing",
 ]
 
-requires-python = ">=3.8"
+requires-python = ">=3.9"
 
 dependencies = [
     "tree-sitter == 0.22.3",
+    "tree-sitter-zeek == 0.1.1",
 ]
 
 [project.optional-dependencies]

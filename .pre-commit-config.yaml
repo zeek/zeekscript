@@ -14,7 +14,9 @@ repos:
   hooks:
   - id: pylint
     additional_dependencies:
-      - setuptools
+      - "setuptools"
+      - "tree-sitter>=0.21.3"
+      - "tree-sitter-zeek"
 
 - repo: https://github.com/psf/black
   rev: 23.10.1
