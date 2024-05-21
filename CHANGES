@@ -1,3 +1,7 @@
+1.2.9 | 2024-05-21 10:46:19 +0200
+
+  * Release 1.2.9.
+
 1.2.8-3 | 2024-05-21 10:46:09 +0200
 
   * Drop support for EOL python-3.7 (Benjamin Bannier, Corelight)
