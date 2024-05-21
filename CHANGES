@@ -1,3 +1,18 @@
+1.2.8-3 | 2024-05-21 10:46:09 +0200
+
+  * Drop support for EOL python-3.7 (Benjamin Bannier, Corelight)
+
+    This version has reached EOL, and tree-sitter stopped publishing updates
+    for this version some time ago.
+
+  * GH-73: Pin tree-sitter dependency (Benjamin Bannier, Corelight)
+
+    We use `tree-sitter.Language.build_library` which after a deprecation
+    cycle went away with tree-sitter-0.22.0. Pin it, at least until we have
+    migrated off that API.
+
+    Closes #73.
+
 1.2.8 | 2023-12-01 11:28:07 +0100
 
   * Skip building pypy wheels on Linux as well (Benjamin Bannier, Corelight)
