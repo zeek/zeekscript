@@ -79,8 +79,8 @@ setup(
         "install": InstallPlatlib,
     },
     distclass=BinaryDistribution,
-    setup_requires=["tree_sitter"],
-    install_requires=["tree_sitter"],
+    setup_requires=["tree_sitter==0.21.3"],
+    install_requires=["tree_sitter==0.21.3"],
     python_requires=">3.7.0",
     classifiers=[
         "Programming Language :: Python :: 3.7",
