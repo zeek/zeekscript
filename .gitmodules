@@ -1,3 +1,0 @@
-[submodule "tree-sitter-zeek"]
-	path = tree-sitter-zeek
-	url = https://github.com/zeek/tree-sitter-zeek

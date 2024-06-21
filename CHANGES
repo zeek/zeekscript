@@ -1,3 +1,26 @@
+1.2.9-5 | 2024-06-21 19:28:45 +0200
+
+  * Stop building binary wheels (Benjamin Bannier, Corelight)
+
+    With tree-sitter-zeek providing a proper Python package this project is
+    script-only.
+
+  * Use Python package for tree-sitter-zeek (Benjamin Bannier, Corelight)
+
+    tree-sitter-zeek now provides a Python package we can directly depend
+    on. With this we can avoid building and shipping the generated
+    tree-sitter bindings. By using the "official upstream API" we can also
+    simplify the way we parse input.
+
+  * Add dependabot config (Benjamin Bannier, Corelight)
+
+  * Move more settings into `pyproject.toml` (Benjamin Bannier, Corelight)
+
+    This patch largely empties out `setup.py` and instead uses keys
+    corresponding keys `pyproject.toml`. The only remaining use we have for
+    `setup.py` is to build Python bindings for tree-sitter-zeek and to
+    compute a dynamic version from the `VERSION` file tracked in the repo.
+
 1.2.9 | 2024-05-21 10:46:19 +0200
 
   * Release 1.2.9.

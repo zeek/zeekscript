@@ -5,11 +5,13 @@ import os
 import pathlib
 import sys
 
+import tree_sitter
+import tree_sitter_zeek
+
 from .error import FileError, ParserError
 from .formatter import Formatter
 from .node import Node
 from .output import OutputStream
-from .parser import Parser
 
 
 class Script:
@@ -55,7 +57,8 @@ class Script:
         except OSError as err:
             raise FileError(str(err)) from err
 
-        self.ts_tree = Parser().parse(self.source)
+        parser = tree_sitter.Parser(tree_sitter.Language(tree_sitter_zeek.language()))
+        self.ts_tree = parser.parse(self.source)
 
         if self.ts_tree is None or self.ts_tree.root_node is None:
             # This is a hard parse error and we need to bail. Smaller errors get

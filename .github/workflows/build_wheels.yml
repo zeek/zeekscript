@@ -25,34 +25,26 @@ jobs:
         with:
           path: dist/*.tar.gz
 
-  build_wheels:
-    name: Build wheels on ${{ matrix.os }}
-    runs-on: ${{ matrix.os }}
+  check:
+    name: Run tests
+    runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-20.04, windows-2019, macos-12, macos-13]
+        python-version: ["3.9", "3.10", "3.11", "3.12"]
     steps:
       - uses: actions/checkout@v3
+      - uses: actions/setup-python@v5
         with:
-          submodules: recursive
+          python-version: ${{ matrix.python-version }}
+      - name: Install dependencies
+        run: pip install .[dev]
+      - run: pytest
 
-      - name: Build and test wheels
-        uses: pypa/cibuildwheel@v2.16
-        env:
-          # We currently skip all PyPy builds due to hard exits and
-          # segfaults of the Python interpreter with some input trees.
-          CIBW_SKIP: pp*
-          CIBW_TEST_REQUIRES: pytest
-          CIBW_TEST_COMMAND: python -mpytest {project}
-          CIBW_TEST_COMMAND_WINDOWS: python.exe -mpytest {project}
 
-      - uses: actions/upload-artifact@v3
-        with:
-          path: ./wheelhouse/*.whl
 
   upload_all:
-    needs: [build_sdist, build_wheels]
+    needs: [build_sdist, check]
     runs-on: ubuntu-latest
     if: github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags/v')
     steps:

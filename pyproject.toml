@@ -1,3 +1,48 @@
 [build-system]
-requires = [ "setuptools", "wheel" ]
-build-backend = "setuptools.build_meta"
+requires = ["setuptools"]
+
+[project]
+name = "zeekscript"
+dynamic = ["version"]
+description = "A Zeek script formatter and analyzer"
+readme = "README.md"
+
+classifiers=[
+    "Programming Language :: Python :: 3.7",
+    "License :: OSI Approved :: BSD License",
+    "Topic :: Utilities",
+]
+
+keywords = [
+    "zeek",
+    "scripts",
+    "language",
+    "formatter",
+    "formatting",
+    "indenter",
+    "indenting",
+    "parsing",
+]
+
+requires-python = ">=3.9"
+
+dependencies = [
+    "tree-sitter == 0.22.3",
+    "tree-sitter-zeek == 0.1.1",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.1.1",
+]
+
+[[project.maintainers]]
+name = "The Zeek Project"
+email="info@zeek.org"
+
+[project.urls]
+Repository = "https://github.com/zeek/zeekscript"
+
+[tool.setuptools]
+packages = ["zeekscript"]
+script-files = ["zeek-format", "zeek-script"]
