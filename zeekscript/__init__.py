@@ -1,5 +1,5 @@
 """Wrapper around more low-level tests."""
-__version__ = "1.2.9-5"
+__version__ = "1.2.9-7"
 __all__ = ["cli", "error", "formatter", "node", "output", "script"]
 
 from .cli import *
