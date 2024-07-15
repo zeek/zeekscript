@@ -33,16 +33,18 @@ class TestRecursion(unittest.TestCase):
 
     # pylint: disable-next=invalid-name
     def assertEqualContent(self, file1, file2):
-        with open(file1, encoding="utf-8") as hdl1, open(
-            file2, encoding="utf-8"
-        ) as hdl2:
+        with (
+            open(file1, encoding="utf-8") as hdl1,
+            open(file2, encoding="utf-8") as hdl2,
+        ):
             self.assertEqual(hdl1.read(), hdl2.read())
 
     # pylint: disable-next=invalid-name
     def assertNotEqualContent(self, file1, file2):
-        with open(file1, encoding="utf-8") as hdl1, open(
-            file2, encoding="utf-8"
-        ) as hdl2:
+        with (
+            open(file1, encoding="utf-8") as hdl1,
+            open(file2, encoding="utf-8") as hdl2,
+        ):
             self.assertNotEqual(hdl1.read(), hdl2.read())
 
     def test_recursive_formatting(self):
@@ -51,9 +53,10 @@ class TestRecursion(unittest.TestCase):
         args = parser.parse_args(["-i", "-r", "a"])
 
         # Python < 3.10 does not yet support parenthesized context managers:
-        with unittest.mock.patch(
-            "sys.stdout", new=io.StringIO()
-        ) as out, unittest.mock.patch("sys.stderr", new=io.StringIO()):
+        with (
+            unittest.mock.patch("sys.stdout", new=io.StringIO()) as out,
+            unittest.mock.patch("sys.stderr", new=io.StringIO()),
+        ):
             ret = args.run_cmd(args)
             self.assertEqual(ret, 0)
             self.assertEqual(out.getvalue(), "4 files processed, 0 errors\n")
@@ -80,9 +83,10 @@ class TestRecursion(unittest.TestCase):
         zeekscript.add_format_cmd(parser)
         args = parser.parse_args(["-ir"])
 
-        with unittest.mock.patch("sys.stdout", new=io.StringIO()), unittest.mock.patch(
-            "sys.stderr", new=io.StringIO()
-        ) as err:
+        with (
+            unittest.mock.patch("sys.stdout", new=io.StringIO()),
+            unittest.mock.patch("sys.stderr", new=io.StringIO()) as err,
+        ):
             ret = args.run_cmd(args)
             self.assertEqual(ret, 0)
             self.assertEqual(
@@ -95,9 +99,10 @@ class TestRecursion(unittest.TestCase):
         zeekscript.add_format_cmd(parser)
         args = parser.parse_args(["-i", "a"])
 
-        with unittest.mock.patch("sys.stdout", new=io.StringIO()), unittest.mock.patch(
-            "sys.stderr", new=io.StringIO()
-        ) as err:
+        with (
+            unittest.mock.patch("sys.stdout", new=io.StringIO()),
+            unittest.mock.patch("sys.stderr", new=io.StringIO()) as err,
+        ):
             ret = args.run_cmd(args)
             self.assertEqual(ret, 0)
             self.assertEqual(
@@ -110,9 +115,10 @@ class TestRecursion(unittest.TestCase):
         zeekscript.add_format_cmd(parser)
         args = parser.parse_args(["-r", "a"])
 
-        with unittest.mock.patch("sys.stdout", new=io.StringIO()), unittest.mock.patch(
-            "sys.stderr", new=io.StringIO()
-        ) as err:
+        with (
+            unittest.mock.patch("sys.stdout", new=io.StringIO()),
+            unittest.mock.patch("sys.stderr", new=io.StringIO()) as err,
+        ):
             ret = args.run_cmd(args)
             self.assertEqual(ret, 1)
             self.assertEqual(

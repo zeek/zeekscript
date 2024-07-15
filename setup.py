@@ -1,4 +1,5 @@
 """Installation setup."""
+
 from setuptools import setup
 
 

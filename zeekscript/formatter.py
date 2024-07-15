@@ -14,6 +14,7 @@ comments). The CST features such elements, whereas the AST does not. You can
 examine the difference by playing with `zeek-script parse ...` vs `zeek-script
 parse --concrete`.
 """
+
 import enum
 import inspect
 import os
