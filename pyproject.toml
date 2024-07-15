@@ -27,13 +27,14 @@ keywords = [
 requires-python = ">=3.9"
 
 dependencies = [
-    "tree-sitter == 0.22.3",
-    "tree-sitter-zeek == 0.1.1",
+    "tree-sitter==0.22.3",
+    "tree-sitter-zeek==0.1.1",
 ]
 
 [project.optional-dependencies]
 dev = [
-    "pytest>=8.1.1",
+    "pytest==8.2.2",
+    "syrupy==4.6.1",
 ]
 
 [[project.maintainers]]
