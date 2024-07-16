@@ -1,10 +1,10 @@
 """Helpers for the various test_*.py files."""
+
 import os
 import sys
 
 TESTS = os.path.dirname(os.path.realpath(__file__))
 ROOT = os.path.normpath(os.path.join(TESTS, ".."))
-DATA = os.path.normpath(os.path.join(TESTS, "data"))
 
 # Prepend the tree's root folder to the module searchpath so we find zeekscript
 # via it. This allows tests to run without package installation. (We do need a
@@ -36,3 +36,15 @@ def normalize(content):
         out = content
 
     return fix_lineseps(out)
+
+
+# A small unformatted source sample for general testing.
+SAMPLE_UNFORMATTED = """\
+global    foo=1   +2    ;
+"""
+
+
+# A small formatted source sample for general testing.
+SAMPLE_FORMATTED = """\
+global foo = 1 + 2;
+"""

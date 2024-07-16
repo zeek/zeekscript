@@ -1,8 +1,8 @@
-exclude: tests/data
+exclude: tests/(data|__snapshots__|samples)
 
 repos:
 - repo: https://github.com/pre-commit/pre-commit-hooks
-  rev: v4.5.0
+  rev: v4.6.0
   hooks:
   - id: trailing-whitespace
   - id: end-of-file-fixer
@@ -10,26 +10,28 @@ repos:
   - id: check-added-large-files
 
 - repo: https://github.com/PyCQA/pylint
-  rev: v3.0.1
+  rev: v3.2.5
   hooks:
   - id: pylint
     additional_dependencies:
+      - "pytest==8.2.2"
+      - "syrupy==4.6.1"
       - "setuptools"
-      - "tree-sitter>=0.21.3"
-      - "tree-sitter-zeek"
+      - "tree-sitter==0.22.3"
+      - "tree-sitter-zeek==0.1.1"
 
 - repo: https://github.com/psf/black
-  rev: 23.10.1
+  rev: 24.4.2
   hooks:
   - id: black
 
 - repo: https://github.com/asottile/pyupgrade
-  rev: v3.15.0
+  rev: v3.16.0
   hooks:
   - id: pyupgrade
     args: ["--py37-plus"]
 
 - repo: https://github.com/igorshubovych/markdownlint-cli
-  rev: v0.37.0
+  rev: v0.41.0
   hooks:
   - id: markdownlint-fix

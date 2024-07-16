@@ -143,8 +143,7 @@ class Node:
             node = self
             while node:
                 if node.prev_cst_siblings:
-                    if node.prev_cst_siblings[0].start_byte < start:
-                        start = node.prev_cst_siblings[0].start_byte
+                    start = max(start, node.prev_cst_siblings[0].start_byte)
                     # No need to dig into child nodes, they won't have
                     # any earlier content.
                     break
@@ -153,8 +152,7 @@ class Node:
             node = self
             while node:
                 if node.next_cst_siblings:
-                    if node.next_cst_siblings[-1].end_byte > end:
-                        end = node.next_cst_siblings[-1].end_byte
+                    end = max(end, node.next_cst_siblings[-1].end_byte)
                     # No need to dig into child nodes, they won't have
                     # any later content.
                     break

@@ -15,15 +15,6 @@ from testutils import zeekscript
 
 
 class TestFormatting(unittest.TestCase):
-    def _get_input_and_baseline(self, filename):
-        with open(os.path.join(tu.DATA, filename), "rb") as hdl:
-            input_ = hdl.read()
-
-        with open(os.path.join(tu.DATA, filename + ".out"), "rb") as hdl:
-            output = hdl.read()
-
-        return input_, output
-
     def _format(self, content):
         script = zeekscript.Script(io.BytesIO(content))
 
@@ -34,17 +25,6 @@ class TestFormatting(unittest.TestCase):
         script.format(buf)
 
         return buf.getvalue()
-
-    def test_file_formatting(self):
-        input_, baseline = self._get_input_and_baseline("test1.zeek")
-
-        # Format the input data and compare to baseline:
-        result1 = self._format(input_)
-        self.assertEqual(baseline, result1)
-
-        # Format the result again. There should be no change.
-        result2 = self._format(result1)
-        self.assertEqual(baseline, result2)
 
     def test_interval(self):
         self.assertEqual(self._format(b"1 sec;").rstrip(), b"1sec;")
@@ -94,7 +74,8 @@ class TestFormatting(unittest.TestCase):
 
         # We split out lines here to work around different line endings on Windows.
         self.assertEqual(
-            self._format(code.encode()).decode().splitlines(), expected.splitlines()
+            self._format(code.encode("UTF-8")).decode().splitlines(),
+            expected.splitlines(),
         )
 
 
@@ -213,34 +194,27 @@ class TestNewlineFormatting(unittest.TestCase):
     # This test verifies correct processing when line endings in the input
     # differ from that normally used by the platform.
 
-    def _get_formatted_and_baseline(self, filename):
+    def test_file_formatting(self):
+        given = tu.SAMPLE_UNFORMATTED.encode("utf-8")
         # Swap line endings for something not native to the platform:
-        with open(os.path.join(tu.DATA, filename), "rb") as hdl:
-            data = hdl.read()
-            if zeekscript.Formatter.NL == b"\n":
-                # Turn everything to \r\n, even if mixed
-                data = data.replace(b"\r\n", b"\n")
-                data = data.replace(b"\n", b"\r\n")
-            else:
-                data = data.replace(b"\r\n", b"\n")
+        if zeekscript.Formatter.NL == b"\n":
+            # Turn everything to \r\n, even if mixed
+            given = given.replace(b"\r\n", b"\n")
+            given = given.replace(b"\n", b"\r\n")
+        else:
+            given = given.replace(b"\r\n", b"\n")
 
-        buf = io.BytesIO(data)
-
+        buf = io.BytesIO(given)
         script = zeekscript.Script(buf)
         script.parse()
 
         buf = io.BytesIO()
         script.format(buf)
 
-        with open(os.path.join(tu.DATA, filename + ".out"), "rb") as hdl:
-            result_wanted = hdl.read()
+        given = buf.getvalue()
 
-        result_is = buf.getvalue()
-        return result_wanted, result_is
-
-    def test_file_formatting(self):
-        result_wanted, result_is = self._get_formatted_and_baseline("test1.zeek")
-        self.assertEqual(result_wanted, result_is)
+        expected = tu.SAMPLE_FORMATTED.encode("utf-8")
+        self.assertEqual(expected, given)
 
 
 class TestScriptConstruction(unittest.TestCase):
