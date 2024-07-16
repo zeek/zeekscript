@@ -22,30 +22,28 @@ class TestRecursion(unittest.TestCase):
         shutil.rmtree("a", ignore_errors=True)
         os.makedirs(join("a", "b", "c"))
 
-        shutil.copy(join(tu.DATA, "test1.zeek"), join("a", "test1.zeek"))
-        shutil.copy(join(tu.DATA, "test1.zeek"), join("a", "test2.zeek"))
-        shutil.copy(join(tu.DATA, "test1.zeek"), join("a", "b", "test3.txt"))
-        shutil.copy(join(tu.DATA, "test1.zeek"), join("a", "b", "test4.zeek"))
-        shutil.copy(join(tu.DATA, "test1.zeek"), join("a", "b", "c", "test5.zeek"))
+        for f in (
+            join("a", "test1.zeek"),
+            join("a", "test2.zeek"),
+            join("a", "b", "test3.txt"),
+            join("a", "b", "test4.zeek"),
+            join("a", "b", "c", "test5.zeek"),
+        ):
+            with open(f, "w", encoding="utf-8") as h:
+                h.write(tu.SAMPLE_UNFORMATTED)
 
     def tearDown(self):
         shutil.rmtree("a", ignore_errors=True)
 
     # pylint: disable-next=invalid-name
-    def assertEqualContent(self, file1, file2):
-        with (
-            open(file1, encoding="utf-8") as hdl1,
-            open(file2, encoding="utf-8") as hdl2,
-        ):
-            self.assertEqual(hdl1.read(), hdl2.read())
+    def assertEqualContent(self, file1, content_expected):
+        with open(file1, encoding="utf-8") as hdl1:
+            self.assertEqual(hdl1.read(), content_expected)
 
     # pylint: disable-next=invalid-name
-    def assertNotEqualContent(self, file1, file2):
-        with (
-            open(file1, encoding="utf-8") as hdl1,
-            open(file2, encoding="utf-8") as hdl2,
-        ):
-            self.assertNotEqual(hdl1.read(), hdl2.read())
+    def assertNotEqualContent(self, file1, content_expected):
+        with open(file1, encoding="utf-8") as hdl1:
+            self.assertNotEqual(hdl1.read(), content_expected)
 
     def test_recursive_formatting(self):
         parser = argparse.ArgumentParser()
@@ -62,20 +60,25 @@ class TestRecursion(unittest.TestCase):
             self.assertEqual(out.getvalue(), "4 files processed, 0 errors\n")
 
         self.assertEqualContent(
-            join(tu.DATA, "test1.zeek.out"), join("a", "test1.zeek")
+            join("a", "test1.zeek"),
+            tu.SAMPLE_FORMATTED,
         )
         self.assertEqualContent(
-            join(tu.DATA, "test1.zeek.out"), join("a", "test2.zeek")
+            join("a", "test2.zeek"),
+            tu.SAMPLE_FORMATTED,
         )
         self.assertEqualContent(
-            join(tu.DATA, "test1.zeek.out"), join("a", "b", "test4.zeek")
+            join("a", "b", "test4.zeek"),
+            tu.SAMPLE_FORMATTED,
         )
         self.assertEqualContent(
-            join(tu.DATA, "test1.zeek.out"), join("a", "b", "c", "test5.zeek")
+            join("a", "b", "c", "test5.zeek"),
+            tu.SAMPLE_FORMATTED,
         )
 
         self.assertNotEqualContent(
-            join(tu.DATA, "test1.zeek.out"), join("a", "b", "test3.txt")
+            join("a", "b", "test3.txt"),
+            tu.SAMPLE_FORMATTED,
         )
 
     def test_recurse_inplace(self):
