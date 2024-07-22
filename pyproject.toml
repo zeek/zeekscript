@@ -33,7 +33,7 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = [
-    "pytest==8.2.2",
+    "pytest==8.3.1",
     "syrupy==4.6.1",
 ]
 
