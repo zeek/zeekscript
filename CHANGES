@@ -1,3 +1,121 @@
+1.2.9-32 | 2024-09-16 11:50:13 +0000
+
+  * build(deps): bump pytest from 8.3.2 to 8.3.3 (dependabot[bot])
+
+    Bumps [pytest](https://github.com/pytest-dev/pytest) from 8.3.2 to 8.3.3.
+    - [Release notes](https://github.com/pytest-dev/pytest/releases)
+    - [Changelog](https://github.com/pytest-dev/pytest/blob/main/CHANGELOG.rst)
+    - [Commits](https://github.com/pytest-dev/pytest/compare/8.3.2...8.3.3)
+
+    ---
+    updated-dependencies:
+    - dependency-name: pytest
+      dependency-type: direct:production
+      update-type: version-update:semver-patch
+    ...
+
+    Signed-off-by: dependabot[bot] <support@github.com>
+
+  * build(deps-dev): bump tree-sitter from 0.22.3 to 0.23.0 (dependabot[bot])
+
+    Bumps [tree-sitter](https://github.com/tree-sitter/py-tree-sitter) from 0.22.3 to 0.23.0.
+    - [Release notes](https://github.com/tree-sitter/py-tree-sitter/releases)
+    - [Commits](https://github.com/tree-sitter/py-tree-sitter/compare/v0.22.3...v0.23.0)
+
+    ---
+    updated-dependencies:
+    - dependency-name: tree-sitter
+      dependency-type: direct:development
+      update-type: version-update:semver-minor
+    ...
+
+    Signed-off-by: dependabot[bot] <support@github.com>
+
+  * build(deps): bump syrupy from 4.6.1 to 4.7.1 (dependabot[bot])
+
+    Bumps [syrupy](https://github.com/syrupy-project/syrupy) from 4.6.1 to 4.7.1.
+    - [Release notes](https://github.com/syrupy-project/syrupy/releases)
+    - [Changelog](https://github.com/syrupy-project/syrupy/blob/main/CHANGELOG.md)
+    - [Commits](https://github.com/syrupy-project/syrupy/compare/v4.6.1...v4.7.1)
+
+    ---
+    updated-dependencies:
+    - dependency-name: syrupy
+      dependency-type: direct:production
+      update-type: version-update:semver-minor
+    ...
+
+    Signed-off-by: dependabot[bot] <support@github.com>
+
+  * build(deps): bump pytest from 8.3.1 to 8.3.2 (dependabot[bot])
+
+    Bumps [pytest](https://github.com/pytest-dev/pytest) from 8.3.1 to 8.3.2.
+    - [Release notes](https://github.com/pytest-dev/pytest/releases)
+    - [Changelog](https://github.com/pytest-dev/pytest/blob/main/CHANGELOG.rst)
+    - [Commits](https://github.com/pytest-dev/pytest/compare/8.3.1...8.3.2)
+
+    ---
+    updated-dependencies:
+    - dependency-name: pytest
+      dependency-type: direct:production
+      update-type: version-update:semver-patch
+    ...
+
+    Signed-off-by: dependabot[bot] <support@github.com>
+
+  * Bump pytest from 8.2.2 to 8.3.1 (dependabot[bot])
+
+    Bumps [pytest](https://github.com/pytest-dev/pytest) from 8.2.2 to 8.3.1.
+    - [Release notes](https://github.com/pytest-dev/pytest/releases)
+    - [Changelog](https://github.com/pytest-dev/pytest/blob/main/CHANGELOG.rst)
+    - [Commits](https://github.com/pytest-dev/pytest/compare/8.2.2...8.3.1)
+
+    ---
+    updated-dependencies:
+    - dependency-name: pytest
+      dependency-type: direct:production
+      update-type: version-update:semver-minor
+    ...
+
+    Signed-off-by: dependabot[bot] <support@github.com>
+
+  * Completely remove old `test/data` (Benjamin Bannier, Corelight)
+
+    These test files were used in a couple of tests but didn't need to be
+    standalone. This patch moves them into `testutils`.
+
+  * Bump pylint (Benjamin Bannier, Corelight)
+
+  * Bump pre-commit hooks. (Benjamin Bannier, Corelight)
+
+    All source changes in this patch are created automatically from `black`.
+
+  * Simplify general test data (Benjamin Bannier, Corelight)
+
+    This test file is used for e.g., CLI tests and we want to keep it even
+    with snapshot tests. This patch simplifies it so it is easier to
+    maintain while still performing some formatting.
+
+  * Seed snapshot tests with `test1.zeek` (Benjamin Bannier, Corelight)
+
+  * Add test for snapshot testing (Benjamin Bannier, Corelight)
+
+    We are currently using a huge file `tests/data/test1.zeek` for manual
+    "snapshot testing". The idea is that one would add samples to the file
+    and then manually update the baseline `tests/data/test1.zeek.out`. As
+    this file grows this manual process becomes very cumbersome.
+    Additionally when the test fails it can be very hard to identify which
+    parts of the baseline differed.
+
+    This patch introduces a dedicated test `test_samples` which automates
+    this. The idea is that one would add new compact samples to
+    `test/samples` which the test discovers automatically. When the test is
+    run equality assertions are automatically routed to checks against
+    managed snapshots which can be updated with `pytest --snapshot-update`.
+    This should reduce overhead from adding/updating snapshots which should
+    make it easier to add coverage. We will migrate the existing tests over
+    in follow-up commits.
+
 1.2.9-15 | 2024-06-21 19:44:29 +0200
 
   * Bump actions/setup-python from 4 to 5 (dependabot[bot])
