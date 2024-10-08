@@ -1,3 +1,7 @@
+1.2.9-38 | 2024-10-08 15:38:27 +0200
+
+  * build(deps): bump syrupy from 4.7.1 to 4.7.2 (dependabot[bot])
+
 1.2.9-36 | 2024-09-16 16:22:23 +0200
 
   * Bump pre-commit hooks (Benjamin Bannier, Corelight)

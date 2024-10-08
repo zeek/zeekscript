@@ -15,7 +15,7 @@ repos:
   - id: pylint
     additional_dependencies:
       - "pytest==8.3.3"
-      - "syrupy==4.7.1"
+      - "syrupy==4.7.2"
       - "setuptools"
       - "tree-sitter==0.23.0"
       - "tree-sitter-zeek==0.1.1"
