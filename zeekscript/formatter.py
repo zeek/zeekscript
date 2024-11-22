@@ -1027,6 +1027,12 @@ class StmtFormatter(TypedInitializerFormatter):
             self._format_child()  # <preproc_directive>
             self._write_nl()
 
+        elif start_token == "assert":
+            self._format_child()  # 'assert'
+            self._write_sp()
+            self._format_children()
+            self._write_nl()
+
         elif start_token == ";":
             self._format_child(hints=Hint.NO_LB_BEFORE)  # ';'
             self._write_nl()
@@ -1085,6 +1091,10 @@ class EventHdrFormatter(Formatter):
         if self._get_child_name() == "expr_list":
             self._format_child()  # <expr_list>
         self._format_child(hints=Hint.NO_LB_BEFORE)  # ')'
+
+
+class AssertMsgFormatter(SpaceSeparatedFormatter):
+    pass
 
 
 class ExprFormatter(SpaceSeparatedFormatter, ComplexSequenceFormatterMixin):

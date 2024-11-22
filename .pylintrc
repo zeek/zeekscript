@@ -8,4 +8,5 @@ disable=
   too-many-branches,
   too-many-instance-attributes,
   too-many-lines,
+  too-many-positional-arguments,
   too-many-statements,
