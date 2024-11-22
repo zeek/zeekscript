@@ -173,4 +173,9 @@ function no_comments()
        {
        }
 
+# Assert.
+function foo() {
+assert 1 == 2, "One is not two";
+assert 1 == 1;
+}
 
