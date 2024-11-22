@@ -24,7 +24,7 @@ keywords = [
     "parsing",
 ]
 
-requires-python = ">=3.9"
+requires-python = ">= 3.9"
 
 dependencies = [
     "tree-sitter==0.23.2",
