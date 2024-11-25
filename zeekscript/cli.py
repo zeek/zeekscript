@@ -7,8 +7,8 @@ import sys
 import traceback
 
 from .error import Error, ParserError
-from .script import Script
 from .output import print_error
+from .script import Script
 
 FILE_HELP = (
     'Use "-" to specify stdin as a filename. Omitting '
@@ -48,9 +48,9 @@ def cmd_format(args):
         elif os.path.isdir(fname):
             if args.recursive:  # implies --inplace
                 for dirpath, _, filenames in os.walk(fname):
-                    filenames = [n for n in filenames if n.endswith(".zeek")]
-                    filenames = [os.path.join(dirpath, n) for n in filenames]
-                    scripts.extend(filenames)
+                    names = [n for n in filenames if n.endswith(".zeek")]
+                    names = [os.path.join(dirpath, n) for n in names]
+                    scripts.extend(names)
             else:
                 print_error(
                     f'warning: "{fname}" is a directory but --recursive not set, skipping it'
@@ -88,7 +88,6 @@ def cmd_format(args):
             print_error("parsing error: " + str(err))
             do_write(script.source)
             return 1
-        # pylint: disable-next=broad-exception-caught
         except Exception as err:
             print_error("internal error: " + str(err))
             traceback.print_exc(file=sys.stderr)
@@ -99,7 +98,6 @@ def cmd_format(args):
 
         try:
             script.format(buf, not args.no_linebreaks)
-        # pylint: disable-next=broad-exception-caught
         except Exception as err:
             print_error("internal error: " + str(err))
             traceback.print_exc(file=sys.stderr)

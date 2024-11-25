@@ -6,7 +6,6 @@ import sys
 from .formatter import Formatter, Hint
 
 
-# pylint: disable-next=too-few-public-methods
 class Output:
     """A chunk of data to write out.
 
@@ -117,7 +116,6 @@ class OutputStream:
         after newlines, depending on line-breaking hints present in the
         formatter objects linked from the Output instances.
         """
-        # pylint: disable=too-many-locals
 
         # Without linebreaking active, just flush the buffer.
         if not self._enable_linebreaks or not self._use_linebreaks:

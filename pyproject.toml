@@ -47,3 +47,16 @@ Repository = "https://github.com/zeek/zeekscript"
 [tool.setuptools]
 packages = ["zeekscript"]
 script-files = ["zeek-format", "zeek-script"]
+
+[tool.ruff.lint]
+select = ["PL", "UP", "RUF", "N", "I"]
+ignore = ["PLR0912", "PLR0915", "PLR2004"]
+
+[tool.ruff.lint.pep8-naming]
+extend-ignore-names = [
+    "assertEqualContent",
+    "assertNotEqualContent",
+    "assertFormatting",
+    "assertTreeBinary",
+    "assertTreeText",
+]

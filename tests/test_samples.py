@@ -14,7 +14,6 @@ from pathlib import Path
 import pytest
 from syrupy.assertion import SnapshotAssertion
 from syrupy.extensions.single_file import SingleFileSnapshotExtension
-
 from testutils import zeekscript
 
 SAMPLES_DIR = Path(__file__).parent / "samples"
@@ -23,7 +22,7 @@ SAMPLES_DIR = Path(__file__).parent / "samples"
 # Use a custom snapshot fixture so we emit one file per generated test case
 # instead of one per module.
 @pytest.fixture
-def snapshot(snapshot: SnapshotAssertion):  # pylint: disable=redefined-outer-name
+def snapshot(snapshot: SnapshotAssertion):
     return snapshot.use_extension(SingleFileSnapshotExtension)
 
 
@@ -47,7 +46,6 @@ def _get_samples():
 
 # For each file in `SAMPLES_DIR` test formatting of the file.
 @pytest.mark.parametrize("sample", _get_samples())
-# pylint: disable-next=redefined-outer-name
 def test_samples(sample: Path, snapshot: SnapshotAssertion):
     input_ = zeekscript.Script(sample)
 
