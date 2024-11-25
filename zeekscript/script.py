@@ -392,8 +392,7 @@ class Script:
                     and last_child
                     and (
                         # Accept newline if it ends a comment or follows an error node.
-                        last_child.is_comment()
-                        or last_child.is_error()
+                        last_child.is_comment() or last_child.is_error()
                     )
                 ):
                     ast_node.next_cst_siblings.append(child)
@@ -470,9 +469,9 @@ class Script:
                 node.next_cst_sibling = None
 
                 if node.children[-1].next_cst_siblings:
-                    node.children[-1].next_cst_siblings[-1].next_cst_sibling = (
-                        node.next_cst_siblings[0]
-                    )
+                    node.children[-1].next_cst_siblings[
+                        -1
+                    ].next_cst_sibling = node.next_cst_siblings[0]
                     node.next_cst_siblings[0].prev_cst_sibling = node.children[
                         -1
                     ].next_cst_siblings[-1]

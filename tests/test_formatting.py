@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Formatting-related tests."""
+
 import io
 import os
 import pathlib

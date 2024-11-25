@@ -5,6 +5,7 @@ This is a tool for processing Zeek scripts. It currently supports formatting
 scripts according to codified rules (no optionas at all atm), and showing a
 parse tree for the script.
 """
+
 # https://pypi.org/project/argcomplete/#global-completion
 # PYTHON_ARGCOMPLETE_OK
 import argparse

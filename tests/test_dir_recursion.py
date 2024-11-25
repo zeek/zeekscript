@@ -1,5 +1,6 @@
 #! /usr/bin/env python
 """Tests related to recursive source processing."""
+
 import argparse
 import io
 import os

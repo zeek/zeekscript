@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Tests for the zeekscript.Script class."""
+
 import io
 import unittest
 
