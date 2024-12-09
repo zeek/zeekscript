@@ -1,3 +1,22 @@
+1.2.9-56 | 2024-12-09 14:00:22 +0100
+
+  * Fix formatting of nodes with no non-error children (Benjamin Bannier, Corelight)
+
+    When formatting a `Node`'s child we allowed omitting passing in of the
+    child to format. In that case the user would pass a `None` child and we
+    would attempt to default to formatting the next non-error child. The
+    helper we used to get that child could still return `None` (in case
+    there were only error children remaining, or on incorrect use of the
+    function when the node had no children), but we never handled that case;
+    instead we would have surfaced an `AttributeError` like
+
+    ```
+    AttributeError: 'NoneType' object has no attribute 'prev_error_siblings'
+    ```
+
+    With this path we explicitly skip any child formatting if we found no
+    child to be formatted.
+
 1.2.9-54 | 2024-12-09 14:00:03 +0100
 
   * Bump pre-commit hooks (Benjamin Bannier, Corelight)
