@@ -60,7 +60,7 @@ def cmd_format(args):
             scripts.append(fname)
 
         else:
-            print_error('warning: skipping "{}"; not a supported file type')
+            print_error(f'warning: skipping "{fname}"; not a supported file type')
 
     def do_write(source):
         with open(ofname, "wb") if ofname else sys.stdout.buffer as ostream:
