@@ -149,6 +149,8 @@ class Formatter:
     def _format_child(self, child=None, indent=False, hints=None):
         if child is None:
             child = self._next_child()
+        if child is None:
+            return
 
         # XXX Pretty subtle that we handle the child's surrounding context here,
         # in the parent. Might have to refactor in the future.
