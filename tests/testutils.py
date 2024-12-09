@@ -1,17 +1,8 @@
 """Helpers for the various test_*.py files."""
 
 import os
-import sys
 
-TESTS = os.path.dirname(os.path.realpath(__file__))
-ROOT = os.path.normpath(os.path.join(TESTS, ".."))
-
-# Prepend the tree's root folder to the module searchpath so we find zeekscript
-# via it. This allows tests to run without package installation. (We do need a
-# package build though, so the .so bindings library gets created.)
-sys.path.insert(0, ROOT)
-
-import zeekscript  # pylint: disable=wrong-import-position
+import zeekscript
 
 
 def fix_lineseps(content):

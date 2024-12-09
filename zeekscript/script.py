@@ -109,8 +109,9 @@ class Script:
 
         for node, _ in self.root.traverse():
             snippet = self.source[node.start_byte : node.end_byte]
-            if len(snippet) > 50:
-                snippet = snippet[:50] + b"[...]"
+            max_snippet_length = 50
+            if len(snippet) > max_snippet_length:
+                snippet = snippet[:max_snippet_length] + b"[...]"
 
             if node.type == "ERROR":
                 msg = (
@@ -255,13 +256,12 @@ class Script:
             )
 
         def do_traverse(ostream):
-            # Pylint wants def instead of lambdas here, which black then wants
-            # to format, turning two simple lines into an abomination. Suppress:
-            # pylint: disable=unnecessary-lambda-assignment
-            if isinstance(ostream, io.TextIOBase):
-                encode = lambda x: x + os.linesep
-            else:
-                encode = lambda x: x.encode("UTF-8") + Formatter.NL
+            def encode(x):
+                if isinstance(ostream, io.TextIOBase):
+                    return x + os.linesep
+                else:
+                    return x.encode("UTF-8") + Formatter.NL
+
             stringifier = node_stringifier if node_stringifier else node_str
             for node, nesting in self.traverse(include_cst):
                 ostream.write(encode(stringifier(node, nesting, self)))
@@ -392,8 +392,7 @@ class Script:
                     and last_child
                     and (
                         # Accept newline if it ends a comment or follows an error node.
-                        last_child.is_comment()
-                        or last_child.is_error()
+                        last_child.is_comment() or last_child.is_error()
                     )
                 ):
                     ast_node.next_cst_siblings.append(child)
@@ -470,9 +469,9 @@ class Script:
                 node.next_cst_sibling = None
 
                 if node.children[-1].next_cst_siblings:
-                    node.children[-1].next_cst_siblings[-1].next_cst_sibling = (
-                        node.next_cst_siblings[0]
-                    )
+                    node.children[-1].next_cst_siblings[
+                        -1
+                    ].next_cst_sibling = node.next_cst_siblings[0]
                     node.next_cst_siblings[0].prev_cst_sibling = node.children[
                         -1
                     ].next_cst_siblings[-1]

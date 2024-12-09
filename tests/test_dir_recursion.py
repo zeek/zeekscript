@@ -1,18 +1,15 @@
 #! /usr/bin/env python
 """Tests related to recursive source processing."""
+
 import argparse
 import io
 import os
 import shutil
 import unittest
 import unittest.mock
-
 from os.path import join
 
-# Sets up sys.path and provides helpers
 import testutils as tu
-
-# This imports the tree-local zeekscript
 from testutils import zeekscript
 
 
@@ -35,12 +32,10 @@ class TestRecursion(unittest.TestCase):
     def tearDown(self):
         shutil.rmtree("a", ignore_errors=True)
 
-    # pylint: disable-next=invalid-name
     def assertEqualContent(self, file1, content_expected):
         with open(file1, encoding="utf-8") as hdl1:
             self.assertEqual(hdl1.read(), content_expected)
 
-    # pylint: disable-next=invalid-name
     def assertNotEqualContent(self, file1, content_expected):
         with open(file1, encoding="utf-8") as hdl1:
             self.assertNotEqual(hdl1.read(), content_expected)

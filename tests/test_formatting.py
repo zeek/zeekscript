@@ -1,11 +1,12 @@
 #!/usr/bin/env python
 """Formatting-related tests."""
+
 import io
 import os
 import pathlib
 import sys
-import unittest
 import textwrap
+import unittest
 
 # Sets up sys.path and provides helpers
 import testutils as tu
@@ -93,7 +94,6 @@ class TestFormattingErrors(unittest.TestCase):
 
         return buf.getvalue(), script.get_error()
 
-    # pylint: disable-next=invalid-name
     def assertFormatting(self, input_, baseline, error_baseline):
         # Verify formatting and reported error
         result1, error1 = self._format(tu.normalize(input_))

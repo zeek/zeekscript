@@ -1,3 +1,82 @@
+1.2.9-54 | 2024-12-09 14:00:03 +0100
+
+  * Bump pre-commit hooks (Benjamin Bannier, Corelight)
+
+  * Switch linting to ruff (Benjamin Bannier, Corelight)
+
+    This patch switches to ruff from pylint. We migrate a few suppressions
+    from pylint's suppression format to the more general format used by
+    ruff. Additionally we fix a few issues, e.g., around import sorting and
+    globbing, shadowing, unnecessary import hacks for test imports and
+    general style.
+
+  * Switch formatting to ruff (Benjamin Bannier, Corelight)
+
+    The default formatting rules build into ruff seem to work well enough
+    for us, so we make no adjustments.
+
+  * Fix broken f-string in error output (Benjamin Bannier, Corelight)
+
+  * build(deps): bump pytest from 8.3.3 to 8.3.4 (dependabot[bot])
+
+    Bumps [pytest](https://github.com/pytest-dev/pytest) from 8.3.3 to 8.3.4.
+    - [Release notes](https://github.com/pytest-dev/pytest/releases)
+    - [Changelog](https://github.com/pytest-dev/pytest/blob/main/CHANGELOG.rst)
+    - [Commits](https://github.com/pytest-dev/pytest/compare/8.3.3...8.3.4)
+
+    ---
+    updated-dependencies:
+    - dependency-name: pytest
+      dependency-type: direct:production
+      update-type: version-update:semver-patch
+    ...
+
+    Signed-off-by: dependabot[bot] <support@github.com>
+
+  * build(deps): bump syrupy from 4.7.2 to 4.8.0 (dependabot[bot])
+
+    Bumps [syrupy](https://github.com/syrupy-project/syrupy) from 4.7.2 to 4.8.0.
+    - [Release notes](https://github.com/syrupy-project/syrupy/releases)
+    - [Changelog](https://github.com/syrupy-project/syrupy/blob/main/CHANGELOG.md)
+    - [Commits](https://github.com/syrupy-project/syrupy/compare/v4.7.2...v4.8.0)
+
+    ---
+    updated-dependencies:
+    - dependency-name: syrupy
+      dependency-type: direct:production
+      update-type: version-update:semver-minor
+    ...
+
+    Signed-off-by: dependabot[bot] <support@github.com>
+
+  * Bump minimum required Python version (Benjamin Bannier, Corelight)
+
+    In addition to tree-sitter-zeek requiring >=python-3.9[^1], python-3.8
+    reached EOL 2024-10-07 and is unsupported.
+
+    [^1]: https://github.com/zeek/tree-sitter-zeek/pull/39
+
+  * Bump pre-commit hooks (Benjamin Bannier, Corelight)
+
+  * Implement formatting of `assert` statements (Benjamin Bannier, Corelight)
+
+  * Bump tree-sitter-zeek (Benjamin Bannier, Corelight)
+
+  * build(deps-dev): bump tree-sitter from 0.23.0 to 0.23.2 (dependabot[bot])
+
+    Bumps [tree-sitter](https://github.com/tree-sitter/py-tree-sitter) from 0.23.0 to 0.23.2.
+    - [Release notes](https://github.com/tree-sitter/py-tree-sitter/releases)
+    - [Commits](https://github.com/tree-sitter/py-tree-sitter/compare/v0.23.0...v0.23.2)
+
+    ---
+    updated-dependencies:
+    - dependency-name: tree-sitter
+      dependency-type: direct:development
+      update-type: version-update:semver-patch
+    ...
+
+    Signed-off-by: dependabot[bot] <support@github.com>
+
 1.2.9-38 | 2024-10-08 15:38:27 +0200
 
   * build(deps): bump syrupy from 4.7.1 to 4.7.2 (dependabot[bot])

@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Tests for the zeekscript.Script class."""
+
 import io
 import unittest
 
@@ -13,15 +14,13 @@ from testutils import zeekscript
 class TestScript(unittest.TestCase):
     def setUp(self):
         # This prints large diffs in case assertEqual() finds discrepancies.
-        self.maxDiff = None  # pylint: disable=invalid-name
+        self.maxDiff = None
 
-    # pylint: disable-next=invalid-name
     def assertTreeBinary(self, script, baseline, include_cst=False):
         buf = io.BytesIO()
         script.write_tree(output=buf, include_cst=include_cst)
         self.assertEqual(tu.normalize(baseline), buf.getvalue())
 
-    # pylint: disable-next=invalid-name
     def assertTreeText(self, script, baseline, include_cst=False):
         buf = io.StringIO()
         script.write_tree(output=buf, include_cst=include_cst)
