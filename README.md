@@ -73,7 +73,7 @@ the package build. See our
 The package comes with a testsuite. To run it, say
 
 ```console
-make
+pytest
 ```
 
 from the toplevel. For details on the tests, take a look at the `tests`
