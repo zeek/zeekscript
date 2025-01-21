@@ -39,8 +39,7 @@ def cmd_format(args):
         if fname == "-":
             if args.inplace:
                 print_error(
-                    "warning: cannot use --inplace when reading from "
-                    "stdin, skipping it"
+                    "warning: cannot use --inplace when reading from stdin, skipping it"
                 )
             else:
                 scripts.append(fname)
