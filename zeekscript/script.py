@@ -39,7 +39,7 @@ class Script:
         parse tree has erroneous nodes.
         """
         try:
-            if isinstance(self.file, (str, pathlib.Path)):
+            if isinstance(self.file, (str | pathlib.Path)):
                 if str(self.file) == "-":
                     # tree-sitter expects bytes, not strings, as input.
                     self.source = sys.stdin.read().encode("UTF-8")
