@@ -55,9 +55,9 @@ def test_samples(sample: Path, snapshot: SnapshotAssertion):
     name = str(sample.relative_to(SAMPLES_DIR.parent.parent))
 
     output = _format(input_)
-    assert output == snapshot(
-        name=name
-    ), f"formatted {sample} inconsistent with snapshot"
+    assert output == snapshot(name=name), (
+        f"formatted {sample} inconsistent with snapshot"
+    )
 
     output2 = _format(input_)
     assert output2 == output, f"idempotency violation for {sample}"

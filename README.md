@@ -12,7 +12,7 @@ its [Python bindings](https://github.com/tree-sitter/py-tree-sitter), and our
 
 ## Supported platforms and Python versions
 
-`zeekscript` supports Python 3.7+ on Linux, MacOS, and Windows. We recommend
+`zeekscript` supports Python 3.10+ on Linux, MacOS, and Windows. We recommend
 CPython. PyPy looks prone to crashing on Windows and MacOS, and we're not
 currently building PyPy wheels on those platforms. (We've not investigated PyPy
 in depth and feedback is welcome.)
@@ -73,7 +73,7 @@ the package build. See our
 The package comes with a testsuite. To run it, say
 
 ```console
-make
+pytest
 ```
 
 from the toplevel. For details on the tests, take a look at the `tests`
