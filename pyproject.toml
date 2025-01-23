@@ -28,7 +28,7 @@ requires-python = ">= 3.10"
 
 dependencies = [
     "tree-sitter==0.24.0",
-    "tree-sitter-zeek==0.2.1",
+    "tree-sitter-zeek==0.2.2",
 ]
 
 [project.optional-dependencies]
