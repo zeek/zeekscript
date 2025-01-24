@@ -603,19 +603,28 @@ class RedefRecordDeclFormatter(Formatter):
         self._write_sp()
         self._format_child()  # 'record'
         self._write_sp()
-        self._format_child()  # <id>
+
+        # We could either be change fields in a type, or change attributes on a
+        # field. In the first case we would hold an id here, else and expr.
+        is_redef_attr = self._get_child_name() == "expr"
+        self._format_child()  # <id>/<expr>
+
         self._write_sp()
-        self._format_child()  # '+='
+        self._format_child()  # '+='/'-='
         self._write_sp()
-        self._format_child()  # '{'
-        self._write_nl()
-        while self._get_child_name() == "type_spec":  # any number of type_specs
-            self._format_child(indent=True)
-        self._format_child()  # '}'
-        if self._get_child_name() == "attr_list":
-            self._write_sp()
-            self._format_child()  # <attr_list>
-        self._format_child(hints=Hint.NO_LB_BEFORE)  # ';'
+
+        if is_redef_attr:
+            self._format_children(sep=" ")
+        else:
+            self._format_child()  # '{'
+            self._write_nl()
+            while self._get_child_name() == "type_spec":
+                self._format_child(indent=True)
+            self._format_child()  # '}'
+            if self._get_child_name() == "attr_list":
+                self._write_sp()
+                self._format_child()  # <attr_list>
+            self._format_child(hints=Hint.NO_LB_BEFORE)  # ';'
         self._write_nl()
 
 
