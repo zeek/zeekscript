@@ -1,3 +1,28 @@
+1.3.0-18 | 2025-01-24 17:02:50 +0100
+
+  * Bump pre-commit hooks (Benjamin Bannier, Corelight)
+
+  * Add test for formatting of IDs (Benjamin Bannier, Corelight)
+
+  * Fix formatting of redefs changing field attributes (Benjamin Bannier, Corelight)
+
+  * Add formatter for `@pragma` (Benjamin Bannier, Corelight)
+
+  * Make sample numbering deterministic (Benjamin Bannier, Corelight)
+
+  * Do not include path in snapshot name (Benjamin Bannier, Corelight)
+
+  * Bump tree-sitter-zeek (Benjamin Bannier, Corelight)
+
+    This bump brings in e.g., support for parsing more attributes and
+    support for parsing some additional forms of IDs, record field removal
+    redefs and some forms of pragmas.
+
+    It also introduces some changes to behavior on errors. Since technically
+    `zeek-format` should not format inputs with parse errors this does seem
+    slightly invariant, but since we currently test for the exact error
+    behavior here I updated test baselines for that.
+
 1.3.0-10 | 2025-01-22 07:32:36 +0100
 
   * build(deps-dev): bump tree-sitter from 0.23.2 to 0.24.0 (dependabot[bot])

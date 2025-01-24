@@ -9,6 +9,7 @@ Commit both the sample as well as the updated snapshot.
 """
 
 import io
+import os
 from pathlib import Path
 
 import pytest
@@ -39,7 +40,8 @@ def _get_samples():
     # We exclude directories since we store snapshots along with the samples.
     # This assumes that there are no tests in subdirectories of `SAMPLES_DIR`.
     try:
-        return [sample for sample in SAMPLES_DIR.iterdir() if sample.is_file()]
+        # Make sample order deterministic.
+        return sorted([sample for sample in SAMPLES_DIR.iterdir() if sample.is_file()])
     except FileNotFoundError:
         return []
 
@@ -52,7 +54,7 @@ def test_samples(sample: Path, snapshot: SnapshotAssertion):
     assert input_.parse(), f"failed to parse input {sample}"
     assert not input_.has_error(), f"parse result for {sample} has parse errors"
 
-    name = str(sample.relative_to(SAMPLES_DIR.parent.parent))
+    name = str(os.path.basename(sample))
 
     output = _format(input_)
     assert output == snapshot(name=name), (
