@@ -9,6 +9,7 @@ Commit both the sample as well as the updated snapshot.
 """
 
 import io
+import os
 from pathlib import Path
 
 import pytest
@@ -52,7 +53,7 @@ def test_samples(sample: Path, snapshot: SnapshotAssertion):
     assert input_.parse(), f"failed to parse input {sample}"
     assert not input_.has_error(), f"parse result for {sample} has parse errors"
 
-    name = str(sample.relative_to(SAMPLES_DIR.parent.parent))
+    name = str(os.path.basename(sample))
 
     output = _format(input_)
     assert output == snapshot(name=name), (
