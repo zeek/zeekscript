@@ -461,6 +461,11 @@ class PreprocDirectiveFormatter(LineFormatter):
         self.ostream.use_linebreaks(True)
 
 
+class PragmaFormatter(LineFormatter):
+    def format(self):
+        self._format_token()
+
+
 class ModuleDeclFormatter(Formatter):
     def format(self):
         self._format_child()  # 'module'
