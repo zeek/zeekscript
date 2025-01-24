@@ -40,7 +40,8 @@ def _get_samples():
     # We exclude directories since we store snapshots along with the samples.
     # This assumes that there are no tests in subdirectories of `SAMPLES_DIR`.
     try:
-        return [sample for sample in SAMPLES_DIR.iterdir() if sample.is_file()]
+        # Make sample order deterministic.
+        return sorted([sample for sample in SAMPLES_DIR.iterdir() if sample.is_file()])
     except FileNotFoundError:
         return []
 
