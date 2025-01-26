@@ -34,32 +34,27 @@ def _format(script: zeekscript.Script):
     return buf.getvalue()
 
 
-def _get_samples():
+def _get_samples() -> list[Path]:
     """Helper to enumerate samples"""
 
     # We exclude directories since we store snapshots along with the samples.
     # This assumes that there are no tests in subdirectories of `SAMPLES_DIR`.
-    try:
-        # Make sample order deterministic.
-        return sorted([sample for sample in SAMPLES_DIR.iterdir() if sample.is_file()])
-    except FileNotFoundError:
-        return []
+    assert SAMPLES_DIR.exists(), "directory with code samples not found"
+    return sorted([sample for sample in SAMPLES_DIR.iterdir() if sample.is_file()])
 
 
 # For each file in `SAMPLES_DIR` test formatting of the file.
-@pytest.mark.parametrize("sample", _get_samples())
+@pytest.mark.parametrize(
+    "sample", _get_samples(), ids=[str(os.path.basename(s)) for s in _get_samples()]
+)
 def test_samples(sample: Path, snapshot: SnapshotAssertion):
     input_ = zeekscript.Script(sample)
 
     assert input_.parse(), f"failed to parse input {sample}"
     assert not input_.has_error(), f"parse result for {sample} has parse errors"
 
-    name = str(os.path.basename(sample))
-
     output = _format(input_)
-    assert output == snapshot(name=name), (
-        f"formatted {sample} inconsistent with snapshot"
-    )
+    assert output == snapshot(), f"formatted {sample} inconsistent with snapshot"
 
     output2 = _format(input_)
     assert output2 == output, f"idempotency violation for {sample}"
