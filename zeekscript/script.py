@@ -117,13 +117,6 @@ class Script:
                     f'missing grammar node "{node.type}" on '
                     f"line {node.start_point[0]}, col {node.start_point[1]}"
                 )
-            elif node.has_error and (
-                not node.children or not any(kid.has_error for kid in node.children)
-            ):
-                msg = (
-                    f'grammar node "{node.type}" has error on '
-                    f"line {node.start_point[0]}, col {node.start_point[1]}"
-                )
             else:
                 continue
 
