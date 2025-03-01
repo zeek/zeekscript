@@ -60,12 +60,6 @@ class Script:
         parser = tree_sitter.Parser(tree_sitter.Language(tree_sitter_zeek.language()))
         self.ts_tree = parser.parse(self.source)
 
-        if self.ts_tree is None or self.ts_tree.root_node is None:
-            # This is a hard parse error and we need to bail. Smaller errors get
-            # reported on individual nodes in the resulting tree, and we can
-            # keep going.
-            raise ParserError("cannot parse script")
-
         self._clone_tree()
         self._patch_tree()
 
