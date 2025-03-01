@@ -139,15 +139,6 @@ class Script:
 
         yield from self.root.traverse(include_cst)
 
-    def __getitem__(self, key):
-        """Accessor to the script source text.
-
-        This simplifies accessing specific text chunks in the source.
-        """
-        assert self.root is not None, "call Script.parse() before accessing content"
-
-        return self.source.__getitem__(key)
-
     def get_content(self, start_byte=None, end_byte=None):
         """Returns a region of this script's content.
 
