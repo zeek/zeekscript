@@ -60,12 +60,6 @@ class Script:
         parser = tree_sitter.Parser(tree_sitter.Language(tree_sitter_zeek.language()))
         self.ts_tree = parser.parse(self.source)
 
-        if self.ts_tree is None or self.ts_tree.root_node is None:
-            # This is a hard parse error and we need to bail. Smaller errors get
-            # reported on individual nodes in the resulting tree, and we can
-            # keep going.
-            raise ParserError("cannot parse script")
-
         self._clone_tree()
         self._patch_tree()
 
@@ -123,13 +117,6 @@ class Script:
                     f'missing grammar node "{node.type}" on '
                     f"line {node.start_point[0]}, col {node.start_point[1]}"
                 )
-            elif node.has_error and (
-                not node.children or not any(kid.has_error for kid in node.children)
-            ):
-                msg = (
-                    f'grammar node "{node.type}" has error on '
-                    f"line {node.start_point[0]}, col {node.start_point[1]}"
-                )
             else:
                 continue
 
@@ -151,15 +138,6 @@ class Script:
         assert self.root is not None, "call Script.parse() before Script.traverse()"
 
         yield from self.root.traverse(include_cst)
-
-    def __getitem__(self, key):
-        """Accessor to the script source text.
-
-        This simplifies accessing specific text chunks in the source.
-        """
-        assert self.root is not None, "call Script.parse() before accessing content"
-
-        return self.source.__getitem__(key)
 
     def get_content(self, start_byte=None, end_byte=None):
         """Returns a region of this script's content.
