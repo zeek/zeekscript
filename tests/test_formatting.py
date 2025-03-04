@@ -143,15 +143,15 @@ print "hi";
 """,
             """type foo: record {
 	a: count; ##< A field
-b count; ##< A broken field
-	c: count; ##< Another field, better not skipped!
+	b count; ##< A broken field
+	c : count; ##< Another field, better not skipped!
 	d: count; ##< Ditto.
 };
 """,
             (
                 "\tb count; ##< A broken field",
                 2,
-                'cannot parse line 2, col 1: "b count; ##< A broken field\n\tc: count; ##< Another[...]"',
+                'cannot parse line 2, col 3: "count; ##< A broken field\n\tc"',
             ),
         )
 
