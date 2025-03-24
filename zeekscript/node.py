@@ -1,5 +1,13 @@
 """Node-related functionality."""
 
+from __future__ import annotations
+
+from collections.abc import Callable, Generator
+from typing import TYPE_CHECKING, Literal
+
+if TYPE_CHECKING:
+    from .formatter import Formatter
+
 
 class Node:
     """A relative of tree_sitter.Node.
@@ -22,23 +30,23 @@ class Node:
     examples include newlines and comments.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         # AST navigation: these relationship omit nodes present only in the
         # concrete tree, such as comments and whitespace. The following members
         # are all present in the TS node type.
-        self.children = []
-        self.parent = None
-        self.prev_sibling = None
-        self.next_sibling = None
+        self.children: list[Node] = []
+        self.parent: Node | None = None
+        self.prev_sibling: Node | None = None
+        self.next_sibling: Node | None = None
 
         self.start_byte = 0
         self.end_byte = 0  # The first byte _after_ this node's content
-        self.start_point = (0, 0)
-        self.end_point = (0, 0)
+        self.start_point: tuple[int, int] = (0, 0)
+        self.end_point: tuple[int, int] = (0, 0)
 
         # This terminology stems from TreeSitter and means that a node is typed,
         # i.e., the root of a grammar rule. It is not a token.
-        self.is_named = False
+        self.is_named: bool = False
 
         # In some cases TreeSitter can infer that a node is simply missing (such
         # as a trailing semicolon). Implies has_error, but does not lead to an
@@ -51,7 +59,7 @@ class Node:
         self.has_error = False
 
         # Consider name() or token() below instead of accessing this directly
-        self.type = None
+        self.type: str | None = None
 
         # ---- Additions over the TS node members below ------------------------
 
@@ -59,26 +67,26 @@ class Node:
         # This subset is safe to navigate with expectation of node types
         # (e.g. "the first node should be a type, the second a ':", etc), since
         # it's free of CST and error nodes.
-        self.nonerr_children = []
+        self.nonerr_children: list[Node] = []
 
         # A zeekscript.Formatter attached with this node. Formatters
         # set this field as they get instantiated.
-        self.formatter = None
+        self.formatter: Formatter | None = None
 
         # Whether this is an AST member
-        self.is_ast = False
+        self.is_ast: bool = False
 
         # For CST nodes, a link to the AST node they're grouped with.
-        self.ast_parent = None
+        self.ast_parent: Node | None = None
 
         # For CST nodes, these flags indicate whether they come before or after
         # the AST node they're associated with.
-        self.is_cst_prev_node = False
-        self.is_cst_next_node = False
+        self.is_cst_prev_node: bool = False
+        self.is_cst_next_node: bool = False
 
         # Direct previous/next links to nodes in the CST.
-        self.prev_cst_sibling = None
-        self.next_cst_sibling = None
+        self.prev_cst_sibling: Node | None = None
+        self.next_cst_sibling: Node | None = None
 
         # If this is an AST node: full sequences of CST nodes preceding/
         # succeeding this node. These lists are in tree-order: if a tree node's
@@ -100,19 +108,23 @@ class Node:
         #
         # [ <minor comment3>, <nl>]
         #
-        self.prev_cst_siblings = []
-        self.next_cst_siblings = []
+        self.prev_cst_siblings: list[Node] = []
+        self.next_cst_siblings: list[Node] = []
 
         # Two arrays for AST nodes that represent any directly
         # preceding/succeeding ERROR nodes.
-        self.prev_error_siblings = []
-        self.next_error_siblings = []
+        self.prev_error_siblings: list[Node] = []
+        self.next_error_siblings: list[Node] = []
 
-    def __eq__(self, other):
+    def __eq__(self, other: object) -> bool:
         """Two nodes are equal when the cover the same range in the script."""
-        return self.start_byte == other.start_byte and self.end_byte == other.end_byte
+        return (
+            isinstance(other, Node)
+            and self.start_byte == other.start_byte
+            and self.end_byte == other.end_byte
+        )
 
-    def name(self):
+    def name(self) -> str | None:
         """Returns the type of a named node.
 
         For nodes that are named in the grammar (such as expressions or
@@ -121,7 +133,7 @@ class Node:
         """
         return self.type if self.is_named else None
 
-    def token(self):
+    def token(self) -> str | None:
         """Returns token string if this is an unnamed (terminal) node.
 
         This is the complement to name(): when this node is a terminal/token
@@ -130,7 +142,7 @@ class Node:
         """
         return self.type if not self.is_named else None
 
-    def script_range(self, with_cst=False):
+    def script_range(self, with_cst: bool = False) -> tuple[int, int]:
         """Returns this node's start/end byte indices in the script, as a tuple.
 
         By default this ignores potential CST nodes associated with this node
@@ -140,7 +152,7 @@ class Node:
         start, end = self.start_byte, self.end_byte
 
         if with_cst:
-            node = self
+            node: Node | None = self
             while node:
                 if node.prev_cst_siblings:
                     start = max(start, node.prev_cst_siblings[0].start_byte)
@@ -160,7 +172,11 @@ class Node:
 
         return start, end
 
-    def traverse(self, include_cst=False, predicate=None):
+    def traverse(
+        self,
+        include_cst: bool = False,
+        predicate: Callable[[Node], bool] | None = None,
+    ) -> Generator[tuple[Node, int]]:
         """A tree-traversing generator for this node and its subtree.
 
         Yields a tuple of (node, nesting level) for every visited node. When
@@ -169,9 +185,9 @@ class Node:
         as input, it returns a Boolen that determines whether to return the node
         or not.
         """
-        queue = [(self, 0)]
+        queue: list[tuple[Node, int]] = [(self, 0)]
 
-        def always_true(_):
+        def always_true(_: Node) -> Literal[True]:
             return True
 
         # Default the filter to accept-all if absent
@@ -199,32 +215,40 @@ class Node:
             for child in reversed(node.children):
                 queue.insert(0, (child, nesting + 1))
 
-    def is_error(self):
+    def is_error(self) -> bool:
         """Returns True if this node summarizes a parsing error.
 
         This currently refers to nodes with type string "ERROR" (i.e., nodes
         that group problematic content under them, possibly alongside correctly
         parsed material).
         """
-        return self.is_named and self.type and self.type == "ERROR"
+        return self.is_named and bool(self.type) and self.type == "ERROR"
 
-    def is_nl(self):
+    def is_nl(self) -> bool:
         """Returns True if this is a newline."""
-        return self.is_named and self.type and self.type == "nl"
+        return self.is_named and (self.type is not None) and self.type == "nl"
 
-    def is_comment(self):
+    def is_comment(self) -> bool:
         """Returns True if this is any kind of comment."""
-        return self.is_named and self.type and self.type.endswith("_comment")
+        return (
+            self.is_named and (self.type is not None) and self.type.endswith("_comment")
+        )
 
-    def is_minor_comment(self):
+    def is_minor_comment(self) -> bool:
         """Returns True if this is a minor comment ("# foo")."""
-        return self.is_named and self.type and self.type == "minor_comment"
+        return (
+            self.is_named and (self.type is not None) and self.type == "minor_comment"
+        )
 
-    def is_zeekygen_prev_comment(self):
+    def is_zeekygen_prev_comment(self) -> bool:
         """Returns True if this is a Zeekygen "##<" comment."""
-        return self.is_named and self.type and self.type == "zeekygen_prev_comment"
+        return (
+            self.is_named
+            and (self.type is not None)
+            and self.type == "zeekygen_prev_comment"
+        )
 
-    def has_property(self, predicate):
+    def has_property(self, predicate: Callable[[Node], bool]) -> bool:
         """Returns a predicate's outcome for this node.
 
         This catches attribute and index errors, simplifying predicate
@@ -236,7 +260,7 @@ class Node:
         except (AttributeError, IndexError):
             return False
 
-    def has_only_whitespace_before(self):
+    def has_only_whitespace_before(self) -> bool:
         """True if this node is has only whitespace before it at its tree level.
 
         This predicate scans the preceding CST node siblings, verifying that
@@ -246,17 +270,7 @@ class Node:
         res = self.find_prev_cst_sibling(lambda node: not node.is_nl())
         return res is None or res.is_ast
 
-    def has_only_whitespace_after(self):
-        """True if this node is has only whitespace after it at its tree level.
-
-        This predicate scans the succeeding CST node siblings, verifying that
-        they are all whitespace. The scan stops when it hits an AST node, which
-        counts as success. Absence of suceeding CST nodes is also success.
-        """
-        node = self.find_next_cst_sibling(lambda node: not node.is_nl())
-        return node is None or node.is_ast
-
-    def find_prev_cst_sibling(self, predicate):
+    def find_prev_cst_sibling(self, predicate: Callable[[Node], bool]) -> Node | None:
         """Retrieve first preceding CST sibling matching a predicate.
 
         The predicate is a function taking a single Node and returning T or F.
@@ -266,14 +280,14 @@ class Node:
         prev_cst_nodes list, i.e., the CST nodes grouped with this node. It
         continues through the entire sibling level in the parse tree.
         """
-        node = self.prev_cst_sibling
+        node: Node | None = self.prev_cst_sibling
         while node:
             if predicate(node):
                 return node
             node = node.prev_cst_sibling
         return None
 
-    def find_next_cst_sibling(self, predicate):
+    def find_next_cst_sibling(self, predicate: Callable[[Node], bool]) -> Node | None:
         """Retrieve first succeeding CST sibling matching a predicate.
 
         The predicate is a function taking a single Node and returning T or F.

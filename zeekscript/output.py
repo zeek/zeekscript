@@ -2,6 +2,8 @@
 
 import os
 import sys
+from types import TracebackType
+from typing import Any, BinaryIO, TextIO
 
 from .formatter import Formatter, Hint
 
@@ -13,7 +15,7 @@ class Output:
     formatted line, deciding when/whether to intersperse additional line breaks.
     """
 
-    def __init__(self, data, formatter):
+    def __init__(self, data: bytes, formatter: Formatter) -> None:
         self.data = data
         self.formatter = formatter
 
@@ -31,19 +33,21 @@ class OutputStream:
     TAB_SIZE = 8  # How many visible characters we chalk up for a tab.
     SPACE_INDENT = 4  # When wrapping, add this many spaces onto tab-indentation.
 
-    def __init__(self, ostream, enable_linebreaks=True):
+    def __init__(
+        self, ostream: BinaryIO | TextIO, enable_linebreaks: bool = True
+    ) -> None:
         """OutputStream constructor. The ostream argument is a file-like object."""
         self._ostream = ostream
         self._col = 0  # 0-based column the next character goes into.
         self._tab_indent = 0  # Number of tabs indented in current line
 
         # Series of Output objects that makes up a formatted but un-wrapped line.
-        self._linebuffer = []
+        self._linebuffer: list[Output] = []
 
         # Series of byte sequences actually written out, post line-wrap. This is
         # line-buffered, to allow removal of trailing whitespace. Details in
         # self._write().
-        self._writebuffer = []
+        self._writebuffer: list[bytes] = []
 
         # Whether we'll consider linebreaks at all. When False, long lines will
         # never wrap. When True, linebreaks will generally happen, but
@@ -60,23 +64,28 @@ class OutputStream:
         # line; they just add a few spaces.
         self._use_space_align = False
 
-    def __enter__(self):
+    def __enter__(self) -> "OutputStream":
         return self
 
-    def __exit__(self, _exc_type, _exc_value, _exc_traceback):
+    def __exit__(
+        self,
+        _exc_type: type[BaseException] | None,
+        _exc_value: BaseException | None,
+        _exc_traceback: TracebackType | None,
+    ) -> None:
         self._flush_line()
         self._flush_writes()
 
-    def use_linebreaks(self, enable):
+    def use_linebreaks(self, enable: bool) -> None:
         self._use_linebreaks = enable
 
-    def use_tab_indent(self, enable):
+    def use_tab_indent(self, enable: bool) -> None:
         self._use_tab_indent = enable
 
-    def use_space_align(self, enable):
+    def use_space_align(self, enable: bool) -> None:
         self._use_space_align = enable
 
-    def write(self, data, formatter, raw=False):
+    def write(self, data: bytes, formatter: Formatter, raw: bool = False) -> None:
         if raw:
             self._flush_line()
             self._write(data)
@@ -95,19 +104,19 @@ class OutputStream:
             if chunk.endswith(Formatter.NL):
                 self._flush_line()
 
-    def write_tab_indent(self, formatter):
+    def write_tab_indent(self, formatter: Formatter) -> None:
         if self._use_tab_indent:
             self._tab_indent = formatter.indent
             self.write(b"\t" * self._tab_indent, formatter)
 
-    def write_space_align(self, formatter):
+    def write_space_align(self, formatter: Formatter) -> None:
         if self._use_space_align:
             self.write(b" " * 4, formatter)
 
-    def get_column(self):
+    def get_column(self) -> int:
         return self._col
 
-    def _flush_line(self):
+    def _flush_line(self) -> None:
         """Flushes out the line buffer, stripping trailing whitespace.
 
         Without linewrapping, this simply flushes the line buffer. With
@@ -127,12 +136,12 @@ class OutputStream:
             return
 
         col_flushed = 0  # Column up to which we've currently written a line
-        tbd = []  # Outputs to be done
+        tbd: list[Output] = []  # Outputs to be done
         tbd_len = 0  # Length of the to-be-done output (in characters)
         line_items = 0  # Number of items (tokens, not whitespace) on formatted line
         using_break_hints = False  # Whether we've used advisory linebreak hints yet
 
-        def flush_tbd():
+        def flush_tbd() -> None:
             nonlocal tbd, tbd_len, col_flushed
             for tbd_out in tbd:
                 self._write(tbd_out.data)
@@ -140,7 +149,7 @@ class OutputStream:
             tbd = []
             tbd_len = 0
 
-        def write_linebreak():
+        def write_linebreak() -> None:
             nonlocal tbd, tbd_len, col_flushed
             self._write(Formatter.NL)
             self._write(b"\t" * self._tab_indent)
@@ -260,11 +269,11 @@ class OutputStream:
         self._linebuffer = []
         self._col = 0
 
-    def _flush_writes(self):
+    def _flush_writes(self) -> None:
         if self._writebuffer and not self._writebuffer[-1].endswith(Formatter.NL):
             self._write(Formatter.NL)
 
-    def _write(self, data):
+    def _write(self, data: bytes) -> None:
         self._writebuffer.append(data)
 
         # Data can only have newlines at the end, since we already split any
@@ -278,9 +287,10 @@ class OutputStream:
         self._writebuffer = []
 
         try:
-            if self._ostream == sys.stdout:
+            if isinstance(self._ostream, TextIO):
                 # Clunky: must write string here, not bytes. We could
                 # use _ostream.buffer -- not sure how portable that is.
+                # self._ostream.write(output.decode("UTF-8"))
                 self._ostream.write(output.decode("UTF-8"))
             else:
                 self._ostream.write(output)
@@ -291,6 +301,6 @@ class OutputStream:
             sys.exit(1)
 
 
-def print_error(*args, **kwargs):
+def print_error(*args: object, **kwargs: Any) -> None:
     """A print() wrapper that writes to stderr."""
     print(*args, file=sys.stderr, **kwargs)

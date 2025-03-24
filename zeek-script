@@ -22,7 +22,7 @@ import zeekscript
 # ---- Helper functions --------------------------------------------------------
 
 
-def create_parser():
+def create_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="A Zeek script analyzer")
 
     zeekscript.add_version_arg(parser)
@@ -45,7 +45,7 @@ def create_parser():
     )
     zeekscript.add_parse_cmd(sub_parser)
 
-    if "argcomplete" in sys.modules:
+    if argcomplete := sys.modules.get("argcomplete"):
         argcomplete.autocomplete(parser)
 
     return parser

@@ -19,3 +19,12 @@ repos:
   rev: v0.44.0
   hooks:
   - id: markdownlint-fix
+
+- repo: https://github.com/pre-commit/mirrors-mypy
+  rev: v1.15.0
+  hooks:
+  - id: mypy
+    args: [--strict]
+    exclude: ^tests\/.*|^zeek-format|^zeek-script
+    additional_dependencies:
+    - types-setuptools
