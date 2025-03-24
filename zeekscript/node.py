@@ -286,20 +286,3 @@ class Node:
                 return node
             node = node.prev_cst_sibling
         return None
-
-    def find_next_cst_sibling(self, predicate: Callable[[Node], bool]) -> Node | None:
-        """Retrieve first succeeding CST sibling matching a predicate.
-
-        The predicate is a function taking a single Node and returning T or F.
-        Returns sibling satisfying the predicate, or None when search fails.
-
-        Note that this search does not stop after exhausting the node's
-        next_cst_nodes list, i.e., the CST nodes grouped with this node. It
-        continues through the entire sibling level in the parse tree.
-        """
-        node = self.next_cst_sibling
-        while node:
-            if predicate(node):
-                return node
-            node = node.next_cst_sibling
-        return None
