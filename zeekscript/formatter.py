@@ -196,9 +196,7 @@ class Formatter:
         for node in child.next_error_siblings:
             self._format_child(node, indent)
 
-    def _format_child_range(
-        self, num: int, hints: Hint | None = None, first_hints: Hint | None = None
-    ) -> None:
+    def _format_child_range(self, num: int, hints: Hint | None = None) -> None:
         """Format a given number of children of the node.
 
         Using this function ensures that no line breaks can happen between the
@@ -209,19 +207,18 @@ class Formatter:
         a sequence of children. This might change in the future.)
         """
         hints = hints or Hint.NONE
-        first_hints = first_hints or Hint.NONE
 
         if num <= 0:
             return
 
         if num == 1:
             # Single element: general and first-element hinting
-            self._format_child(hints=hints | first_hints)
+            self._format_child(hints=hints)
             return
 
         # First element of multiple: general hinting; first-element hinting;
         # avoid line breaks after the element.
-        self._format_child(hints=hints | first_hints | Hint.NO_LB_AFTER)
+        self._format_child(hints=hints | Hint.NO_LB_AFTER)
 
         # Inner elements: general hinting; avoid line breaks
         for _ in range(num - 2):
