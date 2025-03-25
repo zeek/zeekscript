@@ -1439,6 +1439,8 @@ Formatter.register("func", FuncHdrVariantFormatter)
 Formatter.register("hook", FuncHdrVariantFormatter)
 Formatter.register("event", FuncHdrVariantFormatter)
 
+Formatter.register("type_expr", TypeFormatter)
+
 Formatter.register("capture", SpaceSeparatedFormatter)
 Formatter.register("attr_list", SpaceSeparatedFormatter)
 Formatter.register("interval", Formatter)
