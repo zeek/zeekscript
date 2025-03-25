@@ -1,3 +1,11 @@
+1.3.2-16 | 2025-03-25 15:09:11 -0400
+
+  * Bump `tree-sitter-zeek` for better type expression (Evan Typanski, Corelight)
+
+    Formatting was a bit rough for cases that are more than just
+    space-between-each-child. This adds an alias so it's formatted like a
+    type.
+
 1.3.2-14 | 2025-03-25 09:25:15 -0400
 
   * Bump `tree-sitter-zeek` for type expressions (Evan Typanski, Corelight)
