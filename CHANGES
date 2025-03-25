@@ -1,3 +1,7 @@
+1.3.2-14 | 2025-03-25 09:25:15 -0400
+
+  * Bump `tree-sitter-zeek` for type expressions (Evan Typanski, Corelight)
+
 1.3.2-10 | 2025-03-24 12:33:25 +0100
 
   * Bump pre-commit hooks (Benjamin Bannier, Corelight)
