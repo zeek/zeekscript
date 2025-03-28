@@ -540,6 +540,8 @@ class ComplexSequenceFormatterMixin:
                 continue
             if child.is_comment():
                 return True
+            if child.name() == "attr" or child.name() == "deprecated":
+                return True
 
             # This logic used to be in place specifically for { ... }
             # blocks initializing enums. It seems too strict, but can
