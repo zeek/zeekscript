@@ -14,25 +14,6 @@ module  Test;
 	
   export {
 	# A regular comment  
-	type An::ID: enum {
-	  ## A Zeekygen comment
-		ENUM_VAL1, ##< A Zeekygen post-comment
-		  ##< that continues on the next line 
-		## Anoter Zeekygen comment
-		PRINTLOG
-	};
-
-	# An enum, with assignments, on multiple lines, which should remain.
-	# Also, we separate via an empty minor comment, which used to
-	# trigger zeek/tree-sitter-zeek#9:
-	#
-	type AssigedEnum: enum {
-	  FOO=1,
-	  BAR=10,
-	};
-
-	# Another one that we put on one line. That should also remain
-	type SingeLineEnum: enum { FOO, BAR };
 	
         ## A constant.
         const a_constant=T  &redef ;

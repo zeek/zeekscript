@@ -561,14 +561,24 @@ class InitializerFormatter(Formatter):
         self._format_child()  # <expr>
 
 
-class EnumBodyFormatterMixin(ComplexSequenceFormatterMixin):
-    """A mixin that knows when to break an enum_body onto lines."""
+class RedefEnumDeclFormatter(Formatter, ComplexSequenceFormatterMixin):
+    def format(self):
+        self._format_child()  # 'redef'
+        self._write_sp()
+        self._format_child()  # 'enum'
+        self._write_sp()
+        self._format_child()  # <id>
+        self._write_sp()
+        self._format_child()  # '+='
+        self._write_sp()
 
-    def _format_curly_enum_body(self):
-        """Formats an '{' <enum_body> '}' sequence."""
+        # Format the body
         do_linebreak = self.is_complex()  # Must call before we consume '{'
 
         self._format_child()  # '{'
+
+        # Multi-element redefs should linebreak as well
+        do_linebreak |= len(self._get_child().children) > 1
 
         if do_linebreak:
             self._write_nl()
@@ -580,19 +590,6 @@ class EnumBodyFormatterMixin(ComplexSequenceFormatterMixin):
             self._write_sp()
 
         self._format_child()  # '}'
-
-
-class RedefEnumDeclFormatter(Formatter, EnumBodyFormatterMixin):
-    def format(self):
-        self._format_child()  # 'redef'
-        self._write_sp()
-        self._format_child()  # 'enum'
-        self._write_sp()
-        self._format_child()  # <id>
-        self._write_sp()
-        self._format_child()  # '+='
-        self._write_sp()
-        self._format_curly_enum_body()
         self._format_child(hints=Hint.NO_LB_BEFORE)  # ';'
         self._write_nl()
 
@@ -642,7 +639,7 @@ class TypeDeclFormatter(Formatter):
         self._write_nl()
 
 
-class TypeFormatter(SpaceSeparatedFormatter, EnumBodyFormatterMixin):
+class TypeFormatter(SpaceSeparatedFormatter, ComplexSequenceFormatterMixin):
     def format(self):
         if self._get_child_token() == "set":
             self._format_child()  # 'set'
@@ -675,7 +672,14 @@ class TypeFormatter(SpaceSeparatedFormatter, EnumBodyFormatterMixin):
             # No Whitesmith here: "{" on same line, closing "}" unindented.
             self._format_child()  # 'enum'
             self._write_sp()
-            self._format_curly_enum_body()
+            self._format_child()  # '{'
+
+            # Always linebreak for enum decls
+            self._write_nl()
+            self._format_child(indent=True, hints=Hint.COMPLEX_BLOCK)  # enum_body
+            self._write_nl()
+
+            self._format_child()  # '}'
 
         elif self._get_child_token() == "function":
             self._format_child_range(2)  # 'function' <func_params>
