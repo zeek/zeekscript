@@ -540,6 +540,8 @@ class ComplexSequenceFormatterMixin:
                 continue
             if child.is_comment():
                 return True
+            if child.name() == "attr" or child.name() == "deprecated":
+                return True
 
             # This logic used to be in place specifically for { ... }
             # blocks initializing enums. It seems too strict, but can
@@ -1207,24 +1209,25 @@ class ExprFormatter(SpaceSeparatedFormatter, ComplexSequenceFormatterMixin):
             self._write_sp()
             self._format_child()  # <expr>
 
-        elif ct1 in ("{", "["):
-            # Vector/table/set initializers: '['/'{' <expr_list> ']'/'}'
-            do_linebreak = self.is_complex()  # Must call before we consume opener
-            self._format_child(hints=Hint.NO_LB_BEFORE)  # '{' / '['
-            if self._get_child_name() == "expr_list":
-                if do_linebreak:
-                    self._write_nl()
-                    self._format_child(hints=Hint.COMPLEX_BLOCK)  # expr_list
-                    self._write_nl()
-                else:
-                    self._write_sp()
-                    self._format_child()  # expr_list
-                    self._write_sp()
-            else:
-                # Just a space when the initializer list has no members.
-                self._write_sp()
+        elif ct1 in ["{", "["]:
+            # Vector/table/set initializers: '{'/'[' <expr_list> '}'/']'
+            expr_list = self._get_child(1)
+            assert expr_list
 
-            self._format_child()  # '}' / ']'
+            # Curly brace inits with multiple elements should linebreak
+            is_multi_element_block = len(expr_list.children) > 1 and ct1 == "{"
+            do_linebreak = is_multi_element_block or self.is_complex()
+
+            self._format_child(hints=Hint.NO_LB_BEFORE)  # '{'/'['
+
+            if do_linebreak:
+                self._write_nl()
+                self._format_child(hints=Hint.COMPLEX_BLOCK)  # Inner expression(s)
+                self._write_nl()
+            else:
+                self._format_child()  # Inner expression(s)
+
+            self._format_child()  # '}'/']'
 
         elif ct1 == "(":
             self._format_child(hints=Hint.NO_LB_BEFORE)  # '('

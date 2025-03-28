@@ -79,6 +79,42 @@ class TestFormatting(unittest.TestCase):
             expected.splitlines(),
         )
 
+    def test_init_lists(self):
+        # Square brackets should have no spaces after [ and before ]
+        self.assertEqual(self._format(b"[ ];").rstrip(), b"[];")
+        self.assertEqual(self._format(b"[ 1 ];").rstrip(), b"[1];")
+        self.assertEqual(self._format(b"[ 1 , 2 ];").rstrip(), b"[1, 2];")
+
+        # Trailing comma
+        self.assertEqual(self._format(b"[ 1 , ];").rstrip(), b"[1, ];")
+        self.assertEqual(self._format(b"[ 1 , 2 , ];").rstrip(), b"[1, 2, ];")
+
+        self.assertEqual(self._format(b"local x = {};").rstrip(), b"local x = {};")
+        self.assertEqual(
+            self._format(b'global x = { [ 1 ] = "one" };').rstrip(),
+            b'global x = {[1] = "one"};',
+        )
+
+        # Test complex nodes
+        code = textwrap.dedent("""\
+            global x = [1, # Comment one
+            2 # Comment two
+            ];
+            """)
+
+        expected = textwrap.dedent("""\
+            global x = [
+            \t1, # Comment one
+            \t2 # Comment two
+            ];
+            """)
+
+        # We split out lines here to work around different line endings on Windows.
+        self.assertEqual(
+            self._format(code.encode("UTF-8")).decode().splitlines(),
+            expected.splitlines(),
+        )
+
 
 class TestFormattingErrors(unittest.TestCase):
     def _format(self, content):

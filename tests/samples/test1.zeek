@@ -50,9 +50,8 @@ module  Test;
 }
 
 # Another type of sequence where zeek-format considers existing linebreaks.
-# This one should stay as-is...
+# Both of these trigger line breaks
 const deltas1: vector of double = { 0.01, 0.01, 0.01, 0.01, 0.01, 0.01 };
-# ... while this one gets fully line-broken:
 const deltas2: vector of double = { 0.01, 0.02, # WHOA!
     0.01, 0.03, # DOUBLE whoa!
     0.01, 0.01 };
