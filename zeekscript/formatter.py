@@ -1209,8 +1209,15 @@ class ExprFormatter(SpaceSeparatedFormatter, ComplexSequenceFormatterMixin):
 
         elif ct1 in ["{", "["]:
             # Vector/table/set initializers: '{'/'[' <expr_list> '}'/']'
-            do_linebreak = self.is_complex()  # Must call before we consume opener
+            expr_list = self._get_child(1)
+            assert expr_list
+
+            # Curly brace inits with multiple elements should linebreak
+            is_multi_element_block = len(expr_list.children) > 1 and ct1 == "{"
+            do_linebreak = is_multi_element_block or self.is_complex()
+
             self._format_child(hints=Hint.NO_LB_BEFORE)  # '{'/'['
+
             if do_linebreak:
                 self._write_nl()
                 self._format_child(hints=Hint.COMPLEX_BLOCK)  # Inner expression(s)
