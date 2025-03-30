@@ -25,6 +25,7 @@ repos:
   hooks:
   - id: mypy
     args: [--strict]
-    exclude: ^tests\/.*|^zeek-format|^zeek-script
+    exclude: ^tests\/.*
     additional_dependencies:
-    - types-setuptools
+      - argcomplete
+      - types-setuptools

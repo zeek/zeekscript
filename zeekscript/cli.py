@@ -9,6 +9,8 @@ import traceback
 from .error import Error, ParserError
 from .output import print_error
 from .script import Script
+from .zeek_format import zeek_format
+from .zeek_script import zeek_script
 
 FILE_HELP = (
     'Use "-" to specify stdin as a filename. Omitting '

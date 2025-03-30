@@ -7,15 +7,11 @@ it writes out unchanged input.
 
 # https://pypi.org/project/argcomplete/#global-completion
 # PYTHON_ARGCOMPLETE_OK
+
 import argparse
 import sys
 
-try:
-    # Argcomplete provides command-line completion for users of argparse.
-    # We support it if available, but don't complain when it isn't.
-    import argcomplete  # pylint: disable=import-error
-except ImportError:
-    pass
+import argcomplete
 
 import zeekscript
 
@@ -28,13 +24,12 @@ def create_parser() -> argparse.ArgumentParser:
     zeekscript.add_version_arg(parser)
     zeekscript.add_format_cmd(parser)
 
-    if argcomplete := sys.modules.get("argcomplete"):
-        argcomplete.autocomplete(parser)
+    argcomplete.autocomplete(parser)
 
     return parser
 
 
-def main():
+def zeek_format() -> int:
     parser = create_parser()
     args = parser.parse_args()
 
@@ -43,10 +38,11 @@ def main():
         return 0
 
     try:
-        return args.run_cmd(args)
+        result: int = args.run_cmd(args)
+        return result
     except KeyboardInterrupt:
         return 0
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    sys.exit(zeek_format())
