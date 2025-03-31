@@ -110,7 +110,7 @@ class Formatter:
         node: Node,
         ostream: OutputStream,
         indent: int = 0,
-        hints: Hint | None = None,
+        hints: Hint = Hint.NONE,
     ):
         """Formatter constructor.
 
@@ -153,7 +153,7 @@ class Formatter:
             return None
 
     def _format_child_impl(
-        self, node: Node, indent: int, hints: Hint | None = None
+        self, node: Node, indent: int, hints: Hint = Hint.NONE
     ) -> None:
         fclass = Formatter.lookup(node)
         formatter = fclass(
@@ -166,7 +166,7 @@ class Formatter:
         formatter.format()
 
     def _format_child(
-        self, child: Node | None = None, indent: int = False, hints: Hint | None = None
+        self, child: Node | None = None, indent: int = False, hints: Hint = Hint.NONE
     ) -> None:
         if child is None:
             child = self._next_child()
@@ -548,9 +548,7 @@ class FormatterProtocol(Protocol):
     @property
     def node(self) -> Node: ...
 
-    def _format_child(
-        self, child: Node | None, indent: int, hints: Hint | None
-    ) -> None: ...
+    def _format_child(self, child: Node | None, indent: int, hints: Hint) -> None: ...
 
     def _write_nl(self, num: int, force: bool, is_midline: bool) -> None: ...
 
@@ -1343,7 +1341,7 @@ class ExprFormatter(SpaceSeparatedFormatter, ComplexSequenceFormatterMixin):
             # that each toplevel one ends on a new line, starting with the
             # boolean operand. OutputStream's handling of the GOOD_AFTER_LB
             # hint implements this.
-            hints = None
+            hints = Hint.NONE
 
             if self._is_expr_chain_of(ExprFormatter._is_binary_boolean):
                 # Okay! It's AND/ORs all the way up to something not an expr.
@@ -1419,7 +1417,7 @@ class CommentFormatter(Formatter):
         node: Node,
         ostream: OutputStream,
         indent: int = 0,
-        hints: Hint | None = None,
+        hints: Hint = Hint.NONE,
     ) -> None:
         super().__init__(script, node, ostream, indent, hints)
         self.hints |= Hint.ZERO_WIDTH  # Comments never count toward line length
@@ -1463,7 +1461,7 @@ class ZeekygenPrevCommentFormatter(CommentFormatter):
         node: Node,
         ostream: OutputStream,
         indent: int = 0,
-        hints: Hint | None = None,
+        hints: Hint = Hint.NONE,
     ) -> None:
         super().__init__(script, node, ostream, indent, hints)
         self.column = 0  # Start column of this comment.
