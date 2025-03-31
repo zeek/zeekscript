@@ -1,3 +1,24 @@
+1.3.2-21 | 2025-03-31 11:57:13 -0400
+
+  * Bump `tree-sitter-zeek` (Evan Typanski, Corelight)
+
+  * GH-28: Make enum decls always add newlines (Evan Typanski, Corelight)
+
+    Fixes #28
+
+  * GH-67: Be more aggressive line breaking with `{` init (Evan Typanski, Corelight)
+
+    Closes #67
+
+  * Avoid spaces after `[`/`{` and before `]`/`}` (Evan Typanski, Corelight)
+
+    This makes braces more consistent. Before sometimes a space would get
+    added, sometimes not. This makes it never get added after `[` (start of
+    a list) and before `]` (end of a list). That is, unless there's a
+    comment or something.
+
+    This also extends to curly braces for consistency.
+
 1.3.2-16 | 2025-03-25 15:09:11 -0400
 
   * Bump `tree-sitter-zeek` for better type expression (Evan Typanski, Corelight)
