@@ -1,6 +1,6 @@
 """Wrapper around more low-level tests."""
 
-__version__ = "1.3.2-21"
+__version__ = "1.3.2-27"
 __all__ = [
     "Formatter",
     "Script",

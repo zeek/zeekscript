@@ -10,19 +10,14 @@ parse tree for the script.
 import argparse
 import sys
 
-try:
-    # Argcomplete provides command-line completion for users of argparse.
-    # We support it if available, but don't complain when it isn't.
-    import argcomplete  # pylint: disable=import-error
-except ImportError:
-    pass
+import argcomplete
 
 import zeekscript
 
 # ---- Helper functions --------------------------------------------------------
 
 
-def create_parser():
+def create_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="A Zeek script analyzer")
 
     zeekscript.add_version_arg(parser)
@@ -45,13 +40,12 @@ def create_parser():
     )
     zeekscript.add_parse_cmd(sub_parser)
 
-    if "argcomplete" in sys.modules:
-        argcomplete.autocomplete(parser)
+    argcomplete.autocomplete(parser)
 
     return parser
 
 
-def main():
+def zeek_script() -> int:
     parser = create_parser()
     args = parser.parse_args()
 
@@ -66,10 +60,11 @@ def main():
         return 1
 
     try:
-        return args.run_cmd(args)
+        result: int = args.run_cmd(args)
+        return result
     except KeyboardInterrupt:
         return 0
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    sys.exit(zeek_script())

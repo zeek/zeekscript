@@ -27,6 +27,7 @@ keywords = [
 requires-python = ">= 3.10"
 
 dependencies = [
+    "argcomplete>=3.6.1",
     "tree-sitter==0.24.0",
     "tree-sitter-zeek==0.2.8",
 ]
@@ -45,9 +46,12 @@ email="info@zeek.org"
 [project.urls]
 Repository = "https://github.com/zeek/zeekscript"
 
+[project.scripts]
+zeek-format = "zeekscript.cli:zeek_format"
+zeek-script = "zeekscript.cli:zeek_script"
+
 [tool.setuptools]
 packages = ["zeekscript"]
-script-files = ["zeek-format", "zeek-script"]
 
 [tool.ruff.lint]
 select = ["PL", "UP", "RUF", "N", "I"]
@@ -64,3 +68,7 @@ extend-ignore-names = [
 
 [tool.pytest.ini_options]
 addopts = "--cov --cov-report html --cov-report term"
+
+[[tool.mypy.overrides]]
+module = ["tree_sitter", "tree_sitter_zeek"]
+ignore_missing_imports = true

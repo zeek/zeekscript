@@ -4,20 +4,24 @@ import io
 import os
 import pathlib
 import sys
+from collections.abc import Generator
+from typing import IO, Any, AnyStr, BinaryIO, TextIO, TypeAlias
 
 import tree_sitter
 import tree_sitter_zeek
 
-from .error import FileError, ParserError
+from .error import FileError
 from .formatter import Formatter
 from .node import Node
 from .output import OutputStream
+
+MaybeNone: TypeAlias = Any
 
 
 class Script:
     """Representation of a single Zeek script file."""
 
-    def __init__(self, file):
+    def __init__(self, file: str | pathlib.Path | BinaryIO) -> None:
         """Script constructor.
 
         The file argument can be a string providing a file name, a pathlib.Path
@@ -25,11 +29,15 @@ class Script:
         implies stdin.
         """
         self.file = file
-        self.source = None  # The file's full content, once parsed
-        self.ts_tree = None  # The tree-sitter parse tree for the script
-        self.root = None  # The root node of our cloned (and malleable) tree
+        self.source: bytes | MaybeNone = None  # The file's full content, once parsed
+        self.ts_tree: tree_sitter.Tree | None = (
+            None  # The tree-sitter parse tree for the script
+        )
+        self.root: Node | None = (
+            None  # The root node of our cloned (and malleable) tree
+        )
 
-    def parse(self):
+    def parse(self) -> bool:
         """Parses the script and creates the internal concrete syntax tree.
 
         Raises zeekscript.FileError when the input file cannot be read, and
@@ -65,7 +73,7 @@ class Script:
 
         return not self.has_error()
 
-    def has_error(self):
+    def has_error(self) -> bool:
         """Predicate, returns True when parsing identified problems.
 
         Problems can be of several kinds: for grammatical errors, tree nodes
@@ -82,7 +90,7 @@ class Script:
 
         return False
 
-    def get_error(self):
+    def get_error(self) -> tuple[str | bytes | None, int | None, str | None]:
         """Return offending content line in the script, plus error message
 
         This traverses the parse tree and returns a triplet of:
@@ -127,7 +135,7 @@ class Script:
 
         return line, lineno, msg
 
-    def traverse(self, include_cst=False):
+    def traverse(self, include_cst: bool = False) -> Generator[tuple[Node, int]]:
         """Depth-first iterator for the script's syntax tree.
 
         This yields a tuple (node, nesting) with a Node instance (ours, not
@@ -139,7 +147,9 @@ class Script:
 
         yield from self.root.traverse(include_cst)
 
-    def get_content(self, start_byte=None, end_byte=None):
+    def get_content(
+        self, start_byte: int | None = None, end_byte: int | None = None
+    ) -> bytes:
         """Returns a region of this script's content.
 
         By default, this returns the entire content. start_byte and end_byte, if
@@ -150,7 +160,9 @@ class Script:
 
         return self.source[start_byte:end_byte]
 
-    def format(self, output=None, enable_linebreaks=True):
+    def format(
+        self, output: BinaryIO | TextIO | None = None, enable_linebreaks: bool = True
+    ) -> None:
         """Formats the script and writes out the result.
 
         The output destination can be one of three things: a filename, a file
@@ -159,8 +171,9 @@ class Script:
         """
         assert self.root is not None, "call Script.parse() before Script.format()"
 
-        def do_format(out):
+        def do_format(out: BinaryIO | TextIO) -> None:
             with OutputStream(out, enable_linebreaks) as ostream:
+                assert self.root
                 fclass = Formatter.lookup(self.root)
                 formatter = fclass(self, self.root, ostream)
                 formatter.format()
@@ -174,36 +187,32 @@ class Script:
             # output should be a file-like object
             do_format(output)
 
-    def write_tree(self, output=None, node_stringifier=None, include_cst=False):
+    def write_tree(
+        self, output: io.BytesIO | None = None, include_cst: bool = False
+    ) -> None:
         """Writes the script's parse tree to the given output.
 
         The output destination works as for Script.format().
-
-        node_stringifier, if supplied, controls how a given tree node gets
-        rendered to a string. It is a function that takes three arguments: a
-        zeekscript.Node, the node's nesting level in the tree (an integer), and
-        this script instance. When omitted, the function defaults to an internal
-        implementation.
 
         include_cst controls whether the rendered tree shows only AST nodes
         (i.e., "proper" members of the grammar, excluding TS's "extra" nodes
         such as newlines and comments) or AST and CST nodes.
         """
 
-        def node_str(node, nesting, script):
+        def node_str(node: Node, nesting: int, script: Script) -> str:
             content = ""
             if node.is_named:
                 # Cap the amount of script payload we show ...
-                content = script.source[node.start_byte : node.end_byte]
+                data = script.source[node.start_byte : node.end_byte]
                 maxlen = 100
                 extra = ""
 
-                if len(content) > maxlen:
-                    extra = f"[+{len(content) - maxlen}]"
-                    content = content[:maxlen]
+                if len(data) > maxlen:
+                    extra = f"[+{len(data) - maxlen}]"
+                    data = data[:maxlen]
 
                 # ... and render it such that we get backslash-escapes.
-                content = str(repr(content.decode("ascii", "ignore"))) + extra
+                content = str(repr(data.decode("ascii", "ignore"))) + extra
 
             # CST node rendering. This only applies when the tree traversal
             # actually produces these nodes.
@@ -233,16 +242,15 @@ class Script:
                 ).rstrip()
             )
 
-        def do_traverse(ostream):
-            def encode(x):
-                if isinstance(ostream, io.TextIOBase):
-                    return x + os.linesep
-                else:
-                    return x.encode("UTF-8") + Formatter.NL
-
-            stringifier = node_stringifier if node_stringifier else node_str
+        def do_traverse(ostream: IO[AnyStr]) -> None:
             for node, nesting in self.traverse(include_cst):
-                ostream.write(encode(stringifier(node, nesting, self)))
+                text = node_str(node, nesting, self)
+
+                if isinstance(ostream, io.TextIOBase):
+                    ostream.write(text + os.linesep)
+                else:
+                    # Disable type checking here since mypy has trouble detecting that `sys.stdout` can be written bytes.
+                    ostream.write(text.encode("UTF-8") + Formatter.NL)  # type: ignore
 
         if output is None:
             do_traverse(sys.stdout)
@@ -253,7 +261,7 @@ class Script:
             # output should be a file-like object
             do_traverse(output)
 
-    def _clone_tree(self):
+    def _clone_tree(self) -> None:
         """Deep-copy the TS tree to one consisting of zeekscript.Node instances.
 
         The input is self.ts_tree, the output is our tree's root node at self.root.
@@ -263,14 +271,14 @@ class Script:
         # own tree freely, which helps during formatting. Second, we encode
         # additional metadata in the node structure.
 
-        def make_nullnode():
+        def make_nullnode() -> Node:
             node = Node()
             node.is_named = True
             node.type = "nullnode"
             node.is_ast = True
             return node
 
-        def make_node(node):
+        def make_node(node: tree_sitter.Node) -> Node:
             new_node = Node()
 
             # Copy basic TS properties
@@ -284,15 +292,16 @@ class Script:
             # Mark the node as AST-only if it's not a newline or comment. Those
             # are extras (in TS terminology) that occur anywhere in the tree.
             # Would be nice if we didn't need to itemize these manually.
+            assert node.type
             if node.type != "nl" and not node.type.endswith("_comment"):
                 new_node.is_ast = True
 
-            new_children = []
+            new_children: list[Node] = []
 
             # Set up state for all of the node's children. This recurses
             # so we build up our own tree.
-            for child in node.children:
-                new_child = make_node(child)
+            for ts_child in node.children:
+                new_child = make_node(ts_child)
 
                 # Fully link CST nodes so they can reason about their neighbors
                 if new_children:
@@ -332,11 +341,12 @@ class Script:
 
             ast_node = None
             ast_nodes_remaining = len(new_node.children)
-            prevs = []
+            prevs: list[Node] = []
             last_child = None
 
             for child in new_children:
                 if ast_nodes_remaining == 0:
+                    assert ast_node
                     ast_node.next_cst_siblings.append(child)
                     child.ast_parent = ast_node
                     child.is_cst_next_node = True
@@ -417,9 +427,10 @@ class Script:
 
             return new_node
 
+        assert self.ts_tree
         self.root = make_node(self.ts_tree.root_node)
 
-    def _patch_tree(self):
+    def _patch_tree(self) -> None:
         """Tweak the syntax tree to simplify formatting."""
         # Move any dangling CST nodes (such as comments) down into the tree so
         # they directly child-follow the node that they refer to. For example,

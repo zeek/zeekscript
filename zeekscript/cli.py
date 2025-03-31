@@ -9,6 +9,8 @@ import traceback
 from .error import Error, ParserError
 from .output import print_error
 from .script import Script
+from .zeek_format import zeek_format
+from .zeek_script import zeek_script
 
 FILE_HELP = (
     'Use "-" to specify stdin as a filename. Omitting '
@@ -16,7 +18,7 @@ FILE_HELP = (
 )
 
 
-def cmd_format(args):
+def cmd_format(args: argparse.Namespace) -> int:
     """This function implements Zeek script formatting for the command line.
 
     It determines input and output streams, parses each input into a Script
@@ -61,7 +63,7 @@ def cmd_format(args):
         else:
             print_error(f'warning: skipping "{fname}"; not a supported file type')
 
-    def do_write(source):
+    def do_write(source: bytes) -> None:
         with open(ofname, "wb") if ofname else sys.stdout.buffer as ostream:
             ostream.write(source)
 
@@ -115,7 +117,7 @@ def cmd_format(args):
     return int(errs > 0)
 
 
-def cmd_parse(args):
+def cmd_parse(args: argparse.Namespace) -> int:
     """This function implements Zeek-script parsing for the commandline.
 
     It takes a single input file provided via the command line, parses it, and
@@ -150,13 +152,13 @@ def cmd_parse(args):
     return 0
 
 
-def add_version_arg(parser):
+def add_version_arg(parser: argparse.ArgumentParser) -> None:
     parser.add_argument(
         "--version", "-v", action="store_true", help="show version and exit"
     )
 
 
-def add_format_cmd(parser):
+def add_format_cmd(parser: argparse.ArgumentParser) -> None:
     """This adds a Zeek script formatting CLI interface to the given argparse
     parser. It registers the cmd_format() callback as the parser's run_cmd
     default."""
@@ -183,7 +185,7 @@ def add_format_cmd(parser):
     )
 
 
-def add_parse_cmd(parser):
+def add_parse_cmd(parser: argparse.ArgumentParser) -> None:
     """This adds a Zeek script parser CLI interface to the given argparse parser. It
     registers the cmd_parse() callback as the parser's run_cmd default."""
     parser.set_defaults(run_cmd=cmd_parse)

@@ -1,3 +1,15 @@
+1.3.2-27 | 2025-03-31 21:35:31 +0200
+
+  * Avoid passing hints as optional (Benjamin Bannier, Corelight)
+
+  * Make scripts proper functions (Benjamin Bannier, Corelight)
+
+  * Drop unused function argument (Benjamin Bannier, Corelight)
+
+  * Remove dead code (Benjamin Bannier, Corelight)
+
+  * Add type hints (Benjamin Bannier, Corelight)
+
 1.3.2-21 | 2025-03-31 11:57:13 -0400
 
   * Bump `tree-sitter-zeek` (Evan Typanski, Corelight)

@@ -17,16 +17,11 @@ def fix_lineseps(content):
     return out
 
 
-def normalize(content):
+def normalize(content: str):
     """Encodes the given content string to UTF-8 if not already binary, and
     standardizes newlines.
     """
-    if not isinstance(content, bytes):
-        out = content.encode("UTF-8")
-    else:
-        out = content
-
-    return fix_lineseps(out)
+    return fix_lineseps(content.encode("UTF-8"))
 
 
 # A small unformatted source sample for general testing.
