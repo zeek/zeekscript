@@ -24,6 +24,7 @@ import sys
 from collections.abc import Callable
 from typing import TYPE_CHECKING, Protocol
 
+from format_zeek import format as fmt
 from zeekscript.node import Node
 
 if TYPE_CHECKING:
@@ -1448,8 +1449,13 @@ class MinorCommentFormatter(CommentFormatter):
 
 class ZeekygenCommentFormatter(CommentFormatter):
     def format(self) -> None:
-        self._format_token()
-        self._write_nl()
+        return self._write(
+            fmt(
+                self.script.get_content(*self.node.script_range()).decode(
+                    encoding="utf-8"
+                )
+            )
+        )
 
 
 class ZeekygenPrevCommentFormatter(CommentFormatter):

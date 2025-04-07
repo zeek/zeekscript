@@ -89,6 +89,8 @@ fn format_zeek(m: &Bound<'_, PyModule>) -> PyResult<()> {
 
 #[cfg(test)]
 mod test {
+    use insta::assert_debug_snapshot;
+
     use crate::FormatError;
 
     fn format(input: &str) -> Result<String, FormatError> {
@@ -96,7 +98,15 @@ mod test {
     }
 
     #[test]
-    fn expression() {
-        assert_eq!(format("1+1;").unwrap(), "1+1;\n");
+    fn comments() {
+        assert_debug_snapshot!(format("# foo\n;1;"));
+        assert_debug_snapshot!(format("##! foo\n;1;"));
+        assert_debug_snapshot!(format("## foo\n1;"));
+        assert_debug_snapshot!(format("##< foo\n1;"));
+
+        assert_debug_snapshot!(format("1;# foo\n;1;"));
+        assert_debug_snapshot!(format("1;##! foo\n;1;"));
+        assert_debug_snapshot!(format("1;## foo\n1;"));
+        assert_debug_snapshot!(format("1;##< foo"));
     }
 }
