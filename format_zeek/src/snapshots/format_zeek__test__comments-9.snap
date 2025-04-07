@@ -1,0 +1,7 @@
+---
+source: src/lib.rs
+expression: "format(\"1;##< foo\\n##< bar\")"
+---
+Ok(
+    "1; ##< foo\n##< bar\n",
+)
