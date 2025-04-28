@@ -30,6 +30,12 @@ dependencies = [
     "argcomplete>=3.6.1",
     "tree-sitter==0.24.0",
     "tree-sitter-zeek==0.2.9",
+    # FIXME(bbannier): A project with such a dependency probably cannot be
+    # published. We probably should migrate all formatting-related
+    # functionality into this project, and then either publish and consume it,
+    # or maybe just migrate to a native Rust-based binary with that
+    # funcitonality.
+    "format_zeek @ file:///${PROJECT_ROOT}/format_zeek",
 ]
 
 [project.optional-dependencies]
@@ -70,5 +76,5 @@ extend-ignore-names = [
 addopts = "--cov --cov-report html --cov-report term"
 
 [[tool.mypy.overrides]]
-module = ["tree_sitter", "tree_sitter_zeek"]
+module = ["tree_sitter", "tree_sitter_zeek", "format_zeek"]
 ignore_missing_imports = true
