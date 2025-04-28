@@ -54,7 +54,7 @@ zeek-script = "zeekscript.cli:zeek_script"
 packages = ["zeekscript"]
 
 [tool.ruff.lint]
-select = ["PL", "UP", "RUF", "N", "I"]
+select = ["PL", "UP", "RUF", "N", "I", "RET"]
 ignore = ["PLR0912", "PLR0915", "PLR2004"]
 
 [tool.ruff.lint.pep8-naming]

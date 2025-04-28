@@ -346,8 +346,8 @@ class Formatter:
         """
         if child := self._get_child(offset, absolute):
             return child.type
-        else:
-            return None
+
+        return None
 
     def _get_child_name(self, offset: int = 0, absolute: bool = False) -> str | None:
         """Like _get_child_type(), but for named nodes.
@@ -356,8 +356,8 @@ class Formatter:
         """
         if child := self._get_child(offset, absolute):
             return child.name()
-        else:
-            return None
+
+        return None
 
     def _get_child_token(self, offset: int = 0, absolute: bool = False) -> str | None:
         """Like _get_child_type(), but for terminal nodes.
@@ -367,8 +367,8 @@ class Formatter:
         """
         if child := self._get_child(offset, absolute):
             return child.token()
-        else:
-            return None
+
+        return None
 
     @staticmethod
     def register(symbol_name: str, klass: type[Formatter]) -> None:
