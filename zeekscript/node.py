@@ -124,6 +124,11 @@ class Node:
             and self.end_byte == other.end_byte
         )
 
+    def __hash__(self) -> int:
+        """A nodes identity is determined by its type and source range"""
+        self.script_range()
+        return hash([self.type, self.start_byte, self.end_byte])
+
     def name(self) -> str | None:
         """Returns the type of a named node.
 
