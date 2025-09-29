@@ -18,7 +18,7 @@ FILE_HELP = (
 )
 
 
-def cmd_format(args: argparse.Namespace) -> int:
+def cmd_format(args: argparse.Namespace) -> int:  # noqa: PLR0911
     """This function implements Zeek script formatting for the command line.
 
     It determines input and output streams, parses each input into a Script
@@ -85,6 +85,10 @@ def cmd_format(args: argparse.Namespace) -> int:
                     print_error(f"{fname}: {msg}")
                 else:
                     print_error(msg)
+
+                # Do not attempt to format code with errors.
+                do_write(script.source)
+                return 1
         except Error as err:
             print_error("parsing error: " + str(err))
             do_write(script.source)

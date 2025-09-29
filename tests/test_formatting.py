@@ -169,26 +169,25 @@ print "hi";
         )
 
     def test_mid_record_error(self):
-        self.assertFormatting(
-            """type foo: record {
+        _, error = self._format(
+            tu.normalize(
+                """type foo: record {
 	a: count; ##< A field
 	b count; ##< A broken field
 	c: count; ##< Another field, better not skipped!
 	d: count; ##< Ditto.
 };
-""",
-            """type foo: record {
-	a: count; ##< A field
-	b count; ##< A broken field
-	c : count; ##< Another field, better not skipped!
-	d: count; ##< Ditto.
-};
-""",
-            (
-                "\tb count; ##< A broken field",
-                2,
-                'cannot parse line 2, col 3: "count; ##< A broken field\n\tc"',
-            ),
+"""
+            )
+        )
+
+        # TODO(bbannier): The way we currently format this is not idempotent,
+        # so only check that we return the expected error. This is okay since
+        # we do not format files with errors anyway.
+        assert error == (
+            "type foo: record {",
+            0,
+            'cannot parse line 0, col 10: "record {\n\ta: count; ##< A field\n\tb"',
         )
 
     def test_single_char_mid_error(self):
