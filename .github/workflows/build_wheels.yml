@@ -18,8 +18,11 @@ jobs:
         with:
           submodules: recursive
 
+      # FIXME(bbannier): Use `uv` here for support for `PROJECT_ROOT` in `pyproject.toml`.
+      - uses: astral-sh/setup-uv@v6
+
       - name: Build SDist
-        run: python ./setup.py sdist
+        run: uv build --sdist
 
       - uses: actions/upload-artifact@v4
         with:
@@ -37,11 +40,11 @@ jobs:
       - uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.python-version }}
+      # FIXME(bbannier): Use `uv` here for support for `PROJECT_ROOT` in `pyproject.toml`.
+      - uses: astral-sh/setup-uv@v6
       - name: Install dependencies
-        run: pip install .[dev]
-      - run: pytest
-
-
+        run: uv sync --all-extras
+      - run: uv run pytest
 
   upload_all:
     needs: [build_sdist, check]
