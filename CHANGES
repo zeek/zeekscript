@@ -1,3 +1,21 @@
+1.3.2-48 | 2025-09-29 08:43:31 +0200
+
+  * Bump pre-commit hooks (Benjamin Bannier, Corelight)
+
+  * Implement `__hash__` for `Node` (Benjamin Bannier, Corelight)
+
+    Since `Node` implements `__eq__` it should also implement `__hash__`.
+
+    (cherry picked from commit eb766db7fe882b7dbdd803e0e05f6a5d328e5e6e)
+
+  * build(deps): bump pytest from 8.4.1 to 8.4.2 (dependabot[bot])
+
+  * build(deps): bump actions/setup-python from 5 to 6 (dependabot[bot])
+
+  * build(deps): bump actions/download-artifact from 4 to 5 (dependabot[bot])
+
+  * build(deps): bump actions/checkout from 4 to 5 (dependabot[bot])
+
 1.3.2-38 | 2025-06-23 14:48:55 +0200
 
   * build(deps): bump pytest from 8.3.5 to 8.4.1 (dependabot[bot])
