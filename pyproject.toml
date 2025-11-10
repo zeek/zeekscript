@@ -29,12 +29,12 @@ requires-python = ">= 3.10"
 dependencies = [
     "argcomplete>=3.6.1",
     "tree-sitter==0.25.2",
-    "tree-sitter-zeek==0.2.10",
+    "tree-sitter-zeek==0.2.11",
 ]
 
 [project.optional-dependencies]
 dev = [
-    "pytest==8.4.2",
+    "pytest==9.0.0",
     "pytest-cov>=6.0.0",
     "syrupy==5.0.0",
 ]
