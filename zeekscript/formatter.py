@@ -26,6 +26,8 @@ from typing import TYPE_CHECKING, Protocol
 
 from zeekscript.node import Node
 
+from .zeekscript import format
+
 if TYPE_CHECKING:
     from zeekscript.output import OutputStream
     from zeekscript.script import Script
@@ -1448,8 +1450,13 @@ class MinorCommentFormatter(CommentFormatter):
 
 class ZeekygenCommentFormatter(CommentFormatter):
     def format(self) -> None:
-        self._format_token()
-        self._write_nl()
+        return self._write(
+            format(
+                self.script.get_content(*self.node.script_range()).decode(
+                    encoding="utf-8"
+                )
+            )
+        )
 
 
 class ZeekygenPrevCommentFormatter(CommentFormatter):
