@@ -7,6 +7,7 @@ __all__ = [
     "add_format_cmd",
     "add_parse_cmd",
     "add_version_arg",
+    "format",
     "print_error",
 ]
 
@@ -14,3 +15,4 @@ from .cli import add_format_cmd, add_parse_cmd, add_version_arg
 from .formatter import Formatter
 from .output import print_error
 from .script import Script
+from .zeekscript import format
