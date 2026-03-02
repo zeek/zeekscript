@@ -21,7 +21,7 @@ jobs:
       - name: Build SDist
         run: python ./setup.py sdist
 
-      - uses: actions/upload-artifact@v6
+      - uses: actions/upload-artifact@v7
         with:
           path: dist/*.tar.gz
 
@@ -48,7 +48,7 @@ jobs:
     runs-on: ubuntu-latest
     if: github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags/v')
     steps:
-    - uses: actions/download-artifact@v7
+    - uses: actions/download-artifact@v8
       with:
         # The above jobs yield a combined artifacts archive
         name: artifact

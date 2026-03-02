@@ -36,7 +36,7 @@ dependencies = [
 dev = [
     "pytest==9.0.2",
     "pytest-cov>=6.0.0",
-    "syrupy==5.0.0",
+    "syrupy==5.1.0",
 ]
 
 [[project.maintainers]]
