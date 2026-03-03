@@ -1405,6 +1405,8 @@ class ExprFormatter(SpaceSeparatedFormatter, ComplexSequenceFormatterMixin):
                     space_count = max(0, align_col - tab_col)
                     indent_str = self.NL + b"\t" * self.indent + b" " * space_count
                     self.ostream.write(indent_str, self)
+                    # Re-set alignment after newline (flush clears it)
+                    self.ostream.set_align_column(align_col)
                 else:
                     self._write_sp()
 
