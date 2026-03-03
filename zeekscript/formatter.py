@@ -1364,13 +1364,17 @@ class ExprFormatter(SpaceSeparatedFormatter, ComplexSequenceFormatterMixin):
 
         elif ct1 == "!":
             # Negation looks better when spaced apart
-            self._format_child(hints=Hint.NO_LB_AFTER)
+            # Propagate GOOD_AFTER_LB so line-breaker prefers breaking before this expr
+            first_hints = Hint.NO_LB_AFTER | (self.hints & Hint.GOOD_AFTER_LB)
+            self._format_child(hints=first_hints)
             self._write_sp()
             self._format_child()
 
         elif ct1 in ["|", "++", "--", "~", "-", "+"]:
             # No space when those operators are involved
-            self._format_child(hints=Hint.NO_LB_AFTER)
+            # Propagate GOOD_AFTER_LB so line-breaker prefers breaking before this expr
+            first_hints = Hint.NO_LB_AFTER | (self.hints & Hint.GOOD_AFTER_LB)
+            self._format_child(hints=first_hints)
             while self._get_child():
                 self._format_child()
 
