@@ -228,14 +228,16 @@ class OutputStream:
                 space_count = max(0, align_col - tab_col)
                 self._write(b" " * space_count)
                 col_flushed = tab_col + space_count
+            elif align_col >= self.MAX_ALIGN_COL:
+                # Alignment uses too much whitespace, use TAB_SIZE
+                # to maintain visual hierarchy with parent constructs
+                self._write(b" " * self.TAB_SIZE)
+                col_flushed = tab_col + self.TAB_SIZE
             else:
-                # Fallback indent depends on why we're here:
-                # - align_col == 0: no alignment set, use SPACE_INDENT (original behavior)
-                # - align_col >= MAX_LINE_LEN/2: alignment uses too much whitespace, use TAB_SIZE
-                #   to maintain visual hierarchy with parent constructs
-                fallback = self.TAB_SIZE if align_col >= self.MAX_ALIGN_COL else self.SPACE_INDENT
-                self._write(b" " * fallback)
-                col_flushed = tab_col + fallback
+                # align_col == 0: no alignment set - this shouldn't happen
+                # Print a marker to make it easy to find these cases
+                self._write(b"MISINDENTATION")
+                col_flushed = tab_col + 14  # len("MISINDENTATION")
 
             # Remove leading whitespace from continuation
             while tbd and not tbd[0].data.strip():
