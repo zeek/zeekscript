@@ -1267,6 +1267,25 @@ class ExprFormatter(SpaceSeparatedFormatter, ComplexSequenceFormatterMixin):
             offset=1, absolute=True
         ) in ("||", "&&")
 
+    def _is_binary_operator(self) -> bool:
+        """Predicate, returns true if this is a binary operator expression.
+
+        Includes arithmetic, comparison, bitwise, and pattern match operators.
+        Boolean (&&, ||) and membership (in, !in) are handled separately.
+        """
+        return len(self.node.nonerr_children) == 3 and self._get_child_token(
+            offset=1, absolute=True
+        ) in (
+            # Arithmetic
+            "/", "*", "+", "-", "%",
+            # Comparison
+            "==", "!=", "<", ">", "<=", ">=",
+            # Bitwise
+            "&", "|", "^",
+            # Pattern match
+            "~", "!~",
+        )
+
     def _is_string_concat(self) -> bool:
         """Predicate, returns true if this a <string> + <string> expression."""
 
@@ -1640,6 +1659,19 @@ class ExprFormatter(SpaceSeparatedFormatter, ComplexSequenceFormatterMixin):
             self._format_child()  # '+'
             self._write_sp()
             self._format_child(hints=Hint.GOOD_AFTER_LB)  # <expr>
+
+        elif self._is_binary_operator():
+            # For binary operators, prefer keeping the operator at the end of
+            # line 1 rather than the start of line 2 when wrapping.
+            # Set alignment so continuation aligns with first operand.
+            saved_align = self.ostream.get_align_column()
+            self.ostream.set_align_column(self.ostream.get_visual_column())
+            self._format_child()  # <expr>
+            self._write_sp()
+            self._format_child()  # operator
+            self._write_sp()
+            self._format_child(hints=Hint.GOOD_AFTER_LB)  # <expr>
+            self.ostream.set_align_column(saved_align)
 
         else:
             # Fall back to simple space-separation
