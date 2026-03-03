@@ -899,6 +899,38 @@ class StmtFormatter(TypedInitializerFormatter):
         self._format_child(indent=True)  # <stmt>
         self._write_nl()
 
+    def _is_compact_if(self, node: Node) -> bool:
+        """Check if node is an if statement with body on the same line.
+
+        Returns True if:
+        - Node is an if statement (not if-else)
+        - Body is not a {}-block
+        - Original source has no newline between ) and the body
+        """
+        if node.name() != "stmt" or not node.nonerr_children:
+            return False
+        if node.nonerr_children[0].token() != "if":
+            return False
+        # Check for else clause - if present, not compact
+        if len(node.nonerr_children) > 5:  # if ( expr ) stmt else ...
+            return False
+        # Check if body is a {}-block
+        body = node.nonerr_children[4]
+        if body.nonerr_children and body.nonerr_children[0].token() == "{":
+            return False
+        # Check for newline between ) and body in the source
+        close_paren = node.nonerr_children[3]
+        between = self.script.get_content(close_paren.end_byte, body.start_byte)
+        return b"\n" not in between
+
+    def _has_adjacent_compact_if(self, node: Node) -> bool:
+        """Check if node has an adjacent sibling that is also a compact if."""
+        if node.prev_sibling and self._is_compact_if(node.prev_sibling):
+            return True
+        if node.next_sibling and self._is_compact_if(node.next_sibling):
+            return True
+        return False
+
     def _format_when(self) -> None:
         self._format_child()  # 'when'
         self._write_sp()
@@ -966,8 +998,20 @@ class StmtFormatter(TypedInitializerFormatter):
             # {}-block: if it's not, we write a newline and need to indent,
             # because {}-blocks take care of indentation as another statement
             # type (higher up in this function).
+            #
+            # Exception: preserve compact if-statement style when:
+            # 1. Original source has body on same line as condition
+            # 2. There's at least one adjacent compact if (forms a block)
+            # This allows switch-case-like patterns to stay compact.
 
-            self._format_stmt_block()
+            if (
+                self._is_compact_if(self.node)
+                and self._has_adjacent_compact_if(self.node)
+            ):
+                self._write_sp()
+                self._format_child()  # <stmt> on same line
+            else:
+                self._format_stmt_block()
 
             # An else-block also requires special treatment
             if self._get_child_token() == "else":
