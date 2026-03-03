@@ -1360,7 +1360,14 @@ class ExprFormatter(SpaceSeparatedFormatter, ComplexSequenceFormatterMixin):
             self._format_child()  # '}'/']'
 
         elif ct1 == "(":
-            self._format_child(hints=Hint.NO_LB_BEFORE)  # '('
+            # Propagate GOOD_AFTER_LB (if set on this expression) to the '(' token
+            # so the line-breaker knows to prefer breaking before it. This keeps
+            # operators like || and + at the end of line 1. When GOOD_AFTER_LB is
+            # set, don't add NO_LB_BEFORE since that would prevent the desired break.
+            paren_hints = self.hints
+            if Hint.GOOD_AFTER_LB not in self.hints:
+                paren_hints |= Hint.NO_LB_BEFORE
+            self._format_child(hints=paren_hints)  # '('
             self._format_child(hints=Hint.NO_LB_AFTER)  # <expr>
             self._format_child()  # ')'
 

@@ -252,17 +252,27 @@ class OutputStream:
 
         def find_break_points(
             items: list[Output], start_col: int, start_depth: int = 0
-        ) -> tuple[list[tuple[int, int, int, bool]], int, bool, int, int]:
+        ) -> tuple[list[tuple[int, int, int, bool, bool]], int, bool, int]:
             """Find valid break points in a list of items.
 
-            Returns (all_break_points, total_len, has_init_lenient, has_good_after_lb, end_depth)
-            where all_break_points is list of (index, visual_column, nesting_depth, is_comma)
+            Returns (all_break_points, total_len, has_init_lenient, end_depth)
+            where all_break_points is list of:
+              (index, visual_column, nesting_depth, is_comma, is_before_good_lb)
+            The is_before_good_lb flag indicates that the next token after this
+            break point has the GOOD_AFTER_LB hint. For operators like || and +,
+            the hint is on the following operand, so breaking here keeps the
+            operator at the end of line 1 rather than the start of line 2.
             """
             total_len = start_col
-            all_break_points: list[tuple[int, int, int, bool]] = []
-            has_good_after_lb = -1
+            all_break_points: list[tuple[int, int, int, bool, bool]] = []
             has_init_lenient = False
             nesting_depth = start_depth
+
+            # First pass: collect indices of tokens with GOOD_AFTER_LB
+            good_lb_indices: set[int] = set()
+            for i, out in enumerate(items):
+                if out.data.strip() and Hint.GOOD_AFTER_LB in out.formatter.hints:
+                    good_lb_indices.add(i)
 
             for i, out in enumerate(items):
                 token = out.data.strip()
@@ -277,17 +287,23 @@ class OutputStream:
                 if token:
                     if out.hints is not None and Hint.INIT_LENIENT in out.hints:
                         has_init_lenient = True
-                    if Hint.GOOD_AFTER_LB in out.formatter.hints:
-                        has_good_after_lb = i
                     if Hint.NO_LB_AFTER not in out.formatter.hints:
                         is_comma = token == b","
-                        all_break_points.append((i, total_len, nesting_depth, is_comma))
+                        # Check if the next non-whitespace token has GOOD_AFTER_LB
+                        is_before_good_lb = False
+                        for j in range(i + 1, len(items)):
+                            if items[j].data.strip():
+                                is_before_good_lb = j in good_lb_indices
+                                break
+                        all_break_points.append(
+                            (i, total_len, nesting_depth, is_comma, is_before_good_lb)
+                        )
 
-            return all_break_points, total_len, has_init_lenient, has_good_after_lb, nesting_depth
+            return all_break_points, total_len, has_init_lenient, nesting_depth
 
         def filter_break_points(
-            all_break_points: list[tuple[int, int, int, bool]]
-        ) -> list[tuple[int, int]]:
+            all_break_points: list[tuple[int, int, int, bool, bool]]
+        ) -> list[tuple[int, int, bool]]:
             """Filter break points by nesting depth and comma preference.
 
             Prefers breaks at the minimum non-zero nesting depth to avoid breaking
@@ -295,7 +311,8 @@ class OutputStream:
             At each depth, prefers breaks after commas (for argument lists) over
             breaks at other positions (like operators).
 
-            Returns list of (index, visual_column) for the selected break points.
+            Returns list of (index, visual_column, is_before_good_lb) for the
+            selected break points.
             """
             if not all_break_points:
                 return []
@@ -307,16 +324,17 @@ class OutputStream:
             for depth in target_depths:
                 at_depth = [bp for bp in all_break_points if bp[2] == depth]
                 if at_depth:
-                    comma_breaks = [(bp[0], bp[1]) for bp in at_depth if bp[3]]
+                    # bp[3] is is_comma, bp[4] is is_before_good_lb
+                    comma_breaks = [(bp[0], bp[1], bp[4]) for bp in at_depth if bp[3]]
                     if comma_breaks:
                         return comma_breaks
                     else:
-                        return [(bp[0], bp[1]) for bp in at_depth]
+                        return [(bp[0], bp[1], bp[4]) for bp in at_depth]
             return []
 
         def choose_break(
             items: list[Output],
-            break_points: list[tuple[int, int]],
+            break_points: list[tuple[int, int, bool]],
             total_len: int,
             start_col: int,
             continuation_indent: int,
@@ -324,14 +342,18 @@ class OutputStream:
         ) -> int:
             """Choose the best break point index, or -1 if no break needed.
 
+            break_points is a list of (index, visual_column, is_before_good_lb).
+
             Strategy:
             1. If line fits, no break needed
             2. Find breaks where both line1 and line2 fit under MAX_LINE_LEN
-            3. Among valid breaks, prefer the latest where line2 >= 2/3 of line1
-               (balances lines while maximizing content on line1)
-            4. If no break keeps both lines under limit, pick the break that
+            3. Among valid breaks, prefer those before GOOD_AFTER_LB tokens (keeps
+               operators like || and + at end of line 1, not start of line 2)
+            4. Among remaining valid breaks, prefer the latest where line2 >= 2/3
+               of line1 (balances lines while maximizing content on line1)
+            5. If no break keeps both lines under limit, pick the break that
                keeps line1 closest to MAX_LINE_LEN (minimizing excess)
-            5. Skip breaks that aren't "worth it" (too little content after)
+            6. Skip breaks that aren't "worth it" (too little content after)
             """
             if total_len <= effective_max_len:
                 return -1
@@ -341,23 +363,26 @@ class OutputStream:
                 return -1
 
             # Adjust break point columns relative to start_col
-            adjusted_breaks = [(idx, col - start_col) for idx, col in break_points]
+            # Preserve is_before_good_lb flag
+            adjusted_breaks = [
+                (idx, col - start_col, is_good) for idx, col, is_good in break_points
+            ]
 
-            # Find breaks where line1 fits under limit
+            # Find breaks where both lines fit under limit
             # Note: col here is the line length up to and including that token
-            valid_breaks: list[tuple[int, int, int]] = []
-            for idx, col in adjusted_breaks:
+            valid_breaks: list[tuple[int, int, int, bool]] = []
+            for idx, col, is_good in adjusted_breaks:
                 abs_col = start_col + col
                 remainder = total_len - abs_col
                 line2_len = continuation_indent + remainder
                 if abs_col <= self.MAX_LINE_LEN and line2_len <= self.MAX_LINE_LEN:
-                    valid_breaks.append((idx, abs_col, line2_len))
+                    valid_breaks.append((idx, abs_col, line2_len, is_good))
 
             if not valid_breaks:
                 # Pick break that keeps line1 closest to 80
                 target = self.MAX_LINE_LEN
 
-                def score(bp: tuple[int, int]) -> tuple[int, int]:
+                def score(bp: tuple[int, int, bool]) -> tuple[int, int]:
                     abs_col = start_col + bp[1]
                     if abs_col <= target:
                         return (0, target - abs_col)
@@ -367,19 +392,23 @@ class OutputStream:
                 best_bp = min(adjusted_breaks, key=score)
                 best_break = best_bp[0]
             else:
-                # Prefer latest break where line2 >= 2/3 of line1
+                # Prefer breaks before GOOD_AFTER_LB tokens (keeps || at end of line)
+                good_lb_breaks = [vb for vb in valid_breaks if vb[3]]
+                candidates = good_lb_breaks if good_lb_breaks else valid_breaks
+
+                # Among candidates, prefer latest where line2 >= 2/3 of line1
                 best_break = -1
-                for idx, abs_col, line2_len in reversed(valid_breaks):
+                for idx, abs_col, line2_len, _ in reversed(candidates):
                     if line2_len >= abs_col * 2 // 3:
                         best_break = idx
                         break
                 if best_break < 0:
-                    best_break = min(valid_breaks, key=lambda x: abs(x[1] - x[2]))[0]
+                    best_break = min(candidates, key=lambda x: abs(x[1] - x[2]))[0]
 
             # Check if break is worth it
             if best_break >= 0:
                 break_col = next(
-                    start_col + col for idx, col in adjusted_breaks if idx == best_break
+                    start_col + col for idx, col, _ in adjusted_breaks if idx == best_break
                 )
                 remainder = total_len - break_col
                 if remainder < self.MIN_LINE_EXCESS and total_len <= self.MAX_LINE_LEN + self.MIN_LINE_EXCESS:
@@ -399,7 +428,7 @@ class OutputStream:
 
         while items_remaining:
             # Find break points for remaining items
-            all_bps, total_len, has_init_lenient, _, end_depth = find_break_points(
+            all_bps, total_len, has_init_lenient, end_depth = find_break_points(
                 items_remaining, col_flushed, current_depth
             )
             break_points = filter_break_points(all_bps)
