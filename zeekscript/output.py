@@ -157,13 +157,21 @@ class OutputStream:
         return visual_col
 
     def _flush_line(self) -> None:
-        """Flushes out the line buffer, stripping trailing whitespace.
+        """Flushes out the line buffer, applying line wrapping as needed.
 
-        Without linewrapping, this simply flushes the line buffer. With
-        linewrapping this iterates over the line buffer, deciding whether to
-        write out data chunks right away or in to-be-done batches, possibly
-        after newlines, depending on line-breaking hints present in the
-        formatter objects linked from the Output instances.
+        Without linewrapping, this simply flushes the buffer. With linewrapping,
+        this iteratively breaks lines that exceed MAX_LINE_LEN (80 columns):
+
+        1. Find valid break points (after tokens without NO_LB_AFTER hint)
+        2. Filter to prefer breaks at the outermost nesting level and after commas
+        3. Choose a break that balances line lengths while keeping both under limit
+        4. If no break keeps both lines under limit, minimize line1's excess
+        5. Repeat for remainder until all lines fit or no valid breaks remain
+
+        Break points track nesting depth (parentheses/brackets/braces) so that
+        breaks inside nested function calls are avoided when outer breaks exist.
+        Continuation lines align to the column specified by align_column (typically
+        set after an opening parenthesis by the formatter).
         """
 
         # Without linebreaking active, just flush the buffer.
@@ -176,10 +184,8 @@ class OutputStream:
             return
 
         col_flushed = 0  # Visual column up to which we've currently written a line
-        tbd: list[Output] = []  # Outputs to be done
-        tbd_len = 0  # Visual length of the to-be-done output
-        line_items = 0  # Number of items (tokens, not whitespace) on formatted line
-        using_break_hints = False  # Whether we've used advisory linebreak hints yet
+        tbd: list[Output] = []  # Items for write_linebreak() to inspect for hints
+        line_items = 0  # Number of non-whitespace tokens on line (for MIN_LINE_ITEMS check)
 
         def visual_width(data: bytes, start_col: int) -> int:
             """Calculate visual width of data, accounting for tab stops."""
@@ -191,25 +197,16 @@ class OutputStream:
                     col += 1
             return col - start_col
 
-        def flush_tbd() -> None:
-            nonlocal tbd, tbd_len, col_flushed
-            for tbd_out in tbd:
-                self._write(tbd_out.data)
-                col_flushed += visual_width(tbd_out.data, col_flushed)
-            tbd = []
-            tbd_len = 0
-
-        # break_align_col will be set after chosen_break_idx is determined
+        # Alignment column for continuation lines, set before each write_linebreak()
         break_align_col = 0
 
         def write_linebreak() -> None:
-            nonlocal tbd, tbd_len, col_flushed
+            nonlocal tbd, col_flushed
             self._write(Formatter.NL)
             self._write(b"\t" * self._tab_indent)
             tab_col = self._tab_indent * self.TAB_SIZE
 
-            # Find alignment and hints from the first non-whitespace item
-            # that will follow the linebreak
+            # Check if first non-whitespace item needs special handling
             align_col = break_align_col
             use_tab_wrap = False
             for item in tbd:
@@ -231,10 +228,9 @@ class OutputStream:
                 self._write(b" " * self.SPACE_INDENT)
                 col_flushed = tab_col + self.SPACE_INDENT
 
-            # Remove any pure whitespace from the beginning of the
-            # continuation of the line we just broke:
+            # Remove leading whitespace from continuation
             while tbd and not tbd[0].data.strip():
-                tbd_len -= len(tbd.pop(0).data)
+                tbd.pop(0)
 
         # Count number of non-whitespace items on the line. This helps with some
         # linebreak heuristics below.
@@ -292,7 +288,15 @@ class OutputStream:
         def filter_break_points(
             all_break_points: list[tuple[int, int, int, bool]]
         ) -> list[tuple[int, int]]:
-            """Filter break points by depth and comma preference."""
+            """Filter break points by nesting depth and comma preference.
+
+            Prefers breaks at the minimum non-zero nesting depth to avoid breaking
+            inside nested function calls when an outer break is available.
+            At each depth, prefers breaks after commas (for argument lists) over
+            breaks at other positions (like operators).
+
+            Returns list of (index, visual_column) for the selected break points.
+            """
             if not all_break_points:
                 return []
 
@@ -318,7 +322,17 @@ class OutputStream:
             continuation_indent: int,
             effective_max_len: int,
         ) -> int:
-            """Choose the best break point index, or -1 if no break needed."""
+            """Choose the best break point index, or -1 if no break needed.
+
+            Strategy:
+            1. If line fits, no break needed
+            2. Find breaks where both line1 and line2 fit under MAX_LINE_LEN
+            3. Among valid breaks, prefer the latest where line2 >= 2/3 of line1
+               (balances lines while maximizing content on line1)
+            4. If no break keeps both lines under limit, pick the break that
+               keeps line1 closest to MAX_LINE_LEN (minimizing excess)
+            5. Skip breaks that aren't "worth it" (too little content after)
+            """
             if total_len <= effective_max_len:
                 return -1
             if len([o for o in items if o.data.strip()]) < self.MIN_LINE_ITEMS:
