@@ -1358,6 +1358,8 @@ class ExprFormatter(SpaceSeparatedFormatter, ComplexSequenceFormatterMixin):
             self._format_child()  # 'table' etc or function name expr
             self._format_child(hints=Hint.NO_LB_BEFORE)  # '('
             # Align wrapped arguments to the column after the '('
+            # Save parent alignment so we can restore it after
+            saved_align = self.ostream.get_align_column()
             self.ostream.set_align_column(self.ostream.get_visual_column())
             if self._get_child_name() == "expr_list":
                 if do_linebreak:
@@ -1367,7 +1369,7 @@ class ExprFormatter(SpaceSeparatedFormatter, ComplexSequenceFormatterMixin):
                 else:
                     self._format_child()
             self._format_child(hints=Hint.NO_LB_BEFORE)  # ')'
-            self.ostream.set_align_column(0)
+            self.ostream.set_align_column(saved_align)
             if self._get_child_name() == "attr_list":
                 self._write_sp()
                 self._format_child()
