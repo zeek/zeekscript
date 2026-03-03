@@ -1342,6 +1342,108 @@ class ExprFormatter(SpaceSeparatedFormatter, ComplexSequenceFormatterMixin):
 
         return False
 
+    def _format_record_fields(self, one_per_line: bool) -> None:
+        """Format record constructor fields with alignment.
+
+        Args:
+            one_per_line: If True, respect source line breaks but fit multiple
+                fields per line when they fit within 80 columns. If False,
+                allow natural line wrapping.
+        """
+        expr_list = self._get_child()
+        if not expr_list:
+            return
+
+        # Get alignment column (should be set to after '[' by caller)
+        align_col = self.ostream.get_align_column()
+        tab_col = self.indent * 8  # TAB_SIZE = 8
+        max_col = 80
+
+        # Collect fields and their associated comments
+        fields = []  # List of (expr_node, comment_text_or_None)
+        children = list(expr_list.nonerr_children)
+        i = 0
+        while i < len(children):
+            child = children[i]
+            if child.name() == "expr":
+                fields.append((child, None))
+                i += 1
+            elif child.token() == ",":
+                # Check for attached comment
+                comment = None
+                for sib in child.next_cst_siblings:
+                    if sib.is_comment():
+                        comment = self.script.get_content(*sib.script_range())
+                        break
+                    elif not sib.is_nl():
+                        break
+                if fields:
+                    # Attach comment to previous field
+                    prev_expr, _ = fields[-1]
+                    fields[-1] = (prev_expr, comment)
+                i += 1
+            else:
+                i += 1
+
+        # Format fields, fitting multiple per line when possible
+        first = True
+        for idx, (expr_node, comment) in enumerate(fields):
+            is_last = idx == len(fields) - 1
+
+            if not first:
+                # Estimate field length to decide if it fits on current line
+                field_src = self.script.get_content(*expr_node.script_range())
+                field_len = len(field_src) + 2  # +2 for ", "
+                if comment:
+                    field_len += len(comment) + 1  # +1 for space before comment
+
+                current_col = self.ostream.get_visual_column()
+                fits = current_col + field_len <= max_col
+
+                if one_per_line and not fits:
+                    # Start new line with alignment
+                    space_count = max(0, align_col - tab_col)
+                    indent_str = self.NL + b"\t" * self.indent + b" " * space_count
+                    self.ostream.write(indent_str, self)
+                else:
+                    self._write_sp()
+
+            self._format_child(child=expr_node)
+
+            if not is_last:
+                self._write(",")
+                if comment:
+                    self._write_sp()
+                    self._write(comment)
+
+            first = False
+
+        self._next_child()  # Consume the expr_list we just formatted
+
+    def _is_record_constructor(self) -> bool:
+        """Returns True if this [...] expression is a record constructor.
+
+        Record constructors have $field=value expressions inside.
+        Vector literals have regular expressions without leading $.
+        """
+        # Find the expr_list child (should be at index 1 after '[')
+        if len(self.node.nonerr_children) < 2:
+            return False
+
+        expr_list = self.node.nonerr_children[1]
+        if expr_list.name() != "expr_list":
+            return False
+
+        # Check if first expr starts with $ (record field assignment)
+        for child in expr_list.nonerr_children:
+            if child.name() == "expr" and child.nonerr_children:
+                first_token = child.nonerr_children[0].token()
+                if first_token == "$":
+                    return True
+            break  # Only check the first expression
+
+        return False
+
     def format(self) -> None:
         cn1, cn2, _ = (self._get_child_name(offset=n) for n in (0, 1, 2))
         ct1, ct2, ct3 = (self._get_child_token(offset=n) for n in (0, 1, 2))
@@ -1397,6 +1499,10 @@ class ExprFormatter(SpaceSeparatedFormatter, ComplexSequenceFormatterMixin):
                 ct1 == "{" and Hint.BRACE_TO_CONSTRUCTOR in self.hints
             )
 
+            # Record constructors [$field=val, ...] use alignment-based formatting
+            # like function calls, not one-per-line
+            is_record = ct1 == "[" and self._is_record_constructor()
+
             if transform_brace:
                 # Determine if table or set based on whether entries have = assignments
                 constructor = "table" if self._is_brace_init_table() else "set"
@@ -1407,7 +1513,15 @@ class ExprFormatter(SpaceSeparatedFormatter, ComplexSequenceFormatterMixin):
 
             # Only format inner content if there's an expr_list (not empty)
             if self._get_child_name() == "expr_list":
-                if do_linebreak:
+                if is_record:
+                    # Record constructor: format fields with alignment to first $field.
+                    saved_align = self.ostream.get_align_column()
+                    self.ostream.set_align_column(self.ostream.get_visual_column())
+                    # Complex (has comments/newlines): one field per line
+                    # Simple: allow multiple fields per line
+                    self._format_record_fields(one_per_line=do_linebreak)
+                    self.ostream.set_align_column(saved_align)
+                elif do_linebreak:
                     self._write_nl()
                     self._format_child(hints=Hint.COMPLEX_BLOCK)  # Inner expression(s)
                     self._write_nl()
@@ -1418,6 +1532,13 @@ class ExprFormatter(SpaceSeparatedFormatter, ComplexSequenceFormatterMixin):
                 self._next_child()  # Skip the '}' token (don't format it)
                 self._write(")")
             else:
+                # For record constructors, check if user had closing on its own line
+                # (indicated by newline before ']'). NlFormatter doesn't handle
+                # single newlines, so we check and write explicitly.
+                if is_record:
+                    closing = self._get_child()
+                    if closing and any(n.is_nl() for n in closing.prev_cst_siblings):
+                        self._write_nl()
                 self._format_child()  # '}'/']'
 
         elif ct1 == "(":

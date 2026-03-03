@@ -36,6 +36,9 @@ class OutputStream:
     MIN_LINE_EXCESS = 5  # Minimum characters that a line needs to be too long.
     TAB_SIZE = 8  # How many visible characters we chalk up for a tab.
     SPACE_INDENT = 4  # When wrapping, add this many spaces onto tab-indentation.
+    # Maximum alignment column before falling back to simpler indentation.
+    # Alignments beyond this produce too much leading whitespace.
+    MAX_ALIGN_COL = 60
 
     def __init__(
         self, ostream: BinaryIO | TextIO, enable_linebreaks: bool = True
@@ -219,14 +222,20 @@ class OutputStream:
                 # Initializer elements use an extra tab for continuation
                 self._write(b"\t")
                 col_flushed = tab_col + self.TAB_SIZE
-            elif align_col > 0:
+            elif align_col > 0 and align_col < self.MAX_ALIGN_COL:
                 # Align to the specified column (e.g., after opening paren)
+                # Skip if alignment uses more than half the line (too much whitespace)
                 space_count = max(0, align_col - tab_col)
                 self._write(b" " * space_count)
                 col_flushed = tab_col + space_count
             else:
-                self._write(b" " * self.SPACE_INDENT)
-                col_flushed = tab_col + self.SPACE_INDENT
+                # Fallback indent depends on why we're here:
+                # - align_col == 0: no alignment set, use SPACE_INDENT (original behavior)
+                # - align_col >= MAX_LINE_LEN/2: alignment uses too much whitespace, use TAB_SIZE
+                #   to maintain visual hierarchy with parent constructs
+                fallback = self.TAB_SIZE if align_col >= self.MAX_ALIGN_COL else self.SPACE_INDENT
+                self._write(b" " * fallback)
+                col_flushed = tab_col + fallback
 
             # Remove leading whitespace from continuation
             while tbd and not tbd[0].data.strip():
@@ -455,12 +464,34 @@ class OutputStream:
                     if items_remaining[j].data.strip():
                         cont_indent = items_remaining[j].align_column
                         break
+            # Fall back if alignment is 0 or uses too much of the line
             if cont_indent == 0:
                 cont_indent = tab_col + self.SPACE_INDENT
+            elif cont_indent >= self.MAX_ALIGN_COL:
+                # Alignment uses too much whitespace, use TAB_SIZE for hierarchy
+                cont_indent = tab_col + self.TAB_SIZE
 
             chosen_break = choose_break(
                 items_remaining, break_points, total_len, col_flushed, cont_indent, effective_max_len
             )
+
+            # If no valid break with filtered points, or if chosen break still
+            # produces an over-limit line1, try all break points. This handles
+            # cases like deeply nested calls where outer breaks leave line1 too long.
+            try_all_breaks = chosen_break < 0 and total_len > effective_max_len
+            if not try_all_breaks and chosen_break >= 0:
+                # Check if chosen break produces over-limit line1
+                for bp in all_bps:
+                    if bp[0] == chosen_break:
+                        line1_len = bp[1]  # visual column after break token
+                        if line1_len > effective_max_len:
+                            try_all_breaks = True
+                        break
+            if try_all_breaks:
+                all_break_tuples = [(bp[0], bp[1], bp[4]) for bp in all_bps]
+                chosen_break = choose_break(
+                    items_remaining, all_break_tuples, total_len, col_flushed, cont_indent, effective_max_len
+                )
 
             if chosen_break >= 0:
                 # Get the nesting depth at the break point for the next iteration
