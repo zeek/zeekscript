@@ -1267,6 +1267,17 @@ class ExprFormatter(SpaceSeparatedFormatter, ComplexSequenceFormatterMixin):
             offset=1, absolute=True
         ) in ("||", "&&")
 
+    def _is_inside_binary_boolean(self) -> bool:
+        """Returns true if any parent expression is a boolean (|| or &&)."""
+        node: Node | None = self.node.parent
+        while node:
+            if isinstance(node.formatter, ExprFormatter) and node.formatter._is_binary_boolean():
+                return True
+            if not isinstance(node.formatter, ExprFormatter):
+                break
+            node = node.parent
+        return False
+
     def _is_binary_operator(self) -> bool:
         """Predicate, returns true if this is a binary operator expression.
 
@@ -1663,15 +1674,21 @@ class ExprFormatter(SpaceSeparatedFormatter, ComplexSequenceFormatterMixin):
         elif self._is_binary_operator():
             # For binary operators, prefer keeping the operator at the end of
             # line 1 rather than the start of line 2 when wrapping.
-            # Set alignment so continuation aligns with first operand.
+            # Only set alignment when no outer alignment exists.
+            # Only set GOOD_AFTER_LB when not inside a boolean expression,
+            # so that || and && remain the preferred break points.
             saved_align = self.ostream.get_align_column()
-            self.ostream.set_align_column(self.ostream.get_visual_column())
+            inside_boolean = self._is_inside_binary_boolean()
+            if saved_align == 0:
+                self.ostream.set_align_column(self.ostream.get_visual_column())
             self._format_child()  # <expr>
             self._write_sp()
             self._format_child()  # operator
             self._write_sp()
-            self._format_child(hints=Hint.GOOD_AFTER_LB)  # <expr>
-            self.ostream.set_align_column(saved_align)
+            hints = Hint.NONE if inside_boolean else Hint.GOOD_AFTER_LB
+            self._format_child(hints=hints)  # <expr>
+            if saved_align == 0:
+                self.ostream.set_align_column(0)
 
         else:
             # Fall back to simple space-separation

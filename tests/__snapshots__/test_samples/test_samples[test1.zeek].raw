@@ -99,7 +99,7 @@ function a_function(a: int, b: count,
 
 	# Normal arithmetic should not always break around "+", in contrast to strings (see below):
 	local length = bytestring_to_count(data[mres$off - 1 + 8 : mres$off -
-	        1 + 10 + 23 / 15 - 3]);
+	                                   1 + 10 + 23 / 15 - 3]);
 
 	if ( |foo| > 0 )
 		print "foo";
