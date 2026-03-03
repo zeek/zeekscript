@@ -15,9 +15,13 @@ class Output:
     formatted line, deciding when/whether to intersperse additional line breaks.
     """
 
-    def __init__(self, data: bytes, formatter: Formatter) -> None:
+    def __init__(
+        self, data: bytes, formatter: Formatter, align_column: int = 0, hints: "Hint | None" = None
+    ) -> None:
         self.data = data
         self.formatter = formatter
+        self.align_column = align_column  # Column to align to if linebreak before this
+        self.hints = hints  # Hints active when this output was written
 
 
 class OutputStream:
@@ -64,6 +68,14 @@ class OutputStream:
         # line; they just add a few spaces.
         self._use_space_align = False
 
+        # When set to a positive column number, linebreaks will align to this
+        # column (using spaces after tabs) instead of the default SPACE_INDENT.
+        # Used for aligning function arguments to the opening parenthesis.
+        self._align_column: int = 0
+
+        # Current hints to apply to output items (for tracking wrap behavior)
+        self._current_hints: Hint | None = None
+
     def __enter__(self) -> "OutputStream":
         return self
 
@@ -85,6 +97,14 @@ class OutputStream:
     def use_space_align(self, enable: bool) -> None:
         self._use_space_align = enable
 
+    def set_align_column(self, column: int) -> None:
+        """Set the column to align to on linebreaks (0 to use default)."""
+        self._align_column = column
+
+    def set_hints(self, hints: Hint | None) -> None:
+        """Set hints to apply to subsequent output items."""
+        self._current_hints = hints
+
     def write(self, data: bytes, formatter: Formatter, raw: bool = False) -> None:
         if raw:
             self._flush_line()
@@ -96,11 +116,14 @@ class OutputStream:
         # For troubleshooting received hinting
         # print_error('XXX "%s" %s' % (data, formatter.hints))
 
+
         # In case the data spans multiple lines, break up the lines now.
         # Potential line-wrapping is applied when we flush individual lines.
         for chunk in data.splitlines(keepends=True):
             self._col += len(chunk)
-            self._linebuffer.append(Output(chunk, formatter))
+            self._linebuffer.append(
+                Output(chunk, formatter, self._align_column, self._current_hints)
+            )
             if chunk.endswith(Formatter.NL):
                 self._flush_line()
 
@@ -115,6 +138,19 @@ class OutputStream:
 
     def get_column(self) -> int:
         return self._col
+
+    def get_visual_column(self) -> int:
+        """Get the visual column position, accounting for tab width."""
+        # Count visual columns by scanning the current line buffer
+        visual_col = 0
+        for out in self._linebuffer:
+            for byte in out.data:
+                if byte == ord(b"\t"):
+                    # Round up to next tab stop
+                    visual_col = ((visual_col // self.TAB_SIZE) + 1) * self.TAB_SIZE
+                else:
+                    visual_col += 1
+        return visual_col
 
     def _flush_line(self) -> None:
         """Flushes out the line buffer, stripping trailing whitespace.
@@ -135,26 +171,61 @@ class OutputStream:
             self._col = 0
             return
 
-        col_flushed = 0  # Column up to which we've currently written a line
+        col_flushed = 0  # Visual column up to which we've currently written a line
         tbd: list[Output] = []  # Outputs to be done
-        tbd_len = 0  # Length of the to-be-done output (in characters)
+        tbd_len = 0  # Visual length of the to-be-done output
         line_items = 0  # Number of items (tokens, not whitespace) on formatted line
         using_break_hints = False  # Whether we've used advisory linebreak hints yet
+
+        def visual_width(data: bytes, start_col: int) -> int:
+            """Calculate visual width of data, accounting for tab stops."""
+            col = start_col
+            for byte in data:
+                if byte == ord(b"\t"):
+                    col = ((col // self.TAB_SIZE) + 1) * self.TAB_SIZE
+                else:
+                    col += 1
+            return col - start_col
 
         def flush_tbd() -> None:
             nonlocal tbd, tbd_len, col_flushed
             for tbd_out in tbd:
                 self._write(tbd_out.data)
-                col_flushed += len(tbd_out.data)
+                col_flushed += visual_width(tbd_out.data, col_flushed)
             tbd = []
             tbd_len = 0
+
+        # break_align_col will be set after chosen_break_idx is determined
+        break_align_col = 0
 
         def write_linebreak() -> None:
             nonlocal tbd, tbd_len, col_flushed
             self._write(Formatter.NL)
             self._write(b"\t" * self._tab_indent)
-            self._write(b" " * self.SPACE_INDENT)
-            col_flushed = self._tab_indent * self.TAB_SIZE + self.SPACE_INDENT
+            tab_col = self._tab_indent * self.TAB_SIZE
+
+            # Find alignment and hints from the first non-whitespace item
+            # that will follow the linebreak
+            align_col = break_align_col
+            use_tab_wrap = False
+            for item in tbd:
+                if item.data.strip():
+                    if item.hints is not None and Hint.INIT_ELEMENT in item.hints:
+                        use_tab_wrap = True
+                    break
+
+            if use_tab_wrap:
+                # Initializer elements use an extra tab for continuation
+                self._write(b"\t")
+                col_flushed = tab_col + self.TAB_SIZE
+            elif align_col > 0:
+                # Align to the specified column (e.g., after opening paren)
+                space_count = max(0, align_col - tab_col)
+                self._write(b" " * space_count)
+                col_flushed = tab_col + space_count
+            else:
+                self._write(b" " * self.SPACE_INDENT)
+                col_flushed = tab_col + self.SPACE_INDENT
 
             # Remove any pure whitespace from the beginning of the
             # continuation of the line we just broke:
@@ -179,95 +250,188 @@ class OutputStream:
             if Hint.NO_LB_BEFORE in out.formatter.hints:
                 needs_no_lb_after = True
 
-        # Now do the actual line processing.
-        for out in self._linebuffer:
+        # First pass: calculate total line length and find valid break points
+        # A break point is valid if it's after a non-whitespace token without NO_LB_AFTER
+        # Track nesting depth to prefer breaks at the outermost level
+        # Also track whether the break is after a comma (preferred for argument lists)
+        total_len = 0
+        all_break_points: list[tuple[int, int, int, bool]] = []  # (index, visual_column, nesting_depth, after_comma)
+        has_good_after_lb = -1  # Index of token with GOOD_AFTER_LB hint
+        has_init_lenient = False
+        nesting_depth = 0
+
+        for i, out in enumerate(self._linebuffer):
+            token = out.data.strip()
+            # Track nesting depth for parentheses, brackets, braces
+            if token in (b"(", b"[", b"{"):
+                nesting_depth += 1
+            elif token in (b")", b"]", b"}"):
+                nesting_depth -= 1
+
+            if Hint.ZERO_WIDTH not in out.formatter.hints:
+                total_len += visual_width(out.data, total_len)
+
+            if token:
+                if out.hints is not None and Hint.INIT_LENIENT in out.hints:
+                    has_init_lenient = True
+                if Hint.GOOD_AFTER_LB in out.formatter.hints:
+                    has_good_after_lb = i
+                if Hint.NO_LB_AFTER not in out.formatter.hints:
+                    is_comma = token == b","
+                    all_break_points.append((i, total_len, nesting_depth, is_comma))
+
+        # Only use break points at the appropriate nesting depth
+        # For line wrapping, we want to break INSIDE function calls (depth 1+), not outside (depth 0)
+        # Among depths 1+, prefer the minimum depth (avoid breaking inside nested calls)
+        # Also prefer breaks after commas (for argument lists) over breaks at operators
+        break_points: list[tuple[int, int]] = []
+        if all_break_points:
+            # Separate depth 0 from depth 1+
+            depths = sorted(set(bp[2] for bp in all_break_points))
+            non_zero_depths = [d for d in depths if d > 0]
+
+            # Prefer minimum non-zero depth (inside outermost call, not nested)
+            # Fall back to depth 0 only if no non-zero depths available
+            target_depths = non_zero_depths if non_zero_depths else depths
+
+            for depth in target_depths:
+                at_depth = [bp for bp in all_break_points if bp[2] == depth]
+                if at_depth:
+                    # At this depth, prefer breaks after commas if available
+                    comma_breaks = [(bp[0], bp[1]) for bp in at_depth if bp[3]]
+                    if comma_breaks:
+                        break_points = comma_breaks
+                    else:
+                        break_points = [(bp[0], bp[1]) for bp in at_depth]
+                    break
+
+        effective_max_len = self.MAX_LINE_LEN * 2 if has_init_lenient else self.MAX_LINE_LEN
+
+        # Determine if we need to break and where
+        chosen_break_idx = -1
+
+        if total_len > effective_max_len and line_items >= self.MIN_LINE_ITEMS:
+            # Check if GOOD_AFTER_LB hint should take precedence
+            if has_good_after_lb >= 0 and self._col > self.MAX_LINE_LEN:
+                chosen_break_idx = has_good_after_lb
+                using_break_hints = True
+            elif break_points:
+                # Calculate continuation indent for balanced break calculation
+                tab_col = self._tab_indent * self.TAB_SIZE
+                # Get alignment from first potential break point's following content
+                align_col = 0
+                if break_points:
+                    first_break_idx = break_points[0][0]
+                    for j in range(first_break_idx + 1, len(self._linebuffer)):
+                        if self._linebuffer[j].data.strip():
+                            align_col = self._linebuffer[j].align_column
+                            break
+                if align_col > 0:
+                    continuation_indent = align_col
+                else:
+                    continuation_indent = tab_col + self.SPACE_INDENT
+
+                # Find break point that balances the two lines while keeping both under limit.
+                # Strategy: find the latest break point where both lines fit and
+                # line2 has meaningful content (at least half of max line length).
+
+                # Find all break points where BOTH lines would fit
+                valid_breaks: list[tuple[int, int, int]] = []  # (index, col, line2_len)
+                for idx, col in break_points:
+                    remainder = total_len - col
+                    line2_len = continuation_indent + remainder
+                    # Both lines must fit under MAX_LINE_LEN
+                    if col <= self.MAX_LINE_LEN and line2_len <= self.MAX_LINE_LEN:
+                        valid_breaks.append((idx, col, line2_len))
+
+                # If no valid breaks, pick the break that keeps line1 closest to 80
+                # Prefer breaks where line1 fits (col <= 80), then pick closest to limit
+                if not valid_breaks:
+                    if break_points:
+                        target = self.MAX_LINE_LEN
+                        # Score: (1 if over limit else 0, distance from limit)
+                        def score(bp: tuple[int, int]) -> tuple[int, int]:
+                            col = bp[1]
+                            if col <= target:
+                                return (0, target - col)  # Under: prefer closer
+                            else:
+                                return (1, col - target)  # Over: prefer less excess
+                        best_bp = min(break_points, key=score)
+                        best_break = best_bp[0]
+                    else:
+                        best_break = -1
+                else:
+                    # Among valid breaks, prefer the latest one where line2 is
+                    # at least 2/3 the length of line1. This keeps the lines
+                    # reasonably balanced while maximizing content on line1.
+                    best_break = -1
+                    for idx, col, line2_len in reversed(valid_breaks):
+                        if line2_len >= col * 2 // 3:
+                            best_break = idx
+                            break
+                    # If no break satisfies the criterion, use the most balanced one
+                    if best_break < 0 and valid_breaks:
+                        best_break = min(valid_breaks, key=lambda x: abs(x[1] - x[2]))[0]
+
+                if best_break >= 0:
+                    # Check if break is "worth it" (enough excess)
+                    break_col = next(col for idx, col in break_points if idx == best_break)
+                    remainder = total_len - break_col
+                    if remainder >= self.MIN_LINE_EXCESS or total_len > self.MAX_LINE_LEN + self.MIN_LINE_EXCESS:
+                        chosen_break_idx = best_break
+
+        # Get alignment for the line break from the first non-whitespace token after the break
+        # If there's no non-whitespace content after the break, don't break (it's pointless)
+        if chosen_break_idx >= 0:
+            has_content_after = False
+            for j in range(chosen_break_idx + 1, len(self._linebuffer)):
+                if self._linebuffer[j].data.strip():
+                    break_align_col = self._linebuffer[j].align_column
+                    has_content_after = True
+                    break
+            if not has_content_after:
+                chosen_break_idx = -1  # Cancel the break - nothing meaningful would go on line2
+
+        # Second pass: process the line with the chosen break point
+        break_done = False
+        for i, out in enumerate(self._linebuffer):
             tbd.append(out)
 
-            # Establish how long the pending chunk is, given hinting:
             if Hint.ZERO_WIDTH not in out.formatter.hints:
-                tbd_len += len(out.data)
+                tbd_len += visual_width(out.data, col_flushed + tbd_len)
 
-            # Don't make line-wrapping decisions based on whitespace:
-            if not out.data.strip():
-                continue
+            # After passing the break point, flush line1 and write linebreak.
+            # We do this AFTER appending the current token so that write_linebreak()
+            # can look at tbd to find alignment info from line2's first token.
+            if i > chosen_break_idx and chosen_break_idx >= 0 and not break_done:
+                # tbd contains line1 content (indices 0..chosen_break_idx) plus
+                # at least one token from line2. Split them.
+                line1_end = chosen_break_idx + 1
+                line1_items = []
+                line2_items = []
+                for j, item in enumerate(tbd):
+                    # Find position in original linebuffer
+                    orig_idx = i - len(tbd) + 1 + j
+                    if orig_idx <= chosen_break_idx:
+                        line1_items.append(item)
+                    else:
+                        line2_items.append(item)
 
-            # We name the various conditions going into the linebreak decision,
-            # so we can report them for troubleshooting and act on them below
+                # Flush line1
+                tbd = line1_items
+                flush_tbd()
 
-            # If the line is too long and this chunk says it best follows a
-            # break, then break now. This helps align e.g. multi-part boolean
-            # conditionals. This needs to take precedence over NO_LB_AFTER,
-            # see next condition.
-            cnd_good_after_lb = (
-                Hint.GOOD_AFTER_LB in out.formatter.hints
-                and self._col > self.MAX_LINE_LEN
-            )
-
-            # If the caller requested no line break, abide.
-            cnd_no_lb_after = Hint.NO_LB_AFTER in out.formatter.hints
-
-            # Similarly, if we git GOOD_AFTER_LB earlier, abide.
-            cnd_no_break_hints = not using_break_hints
-
-            # We need to exceed the MAX_LINE_LEN limit with what's pending.
-            cnd_line_too_long = col_flushed + tbd_len > self.MAX_LINE_LEN
-
-            # The pending length must be "worth it". That is, don't break if the
-            # TBD len is just a little bit over. But do so if we're just too
-            # long overall now.
-            cnd_enough_excess = (
-                tbd_len >= self.MIN_LINE_EXCESS
-                or col_flushed > self.MAX_LINE_LEN + self.MIN_LINE_EXCESS
-            )
-
-            # If there are only very few items on the line to begin with, don't
-            # bother: breaking these also looks messy. This often covers the
-            # case of a line consisting mostly of a long string.
-            cnd_enough_line_items = line_items >= self.MIN_LINE_ITEMS
-
-            # If the TBD items would immediately exceed the line limit again
-            # after wrapping, don't bother. This covers the case of e.g. very
-            # long strings looking silly when alone on a new line. (This doesn't
-            # interfere with bit-by-bit repeated linebreaks of a very long line
-            # -- that still happens when we build up the next TBD batch.)
-            cnd_no_addl_wrap = (
-                self._tab_indent * self.TAB_SIZE + tbd_len < self.MAX_LINE_LEN
-            )
-
-            # Helpful for tracing linebreak decision-making:
-            # print_error('XXX gal:%d nla:%d nbh:%d tl:%d ex:%d ei:%d naw:%d | %s %s %s' % (
-            #    cnd_good_after_lb, cnd_no_lb_after, cnd_no_break_hints,
-            #    cnd_line_too_long, cnd_enough_excess, cnd_enough_line_items,
-            #    cnd_no_addl_wrap, out.data, col_flushed, tbd_len))
-
-            # If the line is too long and this chunk says it best follows a
-            # break, then break now. This helps align e.g. multi-part boolean
-            # conditionals. This needs to take precedence over NO_LB_AFTER.
-            if cnd_good_after_lb:
+                # Write linebreak with line2 items in tbd for alignment lookup
+                tbd = line2_items
                 write_linebreak()
-                using_break_hints = True
+                break_done = True
 
-            # Honor hinted linebreak suppression around this chunk.
-            elif cnd_no_lb_after:
-                continue
-
-            # Finally actually linebreak as needed:
-            elif (
-                cnd_no_break_hints
-                and cnd_line_too_long
-                and cnd_enough_excess
-                and cnd_enough_line_items
-                and cnd_no_addl_wrap
-            ):
-                write_linebreak()
-
-            flush_tbd()
-
-        # Another flush to finish any leftovers
+        # Final flush
         flush_tbd()
 
         self._linebuffer = []
         self._col = 0
+        self._align_column = 0  # Clear alignment after line is processed
 
     def _flush_writes(self) -> None:
         if self._writebuffer and not self._writebuffer[-1].endswith(Formatter.NL):

@@ -25,7 +25,7 @@ const machine_types: table[count] of string = {
 	[0x1a8] = "SH5",
 	[0x1c2] = "THUMB",
 	[0x169] = "WCEMIPSV2"
-} &default=function(i: count): string
+} &default = function(i: count): string
 	{
 	return fmt("unknown-%d", i);
 	};

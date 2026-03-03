@@ -98,6 +98,9 @@ class Hint(enum.Flag):
     NO_LB_AFTER = enum.auto()  # Never line-break after this item.
     ZERO_WIDTH = enum.auto()  # This item doesn't contribute to line length.
     COMPLEX_BLOCK = enum.auto()  # A {}-block is complex enough to linebreak
+    INIT_ELEMENT = enum.auto()  # Element in multi-line initializer (tab indent if wrapping)
+    INIT_LENIENT = enum.auto()  # Use lenient line length (don't wrap unless very long)
+    ATTR_SPACES = enum.auto()  # Use spaces around '=' in attributes
 
 
 class Formatter:
@@ -580,16 +583,10 @@ class ComplexSequenceFormatterMixin(HasIsComplexProtocol):
             for child, _ in node.traverse(include_cst=True):
                 if child == node:  # Skip the start node itself
                     continue
-                if child.is_comment():
+                # Preserve original formatting: if the source had comments or
+                # newlines within this construct, keep the multi-line layout.
+                if child.is_comment() or child.is_nl():
                     return True
-
-                # This logic used to be in place specifically for { ... }
-                # blocks initializing enums. It seems too strict, but can
-                # be revisited later.
-                # if (n.name() == 'expr' and
-                #    (len(n.nonerr_children) != 1 or
-                #     n.nonerr_children[0].name() not in ('id', 'constant', 'pattern'))):
-                #    return True
 
             return False
 
@@ -821,9 +818,13 @@ class FuncHdrVariantFormatter(Formatter):
 class FuncParamsFormatter(Formatter):
     def format(self) -> None:
         self._format_child(hints=Hint.NO_LB_BEFORE)  # '('
+        # Align wrapped arguments to the column after the '('
+        self.ostream.set_align_column(self.ostream.get_visual_column())
         if self._get_child_name() == "formal_args":
             self._format_child()  # <formal_args>
         self._format_child(hints=Hint.NO_LB_BEFORE)  # ')'
+        # Clear alignment so return type uses default indentation
+        self.ostream.set_align_column(0)
         if self._get_child_token() == ":":
             self._format_child(hints=Hint.NO_LB_AFTER)  # ':'
             self._write_sp()
@@ -940,7 +941,10 @@ class StmtFormatter(TypedInitializerFormatter):
             self._write_sp()
             self._format_child(hints=Hint.NO_LB_BEFORE)  # '('
             self._write_sp()
+            # Align wrapped conditionals to after '( '
+            self.ostream.set_align_column(self.ostream.get_visual_column())
             self._format_child()  # <expr>
+            self.ostream.set_align_column(0)
             self._write_sp()
             self._format_child(hints=Hint.NO_LB_BEFORE)  # ')'
 
@@ -1040,7 +1044,10 @@ class StmtFormatter(TypedInitializerFormatter):
             self._write_sp()
             self._format_child(hints=Hint.NO_LB_BEFORE)  # '('
             self._write_sp()
+            # Align wrapped conditionals to after '( '
+            self.ostream.set_align_column(self.ostream.get_visual_column())
             self._format_child()  # <expr>
+            self.ostream.set_align_column(0)
             self._write_sp()
             self._format_child(hints=Hint.NO_LB_BEFORE)  # ')'
             self._format_stmt_block()  # <stmt>
@@ -1108,10 +1115,36 @@ class StmtFormatter(TypedInitializerFormatter):
 
 
 class ExprListFormatter(Formatter, ComplexSequenceFormatterMixin):
+    # Minimum element count to enable lenient line length for initializer elements.
+    # With fewer elements, elements will wrap normally but with tab indent.
+    MIN_ELEMENTS_FOR_LENIENT_WRAP = 4
+    # Minimum element count to apply any initializer element hints at all.
+    # Single-element expr_lists (like print arguments) shouldn't use these hints.
+    MIN_ELEMENTS_FOR_INIT_HINTS = 2
+
     def format(self) -> None:
-        if Hint.COMPLEX_BLOCK in self.hints or self.is_complex():
+        # Only use one-per-line formatting when explicitly requested via COMPLEX_BLOCK
+        # (for constructors with explicit newlines in source).
+        # Function calls with newlines in source should use normal wrapping.
+        if Hint.COMPLEX_BLOCK in self.hints:
+            # Count elements to decide hint behavior:
+            # - With many elements (>=4): suppress wrapping (INIT_LENIENT) + tab indent
+            # - With few elements (2-3): normal wrapping + tab indent (INIT_ELEMENT)
+            # - With single element: no special hints (normal wrapping + space indent)
+            num_elements = sum(1 for c in self.node.children if c.name() == "expr")
+            use_init_hints = num_elements >= self.MIN_ELEMENTS_FOR_INIT_HINTS
+            use_lenient_length = num_elements >= self.MIN_ELEMENTS_FOR_LENIENT_WRAP
+
             while self._get_child_name() == "expr":
+                # INIT_ELEMENT: set for tab indent on wrap (only if multiple elements)
+                # INIT_LENIENT: set for lenient line length (only if many elements)
+                if use_init_hints:
+                    if use_lenient_length:
+                        self.ostream.set_hints(Hint.INIT_ELEMENT | Hint.INIT_LENIENT)
+                    else:
+                        self.ostream.set_hints(Hint.INIT_ELEMENT)
                 self._format_child(indent=True)  # <expr>
+                self.ostream.set_hints(None)
                 if self._get_child():
                     self._format_child(hints=Hint.NO_LB_BEFORE)  # ','
                     self._write_nl()
@@ -1267,12 +1300,9 @@ class ExprFormatter(SpaceSeparatedFormatter, ComplexSequenceFormatterMixin):
 
         elif ct1 in ["{", "["]:
             # Vector/table/set initializers: '{'/'[' <expr_list> '}'/']'
-            expr_list = self._get_child(1)
-            assert expr_list
-
-            # Curly brace inits with multiple elements should linebreak
-            is_multi_element_block = len(expr_list.children) > 1 and ct1 == "{"
-            do_linebreak = is_multi_element_block or self.is_complex()
+            # Respect explicit newlines/comments in the source (is_complex())
+            # Global declarations that don't fit on one line: prefer multi-line
+            do_linebreak = self.is_complex()
 
             self._format_child(hints=Hint.NO_LB_BEFORE)  # '{'/'['
 
@@ -1287,9 +1317,7 @@ class ExprFormatter(SpaceSeparatedFormatter, ComplexSequenceFormatterMixin):
 
         elif ct1 == "(":
             self._format_child(hints=Hint.NO_LB_BEFORE)  # '('
-            self._write_sp()
             self._format_child(hints=Hint.NO_LB_AFTER)  # <expr>
-            self._write_sp()
             self._format_child()  # ')'
 
         elif ct1 == "$" and ct3 == "=":
@@ -1320,27 +1348,40 @@ class ExprFormatter(SpaceSeparatedFormatter, ComplexSequenceFormatterMixin):
             self._format_child()  # <func_body>
 
         elif ct2 == "(":
-            # initializers such as table(...)
-            self._format_child()  # 'table' etc
+            # Constructor calls like table(...), set(...), vector(...)
+            # or regular function calls like Broker::publish(...)
+            # Constructors: one-per-line if source had newlines
+            # Function calls: normal wrapping with alignment to after '('
+            is_constructor = ct1 in ("table", "set", "vector", "record")
+            do_linebreak = is_constructor and self.is_complex()
+
+            self._format_child()  # 'table' etc or function name expr
             self._format_child(hints=Hint.NO_LB_BEFORE)  # '('
+            # Align wrapped arguments to the column after the '('
+            self.ostream.set_align_column(self.ostream.get_visual_column())
             if self._get_child_name() == "expr_list":
-                self._format_child()
+                if do_linebreak:
+                    self._write_nl()
+                    self._format_child(hints=Hint.COMPLEX_BLOCK)
+                    self._write_nl()
+                else:
+                    self._format_child()
             self._format_child(hints=Hint.NO_LB_BEFORE)  # ')'
+            self.ostream.set_align_column(0)
             if self._get_child_name() == "attr_list":
                 self._write_sp()
                 self._format_child()
 
         elif self._is_binary_boolean():
             # For Boolean AND/OR, check if this is a toplevel sequence of them,
-            # and if so, recommend the operator for linebreaks. ("toplevel"
-            # means that this must be AND/OR and all parent expressions must be,
-            # up to something that isn't an expression -- a statement, for
-            # example.)
+            # and if so, recommend linebreaks before the following operand.
+            # ("toplevel" means that this must be AND/OR and all parent
+            # expressions must be, up to something that isn't an expression --
+            # a statement, for example.)
             #
             # We do this so we can line-break complex boolean expressions so
-            # that each toplevel one ends on a new line, starting with the
-            # boolean operand. OutputStream's handling of the GOOD_AFTER_LB
-            # hint implements this.
+            # that each line ends with the boolean operator, and the following
+            # operand starts on the next line.
             hints = Hint.NONE
 
             if self._is_expr_chain_of(ExprFormatter._is_binary_boolean):
@@ -1349,18 +1390,19 @@ class ExprFormatter(SpaceSeparatedFormatter, ComplexSequenceFormatterMixin):
 
             self._format_child()  # <expr>
             self._write_sp()
-            self._format_child(hints=hints)  # '&&' / '||'
+            self._format_child()  # '&&' / '||'
             self._write_sp()
-            self._format_child()  # <expr>
+            self._format_child(hints=hints)  # <expr>
 
         elif self._is_string_concat():
             # This helps OutputStream nicely align long strings broken into
-            # substrings concatenated by "+".
+            # substrings concatenated by "+". We put the hint on the second
+            # operand so linebreaks put '+' at end of line, not start of next.
             self._format_child()  # <expr>
             self._write_sp()
-            self._format_child(hints=Hint.GOOD_AFTER_LB)  # '+'
+            self._format_child()  # '+'
             self._write_sp()
-            self._format_child()  # <expr>
+            self._format_child(hints=Hint.GOOD_AFTER_LB)  # <expr>
 
         else:
             # Fall back to simple space-separation
@@ -1399,11 +1441,70 @@ class NlFormatter(Formatter):
                 self._write_nl(force=True)
 
 
+class AttrListFormatter(Formatter):
+    """Formats attribute lists, deciding whether to use spaces around '=' in attrs.
+
+    If any attribute's expression will have embedded blanks (e.g., intervals like
+    '5 min', or binary expressions), then all attributes use spaces around '='.
+    Otherwise, attributes are formatted without spaces around '='.
+    """
+
+    @staticmethod
+    def _expr_has_embedded_blanks(node: Node) -> bool:
+        """Check if an expression node will have embedded blanks when formatted."""
+        for child, _ in node.traverse():
+            # Intervals are formatted as "5 min" with a space
+            if child.name() == "interval":
+                return True
+            # Function expressions have spaces in their signatures
+            if child.name() == "begin_lambda":
+                return True
+            # Binary expressions have spaces around operators.
+            # Pattern: expr with 3 children where first and third are both expr
+            # (as opposed to function calls which are: id, '(', ... , ')')
+            if child.name() == "expr" and len(child.nonerr_children) == 3:
+                first = child.nonerr_children[0]
+                third = child.nonerr_children[2]
+                if first.name() == "expr" and third.name() == "expr":
+                    return True
+        return False
+
+    def format(self) -> None:
+        # Check if any attr has an expression with embedded blanks
+        use_spaces = False
+        for child in self.node.children:
+            if child.name() == "attr":
+                # Check if this attr has an '=' (meaning it has an expression)
+                attr_children = child.nonerr_children
+                if len(attr_children) >= 3:
+                    # Structure: &attr_name '=' expr
+                    expr_node = attr_children[2]
+                    if self._expr_has_embedded_blanks(expr_node):
+                        use_spaces = True
+                        break
+
+        # Format each attr with appropriate hints
+        hints = Hint.ATTR_SPACES if use_spaces else Hint.NONE
+        first = True
+        while self._get_child_name() == "attr":
+            if not first:
+                self._write_sp()
+            self._format_child(hints=hints)
+            first = False
+
+
 class AttrFormatter(Formatter):
     def format(self) -> None:
         if self._get_child_token(offset=1) == "=":
-            # The range ensures we keep this on one line
-            self._format_child_range(3)
+            # Format with or without spaces around '=' based on hint
+            use_spaces = Hint.ATTR_SPACES in self.hints
+            self._format_child()  # &attr_name
+            if use_spaces:
+                self._write_sp()
+            self._format_child()  # '='
+            if use_spaces:
+                self._write_sp()
+            self._format_child()  # expr
         else:
             self._format_child()
 
@@ -1512,9 +1613,20 @@ Formatter.register("hook", FuncHdrVariantFormatter)
 Formatter.register("event", FuncHdrVariantFormatter)
 
 Formatter.register("capture", SpaceSeparatedFormatter)
-Formatter.register("attr_list", SpaceSeparatedFormatter)
-Formatter.register("interval", Formatter)
+Formatter.register("attr_list", AttrListFormatter)
 Formatter.register("enum_body_elem", SpaceSeparatedFormatter)
+
+
+class IntervalFormatter(Formatter):
+    """Formats interval constants with a space between number and unit."""
+
+    def format(self) -> None:
+        self._format_child()  # <integer>
+        self._write_sp()
+        self._format_child()  # <time_unit>
+
+
+Formatter.register("interval", IntervalFormatter)
 
 Formatter.register("zeekygen_head_comment", ZeekygenCommentFormatter)
 Formatter.register("zeekygen_next_comment", ZeekygenCommentFormatter)

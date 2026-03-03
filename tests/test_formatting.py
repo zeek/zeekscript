@@ -28,9 +28,9 @@ class TestFormatting(unittest.TestCase):
         return buf.getvalue()
 
     def test_interval(self):
-        self.assertEqual(self._format(b"1 sec;").rstrip(), b"1sec;")
-        self.assertEqual(self._format(b"1min;").rstrip(), b"1min;")
-        self.assertEqual(self._format(b"3.5  hrs;").rstrip(), b"3.5hrs;")
+        self.assertEqual(self._format(b"1 sec;").rstrip(), b"1 sec;")
+        self.assertEqual(self._format(b"1min;").rstrip(), b"1 min;")
+        self.assertEqual(self._format(b"3.5  hrs;").rstrip(), b"3.5 hrs;")
 
     def test_index_slice(self):
         # Use compact layout if neither side is a constant or id.
