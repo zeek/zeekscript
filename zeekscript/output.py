@@ -304,9 +304,13 @@ class OutputStream:
         def filter_break_points(
             all_break_points: list[tuple[int, int, int, bool, bool]]
         ) -> list[tuple[int, int, bool]]:
-            """Filter break points by nesting depth and comma preference.
+            """Filter break points by nesting depth, comma preference, and GOOD_AFTER_LB.
 
-            Prefers breaks at the minimum non-zero nesting depth to avoid breaking
+            First checks for GOOD_AFTER_LB breaks (like before trailing attributes)
+            and includes them regardless of depth - these are "preferred outer breaks"
+            that should be considered even if inner breaks exist.
+
+            Then prefers breaks at the minimum non-zero nesting depth to avoid breaking
             inside nested function calls when an outer break is available.
             At each depth, prefers breaks after commas (for argument lists) over
             breaks at other positions (like operators).
@@ -316,6 +320,12 @@ class OutputStream:
             """
             if not all_break_points:
                 return []
+
+            # First, collect any GOOD_AFTER_LB breaks - these are "preferred outer breaks"
+            # (like before trailing attributes) that should be considered regardless of depth
+            good_lb_breaks = [
+                (bp[0], bp[1], bp[4]) for bp in all_break_points if bp[4]
+            ]
 
             depths = sorted(set(bp[2] for bp in all_break_points))
             non_zero_depths = [d for d in depths if d > 0]
@@ -327,10 +337,11 @@ class OutputStream:
                     # bp[3] is is_comma, bp[4] is is_before_good_lb
                     comma_breaks = [(bp[0], bp[1], bp[4]) for bp in at_depth if bp[3]]
                     if comma_breaks:
-                        return comma_breaks
+                        # Include any good_lb_breaks so choose_break can consider them
+                        return comma_breaks + good_lb_breaks
                     else:
-                        return [(bp[0], bp[1], bp[4]) for bp in at_depth]
-            return []
+                        return [(bp[0], bp[1], bp[4]) for bp in at_depth] + good_lb_breaks
+            return good_lb_breaks
 
         def choose_break(
             items: list[Output],

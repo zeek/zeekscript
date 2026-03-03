@@ -89,10 +89,10 @@ class TestFormatting(unittest.TestCase):
         self.assertEqual(self._format(b"[ 1 , ];").rstrip(), b"[1, ];")
         self.assertEqual(self._format(b"[ 1 , 2 , ];").rstrip(), b"[1, 2, ];")
 
-        self.assertEqual(self._format(b"local x = {};").rstrip(), b"local x = {};")
+        self.assertEqual(self._format(b"local x = {};").rstrip(), b"local x = set();")
         self.assertEqual(
             self._format(b'global x = { [ 1 ] = "one" };').rstrip(),
-            b'global x = {[1] = "one"};',
+            b'global x = table([1] = "one");',
         )
 
         # Test complex nodes

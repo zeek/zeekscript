@@ -101,6 +101,7 @@ class Hint(enum.Flag):
     INIT_ELEMENT = enum.auto()  # Element in multi-line initializer (tab indent if wrapping)
     INIT_LENIENT = enum.auto()  # Use lenient line length (don't wrap unless very long)
     ATTR_SPACES = enum.auto()  # Use spaces around '=' in attributes
+    BRACE_TO_CONSTRUCTOR = enum.auto()  # Transform { } to set( ) or table( )
 
 
 class Formatter:
@@ -517,14 +518,19 @@ class TypedInitializerFormatter(Formatter):
     """
 
     def _format_typed_initializer(self) -> None:
-        if self._get_child_token() == ":":
+        # Track whether there's an explicit type - if so, don't transform {..} to set()/table()
+        has_explicit_type = self._get_child_token() == ":"
+
+        if has_explicit_type:
             self._format_child(hints=Hint.NO_LB_AFTER)  # ':'
             self._write_sp()
             self._format_child()  # <type>
 
         if self._get_child_name() == "initializer":
             self._write_sp()
-            self._format_child()  # <initializer>
+            # Only transform {..} to set()/table() when type can be inferred (no explicit type)
+            init_hints = Hint.NONE if has_explicit_type else Hint.BRACE_TO_CONSTRUCTOR
+            self._format_child(hints=init_hints)  # <initializer>
 
         if self._get_child_name() == "attr_list":
             self._write_sp()
@@ -599,7 +605,8 @@ class InitializerFormatter(Formatter):
         # for now since I think initializer handling isn't fully settled.
         self._format_child()  # '=', '+=', etc
         self._write_sp()
-        self._format_child()  # <expr>
+        # Forward hints (like BRACE_TO_CONSTRUCTOR) from parent to expr
+        self._format_child(hints=self.hints)  # <expr>
 
 
 class RedefEnumDeclFormatter(Formatter, ComplexSequenceFormatterMixin):
@@ -812,7 +819,13 @@ class FuncHdrVariantFormatter(Formatter):
         self._format_child()  # <func_params>
         if self._get_child_name() == "attr_list":
             self._write_sp()
-            self._format_child()  # <attr_list>
+            # Mark attr_list as preferred break point - if line needs wrapping,
+            # prefer breaking before the attribute over breaking inside arguments.
+            # Alignment column is still set from func_params, so attr_list aligns
+            # with the first parameter.
+            self._format_child(hints=Hint.GOOD_AFTER_LB)  # <attr_list>
+        # Clear alignment now that func header (including any attr_list) is done
+        self.ostream.set_align_column(0)
 
 
 class FuncParamsFormatter(Formatter):
@@ -823,8 +836,8 @@ class FuncParamsFormatter(Formatter):
         if self._get_child_name() == "formal_args":
             self._format_child()  # <formal_args>
         self._format_child(hints=Hint.NO_LB_BEFORE)  # ')'
-        # Clear alignment so return type uses default indentation
-        self.ostream.set_align_column(0)
+        # Don't clear alignment here - FuncHdrVariantFormatter needs it for
+        # trailing attr_list alignment. It will clear alignment after attr_list.
         if self._get_child_token() == ":":
             self._format_child(hints=Hint.NO_LB_AFTER)  # ':'
             self._write_sp()
@@ -1302,6 +1315,33 @@ class ExprFormatter(SpaceSeparatedFormatter, ComplexSequenceFormatterMixin):
 
         return (node is not None) and not isinstance(node.formatter, ExprFormatter)
 
+    def _is_brace_init_table(self) -> bool:
+        """Returns True if this {..} expression is a table initializer.
+
+        Table initializers contain entries with assignment patterns like
+        [idx] = val. Set initializers are just values without assignments.
+        Returns False if we can't determine or if it's a set.
+        """
+        # Find the expr_list child (should be at index 1 after '{')
+        if len(self.node.nonerr_children) < 2:
+            return False
+
+        expr_list = self.node.nonerr_children[1]
+        if expr_list.name() != "expr_list":
+            return False
+
+        # Check if any expr child has an '=' assignment pattern
+        # Table entries have patterns like: [idx] = val  or  idx = val
+        for child in expr_list.nonerr_children:
+            if child.name() != "expr":
+                continue
+            # Look for '=' token in the expr's children
+            for i, subchild in enumerate(child.nonerr_children):
+                if subchild.token() == "=":
+                    return True
+
+        return False
+
     def format(self) -> None:
         cn1, cn2, _ = (self._get_child_name(offset=n) for n in (0, 1, 2))
         ct1, ct2, ct3 = (self._get_child_token(offset=n) for n in (0, 1, 2))
@@ -1348,16 +1388,33 @@ class ExprFormatter(SpaceSeparatedFormatter, ComplexSequenceFormatterMixin):
             # Global declarations that don't fit on one line: prefer multi-line
             do_linebreak = self.is_complex()
 
-            self._format_child(hints=Hint.NO_LB_BEFORE)  # '{'/'['
+            # When BRACE_TO_CONSTRUCTOR hint is set, transform { } to set( ) or table( )
+            transform_brace = (
+                ct1 == "{" and Hint.BRACE_TO_CONSTRUCTOR in self.hints
+            )
 
-            if do_linebreak:
-                self._write_nl()
-                self._format_child(hints=Hint.COMPLEX_BLOCK)  # Inner expression(s)
-                self._write_nl()
+            if transform_brace:
+                # Determine if table or set based on whether entries have = assignments
+                constructor = "table" if self._is_brace_init_table() else "set"
+                self._next_child()  # Skip the '{' token (don't format it)
+                self._write(constructor + "(")
             else:
-                self._format_child()  # Inner expression(s)
+                self._format_child(hints=Hint.NO_LB_BEFORE)  # '{'/'['
 
-            self._format_child()  # '}'/']'
+            # Only format inner content if there's an expr_list (not empty)
+            if self._get_child_name() == "expr_list":
+                if do_linebreak:
+                    self._write_nl()
+                    self._format_child(hints=Hint.COMPLEX_BLOCK)  # Inner expression(s)
+                    self._write_nl()
+                else:
+                    self._format_child()  # Inner expression(s)
+
+            if transform_brace:
+                self._next_child()  # Skip the '}' token (don't format it)
+                self._write(")")
+            else:
+                self._format_child()  # '}'/']'
 
         elif ct1 == "(":
             # Propagate GOOD_AFTER_LB (if set on this expression) to the '(' token
@@ -1542,7 +1599,10 @@ class AttrListFormatter(Formatter):
         while self._get_child_name() == "attr":
             if not first:
                 self._write_sp()
-            self._format_child(hints=hints)
+            # Propagate self.hints (like GOOD_AFTER_LB) to first attr so line-breaker
+            # knows this is a preferred break point
+            child_hints = hints | self.hints if first else hints
+            self._format_child(hints=child_hints)
             first = False
 
 
@@ -1551,7 +1611,8 @@ class AttrFormatter(Formatter):
         if self._get_child_token(offset=1) == "=":
             # Format with or without spaces around '=' based on hint
             use_spaces = Hint.ATTR_SPACES in self.hints
-            self._format_child()  # &attr_name
+            # Propagate hints (like GOOD_AFTER_LB) to first token
+            self._format_child(hints=self.hints)  # &attr_name
             if use_spaces:
                 self._write_sp()
             self._format_child()  # '='
@@ -1559,7 +1620,7 @@ class AttrFormatter(Formatter):
                 self._write_sp()
             self._format_child()  # expr
         else:
-            self._format_child()
+            self._format_child(hints=self.hints)
 
 
 class CommentFormatter(Formatter):
