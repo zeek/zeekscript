@@ -609,6 +609,15 @@ class ComplexSequenceFormatterMixin(HasIsComplexProtocol):
 
         return is_complex_node(self.node)
 
+    def has_comments(self: FormatterProtocol) -> bool:
+        """Check if this node contains comments (but not just newlines)."""
+        for child, _ in self.node.traverse(include_cst=True):
+            if child == self.node:
+                continue
+            if child.is_comment():
+                return True
+        return False
+
 
 class InitializerFormatter(Formatter):
     def format(self) -> None:
@@ -1266,12 +1275,22 @@ class CaseTypeListFormatter(Formatter):
 
 
 class EventHdrFormatter(Formatter):
+    """Formats event call headers with proper alignment for wrapped arguments.
+
+    The event_hdr node structure is: <expr> '(' [expr_list] ')'
+    Align continuation lines to the column after the opening parenthesis.
+    """
+
     def format(self) -> None:
-        self._format_child()  # <id>
+        self._format_child()  # <expr> (event name)
         self._format_child(hints=Hint.NO_LB_BEFORE)  # '('
+        # Align wrapped arguments to the column after the '('
+        saved_align = self.ostream.get_align_column()
+        self.ostream.set_align_column(self.ostream.get_visual_column())
         if self._get_child_name() == "expr_list":
             self._format_child()  # <expr_list>
         self._format_child(hints=Hint.NO_LB_BEFORE)  # ')'
+        self.ostream.set_align_column(saved_align)
 
 
 class AssertMsgFormatter(SpaceSeparatedFormatter):
@@ -1647,10 +1666,33 @@ class ExprFormatter(SpaceSeparatedFormatter, ComplexSequenceFormatterMixin):
         elif ct2 == "(":
             # Constructor calls like table(...), set(...), vector(...)
             # or regular function calls like Broker::publish(...)
-            # Constructors: one-per-line if source had newlines
-            # Function calls: normal wrapping with alignment to after '('
             is_constructor = ct1 in ("table", "set", "vector", "record")
-            do_linebreak = is_constructor and self.is_complex()
+
+            # For constructors, use one-per-line if:
+            # 1. There are comments to preserve, OR
+            # 2. The content is too long to fit on a single line (>80 chars)
+            # This produces consistent output regardless of input formatting.
+            do_linebreak = False
+            if is_constructor:
+                if self.has_comments():
+                    do_linebreak = True
+                else:
+                    # Estimate compact length by summing leaf node lengths.
+                    # Add 1 for space after each comma.
+                    compact_len = 0
+                    comma_count = 0
+                    for child, _ in self.node.traverse(include_cst=True):
+                        if child.is_nl():
+                            continue
+                        # Count leaf nodes (no children means leaf)
+                        if not child.nonerr_children:
+                            compact_len += child.end_byte - child.start_byte
+                        if child.token() == ",":
+                            comma_count += 1
+                    compact_len += comma_count  # Space after each comma
+                    # If constructor can't fit on one line, use one-per-line format.
+                    if compact_len > 80:
+                        do_linebreak = True
 
             self._format_child(hints=self.hints)  # 'table' etc or function name expr
             self._format_child(hints=Hint.NO_LB_BEFORE)  # '('

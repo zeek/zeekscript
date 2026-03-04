@@ -245,6 +245,84 @@ class TestFormatting(unittest.TestCase):
         first_char_col = len(line2) - len(line2.lstrip())
         self.assertEqual(first_char_col, o_col)
 
+    def test_event_statement_argument_alignment(self):
+        """Event statement arguments should align to after the opening paren."""
+        code = b"function observation() { if ( foo ) event Confidence::observation_evt(o, label, conf, source, caller); }"
+        result = self._format(code).decode()
+        # Should not have MISINDENTATION marker
+        self.assertNotIn("MISINDENTATION", result)
+        # Verify arguments wrap with proper alignment
+        lines = result.splitlines()
+        # Find line with event call and continuation
+        event_line = None
+        cont_line = None
+        for i, line in enumerate(lines):
+            if "event Confidence::observation_evt" in line:
+                event_line = line
+                if i + 1 < len(lines):
+                    cont_line = lines[i + 1]
+                break
+        self.assertIsNotNone(event_line)
+        self.assertIsNotNone(cont_line)
+        # Continuation should align to after '('
+        paren_col = event_line.index("(") + 1
+        first_char_col = len(cont_line) - len(cont_line.lstrip())
+        self.assertEqual(first_char_col, paren_col)
+
+    def test_nested_function_call_alignment(self):
+        """Nested function calls should align correctly when outer call wraps."""
+        code = b'local filter = Log::Filter($name="conn-app", $path="conn_app", $include=set("id.orig_h", "id.orig_p", "id.resp_h", "id.resp_p", "app"), $policy=conn_apps_only);'
+        result = self._format(code).decode()
+        # Should not have MISINDENTATION marker
+        self.assertNotIn("MISINDENTATION", result)
+        lines = result.splitlines()
+        # Find lines with Log::Filter( and set( continuations
+        outer_line = None
+        set_line = None
+        set_cont_line = None
+        for i, line in enumerate(lines):
+            if "Log::Filter(" in line:
+                outer_line = line
+            if "$include=set(" in line:
+                set_line = line
+                if i + 1 < len(lines):
+                    set_cont_line = lines[i + 1]
+        self.assertIsNotNone(outer_line)
+        self.assertIsNotNone(set_line)
+        self.assertIsNotNone(set_cont_line)
+        # Verify nested set() continuation aligns to after set(
+        set_paren_col = set_line.index("set(") + 4
+        set_cont_col = len(set_cont_line) - len(set_cont_line.lstrip())
+        self.assertEqual(set_cont_col, set_paren_col)
+
+    def test_constructor_formatting_ignores_input_newlines(self):
+        """Constructor calls should format the same regardless of input whitespace."""
+        # Single-line input
+        code1 = b'local x = set("a", "b", "c", "d", "e");'
+        # Multi-line input (same semantically)
+        code2 = b'local x = set("a",\n"b",\n"c",\n"d",\n"e");'
+
+        result1 = self._format(code1)
+        result2 = self._format(code2)
+        # Both should produce identical output
+        self.assertEqual(result1, result2)
+
+    def test_large_constructor_uses_one_per_line(self):
+        """Constructors >80 chars should use one-per-line format."""
+        # Long set (>80 chars) - should be one-per-line regardless of input
+        code1 = b'local x = set(1.0.0.2/31, 1.1.1.2/31, 3.7.176.123/32, 5.1.66.255/32, 5.2.75.75/32, 5.45.107.88/32, 8.8.4.4/32);'
+        code2 = b'local x = set(1.0.0.2/31,\n1.1.1.2/31,\n3.7.176.123/32,\n5.1.66.255/32,\n5.2.75.75/32,\n5.45.107.88/32,\n8.8.4.4/32);'
+
+        result1 = self._format(code1).decode()
+        result2 = self._format(code2).decode()
+
+        # Both should produce identical output
+        self.assertEqual(result1, result2)
+        # Should have multiple lines (one-per-line format)
+        self.assertGreater(len(result1.splitlines()), 1)
+        # Each element should be on its own line
+        self.assertIn("1.0.0.2/31,\n", result1)
+
 
 class TestFormattingErrors(unittest.TestCase):
     def _format(self, content):

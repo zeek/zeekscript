@@ -596,25 +596,19 @@ class OutputStream:
                 if items_remaining:
                     break_align_col = items_remaining[0].align_column
 
-                # For assignment breaks (where align_column is tab + 8), adjust
-                # nested alignments. These were computed before the break when
-                # positions were different.
+                # Adjust nested alignments. These were computed before the break
+                # when positions were different. Items inside nested calls had
+                # their align columns based on the unbroken line position; after
+                # the break they need to be shifted to account for the new line
+                # starting at break_align_col instead of col_flushed.
                 tab_col = self._tab_indent * self.TAB_SIZE
-                assignment_indent = tab_col + self.TAB_SIZE  # One indent level up
-                was_good_lb_break = any(
-                    bp[0] == chosen_break and bp[4] for bp in all_bps
-                )
-                if was_good_lb_break and break_align_col == assignment_indent:
-                    # This was an assignment break. Adjust nested alignments.
-                    # Items inside the RHS had their align columns computed
-                    # assuming no break, so shift them left.
-                    # Account for removed whitespace (e.g., space after '=').
-                    for item in items_remaining:
-                        if item.align_column > break_align_col:
-                            item.align_column = (
-                                break_align_col
-                                + (item.align_column - col_flushed - removed_ws_width)
-                            )
+                for item in items_remaining:
+                    if item.align_column > break_align_col:
+                        # Shift: new_pos = new_start + (old_pos - old_break_point - ws)
+                        item.align_column = (
+                            break_align_col
+                            + (item.align_column - col_flushed - removed_ws_width)
+                        )
 
                 # Check if remaining content would fit with shallower alignment
                 # Only do this when content is "atomic" - no commas or binary operators
