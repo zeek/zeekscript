@@ -269,6 +269,17 @@ class TestFormatting(unittest.TestCase):
         first_char_col = len(cont_line) - len(cont_line.lstrip())
         self.assertEqual(first_char_col, paren_col)
 
+    def test_in_and_not_in_operator_alignment(self):
+        """The in and !in operators should align continuations like other binary operators."""
+        # Test !in
+        code1 = b'return aws_main_domain in subj && amzaws_wildcard !in subj && apiaws_wildcard !in subj;'
+        result1 = self._format(code1).decode()
+        self.assertNotIn("MISINDENTATION", result1)
+        # Test in
+        code2 = b'return some_very_long_variable_name in some_other_very_long_variable_name && another_thing in yet_another_thing;'
+        result2 = self._format(code2).decode()
+        self.assertNotIn("MISINDENTATION", result2)
+
     def test_nested_function_call_alignment(self):
         """Nested function calls should align correctly when outer call wraps."""
         code = b'local filter = Log::Filter($name="conn-app", $path="conn_app", $include=set("id.orig_h", "id.orig_p", "id.resp_h", "id.resp_p", "app"), $policy=conn_apps_only);'

@@ -1353,8 +1353,8 @@ class ExprFormatter(SpaceSeparatedFormatter, ComplexSequenceFormatterMixin):
     def _is_binary_operator(self) -> bool:
         """Predicate, returns true if this is a binary operator expression.
 
-        Includes arithmetic, comparison, bitwise, and pattern match operators.
-        Boolean (&&, ||) and membership (in, !in) are handled separately.
+        Includes arithmetic, comparison, bitwise, pattern match, and membership operators.
+        Boolean (&&, ||) and !in are handled separately.
         """
         return len(self.node.nonerr_children) == 3 and self._get_child_token(
             offset=1, absolute=True
@@ -1367,6 +1367,8 @@ class ExprFormatter(SpaceSeparatedFormatter, ComplexSequenceFormatterMixin):
             "&", "|", "^",
             # Pattern match
             "~", "!~",
+            # Membership
+            "in",
         )
 
     def _is_assignment(self) -> bool:
@@ -1592,12 +1594,20 @@ class ExprFormatter(SpaceSeparatedFormatter, ComplexSequenceFormatterMixin):
                 self._format_child()
 
         elif cn1 == "expr" and ct2 == "!" and ct3 == "in":
-            self._format_child()  # <expr>
+            # '!in' binary operator - handle like other binary operators
+            saved_align = self.ostream.get_align_column()
+            inside_boolean = self._is_inside_binary_boolean()
+            if saved_align == 0:
+                self.ostream.set_align_column(self.ostream.get_visual_column())
+            self._format_child(hints=self.hints)  # <expr> - propagate incoming hints
             self._write_sp()
             self._format_child(hints=Hint.NO_LB_AFTER)  # '!'
             self._format_child()  # 'in'
             self._write_sp()
-            self._format_child()  # <expr>
+            hints = Hint.NONE if inside_boolean else Hint.GOOD_AFTER_LB
+            self._format_child(hints=hints)  # <expr>
+            if saved_align == 0:
+                self.ostream.set_align_column(0)
 
         elif ct1 in ["{", "["]:
             # Vector/table/set initializers: '{'/'[' <expr_list> '}'/']'
@@ -1762,11 +1772,17 @@ class ExprFormatter(SpaceSeparatedFormatter, ComplexSequenceFormatterMixin):
                 # Okay! It's AND/ORs all the way up to something not an expr.
                 hints = Hint.GOOD_AFTER_LB
 
+            # Set alignment for continuations when no outer alignment exists
+            saved_align = self.ostream.get_align_column()
+            if saved_align == 0:
+                self.ostream.set_align_column(self.ostream.get_visual_column())
             self._format_child(hints=self.hints)  # <expr> - propagate incoming hints
             self._write_sp()
             self._format_child()  # '&&' / '||'
             self._write_sp()
             self._format_child(hints=hints)  # <expr>
+            if saved_align == 0:
+                self.ostream.set_align_column(0)
 
         elif self._is_string_concat():
             # This helps OutputStream nicely align long strings broken into
