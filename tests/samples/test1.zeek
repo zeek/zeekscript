@@ -29,8 +29,8 @@ export {
 		{ } &redef;
 }
 
-# Another type of sequence where zeek-format considers existing linebreaks.
-# Both of these trigger line breaks
+# Initializers use one-per-line when they have comments (deltas2) or exceed
+# line length, but fit on one line otherwise (deltas1).
 const deltas1: vector of double = {
 	0.01,
 	0.01,

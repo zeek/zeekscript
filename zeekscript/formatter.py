@@ -575,42 +575,26 @@ class FormatterProtocol(Protocol):
     def _write_sp(self, num: int = 1) -> None: ...
 
 
-class HasIsComplexProtocol(Protocol):
-    def is_complex(self) -> bool: ...
+class HasCommentsProtocol(Protocol):
+    def has_comments(self) -> bool: ...
 
 
 class ComplexSequenceFormatterMixinProtocol(
-    HasIsComplexProtocol, FormatterProtocol, Protocol
+    HasCommentsProtocol, FormatterProtocol, Protocol
 ):
     pass
 
 
-class ComplexSequenceFormatterMixin(HasIsComplexProtocol):
-    """A mixin to figure out whether to line-break the (remaining) children.
+class ComplexSequenceFormatterMixin(HasCommentsProtocol):
+    """A mixin providing has_comments() for line-break decisions.
 
-    The idea here is to determine if any one child is "complex". If so, the
-    entire sequence is to be written in individual lines. The formatting of
-    these lines doesn't happen in this mixin, only the complexity decision.
-
-    The default complexity decision looks for comments in the subtree.
+    When comments are present in a construct, we use multi-line layout to
+    preserve them. The formatting of these lines doesn't happen in this
+    mixin, only the comment detection.
     """
 
-    def is_complex(self: FormatterProtocol) -> bool:
-        def is_complex_node(node: Node) -> bool:
-            for child, _ in node.traverse(include_cst=True):
-                if child == node:  # Skip the start node itself
-                    continue
-                # Preserve original formatting: if the source had comments or
-                # newlines within this construct, keep the multi-line layout.
-                if child.is_comment() or child.is_nl():
-                    return True
-
-            return False
-
-        return is_complex_node(self.node)
-
     def has_comments(self: FormatterProtocol) -> bool:
-        """Check if this node contains comments (but not just newlines)."""
+        """Check if this node contains comments."""
         for child, _ in self.node.traverse(include_cst=True):
             if child == self.node:
                 continue
@@ -640,8 +624,8 @@ class RedefEnumDeclFormatter(Formatter, ComplexSequenceFormatterMixin):
         self._format_child()  # '+='
         self._write_sp()
 
-        # Format the body
-        do_linebreak = self.is_complex()  # Must call before we consume '{'
+        # Format the body - linebreak if comments present (checked before consuming '{')
+        do_linebreak = self.has_comments()
 
         self._format_child()  # '{'
 
@@ -740,8 +724,8 @@ class TypeFormatter(SpaceSeparatedFormatter, ComplexSequenceFormatterMixin):
 
         elif self._get_child_token() == "enum":
             # No Whitesmith here: "{" on same line, closing "}" unindented.
-            # Check complexity before consuming '{' so is_complex sees full content
-            do_linebreak = self.is_complex()
+            # Check for comments before consuming '{' so has_comments sees full content
+            do_linebreak = self.has_comments()
             self._format_child()  # 'enum'
             self._write_sp()
             self._format_child()  # '{'
@@ -1212,8 +1196,8 @@ class ExprListFormatter(Formatter, ComplexSequenceFormatterMixin):
 
     def format(self) -> None:
         # Only use one-per-line formatting when explicitly requested via COMPLEX_BLOCK
-        # (for constructors with explicit newlines in source).
-        # Function calls with newlines in source should use normal wrapping.
+        # (for constructors with comments or that exceed line length).
+        # Function calls should use normal wrapping.
         if Hint.COMPLEX_BLOCK in self.hints:
             # Count elements to decide hint behavior:
             # - With many elements (>=4): suppress wrapping (INIT_LENIENT) + tab indent
@@ -1570,9 +1554,18 @@ class ExprFormatter(SpaceSeparatedFormatter, ComplexSequenceFormatterMixin):
 
         elif ct1 in ["{", "["]:
             # Vector/table/set initializers: '{'/'[' <expr_list> '}'/']'
-            # Respect explicit newlines/comments in the source (is_complex())
-            # Global declarations that don't fit on one line: prefer multi-line
-            do_linebreak = self.is_complex()
+            # Use multi-line if comments present or content is too long
+            do_linebreak = self.has_comments()
+            if not do_linebreak:
+                # Estimate compact length to decide if multi-line needed
+                compact_len = 0
+                for child, _ in self.node.traverse(include_cst=True):
+                    if child.is_nl():
+                        continue
+                    if not child.nonerr_children:  # leaf node
+                        compact_len += child.end_byte - child.start_byte
+                if compact_len > 80:
+                    do_linebreak = True
 
             # When BRACE_TO_CONSTRUCTOR hint is set, transform { } to set( ) or table( )
             transform_brace = (
@@ -1597,8 +1590,8 @@ class ExprFormatter(SpaceSeparatedFormatter, ComplexSequenceFormatterMixin):
                     # Record constructor: format fields with alignment to first $field.
                     saved_align = self.ostream.get_align_column()
                     self.ostream.set_align_column(self.ostream.get_visual_column())
-                    # Complex (has comments/newlines): one field per line
-                    # Simple: allow multiple fields per line
+                    # Has comments or too long: one field per line
+                    # Otherwise: allow multiple fields per line
                     self._format_record_fields(one_per_line=do_linebreak)
                     self.ostream.set_align_column(saved_align)
                 elif do_linebreak:
@@ -1612,13 +1605,6 @@ class ExprFormatter(SpaceSeparatedFormatter, ComplexSequenceFormatterMixin):
                 self._next_child()  # Skip the '}' token (don't format it)
                 self._write(")")
             else:
-                # For record constructors, check if user had closing on its own line
-                # (indicated by newline before ']'). NlFormatter doesn't handle
-                # single newlines, so we check and write explicitly.
-                if is_record:
-                    closing = self._get_child()
-                    if closing and any(n.is_nl() for n in closing.prev_cst_siblings):
-                        self._write_nl()
                 self._format_child()  # '}'/']'
 
         elif ct1 == "(":

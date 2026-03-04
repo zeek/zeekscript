@@ -19,7 +19,7 @@ global b = [2620:83:8000:140::3]/21;
 # Enum
 ##########################################
 
-# We always break lines for enum labels.
+# Enum labels can be on a single line if they fit; otherwise one-per-line.
 type single_element_enum: enum {
 	ZERO
 };
