@@ -731,14 +731,20 @@ class TypeFormatter(SpaceSeparatedFormatter, ComplexSequenceFormatterMixin):
 
         elif self._get_child_token() == "enum":
             # No Whitesmith here: "{" on same line, closing "}" unindented.
+            # Check complexity before consuming '{' so is_complex sees full content
+            do_linebreak = self.is_complex()
             self._format_child()  # 'enum'
             self._write_sp()
             self._format_child()  # '{'
 
-            # Always linebreak for enum decls
-            self._write_nl()
-            self._format_child(indent=True, hints=Hint.COMPLEX_BLOCK)  # enum_body
-            self._write_nl()
+            if do_linebreak:
+                self._write_nl()
+                self._format_child(indent=True, hints=Hint.COMPLEX_BLOCK)  # enum_body
+                self._write_nl()
+            else:
+                self._write_sp()
+                self._format_child(indent=True)  # enum_body
+                self._write_sp()
 
             self._format_child()  # '}'
 

@@ -220,6 +220,15 @@ class TestFormatting(unittest.TestCase):
         # $want_record=F and $ev should be on the same line since they fit at 80 chars
         self.assertIn('$want_record=F, $ev=cert_hygiene_sni_wl_add', result)
 
+    def test_enum_single_line_preserved(self):
+        """Enum on single line in source should stay on single line if it fits."""
+        code = b'type level: enum { NOT = 0, LOW = 1, MED = 2, HIGH = 3 };'
+        result = self._format(code).decode()
+        # Should stay on one line
+        lines = [l for l in result.splitlines() if l.strip()]
+        self.assertEqual(len(lines), 1)
+        self.assertIn('{ NOT = 0, LOW = 1, MED = 2, HIGH = 3 }', result)
+
 
 class TestFormattingErrors(unittest.TestCase):
     def _format(self, content):
