@@ -143,6 +143,33 @@ class TestFormatting(unittest.TestCase):
         # Should not have MISINDENTATION marker
         self.assertNotIn("MISINDENTATION", result)
 
+    def test_event_handler_parameter_wrapping(self):
+        """Event handler parameters should wrap at commas when line is too long."""
+        code = b'event ssl_encrypted_data(c: connection, is_orig: bool, record_version: count, content_type: count, length: count) &group="doh-generic" { }'
+        result = self._format(code).decode()
+        lines = result.splitlines()
+        # Parameters should wrap - not all on one line
+        # First line should have some parameters, second line should have more
+        self.assertTrue(
+            any("content_type:" in line for line in lines[1:]),
+            "Parameters should wrap to multiple lines"
+        )
+        # The &group attribute should be on its own line or with closing params
+        self.assertTrue(
+            any("&group" in line for line in lines),
+            "Attribute should be present"
+        )
+
+    def test_assignment_with_nested_function_alignment(self):
+        """Assignment RHS with function call should align arguments correctly."""
+        code = b"recently_validated_certs[chain_id] = X509::Result($result=result$result, $result_string=result$result_string);"
+        result = self._format(code).decode()
+        # Should not have MISINDENTATION
+        self.assertNotIn("MISINDENTATION", result)
+        # Both $result and $result_string should be present (not split on $)
+        self.assertIn("$result=result$result", result)
+        self.assertIn("$result_string=result$result_string", result)
+
 
 class TestFormattingErrors(unittest.TestCase):
     def _format(self, content):
