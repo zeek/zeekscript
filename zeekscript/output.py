@@ -167,14 +167,18 @@ class OutputStream:
 
         1. Find valid break points (after tokens without NO_LB_AFTER hint)
         2. Filter to prefer breaks at the outermost nesting level and after commas
-        3. Choose a break that balances line lengths while keeping both under limit
-        4. If no break keeps both lines under limit, minimize line1's excess
-        5. Repeat for remainder until all lines fit or no valid breaks remain
+        3. Prefer breaks before GOOD_AFTER_LB tokens (keeps operators at line end)
+        4. Choose a break that balances line lengths while keeping both under limit
+        5. Skip breaks that would make things worse (line2 >= original length)
+        6. If no break keeps both lines under limit, minimize line1's excess
+        7. Repeat for remainder until all lines fit or no valid breaks remain
 
         Break points track nesting depth (parentheses/brackets/braces) so that
         breaks inside nested function calls are avoided when outer breaks exist.
         Continuation lines align to the column specified by align_column (typically
-        set after an opening parenthesis by the formatter).
+        set after an opening parenthesis by the formatter). For atomic content
+        (no further break points), alignment may be adjusted shallower to avoid
+        cascading breaks.
         """
 
         # Without linebreaking active, just flush the buffer.
@@ -377,7 +381,11 @@ class OutputStream:
                of line1 (balances lines while maximizing content on line1)
             5. If no break keeps both lines under limit, pick the break that
                keeps line1 closest to MAX_LINE_LEN (minimizing excess)
-            6. Skip breaks that aren't "worth it" (too little content after)
+            6. Skip breaks that aren't "worth it":
+               - Too little content after the break
+               - line2 would be longer than original (makes things worse)
+               - line2 equals original and starts with unbreakable content (string)
+            7. If chosen break isn't worthwhile, try alternative break points
             """
             if total_len <= effective_max_len:
                 return -1
