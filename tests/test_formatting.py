@@ -187,6 +187,26 @@ class TestFormatting(unittest.TestCase):
         lines = [l for l in result.splitlines() if l.strip()]
         self.assertEqual(len(lines), 1)
 
+    def test_skip_pointless_line_breaks(self):
+        """Don't break if continuation would be as long as original."""
+        # Breaking at ( would shift content but not reduce max line length
+        code = b'print fmt("This is a really long string argument that cannot be broken up into smaller pieces");'
+        result = self._format(code).decode()
+        # Should stay on one line - breaking wouldn't help
+        lines = [l for l in result.splitlines() if l.strip()]
+        self.assertEqual(len(lines), 1)
+
+    def test_keep_fmt_string_together(self):
+        """Keep fmt("string") together, break at comma after string."""
+        code = b'local x = [$msg=fmt("Host uses protocol version %s which is lower than the safe minimum %s", host_string, minimum_string)];'
+        result = self._format(code).decode()
+        # Should NOT break at fmt( - instead break at comma after string
+        # Line 1: ...fmt("...string...",
+        # Line 2: host_string, minimum_string)...
+        self.assertIn('fmt("Host uses protocol', result)
+        self.assertNotIn('fmt(\n', result)
+        self.assertNotIn('fmt(\t', result)
+
 
 class TestFormattingErrors(unittest.TestCase):
     def _format(self, content):

@@ -454,6 +454,55 @@ class OutputStream:
                 if not has_content:
                     return -1
 
+            # Check if breaking would actually help
+            def is_break_worthwhile(break_idx: int) -> bool:
+                """Check if a break point is worthwhile (reduces max line len)."""
+                remaining_items = items[break_idx + 1:]
+                while remaining_items and not remaining_items[0].data.strip():
+                    remaining_items = remaining_items[1:]
+                if not remaining_items:
+                    return False
+                # Get alignment for continuation
+                cont_align = continuation_indent
+                if remaining_items[0].align_column > 0:
+                    cont_align = remaining_items[0].align_column
+                remaining_len = sum(visual_width(item.data, 0) for item in remaining_items)
+                line2_len = cont_align + remaining_len
+                if line2_len > total_len:
+                    # Breaking makes things WORSE
+                    return False
+                if line2_len == total_len:
+                    # Breaking is neutral. Not worthwhile if remaining starts
+                    # with a string (unbreakable element that dominates length)
+                    first_token = remaining_items[0].data.strip()
+                    if first_token.startswith(b'"') or first_token.startswith(b"'"):
+                        return False
+                    # Also not worthwhile if no useful further breaks
+                    remaining_bps = [bp for bp in adjusted_breaks if bp[0] > break_idx]
+                    for bp_idx, _, _ in remaining_bps:
+                        token = items[bp_idx].data.strip()
+                        if token not in (b")", b"]", b"}", b";"):
+                            return True  # Has useful breaks
+                    return False  # No useful breaks
+                return True  # line2_len < total_len - breaking helps
+
+            # Validate the chosen break, try alternatives if not worthwhile
+            if best_break >= 0 and not is_break_worthwhile(best_break):
+                # Try other breaks in adjusted_breaks
+                for bp_idx, _, _ in adjusted_breaks:
+                    if bp_idx != best_break and is_break_worthwhile(bp_idx):
+                        best_break = bp_idx
+                        break
+                else:
+                    # No worthwhile break found
+                    best_break = -1
+
+            # Final check: ensure there's content after the break
+            if best_break >= 0:
+                has_content = any(items[j].data.strip() for j in range(best_break + 1, len(items)))
+                if not has_content:
+                    return -1
+
             return best_break
 
         # Process items iteratively, breaking as many times as needed
