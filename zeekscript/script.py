@@ -455,15 +455,36 @@ class Script:
         #
         for node, _ in self.traverse():
             if node.next_cst_siblings and node.children:
-                node.next_cst_sibling = None
+                # Find where to split: push attached content (before standalone
+                # comments on their own line) but keep standalone content.
+                # Standalone = content after a newline (comments on their own line).
+                split_idx = len(node.next_cst_siblings)  # Default: push all
 
-                if node.children[-1].next_cst_siblings:
-                    node.children[-1].next_cst_siblings[
-                        -1
-                    ].next_cst_sibling = node.next_cst_siblings[0]
-                    node.next_cst_siblings[0].prev_cst_sibling = node.children[
-                        -1
-                    ].next_cst_siblings[-1]
+                for i, sib in enumerate(node.next_cst_siblings):
+                    if sib.is_nl():
+                        # Check if there's non-NL content after this newline
+                        has_content_after = any(
+                            not s.is_nl() for s in node.next_cst_siblings[i + 1:]
+                        )
+                        if has_content_after:
+                            # Split here: content after this NL is standalone
+                            split_idx = i
+                            break
 
-                node.children[-1].next_cst_siblings += node.next_cst_siblings
-                node.next_cst_siblings = []
+                to_push = node.next_cst_siblings[:split_idx]
+                to_keep = node.next_cst_siblings[split_idx:]
+
+                if to_push:
+                    node.next_cst_sibling = None
+
+                    if node.children[-1].next_cst_siblings:
+                        node.children[-1].next_cst_siblings[
+                            -1
+                        ].next_cst_sibling = to_push[0]
+                        to_push[0].prev_cst_sibling = node.children[
+                            -1
+                        ].next_cst_siblings[-1]
+
+                    node.children[-1].next_cst_siblings += to_push
+
+                node.next_cst_siblings = to_keep

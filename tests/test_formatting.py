@@ -367,6 +367,28 @@ class TestFormatting(unittest.TestCase):
         policy_indent = len(lines[policy_line]) - len(lines[policy_line].lstrip())
         self.assertEqual(policy_indent, include_indent)
 
+    def test_standalone_comment_after_function(self):
+        """Comments on their own line after a function should not be indented."""
+        code = b'''#@ BEGIN
+function foo()
+    {
+    bar();
+    }
+#@ END
+'''
+        result = self._format(code).decode()
+        lines = result.splitlines()
+        # Find the #@ END comment
+        end_line = None
+        for line in lines:
+            if "#@ END" in line:
+                end_line = line
+                break
+        self.assertIsNotNone(end_line)
+        # Should be at column 0 (no indentation)
+        self.assertFalse(end_line.startswith("\t"))
+        self.assertFalse(end_line.startswith(" "))
+
     def test_record_args_alignment_ignores_source_newlines(self):
         """Record-style arguments should format consistently regardless of source whitespace."""
         # Single-line input
