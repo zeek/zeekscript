@@ -1194,6 +1194,42 @@ class ExprListFormatter(Formatter, ComplexSequenceFormatterMixin):
     # Single-element expr_lists (like print arguments) shouldn't use these hints.
     MIN_ELEMENTS_FOR_INIT_HINTS = 2
 
+    def _should_align_record_args(self) -> bool:
+        """Check if record-style args ($field=value) should each be on their own line.
+
+        Returns True if:
+        1. Arguments are record-style ($field=value)
+        2. At least one argument contains a nested call (set, table, etc.) that
+           is likely to wrap to multiple lines
+        """
+        exprs = [c for c in self.node.children if c.name() == "expr"]
+        if len(exprs) < 2:
+            return False
+
+        # Check if first element is record-style ($field=...)
+        first_children = list(exprs[0].nonerr_children)
+        if not (first_children and first_children[0].token() and
+                first_children[0].token().startswith("$")):
+            return False
+
+        # Check if any element contains a nested call (set(...), table(...), etc.)
+        # that is likely to wrap
+        for expr in exprs:
+            for child, _ in expr.traverse():
+                if child == expr:
+                    continue
+                # Look for function-style calls: <expr> '(' ...
+                if child.name() == "expr":
+                    children = list(child.nonerr_children)
+                    if len(children) >= 2 and children[1].token() == "(":
+                        # Check if call has multiple arguments (likely to wrap)
+                        for c in children:
+                            if c.name() == "expr_list":
+                                args = [x for x in c.children if x.name() == "expr"]
+                                if len(args) >= 3:
+                                    return True
+        return False
+
     def format(self) -> None:
         # Only use one-per-line formatting when explicitly requested via COMPLEX_BLOCK
         # (for constructors with comments or that exceed line length).
@@ -1221,11 +1257,22 @@ class ExprListFormatter(Formatter, ComplexSequenceFormatterMixin):
                     self._format_child(hints=Hint.NO_LB_BEFORE)  # ','
                     self._write_nl()
         else:
+            # Check if this is record-style arguments ($field=value) with nested calls
+            # that are likely to wrap. If so, put each argument on its own aligned line.
+            force_align_args = self._should_align_record_args()
+            align_col = self.ostream.get_align_column() if force_align_args else 0
+
             while self._get_child_name() == "expr":
                 self._format_child()  # <expr>
                 if self._get_child():
                     self._format_child(hints=Hint.NO_LB_BEFORE)  # ','
-                    self._write_sp()
+                    if force_align_args and align_col > 0:
+                        # Write newline with alignment to first argument
+                        tab_col = self.indent * 8
+                        space_count = max(0, align_col - tab_col)
+                        self._write(self.NL + b"\t" * self.indent + b" " * space_count)
+                    else:
+                        self._write_sp()
 
 
 class CaseListFormatter(Formatter):

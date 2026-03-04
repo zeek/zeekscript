@@ -345,6 +345,28 @@ class TestFormatting(unittest.TestCase):
         policy_indent = len(lines[policy_line]) - len(lines[policy_line].lstrip())
         self.assertEqual(policy_indent, include_indent)
 
+    def test_multiline_element_aligns_next_element_indented(self):
+        """Same as above but inside an indented block - indentation shouldn't change behavior."""
+        code = b'event zeek_init() { local filter = Log::Filter($name="conn-app", $path="conn_app", $include=set("id.orig_h", "id.orig_p", "id.resp_h", "id.resp_p", "app"), $policy=conn_apps_only); }'
+        result = self._format(code).decode()
+        lines = result.splitlines()
+        # Find lines with $include and $policy
+        include_line = None
+        policy_line = None
+        for i, line in enumerate(lines):
+            if "$include=" in line:
+                include_line = i
+            if "$policy=" in line:
+                policy_line = i
+        self.assertIsNotNone(include_line)
+        self.assertIsNotNone(policy_line)
+        # $policy should be on a different line than where $include starts
+        self.assertGreater(policy_line, include_line)
+        # $policy should be aligned with $include (same indentation)
+        include_indent = len(lines[include_line]) - len(lines[include_line].lstrip())
+        policy_indent = len(lines[policy_line]) - len(lines[policy_line].lstrip())
+        self.assertEqual(policy_indent, include_indent)
+
     def test_record_args_alignment_ignores_source_newlines(self):
         """Record-style arguments should format consistently regardless of source whitespace."""
         # Single-line input
