@@ -517,24 +517,33 @@ class TypedInitializerFormatter(Formatter):
     [:<type>] [<initializer] [attributes]
     """
 
-    def _format_typed_initializer(self) -> None:
+    def _format_typed_initializer(self, align_col: int = 0) -> None:
         # Track whether there's an explicit type - if so, don't transform {..} to set()/table()
         has_explicit_type = self._get_child_token() == ":"
 
+        # Set alignment for continuation lines (one space past identifier)
+        if align_col > 0:
+            self.ostream.set_align_column(align_col)
+
         if has_explicit_type:
-            self._format_child(hints=Hint.NO_LB_AFTER)  # ':'
+            self._format_child()  # ':'
             self._write_sp()
-            self._format_child()  # <type>
+            self._format_child(hints=Hint.GOOD_AFTER_LB)  # <type> - preferred break point
 
         if self._get_child_name() == "initializer":
             self._write_sp()
             # Only transform {..} to set()/table() when type can be inferred (no explicit type)
-            init_hints = Hint.NONE if has_explicit_type else Hint.BRACE_TO_CONSTRUCTOR
+            init_hints = Hint.BRACE_TO_CONSTRUCTOR if not has_explicit_type else Hint.NONE
+            init_hints |= Hint.GOOD_AFTER_LB  # Also a preferred break point
             self._format_child(hints=init_hints)  # <initializer>
 
         if self._get_child_name() == "attr_list":
             self._write_sp()
             self._format_child()
+
+        # Reset alignment
+        if align_col > 0:
+            self.ostream.set_align_column(0)
 
 
 class GlobalDeclFormatter(TypedInitializerFormatter):
@@ -545,8 +554,10 @@ class GlobalDeclFormatter(TypedInitializerFormatter):
     def format(self) -> None:
         self._format_child()  # "global", "option", etc
         self._write_sp()
+        # Capture column where identifier starts for alignment
+        id_col = self.ostream.get_visual_column()
         self._format_child()  # <id>
-        self._format_typed_initializer()
+        self._format_typed_initializer(align_col=id_col + 1)
         self._format_child(hints=Hint.NO_LB_BEFORE)  # ';'
         self._write_nl()
 
@@ -692,11 +703,11 @@ class TypeDeclFormatter(Formatter):
 class TypeFormatter(SpaceSeparatedFormatter, ComplexSequenceFormatterMixin):
     def format(self) -> None:
         if self._get_child_token() == "set":
-            self._format_child(hints=Hint.NO_LB_AFTER)  # 'set'
+            self._format_child(hints=Hint.NO_LB_AFTER | self.hints)  # 'set'
             self._format_typelist()  # '[' ... ']'
 
         elif self._get_child_token() == "table":
-            self._format_child(hints=Hint.NO_LB_AFTER)  # 'table'
+            self._format_child(hints=Hint.NO_LB_AFTER | self.hints)  # 'table'
             self._format_typelist()  # '[' ... ']'
             self._write_sp()
             self._format_child()  # 'of'
@@ -732,10 +743,10 @@ class TypeFormatter(SpaceSeparatedFormatter, ComplexSequenceFormatterMixin):
             self._format_child()  # '}'
 
         elif self._get_child_token() == "function":
-            self._format_child_range(2)  # 'function' <func_params>
+            self._format_child_range(2, hints=self.hints)  # 'function' <func_params>
 
         elif self._get_child_token() in ["event", "hook"]:
-            self._format_child()  # 'event'/'hook'
+            self._format_child(hints=self.hints)  # 'event'/'hook' - propagate incoming hints
             self._format_child(hints=Hint.NO_LB_BEFORE)  # '('
             if self._get_child_name() == "formal_args":
                 self._format_child()
@@ -1621,7 +1632,7 @@ class ExprFormatter(SpaceSeparatedFormatter, ComplexSequenceFormatterMixin):
             is_constructor = ct1 in ("table", "set", "vector", "record")
             do_linebreak = is_constructor and self.is_complex()
 
-            self._format_child()  # 'table' etc or function name expr
+            self._format_child(hints=self.hints)  # 'table' etc or function name expr
             self._format_child(hints=Hint.NO_LB_BEFORE)  # '('
             # Align wrapped arguments to the column after the '('
             # Save parent alignment so we can restore it after
