@@ -1309,6 +1309,12 @@ class ExprFormatter(SpaceSeparatedFormatter, ComplexSequenceFormatterMixin):
             "~", "!~",
         )
 
+    def _is_assignment(self) -> bool:
+        """Predicate, returns true if this is an assignment expression."""
+        return len(self.node.nonerr_children) == 3 and self._get_child_token(
+            offset=1, absolute=True
+        ) in ("=", "+=", "-=")
+
     def _is_string_concat(self) -> bool:
         """Predicate, returns true if this a <string> + <string> expression."""
 
@@ -1619,7 +1625,9 @@ class ExprFormatter(SpaceSeparatedFormatter, ComplexSequenceFormatterMixin):
 
         elif ct2 == "?$":
             # Never break on record ?$ operator - keep expr?$field together
-            self._format_child_range(3, hints=self.hints)  # <expr> '?$' <id>
+            self._format_child(hints=Hint.NO_LB_AFTER)  # <expr>
+            self._format_child(hints=Hint.NO_LB_BEFORE | Hint.NO_LB_AFTER)  # '?$'
+            self._format_child(hints=Hint.NO_LB_BEFORE)  # <id>
 
         elif ct1 == "function":
             self._format_child_range(2)  # 'function' <begin_lambda>
@@ -1703,6 +1711,18 @@ class ExprFormatter(SpaceSeparatedFormatter, ComplexSequenceFormatterMixin):
             self._format_child(hints=hints)  # <expr>
             if saved_align == 0:
                 self.ostream.set_align_column(0)
+
+        elif self._is_assignment():
+            # Assignment expressions: prefer breaking after '=' operator
+            # Set alignment for continuation at one indent level (8 spaces) up
+            self._format_child(hints=self.hints)  # LHS <expr>
+            self._write_sp()
+            self._format_child()  # '=' or '+=' or '-='
+            self._write_sp()
+            tab_col = self.indent * 8  # TAB_SIZE = 8
+            self.ostream.set_align_column(tab_col + 8)  # One indent level up
+            self._format_child(hints=Hint.GOOD_AFTER_LB)  # RHS <expr>
+            self.ostream.set_align_column(0)
 
         else:
             # Fall back to simple space-separation

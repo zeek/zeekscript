@@ -95,7 +95,7 @@ function a_function(a: int, b: count,
 
 	# This shouldn't break the 0 index number onto a new line
 	another_very_long_access_to_some_member +=
-	MISINDENTATIONyetanotherveryveryveryverylongthing[0];
+	        yetanotherveryveryveryverylongthing[0];
 
 	# Normal arithmetic should not always break around "+", in contrast to strings (see below):
 	local length = bytestring_to_count(data[mres$off - 1 + 8 : mres$off -
