@@ -523,6 +523,42 @@ class OutputStream:
                 if items_remaining:
                     break_align_col = items_remaining[0].align_column
 
+                # Check if remaining content would fit with shallower alignment
+                # Only do this when content is "atomic" - no commas or binary operators
+                # at the outer level that would naturally cause additional breaks
+                if break_align_col > 0:
+                    # Check if remaining items have breaks that should be preserved
+                    # (commas for multi-element content, binary ops for expressions)
+                    break_tokens = (b",", b"/", b"*", b"+", b"-", b"||", b"&&")
+                    # Track nesting - remaining content may start inside parens,
+                    # so we consider tokens "outer" when depth returns to or below 0
+                    depth = 0
+                    has_outer_breaks = False
+                    for item in items_remaining:
+                        token = item.data.strip()
+                        if token in (b"(", b"[", b"{"):
+                            depth += 1
+                        elif token in (b")", b"]", b"}"):
+                            depth -= 1
+                        elif depth <= 0 and token in break_tokens:
+                            has_outer_breaks = True
+                            break
+                    if not has_outer_breaks:
+                        remaining_len = sum(
+                            visual_width(item.data, 0) for item in items_remaining
+                        )
+                        tab_col = self._tab_indent * self.TAB_SIZE
+                        line2_len = break_align_col + remaining_len
+                        if line2_len > self.MAX_LINE_LEN:
+                            # Deep alignment would cause another break - use shallower
+                            # Calculate alignment so line ends near column 78 (margin - 2)
+                            # to make it clear the line was split for length
+                            target_end = self.MAX_LINE_LEN - 2
+                            shallow_align = max(tab_col + self.SPACE_INDENT,
+                                              target_end - remaining_len)
+                            if shallow_align + remaining_len <= self.MAX_LINE_LEN:
+                                break_align_col = shallow_align
+
                 # Write linebreak
                 tbd = items_remaining  # For write_linebreak to inspect
                 write_linebreak()
