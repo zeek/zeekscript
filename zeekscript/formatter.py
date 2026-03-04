@@ -1845,7 +1845,11 @@ class CommentFormatter(Formatter):
         hints: Hint = Hint.NONE,
     ) -> None:
         super().__init__(script, node, ostream, indent, hints)
-        self.hints |= Hint.ZERO_WIDTH  # Comments never count toward line length
+        # Comments starting with #@ are annotations that must stay on specific
+        # lines, so they don't count toward line length. Other comments do.
+        comment_text = script.get_content(*node.script_range())
+        if comment_text.startswith(b"#@"):
+            self.hints |= Hint.ZERO_WIDTH
 
 
 class MinorCommentFormatter(CommentFormatter):

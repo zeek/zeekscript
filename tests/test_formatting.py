@@ -170,6 +170,23 @@ class TestFormatting(unittest.TestCase):
         self.assertIn("$result=result$result", result)
         self.assertIn("$result_string=result$result_string", result)
 
+    def test_comments_count_toward_line_length(self):
+        """Regular comments should count toward line length."""
+        # This line is ~127 chars with the comment - should trigger breaking
+        code = b"age_d = interval_to_double(network_time() - cert$not_valid_before) / 86400.0; # This is a comment that makes the line very long"
+        result = self._format(code).decode()
+        # Should have been broken into multiple lines
+        self.assertGreater(len(result.splitlines()), 1)
+
+    def test_annotation_comments_excluded_from_line_length(self):
+        """Comments starting with #@ should not count toward line length."""
+        # Same line but with #@ annotation - should NOT trigger breaking
+        code = b"age_d = interval_to_double(network_time() - cert$not_valid_before) / 86400.0; #@ annotation"
+        result = self._format(code).decode()
+        # Should stay on one line (the code part fits, annotation excluded)
+        lines = [l for l in result.splitlines() if l.strip()]
+        self.assertEqual(len(lines), 1)
+
 
 class TestFormattingErrors(unittest.TestCase):
     def _format(self, content):
