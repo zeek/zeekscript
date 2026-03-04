@@ -1655,7 +1655,7 @@ class ExprFormatter(SpaceSeparatedFormatter, ComplexSequenceFormatterMixin):
                 # Okay! It's AND/ORs all the way up to something not an expr.
                 hints = Hint.GOOD_AFTER_LB
 
-            self._format_child()  # <expr>
+            self._format_child(hints=self.hints)  # <expr> - propagate incoming hints
             self._write_sp()
             self._format_child()  # '&&' / '||'
             self._write_sp()
@@ -1681,7 +1681,7 @@ class ExprFormatter(SpaceSeparatedFormatter, ComplexSequenceFormatterMixin):
             inside_boolean = self._is_inside_binary_boolean()
             if saved_align == 0:
                 self.ostream.set_align_column(self.ostream.get_visual_column())
-            self._format_child()  # <expr>
+            self._format_child(hints=self.hints)  # <expr> - propagate incoming hints
             self._write_sp()
             self._format_child()  # operator
             self._write_sp()
