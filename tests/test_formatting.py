@@ -207,6 +207,19 @@ class TestFormatting(unittest.TestCase):
         self.assertNotIn('fmt(\n', result)
         self.assertNotIn('fmt(\t', result)
 
+    def test_record_fields_combine_when_fit(self):
+        """Record fields should combine on one line when they fit under 80 chars."""
+        # This tests that newlines aren't counted in line length (off-by-one fix).
+        # With indentation, the alignment column changes and the last two fields
+        # fit exactly at 80 chars - but only if newlines are excluded from length.
+        code = b'''function f() {
+\tif ( x )
+\t\tInput::add_event([$source=cert_hygiene_sni_wl_source, $name=cert_hygiene_sni_wl_name, $fields=CertHygieneSNIWL, $mode=Input::REREAD, $want_record=F, $ev=cert_hygiene_sni_wl_add]);
+}'''
+        result = self._format(code).decode()
+        # $want_record=F and $ev should be on the same line since they fit at 80 chars
+        self.assertIn('$want_record=F, $ev=cert_hygiene_sni_wl_add', result)
+
 
 class TestFormattingErrors(unittest.TestCase):
     def _format(self, content):

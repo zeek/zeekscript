@@ -293,7 +293,9 @@ class OutputStream:
                     nesting_depth -= 1
 
                 if Hint.ZERO_WIDTH not in out.formatter.hints:
-                    total_len += visual_width(out.data, total_len)
+                    # Exclude newlines from line length calculation
+                    if out.data != b'\n' and out.data != b'\r\n':
+                        total_len += visual_width(out.data, total_len)
 
                 if token:
                     if out.hints is not None and Hint.INIT_LENIENT in out.hints:
