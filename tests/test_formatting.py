@@ -115,6 +115,34 @@ class TestFormatting(unittest.TestCase):
             expected.splitlines(),
         )
 
+    def test_no_split_on_field_access(self):
+        """Don't split on $ or ?$ operators - keep expr$field together."""
+        # The $ operator should not be a break point
+        code = b"if ( ssl_cache_intermediate_ca && result$result_string == \"ok\" && result?$chain_certs && |result$chain_certs| > 2 ) print \"x\";"
+        result = self._format(code).decode()
+        # Verify $result_string stays together
+        self.assertIn("result$result_string", result)
+        # Verify ?$chain_certs stays together (not split as "result\n?$chain_certs")
+        self.assertIn("result?$chain_certs", result)
+        self.assertNotIn("result\n", result.replace("result$", "").replace("result?", ""))
+
+    def test_assignment_line_breaking(self):
+        """Assignment breaks should not create unnecessary splits."""
+        # When RHS needs breaking anyway, don't also break at =
+        code = b"age_d = interval_to_double(network_time() - cert$not_valid_before) / 86400.0;"
+        result = self._format(code).decode()
+        # Should keep "age_d = interval_to_double(network_time() -" on one line
+        # Not break as "age_d =\n    interval_to_double..."
+        self.assertIn("age_d = interval_to_double(network_time() -", result)
+
+    def test_assignment_break_when_rhs_fits(self):
+        """Assignment can break at = when RHS fits on continuation line."""
+        # += should get proper indentation, not MISINDENTATION
+        code = b"another_very_long_access_to_some_member += yetanotherveryveryveryverylongthing[0];"
+        result = self._format(code).decode()
+        # Should not have MISINDENTATION marker
+        self.assertNotIn("MISINDENTATION", result)
+
 
 class TestFormattingErrors(unittest.TestCase):
     def _format(self, content):
