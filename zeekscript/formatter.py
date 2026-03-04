@@ -1499,10 +1499,11 @@ class ExprFormatter(SpaceSeparatedFormatter, ComplexSequenceFormatterMixin):
             self._format_child(hints=Hint.NO_LB_BEFORE)  # ']'
 
         elif cn1 == "expr" and ct2 == "$":
-            self._format_child()
+            # Never break on record $ operator - keep expr$field together
+            self._format_child(hints=Hint.NO_LB_AFTER)
             self._format_child(hints=Hint.NO_LB_BEFORE | Hint.NO_LB_AFTER)
             while self._get_child():
-                self._format_child()
+                self._format_child(hints=Hint.NO_LB_BEFORE)
 
         elif cn1 == "expr" and cn2 == "index_slice":
             while self._get_child():
@@ -1617,7 +1618,8 @@ class ExprFormatter(SpaceSeparatedFormatter, ComplexSequenceFormatterMixin):
             self._format_child_range(2)  # <expr> ')'
 
         elif ct2 == "?$":
-            self._format_child_range(3)  # <expr> '$?' <expr>
+            # Never break on record ?$ operator - keep expr?$field together
+            self._format_child_range(3, hints=self.hints)  # <expr> '?$' <id>
 
         elif ct1 == "function":
             self._format_child_range(2)  # 'function' <begin_lambda>
