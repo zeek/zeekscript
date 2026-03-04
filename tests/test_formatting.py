@@ -323,6 +323,47 @@ class TestFormatting(unittest.TestCase):
         # Each element should be on its own line
         self.assertIn("1.0.0.2/31,\n", result1)
 
+    def test_multiline_element_aligns_next_element(self):
+        """When an element spans multiple lines, next element starts on new aligned line."""
+        code = b'local filter = Log::Filter($name="conn-app", $path="conn_app", $include=set("id.orig_h", "id.orig_p", "id.resp_h", "id.resp_p", "app"), $policy=conn_apps_only);'
+        result = self._format(code).decode()
+        lines = result.splitlines()
+        # Find lines with $include and $policy
+        include_line = None
+        policy_line = None
+        for i, line in enumerate(lines):
+            if "$include=" in line:
+                include_line = i
+            if "$policy=" in line:
+                policy_line = i
+        self.assertIsNotNone(include_line)
+        self.assertIsNotNone(policy_line)
+        # $policy should be on a different line than where $include starts
+        self.assertGreater(policy_line, include_line)
+        # $policy should be aligned with $include (same indentation)
+        include_indent = len(lines[include_line]) - len(lines[include_line].lstrip())
+        policy_indent = len(lines[policy_line]) - len(lines[policy_line].lstrip())
+        self.assertEqual(policy_indent, include_indent)
+
+    def test_record_args_alignment_ignores_source_newlines(self):
+        """Record-style arguments should format consistently regardless of source whitespace."""
+        # Single-line input
+        code1 = b'local filter = Log::Filter($name="conn-app", $path="conn_app", $include=set("id.orig_h", "id.orig_p", "id.resp_h", "id.resp_p", "app"), $policy=conn_apps_only);'
+        # Multi-line input (same semantically)
+        code2 = b'''local filter = Log::Filter($name="conn-app", $path="conn_app",
+                               $include=set("id.orig_h", "id.orig_p",
+                                            "id.resp_h", "id.resp_p",
+                                            "app"), $policy=conn_apps_only);'''
+
+        result1 = self._format(code1)
+        result2 = self._format(code2)
+        # Both should produce identical output
+        self.assertEqual(result1, result2)
+        # $policy should be on its own line (not after closing paren of set)
+        decoded = result1.decode()
+        self.assertIn("),\n", decoded)  # Newline after set's closing paren
+        self.assertIn("$policy=", decoded)
+
 
 class TestFormattingErrors(unittest.TestCase):
     def _format(self, content):
