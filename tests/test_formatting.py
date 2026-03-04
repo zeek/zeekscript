@@ -229,6 +229,22 @@ class TestFormatting(unittest.TestCase):
         self.assertEqual(len(lines), 1)
         self.assertIn('{ NOT = 0, LOW = 1, MED = 2, HIGH = 3 }', result)
 
+    def test_event_type_parameter_alignment(self):
+        """Event type parameters should align to after the opening paren."""
+        code = b'global classification: event(o: string, label: string, conf: level, sources: set[string], caller: string);'
+        result = self._format(code).decode()
+        lines = result.splitlines()
+        # Should wrap and align continuation to after 'event('
+        self.assertGreater(len(lines), 1)
+        # Find the column where 'o:' starts on line 1
+        line1 = lines[0]
+        o_col = line1.index('o:')
+        # Continuation should align to same column
+        line2 = lines[1]
+        # Find first non-space char in line2
+        first_char_col = len(line2) - len(line2.lstrip())
+        self.assertEqual(first_char_col, o_col)
+
 
 class TestFormattingErrors(unittest.TestCase):
     def _format(self, content):

@@ -754,9 +754,13 @@ class TypeFormatter(SpaceSeparatedFormatter, ComplexSequenceFormatterMixin):
         elif self._get_child_token() in ["event", "hook"]:
             self._format_child(hints=self.hints)  # 'event'/'hook' - propagate incoming hints
             self._format_child(hints=Hint.NO_LB_BEFORE)  # '('
+            # Align wrapped parameters to the column after the '('
+            saved_align = self.ostream.get_align_column()
+            self.ostream.set_align_column(self.ostream.get_visual_column())
             if self._get_child_name() == "formal_args":
                 self._format_child()
             self._format_child(hints=Hint.NO_LB_BEFORE)  # ')'
+            self.ostream.set_align_column(saved_align)
 
         else:
             # Format anything else with plain space separation, e.g. "vector of foo"
