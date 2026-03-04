@@ -692,11 +692,11 @@ class TypeDeclFormatter(Formatter):
 class TypeFormatter(SpaceSeparatedFormatter, ComplexSequenceFormatterMixin):
     def format(self) -> None:
         if self._get_child_token() == "set":
-            self._format_child()  # 'set'
+            self._format_child(hints=Hint.NO_LB_AFTER)  # 'set'
             self._format_typelist()  # '[' ... ']'
 
         elif self._get_child_token() == "table":
-            self._format_child()  # 'table'
+            self._format_child(hints=Hint.NO_LB_AFTER)  # 'table'
             self._format_typelist()  # '[' ... ']'
             self._write_sp()
             self._format_child()  # 'of'
@@ -746,13 +746,14 @@ class TypeFormatter(SpaceSeparatedFormatter, ComplexSequenceFormatterMixin):
             super().format()
 
     def _format_typelist(self) -> None:
-        self._format_child(hints=Hint.NO_LB_BEFORE)  # '['
+        # Prevent line breaks inside type brackets - keep table[...] and set[...] intact
+        self._format_child(hints=Hint.NO_LB_BEFORE | Hint.NO_LB_AFTER)  # '['
         while self._get_child_name() == "type":
-            self._format_child()  # <type>
+            self._format_child(hints=Hint.NO_LB_AFTER)  # <type>
             if self._get_child_token() == ",":
-                self._format_child(hints=Hint.NO_LB_BEFORE)  # ','
+                self._format_child(hints=Hint.NO_LB_BEFORE | Hint.NO_LB_AFTER)  # ','
                 self._write_sp()
-        self._format_child(hints=Hint.NO_LB_BEFORE)  # ']'
+        self._format_child(hints=Hint.NO_LB_BEFORE | Hint.NO_LB_AFTER)  # ']'
 
 
 class TypeSpecFormatter(Formatter):
