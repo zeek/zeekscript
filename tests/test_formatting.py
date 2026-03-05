@@ -343,6 +343,38 @@ class TestFormatting(unittest.TestCase):
         # The > comparison should stay together, not be used as break point
         self.assertIn("long_field >", result)
 
+    def test_ternary_break_after_question_mark(self):
+        """Ternary expressions should break after ? with 8-space indent."""
+        code = b'local x = some_very_long_condition_expression_here ? some_very_long_true_value_expression_here : some_long_false;'
+        result = self._format(code).decode()
+        lines = result.splitlines()
+        # Should have a line ending with ?
+        found_question_at_end = any(line.rstrip().endswith("?") for line in lines)
+        self.assertTrue(found_question_at_end, "Expected ? at end of line when breaking")
+        # Second line should be indented (8 spaces = one tab)
+        if len(lines) > 1:
+            self.assertTrue(lines[1].startswith("\t") or lines[1].startswith("        "),
+                           "Expected 8-space indent after ?")
+
+    def test_ternary_break_after_colon(self):
+        """Ternary expressions should break after : with alignment to true expr."""
+        code = b'local x = cond ? some_very_very_very_long_true_value_expression_here : some_very_very_very_long_false_value_expression_here;'
+        result = self._format(code).decode()
+        lines = result.splitlines()
+        # Should have a line ending with :
+        found_colon_at_end = any(line.rstrip().endswith(":") for line in lines)
+        self.assertTrue(found_colon_at_end, "Expected : at end of line when breaking")
+        # Find the column of the true expression and verify false expr aligns
+        for i, line in enumerate(lines):
+            if "? " in line and line.rstrip().endswith(":"):
+                true_col = line.index("? ") + 2  # After "? "
+                if i + 1 < len(lines):
+                    false_line = lines[i + 1]
+                    false_col = len(false_line) - len(false_line.lstrip())
+                    self.assertEqual(false_col, true_col,
+                                   f"False expr should align with true expr at col {true_col}")
+                break
+
     def test_nested_function_call_alignment(self):
         """Nested function calls should align correctly when outer call wraps."""
         code = b'local filter = Log::Filter($name="conn-app", $path="conn_app", $include=set("id.orig_h", "id.orig_p", "id.resp_h", "id.resp_p", "app"), $policy=conn_apps_only);'

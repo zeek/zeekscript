@@ -1377,6 +1377,14 @@ class ExprFormatter(SpaceSeparatedFormatter, ComplexSequenceFormatterMixin):
             offset=1, absolute=True
         ) in ("=", "+=", "-=")
 
+    def _is_ternary(self) -> bool:
+        """Predicate, returns true if this is a ternary (? :) expression."""
+        return (
+            len(self.node.nonerr_children) == 5
+            and self._get_child_token(offset=1, absolute=True) == "?"
+            and self._get_child_token(offset=3, absolute=True) == ":"
+        )
+
     def _is_string_concat(self) -> bool:
         """Predicate, returns true if this a <string> + <string> expression."""
 
@@ -1823,6 +1831,27 @@ class ExprFormatter(SpaceSeparatedFormatter, ComplexSequenceFormatterMixin):
             tab_col = self.indent * 8  # TAB_SIZE = 8
             self.ostream.set_align_column(tab_col + 8)  # One indent level up
             self._format_child(hints=Hint.GOOD_AFTER_LB)  # RHS <expr>
+            self.ostream.set_align_column(0)
+
+        elif self._is_ternary():
+            # Ternary (? :) expressions: prefer breaking after ? or :
+            # After ?: indent 8 spaces extra
+            # After :: align with the true-branch expression
+            tab_col = self.indent * 8  # TAB_SIZE = 8
+            self._format_child(hints=self.hints)  # condition <expr>
+            self._write_sp()
+            self._format_child()  # '?'
+            self._write_sp()
+            # Set alignment for break after '?' - 8 spaces extra
+            self.ostream.set_align_column(tab_col + 8)
+            true_col = self.ostream.get_visual_column()  # Remember position of true expr
+            self._format_child(hints=Hint.GOOD_AFTER_LB)  # true <expr>
+            self._write_sp()
+            self._format_child()  # ':'
+            self._write_sp()
+            # Set alignment for break after ':' - align with true expr
+            self.ostream.set_align_column(true_col)
+            self._format_child(hints=Hint.GOOD_AFTER_LB)  # false <expr>
             self.ostream.set_align_column(0)
 
         else:
