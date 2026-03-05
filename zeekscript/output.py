@@ -267,19 +267,22 @@ class OutputStream:
 
         def find_break_points(
             items: list[Output], start_col: int, start_depth: int = 0
-        ) -> tuple[list[tuple[int, int, int, bool, bool]], int, bool, int]:
+        ) -> tuple[list[tuple[int, int, int, bool, bool, bool]], int, bool, int]:
             """Find valid break points in a list of items.
 
             Returns (all_break_points, total_len, has_init_lenient, end_depth)
             where all_break_points is list of:
-              (index, visual_column, nesting_depth, is_comma, is_before_good_lb)
+              (index, visual_column, nesting_depth, is_comma, is_before_good_lb,
+               is_boolean_op)
             The is_before_good_lb flag indicates that the next token after this
             break point has the GOOD_AFTER_LB hint. For operators like || and +,
             the hint is on the following operand, so breaking here keeps the
             operator at the end of line 1 rather than the start of line 2.
+            The is_boolean_op flag indicates this token is && or ||, so breaking
+            after it is preferred over breaking at other operators.
             """
             total_len = start_col
-            all_break_points: list[tuple[int, int, int, bool, bool]] = []
+            all_break_points: list[tuple[int, int, int, bool, bool, bool]] = []
             has_init_lenient = False
             nesting_depth = start_depth
 
@@ -306,20 +309,25 @@ class OutputStream:
                         has_init_lenient = True
                     if Hint.NO_LB_AFTER not in out.formatter.hints:
                         is_comma = token == b","
+                        # Check if current token is a boolean operator - we prefer
+                        # breaking after && and || to keep them at end of line
+                        is_boolean_op = token in (b"&&", b"||")
                         # Check if the next non-whitespace token has GOOD_AFTER_LB
                         is_before_good_lb = False
                         for j in range(i + 1, len(items)):
-                            if items[j].data.strip():
+                            next_token = items[j].data.strip()
+                            if next_token:
                                 is_before_good_lb = j in good_lb_indices
                                 break
                         all_break_points.append(
-                            (i, total_len, nesting_depth, is_comma, is_before_good_lb)
+                            (i, total_len, nesting_depth, is_comma, is_before_good_lb,
+                             is_boolean_op)
                         )
 
             return all_break_points, total_len, has_init_lenient, nesting_depth
 
         def filter_break_points(
-            all_break_points: list[tuple[int, int, int, bool, bool]]
+            all_break_points: list[tuple[int, int, int, bool, bool, bool]]
         ) -> list[tuple[int, int, bool]]:
             """Filter break points by nesting depth, comma preference, and GOOD_AFTER_LB.
 
@@ -329,8 +337,10 @@ class OutputStream:
 
             Then prefers breaks at the minimum non-zero nesting depth to avoid breaking
             inside nested function calls when an outer break is available.
-            At each depth, prefers breaks after commas (for argument lists) over
-            breaks at other positions (like operators).
+            At each depth, prefers breaks in this order:
+            1. Commas (for argument lists)
+            2. Boolean operators (&& and ||) - highest-level logical structure
+            3. All other breaks at that depth
 
             Returns list of (index, visual_column, is_before_good_lb) for the
             selected break points.
@@ -351,13 +361,18 @@ class OutputStream:
             for depth in target_depths:
                 at_depth = [bp for bp in all_break_points if bp[2] == depth]
                 if at_depth:
-                    # bp[3] is is_comma, bp[4] is is_before_good_lb
+                    # bp[3] is is_comma, bp[4] is is_before_good_lb, bp[5] is is_boolean_op
+                    # Priority: commas > boolean ops > all other breaks
                     comma_breaks = [(bp[0], bp[1], bp[4]) for bp in at_depth if bp[3]]
                     if comma_breaks:
-                        # Include any good_lb_breaks so choose_break can consider them
                         return comma_breaks + good_lb_breaks
-                    else:
-                        return [(bp[0], bp[1], bp[4]) for bp in at_depth] + good_lb_breaks
+
+                    bool_breaks = [(bp[0], bp[1], bp[4]) for bp in at_depth if bp[5]]
+                    if bool_breaks:
+                        # Don't include other good_lb_breaks - boolean ops are strictly preferred
+                        return bool_breaks
+
+                    return [(bp[0], bp[1], bp[4]) for bp in at_depth] + good_lb_breaks
             return good_lb_breaks
 
         def choose_break(

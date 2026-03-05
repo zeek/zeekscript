@@ -301,6 +301,48 @@ class TestFormatting(unittest.TestCase):
         # The comment should be on the same line as the statement
         self.assertIn('endpoint"); #@ NOT-TESTED', result)
 
+    def test_boolean_op_preferred_over_arithmetic(self):
+        """Line breaks should prefer && and || over arithmetic operators like -."""
+        # This tests that when a line needs breaking, && is chosen over -
+        code = b'''function get_connection_vpc_id(c: connection): string
+    {
+    if ( c?$tunnel && |c$tunnel| >= 2 &&
+         c$tunnel[|c$tunnel| - 1]$tunnel_type == Tunnel::VXLAN )
+        print "yep";
+    }'''
+        result = self._format(code).decode()
+        # The break should be after && not inside the array index expression
+        # Check that "- 1]" stays together (not split across lines)
+        self.assertIn("- 1]", result)
+        # Check that && is at end of a line (not start of next line)
+        lines = result.splitlines()
+        found_and_at_end = any(line.rstrip().endswith("&&") for line in lines)
+        self.assertTrue(found_and_at_end, "Expected && at end of line")
+
+    def test_attribute_keeps_equals_together(self):
+        """Attributes like &default=expr should not break at the = sign."""
+        code = b'global some_table: table[string] of count &default=some_long_default_expression_here &redef;'
+        result = self._format(code).decode()
+        # The &default=... should stay together
+        self.assertIn("&default=some_long", result)
+        # Should not have = at end of line or start of continuation
+        lines = result.splitlines()
+        for line in lines:
+            stripped = line.rstrip()
+            # = should not be at end of line (breaking after =)
+            self.assertFalse(stripped.endswith("="), f"Line should not end with =: {line}")
+
+    def test_compound_conditional_breaks_at_boolean_op(self):
+        """Long compound conditionals should break at && or || operators."""
+        code = b'if ( first_condition && second_condition && third_condition && some_object$long_field > another_object$other_field ) do_something();'
+        result = self._format(code).decode()
+        lines = result.splitlines()
+        # Should have a line ending with &&
+        found_and_at_end = any(line.rstrip().endswith("&&") for line in lines)
+        self.assertTrue(found_and_at_end, "Expected && at end of line when breaking")
+        # The > comparison should stay together, not be used as break point
+        self.assertIn("long_field >", result)
+
     def test_nested_function_call_alignment(self):
         """Nested function calls should align correctly when outer call wraps."""
         code = b'local filter = Log::Filter($name="conn-app", $path="conn_app", $include=set("id.orig_h", "id.orig_p", "id.resp_h", "id.resp_p", "app"), $policy=conn_apps_only);'

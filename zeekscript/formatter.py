@@ -1923,13 +1923,14 @@ class AttrFormatter(Formatter):
             # Format with or without spaces around '=' based on hint
             use_spaces = Hint.ATTR_SPACES in self.hints
             # Propagate hints (like GOOD_AFTER_LB) to first token
-            self._format_child(hints=self.hints)  # &attr_name
+            # Keep &attr=expr together - don't allow breaks around '='
+            self._format_child(hints=self.hints | Hint.NO_LB_AFTER)  # &attr_name
             if use_spaces:
                 self._write_sp()
-            self._format_child()  # '='
+            self._format_child(hints=Hint.NO_LB_BEFORE | Hint.NO_LB_AFTER)  # '='
             if use_spaces:
                 self._write_sp()
-            self._format_child()  # expr
+            self._format_child(hints=Hint.NO_LB_BEFORE)  # expr
         else:
             self._format_child(hints=self.hints)
 
