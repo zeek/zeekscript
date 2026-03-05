@@ -280,6 +280,27 @@ class TestFormatting(unittest.TestCase):
         result2 = self._format(code2).decode()
         self.assertNotIn("MISINDENTATION", result2)
 
+    def test_end_of_line_comment_stays_on_line(self):
+        """End-of-line comments should stay with the statement even on long lines."""
+        # This tests that deeply nested statements with end-of-line comments
+        # don't get the comment pushed to a new line
+        code = b'''function process_conn(c: connection)
+    {
+    if ( foo )
+        {
+        if ( bar )
+            {
+            if ( bletch )
+                report_processing("Observed dual stack endpoint"); #@ NOT-TESTED
+            }
+        }
+    }'''
+        result = self._format(code).decode()
+        # Should not have MISINDENTATION marker
+        self.assertNotIn("MISINDENTATION", result)
+        # The comment should be on the same line as the statement
+        self.assertIn('endpoint"); #@ NOT-TESTED', result)
+
     def test_nested_function_call_alignment(self):
         """Nested function calls should align correctly when outer call wraps."""
         code = b'local filter = Log::Filter($name="conn-app", $path="conn_app", $include=set("id.orig_h", "id.orig_p", "id.resp_h", "id.resp_p", "app"), $policy=conn_apps_only);'

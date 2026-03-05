@@ -1963,6 +1963,9 @@ class MinorCommentFormatter(CommentFormatter):
                 # Keep newlines verbatim.
                 self._write_nl()
             else:
+                # End-of-line comment: don't allow line break before the comment.
+                # This keeps the comment attached to the preceding token.
+                self.hints |= Hint.NO_LB_BEFORE
                 # If we are on the same line, normalize to exactly one space.
                 self._write_sp()
 

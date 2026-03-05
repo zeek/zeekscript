@@ -344,12 +344,26 @@ class Script:
             prevs: list[Node] = []
             last_child = None
 
+            def append_cst_sibling(ast: Node, cst: Node) -> None:
+                """Append a CST node to an AST node's next_cst_siblings list.
+
+                This also updates prev_cst_sibling so the CST chain remains
+                navigable in both directions. MinorCommentFormatter uses
+                prev_cst_sibling to determine whether a comment is at end-of-line
+                (preceded by code) or on its own line (preceded by newline).
+                """
+                if ast.next_cst_siblings:
+                    cst.prev_cst_sibling = ast.next_cst_siblings[-1]
+                else:
+                    cst.prev_cst_sibling = ast
+                ast.next_cst_siblings.append(cst)
+                cst.ast_parent = ast
+                cst.is_cst_next_node = True
+
             for child in new_children:
                 if ast_nodes_remaining == 0:
                     assert ast_node
-                    ast_node.next_cst_siblings.append(child)
-                    child.ast_parent = ast_node
-                    child.is_cst_next_node = True
+                    append_cst_sibling(ast_node, child)
 
                 elif child.is_ast:
                     ast_nodes_remaining -= 1
@@ -365,15 +379,11 @@ class Script:
 
                 elif child.is_zeekygen_prev_comment():
                     # Accept ##< comments. Newlines control how often we do so.
-                    ast_node.next_cst_siblings.append(child)
-                    child.is_cst_next_node = True
-                    child.ast_parent = ast_node
+                    append_cst_sibling(ast_node, child)
 
                 elif child.is_minor_comment() and last_child and last_child.is_ast:
                     # Accept a minor comment if it directly follows the AST node.
-                    ast_node.next_cst_siblings.append(child)
-                    child.is_cst_next_node = True
-                    child.ast_parent = ast_node
+                    append_cst_sibling(ast_node, child)
 
                 elif (
                     child.is_nl()
@@ -383,9 +393,7 @@ class Script:
                         last_child.is_comment() or last_child.is_error()
                     )
                 ):
-                    ast_node.next_cst_siblings.append(child)
-                    child.is_cst_next_node = True
-                    child.ast_parent = ast_node
+                    append_cst_sibling(ast_node, child)
 
                 else:
                     # Break the chain of CST nodes: this child becomes the start
@@ -477,14 +485,17 @@ class Script:
                 if to_push:
                     node.next_cst_sibling = None
 
-                    if node.children[-1].next_cst_siblings:
-                        node.children[-1].next_cst_siblings[
-                            -1
-                        ].next_cst_sibling = to_push[0]
-                        to_push[0].prev_cst_sibling = node.children[
-                            -1
-                        ].next_cst_siblings[-1]
+                    # Link the pushed CST nodes to the target's existing CST chain.
+                    # Update prev_cst_sibling so formatters can navigate the chain
+                    # (e.g., MinorCommentFormatter checks prev_cst_sibling to
+                    # distinguish end-of-line vs standalone comments).
+                    target = node.children[-1]
+                    if target.next_cst_siblings:
+                        target.next_cst_siblings[-1].next_cst_sibling = to_push[0]
+                        to_push[0].prev_cst_sibling = target.next_cst_siblings[-1]
+                    else:
+                        to_push[0].prev_cst_sibling = target
 
-                    node.children[-1].next_cst_siblings += to_push
+                    target.next_cst_siblings += to_push
 
                 node.next_cst_siblings = to_keep
