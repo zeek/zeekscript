@@ -759,7 +759,11 @@ class TypeFormatter(SpaceSeparatedFormatter, ComplexSequenceFormatterMixin):
                 self._write_nl()
             else:
                 self._write_sp()
+                # Align wrapped enum values to column after '{ '
+                saved_align = self.ostream.get_align_column()
+                self.ostream.set_align_column(self.ostream.get_visual_column())
                 self._format_child(indent=True)  # enum_body
+                self.ostream.set_align_column(saved_align)
                 self._write_sp()
 
             self._format_child()  # '}'
@@ -1020,7 +1024,11 @@ class StmtFormatter(TypedInitializerFormatter):
         elif start_token in ["print", "event"]:
             self._format_child()  # 'print'/'event'
             self._write_sp()
+            # Align wrapped arguments to column after 'print '/'event '
+            saved_align = self.ostream.get_align_column()
+            self.ostream.set_align_column(self.ostream.get_visual_column())
             self._format_child_range(2)  # <expr_list>/<event_hdr> ';'
+            self.ostream.set_align_column(saved_align)
             self._write_nl()
 
         elif start_token == "if":
@@ -1115,6 +1123,9 @@ class StmtFormatter(TypedInitializerFormatter):
             self._write_sp()
             self._format_child(hints=Hint.NO_LB_BEFORE)  # '('
             self._write_sp()
+            # Align wrapped for-loop content to column after '( '
+            saved_align = self.ostream.get_align_column()
+            self.ostream.set_align_column(self.ostream.get_visual_column())
             if self._get_child_token() == "[":
                 self._format_child(hints=Hint.NO_LB_BEFORE)  # '['
                 while self._get_child_token() != "]":
@@ -1134,6 +1145,7 @@ class StmtFormatter(TypedInitializerFormatter):
             self._format_child()  # 'in'
             self._write_sp()
             self._format_child()  # <expr>
+            self.ostream.set_align_column(saved_align)
             self._write_sp()
             self._format_child(hints=Hint.NO_LB_BEFORE)  # ')'
             self._format_stmt_block()  # <stmt>
@@ -1178,8 +1190,10 @@ class StmtFormatter(TypedInitializerFormatter):
         elif start_token in ["local", "const"]:
             self._format_child()  # 'local'/'const'
             self._write_sp()
+            # Capture column where identifier starts for alignment
+            id_col = self.ostream.get_visual_column()
             self._format_child()  # <id>
-            self._format_typed_initializer()
+            self._format_typed_initializer(align_col=id_col)
             self._format_child(hints=Hint.NO_LB_BEFORE)  # ';'
             self._write_nl()
 
@@ -1308,7 +1322,11 @@ class CaseListFormatter(Formatter):
             if self._get_child_token() == "case":
                 self._format_child()  # 'case'
                 self._write_sp()
+                # Align wrapped case values to column after 'case '
+                saved_align = self.ostream.get_align_column()
+                self.ostream.set_align_column(self.ostream.get_visual_column())
                 self._format_child_range(2)  # <expr_list> or <case_type_list>, ':'
+                self.ostream.set_align_column(saved_align)
             else:
                 self._format_child_range(2)  # 'default' ':'
             self._write_nl()
@@ -1883,6 +1901,22 @@ class ExprFormatter(SpaceSeparatedFormatter, ComplexSequenceFormatterMixin):
             self.ostream.set_align_column(true_col)
             self._format_child(hints=Hint.GOOD_AFTER_LB)  # false <expr>
             self.ostream.set_align_column(0)
+
+        elif ct1 == "schedule":
+            # schedule <expr> { <event_hdr> }
+            self._format_child()  # 'schedule'
+            self._write_sp()
+            # Set alignment before interval so if line wraps, continuation aligns
+            saved_align = self.ostream.get_align_column()
+            self.ostream.set_align_column(self.ostream.get_visual_column())
+            self._format_child()  # <expr> (interval)
+            self._write_sp()
+            self._format_child(hints=Hint.NO_LB_AFTER)  # '{'
+            self._write_sp()
+            self._format_child()  # <event_hdr>
+            self._write_sp()
+            self._format_child()  # '}'
+            self.ostream.set_align_column(saved_align)
 
         else:
             # Fall back to simple space-separation

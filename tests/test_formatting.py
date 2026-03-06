@@ -256,6 +256,24 @@ class TestFormatting(unittest.TestCase):
         self.assertEqual(len(lines), 1)
         self.assertIn('{ NOT = 0, LOW = 1, MED = 2, HIGH = 3 }', result)
 
+    def test_enum_wrap_alignment(self):
+        """Wrapped enum values should align to after '{ '."""
+        code = b'type NameSource: enum { NS_DNS_A, NS_DNS_AAAA, NS_DNS_A6, NS_DNS_PTR, NS_HTTP_HOST, NS_SSL_SNI, NS_NTLM_AUTH, NS_UNKNOWN, };'
+        result = self._format(code).decode()
+        # Should not have MISINDENTATION marker
+        self.assertNotIn("MISINDENTATION", result)
+        # Verify continuation aligns to after '{ '
+        lines = result.splitlines()
+        self.assertGreater(len(lines), 1)
+        # Find column of first enum value after '{ '
+        line1 = lines[0]
+        brace_idx = line1.index('{ ')
+        first_val_col = brace_idx + 2  # after '{ '
+        # Continuation should align to same column
+        line2 = lines[1]
+        first_char_col = len(line2) - len(line2.lstrip())
+        self.assertEqual(first_char_col, first_val_col)
+
     def test_event_type_parameter_alignment(self):
         """Event type parameters should align to after the opening paren."""
         code = b'global classification: event(o: string, label: string, conf: level, sources: set[string], caller: string);'
@@ -306,6 +324,74 @@ class TestFormatting(unittest.TestCase):
         code2 = b'return some_very_long_variable_name in some_other_very_long_variable_name && another_thing in yet_another_thing;'
         result2 = self._format(code2).decode()
         self.assertNotIn("MISINDENTATION", result2)
+
+    def test_print_statement_alignment(self):
+        """Print statement arguments should align to after 'print '."""
+        code = b'function f() { for ( a, b in tbl ) print file_handle, some_variable, another_table[some_index], final_value; }'
+        result = self._format(code).decode()
+        # Should not have MISINDENTATION marker
+        self.assertNotIn("MISINDENTATION", result)
+        # Verify continuation aligns to after 'print '
+        lines = result.splitlines()
+        print_line = None
+        cont_line = None
+        for i, line in enumerate(lines):
+            if "print file_handle" in line:
+                print_line = line
+                if i + 1 < len(lines):
+                    cont_line = lines[i + 1]
+                break
+        self.assertIsNotNone(print_line)
+        self.assertIsNotNone(cont_line)
+        # Continuation should align to after 'print '
+        print_idx = print_line.index("print ")
+        first_arg_col = print_idx + 6  # len("print ")
+        first_char_col = len(cont_line) - len(cont_line.lstrip())
+        self.assertEqual(first_char_col, first_arg_col)
+
+    def test_schedule_expression_alignment(self):
+        """Schedule expression should align continuation to after 'schedule '."""
+        code = b'function f() { schedule subnet_log_interval { SomeModule::some_very_long_event_name() }; }'
+        result = self._format(code).decode()
+        # Should not have MISINDENTATION marker
+        self.assertNotIn("MISINDENTATION", result)
+        # Verify wrapping aligns properly
+        lines = result.splitlines()
+        schedule_line = None
+        cont_line = None
+        for i, line in enumerate(lines):
+            if "schedule subnet_log_interval" in line and "{" not in line:
+                schedule_line = line
+                if i + 1 < len(lines):
+                    cont_line = lines[i + 1]
+                break
+        if schedule_line and cont_line:
+            # Continuation should align to after 'schedule '
+            schedule_idx = schedule_line.index("schedule ")
+            interval_col = schedule_idx + 9  # len("schedule ")
+            first_char_col = len(cont_line) - len(cont_line.lstrip())
+            self.assertEqual(first_char_col, interval_col)
+
+    def test_case_label_alignment(self):
+        """Case label values should align to after 'case '."""
+        code = b'function f() { switch vpn_type { case "spicy_openvpn_udp", "spicy_openvpn_udp_hmac_md5", "spicy_openvpn_udp_hmac_sha1", "spicy_openvpn_udp_hmac_sha256": break; } }'
+        result = self._format(code).decode()
+        # Should not have MISINDENTATION marker
+        self.assertNotIn("MISINDENTATION", result)
+
+    def test_local_declaration_alignment(self):
+        """Local declaration initializer should align when wrapped."""
+        code = b'function f() { local info = SomeModule::SomeRecord($field1=some_very_long_value, $field2=another_long_value); }'
+        result = self._format(code).decode()
+        # Should not have MISINDENTATION marker
+        self.assertNotIn("MISINDENTATION", result)
+
+    def test_for_loop_alignment(self):
+        """For loop content should align when wrapped."""
+        code = b'function f() { for ( idx in result$matches ) for ( conn_idx in result$conn_uids_with_very_long_name ) local x = 1; }'
+        result = self._format(code).decode()
+        # Should not have MISINDENTATION marker
+        self.assertNotIn("MISINDENTATION", result)
 
     def test_end_of_line_comment_stays_on_line(self):
         """End-of-line comments should stay with the statement even on long lines."""

@@ -172,8 +172,10 @@ class OutputStream:
                 if spaces_needed > 0:
                     self.write(b" " * spaces_needed, formatter)
                     return
-            # No alignment - flag with MISINDENTATION marker
-            self.write(b"MISINDENTATION", formatter)
+            # No alignment - flag with MISINDENTATION marker as comment on its own line
+            self.write(b"# MISINDENTATION\n", formatter)
+            # Re-write the tab indent for the actual content
+            self.write_tab_indent(formatter)
 
     def get_column(self) -> int:
         return self._col
@@ -271,9 +273,10 @@ class OutputStream:
                 col_flushed = tab_col + self.TAB_SIZE
             else:
                 # align_col == 0: no alignment set - this shouldn't happen
-                # Print a marker to make it easy to find these cases
-                self._write(b"MISINDENTATION")
-                col_flushed = tab_col + 14  # len("MISINDENTATION")
+                # Print a marker as comment on its own line to make it easy to find
+                self._write(b"# MISINDENTATION\n")
+                self._write(b"\t" * self._tab_indent)
+                col_flushed = tab_col
 
             # Remove leading whitespace from continuation
             while tbd and not tbd[0].data.strip():
