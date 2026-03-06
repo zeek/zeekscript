@@ -717,6 +717,20 @@ print 1;
         self.assertEqual(lines[1], "\t@load foo")
         self.assertEqual(lines[3], "\t@load bar")
 
+    def test_record_field_attr_list_no_misindent(self):
+        """Record field attr_list should not produce MISINDENTATION on line break."""
+        # This line is long enough to require breaking when deeply indented
+        code = b'''export {
+\ttype VMDetails: record {
+\t\tnetwork_tags: set[string] &log &optional; # Assocaited VM network tags
+\t};
+}
+'''
+        result = self._format(code)
+        self.assertNotIn(b"MISINDENTATION", result)
+        # The output should still be valid (no MISINDENTATION markers)
+        self.assertIn(b"&optional", result)
+
 
 class TestFormattingErrors(unittest.TestCase):
     def _format(self, content):

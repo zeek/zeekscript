@@ -801,7 +801,11 @@ class TypeSpecFormatter(Formatter):
         self._format_child()  # <type>
         if self._get_child_name() == "attr_list":
             self._write_sp()
+            # Set alignment for attr_list so line breaks align properly
+            saved_align = self.ostream.get_align_column()
+            self.ostream.set_align_column(self.ostream.get_visual_column())
             self._format_child()
+            self.ostream.set_align_column(saved_align)
         self._format_child(hints=Hint.NO_LB_BEFORE)  # ';'
         self._write_nl()
 
