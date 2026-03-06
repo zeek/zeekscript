@@ -334,28 +334,22 @@ class OutputStream:
         ) -> list[tuple[int, int, bool]]:
             """Filter break points by nesting depth, comma preference, and GOOD_AFTER_LB.
 
-            First checks for GOOD_AFTER_LB breaks (like before trailing attributes)
-            and includes them regardless of depth - these are "preferred outer breaks"
-            that should be considered even if inner breaks exist.
-
-            Then prefers breaks at the minimum non-zero nesting depth to avoid breaking
+            Prefers breaks at the minimum non-zero nesting depth to avoid breaking
             inside nested function calls when an outer break is available.
             At each depth, prefers breaks in this order:
             1. Commas (for argument lists)
             2. Preferred operators (&&, ||) - logical structure
             3. All other breaks at that depth
 
+            GOOD_AFTER_LB breaks from outer depths are included as fallback options,
+            but GOOD_AFTER_LB breaks at the same depth as commas are excluded
+            (prevents arithmetic operators competing with commas).
+
             Returns list of (index, visual_column, is_before_good_lb) for the
             selected break points.
             """
             if not all_break_points:
                 return []
-
-            # First, collect any GOOD_AFTER_LB breaks - these are "preferred outer breaks"
-            # (like before trailing attributes) that should be considered regardless of depth
-            good_lb_breaks = [
-                (bp[0], bp[1], bp[4]) for bp in all_break_points if bp[4]
-            ]
 
             depths = sorted(set(bp[2] for bp in all_break_points))
             non_zero_depths = [d for d in depths if d > 0]
@@ -368,15 +362,28 @@ class OutputStream:
                     # Priority: commas > preferred ops (&&, ||) > all other breaks
                     comma_breaks = [(bp[0], bp[1], bp[4]) for bp in at_depth if bp[3]]
                     if comma_breaks:
-                        return comma_breaks + good_lb_breaks
+                        # Only include GOOD_AFTER_LB breaks from OUTER depths as fallbacks.
+                        # This prevents arithmetic operators at the same depth from
+                        # competing with commas.
+                        outer_good_lb = [
+                            (bp[0], bp[1], bp[4]) for bp in all_break_points
+                            if bp[4] and bp[2] < depth
+                        ]
+                        return comma_breaks + outer_good_lb
 
                     preferred_breaks = [(bp[0], bp[1], bp[4]) for bp in at_depth if bp[5]]
                     if preferred_breaks:
                         # Don't include other good_lb_breaks - preferred ops are strictly preferred
                         return preferred_breaks
 
+                    # No commas or preferred ops - include all GOOD_AFTER_LB as options
+                    good_lb_breaks = [
+                        (bp[0], bp[1], bp[4]) for bp in all_break_points if bp[4]
+                    ]
                     return [(bp[0], bp[1], bp[4]) for bp in at_depth] + good_lb_breaks
-            return good_lb_breaks
+
+            # Fallback: return all GOOD_AFTER_LB breaks
+            return [(bp[0], bp[1], bp[4]) for bp in all_break_points if bp[4]]
 
         def choose_break(
             items: list[Output],

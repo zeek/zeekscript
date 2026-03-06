@@ -343,6 +343,44 @@ class TestFormatting(unittest.TestCase):
         # The > comparison should stay together, not be used as break point
         self.assertIn("long_field >", result)
 
+    def test_arithmetic_stays_together_in_arguments(self):
+        """Arithmetic expressions should not break when commas are available.
+
+        When a function call has arguments that include arithmetic, the formatter
+        should prefer breaking at commas rather than inside the arithmetic.
+        """
+        code = b'''NOTICE([$msg=fmt("Host %s sent more than %dMB to bucket %s",
+                src_host, outbound_bytes_threshold / 1000 / 1000, bucket)]);'''
+        result = self._format(code).decode()
+        # Should NOT have a line ending with just / (breaking at arithmetic op)
+        lines = result.splitlines()
+        bad_break = any(line.rstrip().endswith("/") for line in lines)
+        self.assertFalse(bad_break, "Should not break at / when commas available")
+        # The threshold and its division should be on the same line
+        self.assertTrue(
+            any("outbound_bytes_threshold" in line and "1000" in line for line in lines),
+            "Arithmetic expression should stay together on one line"
+        )
+
+    def test_arithmetic_operator_at_end_when_breaking(self):
+        """When arithmetic must break, keep operator at end of line.
+
+        If no commas are available and arithmetic must break, the operator
+        should stay at the end of line 1, not the start of line 2.
+        """
+        code = b'''if ( age >= 1 day )
+            age_d = interval_to_double(network_time() -
+                                       cert$not_valid_before) /
+                    86400.0;'''
+        result = self._format(code).decode()
+        lines = result.splitlines()
+        # Find the line with the / operator - it should END with /
+        found_div_at_end = any(line.rstrip().endswith("/") for line in lines)
+        self.assertTrue(found_div_at_end, "Division operator should be at end of line")
+        # 86400.0 should be on its own continuation line, not starting with /
+        found_div_at_start = any(line.lstrip().startswith("/") for line in lines)
+        self.assertFalse(found_div_at_start, "Division operator should not start a line")
+
     def test_ternary_break_after_question_mark(self):
         """Ternary expressions should break after ? with 8-space indent."""
         code = b'local x = some_very_long_condition_expression_here ? some_very_long_true_value_expression_here : some_long_false;'

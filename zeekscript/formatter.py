@@ -1803,21 +1803,18 @@ class ExprFormatter(SpaceSeparatedFormatter, ComplexSequenceFormatterMixin):
             self._format_child(hints=Hint.GOOD_AFTER_LB)  # <expr>
 
         elif self._is_binary_operator():
-            # For binary operators, prefer keeping the operator at the end of
-            # line 1 rather than the start of line 2 when wrapping.
+            # For binary operators (arithmetic, comparison, etc.), set GOOD_AFTER_LB
+            # so that when breaking, the operator stays at end of line 1.
+            # However, filter_break_points deprioritizes these vs commas.
             # Only set alignment when no outer alignment exists.
-            # Only set GOOD_AFTER_LB when not inside a boolean expression,
-            # so that || and && remain the preferred break points.
             saved_align = self.ostream.get_align_column()
-            inside_boolean = self._is_inside_binary_boolean()
             if saved_align == 0:
                 self.ostream.set_align_column(self.ostream.get_visual_column())
             self._format_child(hints=self.hints)  # <expr> - propagate incoming hints
             self._write_sp()
             self._format_child()  # operator
             self._write_sp()
-            hints = Hint.NONE if inside_boolean else Hint.GOOD_AFTER_LB
-            self._format_child(hints=hints)  # <expr>
+            self._format_child(hints=Hint.GOOD_AFTER_LB)  # <expr>
             if saved_align == 0:
                 self.ostream.set_align_column(0)
 
