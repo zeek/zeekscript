@@ -375,6 +375,54 @@ class TestFormatting(unittest.TestCase):
                                    f"False expr should align with true expr at col {true_col}")
                 break
 
+    def test_ternary_prefers_break_after_colon_not_question(self):
+        """Ternary should prefer breaking after : over breaking after ?.
+
+        When a ternary fits on one line except for the false expression,
+        we should break after : (keeping ? and true expr together), not
+        break after ? (which would waste space).
+        """
+        code = b'''event handle_ep_call(host: addr, svc: string, region: string)
+    {
+    local endpoints = max_endpoints_tracked > 0 ? calls$endpoints :
+                                                  "Disabled";
+    }
+'''
+        result = self._format(code).decode()
+        lines = result.splitlines()
+        # Find the ternary line - should end with : not ?
+        ternary_line = None
+        for line in lines:
+            if "?" in line and ":" in line:
+                ternary_line = line
+                break
+        self.assertIsNotNone(ternary_line, "Expected to find ternary line")
+        # The line should end with : (break after :, not after ?)
+        self.assertTrue(ternary_line.rstrip().endswith(":"),
+                       f"Expected ternary line to end with ':', got: {ternary_line}")
+        # Should NOT have a line ending with just ?
+        question_only_lines = [l for l in lines if l.rstrip().endswith("?")]
+        self.assertEqual(len(question_only_lines), 0,
+                        "Should not break after ? when : break suffices")
+
+    def test_type_declaration_keeps_colon(self):
+        """Type declarations should NOT break after the colon.
+
+        The colon in 'var: type' is different from ternary ':' and should
+        not be treated as a line break point.
+        """
+        code = b'''global dhcp_fp_tracking: table[count, string] of TrackingRec
+        &default_insert = TrackingRec() &create_expire = 10 sec;'''
+        result = self._format(code).decode()
+        lines = result.splitlines()
+        # First line should contain "dhcp_fp_tracking:" followed by table type
+        first_line = lines[0]
+        self.assertIn("dhcp_fp_tracking:", first_line)
+        self.assertIn("table[", first_line)
+        # Should NOT have a line that's just "dhcp_fp_tracking:" followed by newline
+        bad_break = any(line.rstrip().endswith("dhcp_fp_tracking:") for line in lines)
+        self.assertFalse(bad_break, "Type declaration should not break after colon")
+
     def test_nested_function_call_alignment(self):
         """Nested function calls should align correctly when outer call wraps."""
         code = b'local filter = Log::Filter($name="conn-app", $path="conn_app", $include=set("id.orig_h", "id.orig_p", "id.resp_h", "id.resp_p", "app"), $policy=conn_apps_only);'

@@ -1834,7 +1834,7 @@ class ExprFormatter(SpaceSeparatedFormatter, ComplexSequenceFormatterMixin):
             self.ostream.set_align_column(0)
 
         elif self._is_ternary():
-            # Ternary (? :) expressions: prefer breaking after ? or :
+            # Ternary (? :) expressions: prefer breaking after :
             # After ?: indent 8 spaces extra
             # After :: align with the true-branch expression
             tab_col = self.indent * 8  # TAB_SIZE = 8
@@ -1847,7 +1847,7 @@ class ExprFormatter(SpaceSeparatedFormatter, ComplexSequenceFormatterMixin):
             true_col = self.ostream.get_visual_column()  # Remember position of true expr
             self._format_child(hints=Hint.GOOD_AFTER_LB)  # true <expr>
             self._write_sp()
-            self._format_child()  # ':'
+            self._format_child(hints=Hint.GOOD_AFTER_LB)  # ':'
             self._write_sp()
             # Set alignment for break after ':' - align with true expr
             self.ostream.set_align_column(true_col)

@@ -278,7 +278,7 @@ class OutputStream:
             break point has the GOOD_AFTER_LB hint. For operators like || and +,
             the hint is on the following operand, so breaking here keeps the
             operator at the end of line 1 rather than the start of line 2.
-            The is_preferred_op flag indicates this token is &&, ||, ?, or :,
+            The is_preferred_op flag indicates this token is && or ||,
             so breaking after it is preferred over breaking at other operators.
             """
             total_len = start_col
@@ -309,10 +309,12 @@ class OutputStream:
                         has_init_lenient = True
                     if Hint.NO_LB_AFTER not in out.formatter.hints:
                         is_comma = token == b","
-                        # Check if current token is a preferred logical/ternary operator
-                        # We prefer breaking after these to keep them at end of line:
-                        # && and || for boolean expressions, ? and : for ternary
-                        is_preferred_op = token in (b"&&", b"||", b"?", b":")
+                        # Check if current token is a preferred logical operator.
+                        # We prefer breaking after && and || to keep them at end of line.
+                        # Note: ternary ? and : are not included here. The formatter
+                        # marks ternary : with GOOD_AFTER_LB to prefer breaking there
+                        # over breaking after ?. Type declaration : has no such hint.
+                        is_preferred_op = token in (b"&&", b"||")
                         # Check if the next non-whitespace token has GOOD_AFTER_LB
                         is_before_good_lb = False
                         for j in range(i + 1, len(items)):
@@ -340,7 +342,7 @@ class OutputStream:
             inside nested function calls when an outer break is available.
             At each depth, prefers breaks in this order:
             1. Commas (for argument lists)
-            2. Preferred operators (&&, ||, ?, :) - logical/ternary structure
+            2. Preferred operators (&&, ||) - logical structure
             3. All other breaks at that depth
 
             Returns list of (index, visual_column, is_before_good_lb) for the
@@ -363,7 +365,7 @@ class OutputStream:
                 at_depth = [bp for bp in all_break_points if bp[2] == depth]
                 if at_depth:
                     # bp[3] is is_comma, bp[4] is is_before_good_lb, bp[5] is is_preferred_op
-                    # Priority: commas > preferred ops (&&, ||, ?, :) > all other breaks
+                    # Priority: commas > preferred ops (&&, ||) > all other breaks
                     comma_breaks = [(bp[0], bp[1], bp[4]) for bp in at_depth if bp[3]]
                     if comma_breaks:
                         return comma_breaks + good_lb_breaks
@@ -405,7 +407,13 @@ class OutputStream:
             """
             if total_len <= effective_max_len:
                 return -1
-            if len([o for o in items if o.data.strip()]) < self.MIN_LINE_ITEMS:
+            num_items = len([o for o in items if o.data.strip()])
+            # Allow breaking short-item lines if:
+            # - Line is significantly over limit (long tokens), or
+            # - There are GOOD_AFTER_LB hints (explicit break preference)
+            has_good_lb = any(bp[2] for bp in break_points)  # bp[2] is is_before_good_lb
+            significantly_over = total_len > effective_max_len + 20
+            if num_items < self.MIN_LINE_ITEMS and not has_good_lb and not significantly_over:
                 return -1
             if not break_points:
                 return -1
