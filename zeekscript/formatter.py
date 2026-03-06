@@ -342,8 +342,6 @@ class Formatter:
         except IndexError:
             return None
 
-        return None
-
     def _get_child_type(self, offset: int = 0, absolute: bool = False) -> str | None:
         """Like _get_child(), but returns the TS type string ("decl", "stmt", etc).
 
@@ -628,8 +626,6 @@ class ComplexSequenceFormatterMixin(HasCommentsProtocol):
 
 class InitializerFormatter(Formatter):
     def format(self) -> None:
-        # This is just space-separation, really. I'm leaving the class in place
-        # for now since I think initializer handling isn't fully settled.
         self._format_child()  # '=', '+=', etc
         self._write_sp()
         # Forward hints (like BRACE_TO_CONSTRUCTOR) from parent to expr

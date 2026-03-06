@@ -204,15 +204,11 @@ class TestFormatting(unittest.TestCase):
                 break
         self.assertIsNotNone(fmt_line)
         self.assertIsNotNone(cont_line)
-        # The continuation should align with the fmt arguments, not just 4 spaces
-        # Find where the first argument starts in fmt_line
+        # The continuation should align with the fmt arguments
         fmt_idx = fmt_line.index('fmt(')
         arg_start = fmt_idx + 4  # After "fmt("
-        # The continuation should have alignment spaces to match
-        cont_stripped = cont_line.lstrip('\t')
-        # Should have more than 4 spaces of alignment (the old broken behavior)
-        leading_spaces = len(cont_stripped) - len(cont_stripped.lstrip(' '))
-        self.assertGreater(leading_spaces, 4, "Continuation should align with arguments")
+        first_char_col = len(cont_line) - len(cont_line.lstrip())
+        self.assertEqual(first_char_col, arg_start)
 
     def test_skip_pointless_line_breaks(self):
         """Don't break if continuation would be as long as original."""
@@ -376,22 +372,48 @@ class TestFormatting(unittest.TestCase):
         """Case label values should align to after 'case '."""
         code = b'function f() { switch vpn_type { case "spicy_openvpn_udp", "spicy_openvpn_udp_hmac_md5", "spicy_openvpn_udp_hmac_sha1", "spicy_openvpn_udp_hmac_sha256": break; } }'
         result = self._format(code).decode()
-        # Should not have MISINDENTATION marker
         self.assertNotIn("MISINDENTATION", result)
+        # Verify continuation aligns to after 'case '
+        lines = result.splitlines()
+        for i, line in enumerate(lines):
+            if 'case "spicy_openvpn_udp"' in line and i + 1 < len(lines):
+                case_idx = line.index('case ')
+                first_val_col = case_idx + 5  # len('case ')
+                cont_line = lines[i + 1]
+                first_char_col = len(cont_line) - len(cont_line.lstrip())
+                self.assertEqual(first_char_col, first_val_col)
+                break
 
     def test_local_declaration_alignment(self):
         """Local declaration initializer should align when wrapped."""
         code = b'function f() { local info = SomeModule::SomeRecord($field1=some_very_long_value, $field2=another_long_value); }'
         result = self._format(code).decode()
-        # Should not have MISINDENTATION marker
         self.assertNotIn("MISINDENTATION", result)
+        # Verify wrapping occurs and arguments align after '('
+        lines = result.splitlines()
+        for i, line in enumerate(lines):
+            if "SomeModule::SomeRecord(" in line and i + 1 < len(lines):
+                paren_col = line.index("(") + 1
+                cont_line = lines[i + 1]
+                first_char_col = len(cont_line) - len(cont_line.lstrip())
+                self.assertEqual(first_char_col, paren_col)
+                break
 
     def test_for_loop_alignment(self):
         """For loop content should align when wrapped."""
-        code = b'function f() { for ( idx in result$matches ) for ( conn_idx in result$conn_uids_with_very_long_name ) local x = 1; }'
+        code = b'function f() { for ( idx in result$matches ) for ( conn_idx in result$conn_uids_with_a_very_long_field_name_that_forces_wrapping ) local x = 1; }'
         result = self._format(code).decode()
         # Should not have MISINDENTATION marker
         self.assertNotIn("MISINDENTATION", result)
+        # Verify wrapping actually occurs on the inner for loop
+        for i, line in enumerate(result.splitlines()):
+            if "for ( conn_idx in" in line and ")" not in line:
+                # Line wrapped - verify continuation aligns after '( '
+                cont_line = result.splitlines()[i + 1]
+                paren_col = line.index("( ") + 2
+                first_char_col = len(cont_line) - len(cont_line.lstrip())
+                self.assertEqual(first_char_col, paren_col)
+                break
 
     def test_end_of_line_comment_stays_on_line(self):
         """End-of-line comments should stay with the statement even on long lines."""
