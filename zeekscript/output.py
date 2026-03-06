@@ -141,6 +141,14 @@ class OutputStream:
 
     def write_space_align(self, formatter: Formatter) -> None:
         if self._use_space_align:
+            # Align to _align_column if set, otherwise use default 4 spaces
+            if self._align_column > 0:
+                current_col = self.get_visual_column()
+                spaces_needed = self._align_column - current_col
+                if spaces_needed > 0:
+                    self.write(b" " * spaces_needed, formatter)
+                    return
+            # Fallback: 4 spaces if no alignment column or already past it
             self.write(b" " * 4, formatter)
 
     def get_column(self) -> int:
@@ -689,7 +697,9 @@ class OutputStream:
 
         self._linebuffer = []
         self._col = 0
-        self._align_column = 0  # Clear alignment after line is processed
+        # Preserve alignment for midline continuations (e.g., after annotation comments)
+        if not self._use_space_align:
+            self._align_column = 0
 
     def _flush_writes(self) -> None:
         if self._writebuffer and not self._writebuffer[-1].endswith(Formatter.NL):

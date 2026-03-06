@@ -308,12 +308,17 @@ class Formatter:
             self.ostream.use_space_align(is_midline)
             return
 
+        # Set space alignment BEFORE writing newline for midline breaks.
+        # This ensures _align_column is preserved during flush.
+        if is_midline:
+            self.ostream.use_space_align(True)
+
         self._write(self.NL * num)
 
-        # It's key here that space alignment mode is set after we write,
-        # otherwise we cannot cancel its effect upon a second NL because
-        # indentation/alignment will have already happened.
-        self.ostream.use_space_align(is_midline)
+        # For non-midline breaks, set after write to allow canceling
+        # the effect upon a second NL.
+        if not is_midline:
+            self.ostream.use_space_align(False)
 
     def _children_remaining(self) -> int:
         """Returns number of children of this node not yet visited."""

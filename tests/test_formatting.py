@@ -187,6 +187,33 @@ class TestFormatting(unittest.TestCase):
         lines = [l for l in result.splitlines() if l.strip()]
         self.assertEqual(len(lines), 1)
 
+    def test_annotation_comment_preserves_alignment(self):
+        """Continuation after annotation comment should align with arguments."""
+        code = b'''report_processing(fmt("tracking %s %s", host, conn_uid, #@ NOT-TESTED
+            s3_bucket, orig_bytes));'''
+        result = self._format(code).decode()
+        lines = result.splitlines()
+        # Find the line with fmt( and the continuation line
+        fmt_line = None
+        cont_line = None
+        for i, line in enumerate(lines):
+            if 'fmt(' in line:
+                fmt_line = line
+                if i + 1 < len(lines):
+                    cont_line = lines[i + 1]
+                break
+        self.assertIsNotNone(fmt_line)
+        self.assertIsNotNone(cont_line)
+        # The continuation should align with the fmt arguments, not just 4 spaces
+        # Find where the first argument starts in fmt_line
+        fmt_idx = fmt_line.index('fmt(')
+        arg_start = fmt_idx + 4  # After "fmt("
+        # The continuation should have alignment spaces to match
+        cont_stripped = cont_line.lstrip('\t')
+        # Should have more than 4 spaces of alignment (the old broken behavior)
+        leading_spaces = len(cont_stripped) - len(cont_stripped.lstrip(' '))
+        self.assertGreater(leading_spaces, 4, "Continuation should align with arguments")
+
     def test_skip_pointless_line_breaks(self):
         """Don't break if continuation would be as long as original."""
         # Breaking at ( would shift content but not reduce max line length
