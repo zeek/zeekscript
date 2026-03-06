@@ -1033,9 +1033,10 @@ class StmtFormatter(TypedInitializerFormatter):
             self._format_child(hints=Hint.NO_LB_BEFORE)  # '('
             self._write_sp()
             # Align wrapped conditionals to after '( '
+            saved_align = self.ostream.get_align_column()
             self.ostream.set_align_column(self.ostream.get_visual_column())
             self._format_child()  # <expr>
-            self.ostream.set_align_column(0)
+            self.ostream.set_align_column(saved_align)
             self._write_sp()
             self._format_child(hints=Hint.NO_LB_BEFORE)  # ')'
 
@@ -1152,9 +1153,10 @@ class StmtFormatter(TypedInitializerFormatter):
             self._format_child(hints=Hint.NO_LB_BEFORE)  # '('
             self._write_sp()
             # Align wrapped conditionals to after '( '
+            saved_align = self.ostream.get_align_column()
             self.ostream.set_align_column(self.ostream.get_visual_column())
             self._format_child()  # <expr>
-            self.ostream.set_align_column(0)
+            self.ostream.set_align_column(saved_align)
             self._write_sp()
             self._format_child(hints=Hint.NO_LB_BEFORE)  # ')'
             self._format_stmt_block()  # <stmt>
@@ -1868,6 +1870,7 @@ class ExprFormatter(SpaceSeparatedFormatter, ComplexSequenceFormatterMixin):
         elif self._is_assignment():
             # Assignment expressions: prefer breaking after '=' operator
             # Set alignment for continuation at one indent level (8 spaces) up
+            saved_align = self.ostream.get_align_column()
             self._format_child(hints=self.hints)  # LHS <expr>
             self._write_sp()
             self._format_child()  # '=' or '+=' or '-='
@@ -1875,12 +1878,13 @@ class ExprFormatter(SpaceSeparatedFormatter, ComplexSequenceFormatterMixin):
             tab_col = self.indent * 8  # TAB_SIZE = 8
             self.ostream.set_align_column(tab_col + 8)  # One indent level up
             self._format_child(hints=Hint.GOOD_AFTER_LB)  # RHS <expr>
-            self.ostream.set_align_column(0)
+            self.ostream.set_align_column(saved_align)
 
         elif self._is_ternary():
             # Ternary (? :) expressions: prefer breaking after :
             # After ?: indent 8 spaces extra
             # After :: align with the true-branch expression
+            saved_align = self.ostream.get_align_column()
             tab_col = self.indent * 8  # TAB_SIZE = 8
             self._format_child(hints=self.hints)  # condition <expr>
             self._write_sp()
@@ -1896,7 +1900,7 @@ class ExprFormatter(SpaceSeparatedFormatter, ComplexSequenceFormatterMixin):
             # Set alignment for break after ':' - align with true expr
             self.ostream.set_align_column(true_col)
             self._format_child(hints=Hint.GOOD_AFTER_LB)  # false <expr>
-            self.ostream.set_align_column(0)
+            self.ostream.set_align_column(saved_align)
 
         elif ct1 == "schedule":
             # schedule <expr> { <event_hdr> }

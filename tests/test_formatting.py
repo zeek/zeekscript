@@ -399,6 +399,29 @@ class TestFormatting(unittest.TestCase):
                 self.assertEqual(first_char_col, paren_col)
                 break
 
+    def test_ternary_as_function_argument_alignment(self):
+        """Ternary expressions as function arguments should preserve outer alignment."""
+        code = b'function f() { if ( ! publish_huge_event(service_topic, new_file, conn_times, conn_uids, conn_ids, info$source ? info$source : "", info$mime ? info$mime : "", info$md5 ? info$md5 : "") ) print "failed"; }'
+        result = self._format(code).decode()
+        self.assertNotIn("MISINDENTATION", result)
+        # All arguments (including ternary ones) should align after '('
+        lines = result.splitlines()
+        for i, line in enumerate(lines):
+            if "publish_huge_event(" in line:
+                paren_col = line.index("publish_huge_event(") + len("publish_huge_event(")
+
+                # Check that continuation lines align to paren_col
+                for cont_line in lines[i + 1:]:
+                    if cont_line.strip().startswith(": "):
+                        # Ternary false branch - aligned by ternary logic, not function args
+                        continue
+                    if "print" in cont_line or cont_line.strip() == "}":
+                        break
+                    first_char_col = len(cont_line) - len(cont_line.lstrip())
+                    self.assertEqual(first_char_col, paren_col,
+                        f"Misaligned: {cont_line.strip()!r} at col {first_char_col}, expected {paren_col}")
+                break
+
     def test_for_loop_alignment(self):
         """For loop content should align when wrapped."""
         code = b'function f() { for ( idx in result$matches ) for ( conn_idx in result$conn_uids_with_a_very_long_field_name_that_forces_wrapping ) local x = 1; }'
