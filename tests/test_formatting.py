@@ -670,6 +670,53 @@ function foo()
             self.assertNotIn("MISINDENTATION", line, f"Got MISINDENTATION in: {repr(line)}")
             self.assertTrue(line.startswith("\t"), f"Expected tab indent, got: {repr(line)}")
 
+    def test_preproc_if_indents_at_top_level(self):
+        """Content inside @if blocks at top level should be indented."""
+        code = b'''@if ( FOO )
+print 1;
+@endif
+'''
+        result = self._format(code)
+        lines = result.decode().split("\n")
+        # Find the print line
+        print_line = [l for l in lines if "print" in l][0]
+        # Should be indented with one tab
+        self.assertTrue(print_line.startswith("\t"), f"Expected tab indent, got: {repr(print_line)}")
+
+    def test_preproc_if_no_extra_indent_in_function(self):
+        """Content inside @if blocks within functions should not get extra indent."""
+        code = b'''function foo()
+\t{
+@if ( FOO )
+\tprint 1;
+@endif
+\t}
+'''
+        result = self._format(code)
+        lines = result.decode().split("\n")
+        # Find the print line
+        print_line = [l for l in lines if "print" in l][0]
+        # Should have exactly one tab (function body indent), not two
+        self.assertEqual(print_line, "\tprint 1;", f"Got: {repr(print_line)}")
+
+    def test_preproc_if_else_with_load(self):
+        """@load and other directives inside @if/@else should be indented."""
+        code = b'''@if ( FOO )
+@load foo
+@else
+@load bar
+@endif
+'''
+        result = self._format(code)
+        lines = result.decode().split("\n")
+        # @if, @else, @endif should be at column 0
+        self.assertTrue(lines[0].startswith("@if"))
+        self.assertEqual(lines[2], "@else")
+        self.assertEqual(lines[4], "@endif")
+        # @load lines should be indented
+        self.assertEqual(lines[1], "\t@load foo")
+        self.assertEqual(lines[3], "\t@load bar")
+
 
 class TestFormattingErrors(unittest.TestCase):
     def _format(self, content):

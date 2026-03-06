@@ -79,6 +79,10 @@ class OutputStream:
         # Current hints to apply to output items (for tracking wrap behavior)
         self._current_hints: Hint | None = None
 
+        # Depth of preprocessor conditional blocks (@if/@ifdef/@ifndef).
+        # Used to indent content inside these blocks at top level.
+        self._preproc_depth: int = 0
+
     def __enter__(self) -> "OutputStream":
         return self
 
@@ -99,6 +103,21 @@ class OutputStream:
 
     def use_space_align(self, enable: bool) -> None:
         self._use_space_align = enable
+
+    def enter_preproc_block(self) -> None:
+        """Enter a preprocessor conditional block (@if/@ifdef/@ifndef).
+
+        Only increments depth at top level (tab_indent == 0) so that
+        content inside top-level @if blocks gets indented, but content
+        inside @if blocks within functions doesn't get extra indentation.
+        """
+        if self._tab_indent == 0:
+            self._preproc_depth += 1
+
+    def exit_preproc_block(self) -> None:
+        """Exit a preprocessor conditional block (@endif)."""
+        if self._preproc_depth > 0:
+            self._preproc_depth -= 1
 
     def set_align_column(self, column: int) -> None:
         """Set the column to align to on linebreaks (0 to use default)."""
@@ -135,9 +154,14 @@ class OutputStream:
                 self._flush_line()
 
     def write_tab_indent(self, formatter: Formatter) -> None:
+        # Always apply preproc_depth indentation, even when tab indent is disabled.
+        # This ensures @load etc inside @if blocks still get indented.
         if self._use_tab_indent:
             self._tab_indent = formatter.indent
-            self.write(b"\t" * self._tab_indent, formatter)
+            total_indent = self._tab_indent + self._preproc_depth
+            self.write(b"\t" * total_indent, formatter)
+        elif self._preproc_depth > 0:
+            self.write(b"\t" * self._preproc_depth, formatter)
 
     def write_space_align(self, formatter: Formatter) -> None:
         if self._use_space_align:

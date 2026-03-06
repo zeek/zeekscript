@@ -7,7 +7,7 @@
 @load blum/frub
 
 @if ( getenv("ZEEK_PORT") != "" )
-redef Broker::default_port = to_port(getenv("ZEEK_PORT"));
+	redef Broker::default_port = to_port(getenv("ZEEK_PORT"));
 @endif
 
 module Test;

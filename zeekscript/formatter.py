@@ -481,14 +481,32 @@ class SpaceSeparatedFormatter(Formatter):
 
 
 class PreprocDirectiveFormatter(LineFormatter):
-    """@if and friends don't get indented or line-broken."""
+    """@if and friends don't get indented or line-broken.
+
+    For @if/@ifdef/@ifndef at top level, we indent content inside the block.
+    This is done by tracking preproc depth in OutputStream.
+    """
 
     def format(self) -> None:
+        # Check what kind of directive this is
+        first_token = self._get_child_token()
+        is_block_start = first_token in ("@if", "@ifdef", "@ifndef")
+        is_block_end = first_token == "@endif"
+        is_block_else = first_token == "@else"
+
+        # Exit preproc block BEFORE formatting @endif/@else (so they're not indented)
+        if is_block_end or is_block_else:
+            self.ostream.exit_preproc_block()
+
         self.ostream.use_tab_indent(False)
         self.ostream.use_linebreaks(False)
         super().format()
         self.ostream.use_tab_indent(True)
         self.ostream.use_linebreaks(True)
+
+        # Enter preproc block AFTER formatting @if/@else (so content is indented)
+        if is_block_start or is_block_else:
+            self.ostream.enter_preproc_block()
 
 
 class PragmaFormatter(LineFormatter):
