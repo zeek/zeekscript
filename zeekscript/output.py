@@ -40,6 +40,9 @@ class OutputStream:
     # Alignments beyond this produce too much leading whitespace.
     MAX_ALIGN_COL = 60
 
+    # Marker emitted when continuation alignment is missing.
+    MISINDENT_MARKER = b"# MISINDENTATION\n"
+
     def __init__(
         self, ostream: BinaryIO | TextIO, enable_linebreaks: bool = True
     ) -> None:
@@ -172,8 +175,9 @@ class OutputStream:
                 if spaces_needed > 0:
                     self.write(b" " * spaces_needed, formatter)
                     return
-            # No alignment - flag with MISINDENTATION marker as comment on its own line
-            self.write(b"# MISINDENTATION\n", formatter)
+            # No alignment - flag with MISINDENTATION marker as comment on its own line.
+            # Uses self.write() since we're in the buffering phase.
+            self.write(self.MISINDENT_MARKER, formatter)
             # Re-write the tab indent for the actual content
             self.write_tab_indent(formatter)
 
@@ -272,9 +276,9 @@ class OutputStream:
                 self._write(b" " * self.TAB_SIZE)
                 col_flushed = tab_col + self.TAB_SIZE
             else:
-                # align_col == 0: no alignment set - this shouldn't happen
-                # Print a marker as comment on its own line to make it easy to find
-                self._write(b"# MISINDENTATION\n")
+                # align_col == 0: no alignment set - this shouldn't happen.
+                # Uses self._write() since we're already in the flushing phase.
+                self._write(self.MISINDENT_MARKER)
                 self._write(b"\t" * self._tab_indent)
                 col_flushed = tab_col
 
