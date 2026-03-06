@@ -1751,11 +1751,11 @@ class ExprFormatter(SpaceSeparatedFormatter, ComplexSequenceFormatterMixin):
                         do_linebreak = True
 
             self._format_child(hints=self.hints)  # 'table' etc or function name expr
-            self._format_child(hints=Hint.NO_LB_BEFORE)  # '('
-            # Align wrapped arguments to the column after the '('
-            # Save parent alignment so we can restore it after
+            # Set alignment to column after '(' BEFORE formatting it, so any
+            # CST siblings (like comments) can use the alignment for continuations
             saved_align = self.ostream.get_align_column()
-            self.ostream.set_align_column(self.ostream.get_visual_column())
+            self.ostream.set_align_column(self.ostream.get_visual_column() + 1)
+            self._format_child(hints=Hint.NO_LB_BEFORE)  # '('
             if self._get_child_name() == "expr_list":
                 if do_linebreak:
                     self._write_nl()
@@ -1801,11 +1801,17 @@ class ExprFormatter(SpaceSeparatedFormatter, ComplexSequenceFormatterMixin):
             # This helps OutputStream nicely align long strings broken into
             # substrings concatenated by "+". We put the hint on the second
             # operand so linebreaks put '+' at end of line, not start of next.
+            # Set alignment for continuations when no outer alignment exists.
+            saved_align = self.ostream.get_align_column()
+            if saved_align == 0:
+                self.ostream.set_align_column(self.ostream.get_visual_column())
             self._format_child()  # <expr>
             self._write_sp()
             self._format_child()  # '+'
             self._write_sp()
             self._format_child(hints=Hint.GOOD_AFTER_LB)  # <expr>
+            if saved_align == 0:
+                self.ostream.set_align_column(0)
 
         elif self._is_binary_operator():
             # For binary operators (arithmetic, comparison, etc.), set GOOD_AFTER_LB

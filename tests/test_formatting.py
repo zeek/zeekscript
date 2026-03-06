@@ -627,6 +627,49 @@ function foo()
         self.assertIn("),\n", decoded)  # Newline after set's closing paren
         self.assertIn("$policy=", decoded)
 
+    def test_call_with_comment_aligns_args(self):
+        """Arguments after a comment following '(' should align to the column after '('."""
+        code = b'''function foo()
+\t{
+\tcall( # with a comment
+\t    arg1, arg2);
+\t}
+'''
+        result = self._format(code)
+        lines = result.decode().split("\n")
+        # Find the args line
+        args_line = None
+        for line in lines:
+            if "arg1" in line:
+                args_line = line
+                break
+        self.assertIsNotNone(args_line)
+        # Should be aligned: \t (8) + 5 spaces = column 13, right after "call("
+        # The line should have tab + spaces to align with column after '('
+        self.assertTrue(args_line.startswith("\t     "), f"Got: {repr(args_line)}")
+
+    def test_string_concat_alignment(self):
+        """String concatenation continuations should align to the first string."""
+        # Use long strings that will force line wrapping
+        code = b'''function foo()
+\t{
+\tprint "Lovely patio around the fountain. " +
+\t    "Spent a lovely lunch on the patio. " +
+\t    "The menu was inviting and lots of things I wanted to order.";
+\t}
+'''
+        result = self._format(code)
+        lines = result.decode().split("\n")
+        # Find lines with strings (but not the first print line)
+        str_lines = [l for l in lines if '"' in l and "print" not in l]
+        # Should have continuation lines
+        self.assertGreater(len(str_lines), 0, f"No continuation lines found. Output:\n{result.decode()}")
+        # All continuation lines should be aligned (same indentation)
+        # Check that they start with tab + spaces (proper alignment, no MISINDENTATION)
+        for line in str_lines:
+            self.assertNotIn("MISINDENTATION", line, f"Got MISINDENTATION in: {repr(line)}")
+            self.assertTrue(line.startswith("\t"), f"Expected tab indent, got: {repr(line)}")
+
 
 class TestFormattingErrors(unittest.TestCase):
     def _format(self, content):

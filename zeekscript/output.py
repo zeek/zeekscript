@@ -141,15 +141,15 @@ class OutputStream:
 
     def write_space_align(self, formatter: Formatter) -> None:
         if self._use_space_align:
-            # Align to _align_column if set, otherwise use default 4 spaces
+            # Align to _align_column if set
             if self._align_column > 0:
                 current_col = self.get_visual_column()
                 spaces_needed = self._align_column - current_col
                 if spaces_needed > 0:
                     self.write(b" " * spaces_needed, formatter)
                     return
-            # Fallback: 4 spaces if no alignment column or already past it
-            self.write(b" " * 4, formatter)
+            # No alignment - flag with MISINDENTATION marker
+            self.write(b"MISINDENTATION", formatter)
 
     def get_column(self) -> int:
         return self._col
