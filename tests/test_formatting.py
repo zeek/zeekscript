@@ -199,6 +199,23 @@ class TestFormatting(unittest.TestCase):
         self.assertEqual(len(attr_line), 1)
         self.assertLessEqual(len(attr_line[0]), 80)
 
+    def test_ifdef_wrapped_params_use_tab_indent(self):
+        """Wrapped param continuation inside @ifdef uses tab+spaces, not all spaces."""
+        code = (
+            b"@ifdef ( SOME_FEATURE )\n"
+            b"event SomeModule::some_esp_message(c: connection, is_orig: bool,"
+            b" msg: SomeModule::SomeEspMsg)"
+            b" &group=MyPkg_SomeEvtGroup { shuntit(c); }\n"
+            b"@endif\n"
+        )
+        result = self._format(code).decode()
+        lines = result.splitlines()
+        # The continuation line (msg:) should start with tab+spaces, not all spaces
+        msg_line = [l for l in lines if "msg:" in l]
+        self.assertEqual(len(msg_line), 1)
+        self.assertTrue(msg_line[0].startswith("\t"),
+                        "Wrapped param line should start with tab inside @ifdef")
+
     def test_assignment_with_nested_function_alignment(self):
         """Assignment RHS with function call should align arguments correctly."""
         code = b"some_table_variable_name[some_key] = X509::Result($result=result$result, $result_string=result$result_string);"

@@ -247,9 +247,10 @@ class OutputStream:
 
         def write_linebreak() -> None:
             nonlocal tbd, col_flushed
+            total_indent = self._tab_indent + self._preproc_depth
             self._write(Formatter.NL)
-            self._write(b"\t" * self._tab_indent)
-            tab_col = self._tab_indent * self.TAB_SIZE
+            self._write(b"\t" * total_indent)
+            tab_col = total_indent * self.TAB_SIZE
 
             # Check if first non-whitespace item needs special handling
             align_col = break_align_col
@@ -279,7 +280,7 @@ class OutputStream:
                 # align_col == 0: no alignment set - this shouldn't happen.
                 # Uses self._write() since we're already in the flushing phase.
                 self._write(self.MISINDENT_MARKER)
-                self._write(b"\t" * self._tab_indent)
+                self._write(b"\t" * total_indent)
                 col_flushed = tab_col
 
             # Remove leading whitespace from continuation
@@ -599,7 +600,8 @@ class OutputStream:
             effective_max_len = self.MAX_LINE_LEN * 2 if has_init_lenient else self.MAX_LINE_LEN
 
             # Determine continuation indent for potential breaks
-            tab_col = self._tab_indent * self.TAB_SIZE
+            total_indent = self._tab_indent + self._preproc_depth
+            tab_col = total_indent * self.TAB_SIZE
             cont_indent = 0
             if break_points:
                 first_break_idx = break_points[0][0]
@@ -699,7 +701,6 @@ class OutputStream:
                 # their align columns based on the unbroken line position; after
                 # the break they need to be shifted to account for the new line
                 # starting at break_align_col instead of col_flushed.
-                tab_col = self._tab_indent * self.TAB_SIZE
                 for item in items_remaining:
                     if item.align_column > break_align_col:
                         # Shift: new_pos = new_start + (old_pos - old_break_point - ws)
@@ -739,7 +740,6 @@ class OutputStream:
                         remaining_len = sum(
                             visual_width(item.data, 0) for item in items_remaining
                         )
-                        tab_col = self._tab_indent * self.TAB_SIZE
                         line2_len = break_align_col + remaining_len
                         if line2_len > self.MAX_LINE_LEN:
                             # Deep alignment would cause another break - use shallower
