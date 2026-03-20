@@ -118,7 +118,7 @@ class TestFormatting(unittest.TestCase):
     def test_no_split_on_field_access(self):
         """Don't split on $ or ?$ operators - keep expr$field together."""
         # The $ operator should not be a break point
-        code = b"if ( ssl_cache_intermediate_ca && result$result_string == \"ok\" && result?$chain_certs && |result$chain_certs| > 2 ) print \"x\";"
+        code = b"if ( some_long_bool_variable_a && result$result_string == \"ok\" && result?$chain_certs && |result$chain_certs| > 2 ) print \"x\";"
         result = self._format(code).decode()
         # Verify $result_string stays together
         self.assertIn("result$result_string", result)
@@ -145,7 +145,7 @@ class TestFormatting(unittest.TestCase):
 
     def test_event_handler_parameter_wrapping(self):
         """Event handler parameters should wrap at commas when line is too long."""
-        code = b'event ssl_encrypted_data(c: connection, is_orig: bool, record_version: count, content_type: count, length: count) &group="doh-generic" { }'
+        code = b'event ssl_encrypted_data(c: connection, is_orig: bool, record_version: count, content_type: count, length: count) &group="some-group" { }'
         result = self._format(code).decode()
         lines = result.splitlines()
         # Parameters should wrap - not all on one line
@@ -162,7 +162,7 @@ class TestFormatting(unittest.TestCase):
 
     def test_assignment_with_nested_function_alignment(self):
         """Assignment RHS with function call should align arguments correctly."""
-        code = b"recently_validated_certs[chain_id] = X509::Result($result=result$result, $result_string=result$result_string);"
+        code = b"some_table_variable_name[some_key] = X509::Result($result=result$result, $result_string=result$result_string);"
         result = self._format(code).decode()
         # Should not have MISINDENTATION
         self.assertNotIn("MISINDENTATION", result)
@@ -189,8 +189,8 @@ class TestFormatting(unittest.TestCase):
 
     def test_annotation_comment_preserves_alignment(self):
         """Continuation after annotation comment should align with arguments."""
-        code = b'''report_processing(fmt("tracking %s %s", host, conn_uid, #@ NOT-TESTED
-            s3_bucket, orig_bytes));'''
+        code = b'''other_function_abc(fmt("tracking %s %s", host, some_uid, #@ NOT-TESTED
+            some_dest, extra_data));'''
         result = self._format(code).decode()
         lines = result.splitlines()
         # Find the line with fmt( and the continuation line
@@ -221,11 +221,11 @@ class TestFormatting(unittest.TestCase):
 
     def test_keep_fmt_string_together(self):
         """Keep fmt("string") together, break at comma after string."""
-        code = b'local x = [$msg=fmt("Host uses protocol version %s which is lower than the safe minimum %s", host_string, minimum_string)];'
+        code = b'local x = [$msg=fmt("Host uses protocol version %s which is lower than the safe minimum %s", some_string, other_string_a)];'
         result = self._format(code).decode()
         # Should NOT break at fmt( - instead break at comma after string
         # Line 1: ...fmt("...string...",
-        # Line 2: host_string, minimum_string)...
+        # Line 2: some_string, other_string_a)...
         self.assertIn('fmt("Host uses protocol', result)
         self.assertNotIn('fmt(\n', result)
         self.assertNotIn('fmt(\t', result)
@@ -237,15 +237,15 @@ class TestFormatting(unittest.TestCase):
         # fit exactly at 80 chars - but only if newlines are excluded from length.
         code = b'''function f() {
 \tif ( x )
-\t\tInput::add_event([$source=cert_hygiene_sni_wl_source, $name=cert_hygiene_sni_wl_name, $fields=CertHygieneSNIWL, $mode=Input::REREAD, $want_record=F, $ev=cert_hygiene_sni_wl_add]);
+\t\tInput::add_event([$source=some_config_source_setting, $name=some_config_name_setting, $fields=SomeConfigRecord, $mode=Input::REREAD, $want_record=F, $ev=some_config_event_added]);
 }'''
         result = self._format(code).decode()
         # $want_record=F and $ev should be on the same line since they fit at 80 chars
-        self.assertIn('$want_record=F, $ev=cert_hygiene_sni_wl_add', result)
+        self.assertIn('$want_record=F, $ev=some_config_event_added', result)
 
     def test_enum_single_line_preserved(self):
         """Enum on single line in source should stay on single line if it fits."""
-        code = b'type level: enum { NOT = 0, LOW = 1, MED = 2, HIGH = 3 };'
+        code = b'type score: enum { NOT = 0, LOW = 1, MED = 2, HIGH = 3 };'
         result = self._format(code).decode()
         # Should stay on one line
         lines = [l for l in result.splitlines() if l.strip()]
@@ -254,7 +254,7 @@ class TestFormatting(unittest.TestCase):
 
     def test_enum_wrap_alignment(self):
         """Wrapped enum values should align to after '{ '."""
-        code = b'type NameSource: enum { NS_DNS_A, NS_DNS_AAAA, NS_DNS_A6, NS_DNS_PTR, NS_HTTP_HOST, NS_SSL_SNI, NS_NTLM_AUTH, NS_UNKNOWN, };'
+        code = b'type SomeEnumAA: enum { SE_DNS_A, SE_DNS_AAAA, SE_DNS_A6, SE_DNS_PTR, SE_HTTP_HOST, SE_TLS_SNI, SE_NTLM_AUTH, SE_UNKNOWN, };'
         result = self._format(code).decode()
         # Should not have MISINDENTATION marker
         self.assertNotIn("MISINDENTATION", result)
@@ -272,7 +272,7 @@ class TestFormatting(unittest.TestCase):
 
     def test_event_type_parameter_alignment(self):
         """Event type parameters should align to after the opening paren."""
-        code = b'global classification: event(o: string, label: string, conf: level, sources: set[string], caller: string);'
+        code = b'global some_event_decl: event(o: string, label: string, conf: score, sources: set[string], caller: string);'
         result = self._format(code).decode()
         lines = result.splitlines()
         # Should wrap and align continuation to after 'event('
@@ -288,7 +288,7 @@ class TestFormatting(unittest.TestCase):
 
     def test_event_statement_argument_alignment(self):
         """Event statement arguments should align to after the opening paren."""
-        code = b"function observation() { if ( foo ) event Confidence::observation_evt(o, label, conf, source, caller); }"
+        code = b"function some_func_a() { if ( foo ) event SomeModule::some_raised_evt(o, label, conf, source, caller); }"
         result = self._format(code).decode()
         # Should not have MISINDENTATION marker
         self.assertNotIn("MISINDENTATION", result)
@@ -298,7 +298,7 @@ class TestFormatting(unittest.TestCase):
         event_line = None
         cont_line = None
         for i, line in enumerate(lines):
-            if "event Confidence::observation_evt" in line:
+            if "event SomeModule::some_raised_evt" in line:
                 event_line = line
                 if i + 1 < len(lines):
                     cont_line = lines[i + 1]
@@ -313,7 +313,7 @@ class TestFormatting(unittest.TestCase):
     def test_in_and_not_in_operator_alignment(self):
         """The in and !in operators should align continuations like other binary operators."""
         # Test !in
-        code1 = b'return aws_main_domain in subj && amzaws_wildcard !in subj && apiaws_wildcard !in subj;'
+        code1 = b'return a_long_var_name in subj && b_long_var_name !in subj && c_long_var_name !in subj;'
         result1 = self._format(code1).decode()
         self.assertNotIn("MISINDENTATION", result1)
         # Test in
@@ -347,7 +347,7 @@ class TestFormatting(unittest.TestCase):
 
     def test_schedule_expression_alignment(self):
         """Schedule expression should align continuation to after 'schedule '."""
-        code = b'function f() { schedule subnet_log_interval { SomeModule::some_very_long_event_name() }; }'
+        code = b'function f() { schedule some_time_interval { SomeModule::some_very_long_event_name() }; }'
         result = self._format(code).decode()
         # Should not have MISINDENTATION marker
         self.assertNotIn("MISINDENTATION", result)
@@ -356,7 +356,7 @@ class TestFormatting(unittest.TestCase):
         schedule_line = None
         cont_line = None
         for i, line in enumerate(lines):
-            if "schedule subnet_log_interval" in line and "{" not in line:
+            if "schedule some_time_interval" in line and "{" not in line:
                 schedule_line = line
                 if i + 1 < len(lines):
                     cont_line = lines[i + 1]
@@ -370,13 +370,13 @@ class TestFormatting(unittest.TestCase):
 
     def test_case_label_alignment(self):
         """Case label values should align to after 'case '."""
-        code = b'function f() { switch vpn_type { case "spicy_openvpn_udp", "spicy_openvpn_udp_hmac_md5", "spicy_openvpn_udp_hmac_sha1", "spicy_openvpn_udp_hmac_sha256": break; } }'
+        code = b'function f() { switch tag_type { case "some_analyzer_udp", "some_analyzer_udp_hmac_md5", "some_analyzer_udp_hmac_sha1", "some_analyzer_udp_hmac_sha256": break; } }'
         result = self._format(code).decode()
         self.assertNotIn("MISINDENTATION", result)
         # Verify continuation aligns to after 'case '
         lines = result.splitlines()
         for i, line in enumerate(lines):
-            if 'case "spicy_openvpn_udp"' in line and i + 1 < len(lines):
+            if 'case "some_analyzer_udp"' in line and i + 1 < len(lines):
                 case_idx = line.index('case ')
                 first_val_col = case_idx + 5  # len('case ')
                 cont_line = lines[i + 1]
@@ -401,14 +401,14 @@ class TestFormatting(unittest.TestCase):
 
     def test_ternary_as_function_argument_alignment(self):
         """Ternary expressions as function arguments should preserve outer alignment."""
-        code = b'function f() { if ( ! publish_huge_event(service_topic, new_file, conn_times, conn_uids, conn_ids, info$source ? info$source : "", info$mime ? info$mime : "", info$md5 ? info$md5 : "") ) print "failed"; }'
+        code = b'function f() { if ( ! some_function_name(some_argument, new_file, extra_vals, some_uids, some_ids, info$source ? info$source : "", info$mime ? info$mime : "", info$md5 ? info$md5 : "") ) print "failed"; }'
         result = self._format(code).decode()
         self.assertNotIn("MISINDENTATION", result)
         # All arguments (including ternary ones) should align after '('
         lines = result.splitlines()
         for i, line in enumerate(lines):
-            if "publish_huge_event(" in line:
-                paren_col = line.index("publish_huge_event(") + len("publish_huge_event(")
+            if "some_function_name(" in line:
+                paren_col = line.index("some_function_name(") + len("some_function_name(")
 
                 # Check that continuation lines align to paren_col
                 for cont_line in lines[i + 1:]:
@@ -424,7 +424,7 @@ class TestFormatting(unittest.TestCase):
 
     def test_for_loop_alignment(self):
         """For loop content should align when wrapped."""
-        code = b'function f() { for ( idx in result$matches ) for ( conn_idx in result$conn_uids_with_a_very_long_field_name_that_forces_wrapping ) local x = 1; }'
+        code = b'function f() { for ( idx in result$matches ) for ( conn_idx in result$some_uids_with_a_very_long_field_name_that_forces_wrapping ) local x = 1; }'
         result = self._format(code).decode()
         # Should not have MISINDENTATION marker
         self.assertNotIn("MISINDENTATION", result)
@@ -442,14 +442,14 @@ class TestFormatting(unittest.TestCase):
         """End-of-line comments should stay with the statement even on long lines."""
         # This tests that deeply nested statements with end-of-line comments
         # don't get the comment pushed to a new line
-        code = b'''function process_conn(c: connection)
+        code = b'''function some_handler(c: connection)
     {
     if ( foo )
         {
         if ( bar )
             {
             if ( bletch )
-                report_processing("Observed dual stack endpoint"); #@ NOT-TESTED
+                other_function_abc("Some kind of status message"); #@ NOT-TESTED
             }
         }
     }'''
@@ -457,12 +457,12 @@ class TestFormatting(unittest.TestCase):
         # Should not have MISINDENTATION marker
         self.assertNotIn("MISINDENTATION", result)
         # The comment should be on the same line as the statement
-        self.assertIn('endpoint"); #@ NOT-TESTED', result)
+        self.assertIn('message"); #@ NOT-TESTED', result)
 
     def test_boolean_op_preferred_over_arithmetic(self):
         """Line breaks should prefer && and || over arithmetic operators like -."""
         # This tests that when a line needs breaking, && is chosen over -
-        code = b'''function get_connection_vpc_id(c: connection): string
+        code = b'''function some_function_name_aa(c: connection): string
     {
     if ( c?$tunnel && |c$tunnel| >= 2 &&
          c$tunnel[|c$tunnel| - 1]$tunnel_type == Tunnel::VXLAN )
@@ -507,8 +507,8 @@ class TestFormatting(unittest.TestCase):
         When a function call has arguments that include arithmetic, the formatter
         should prefer breaking at commas rather than inside the arithmetic.
         """
-        code = b'''NOTICE([$msg=fmt("Host %s sent more than %dMB to bucket %s",
-                src_host, outbound_bytes_threshold / 1000 / 1000, bucket)]);'''
+        code = b'''NOTICE([$msg=fmt("Value %s was more than %dMB for item %s",
+                some_var, some_long_variable_name / 1000 / 1000, bucket)]);'''
         result = self._format(code).decode()
         # Should NOT have a line ending with just / (breaking at arithmetic op)
         lines = result.splitlines()
@@ -516,7 +516,7 @@ class TestFormatting(unittest.TestCase):
         self.assertFalse(bad_break, "Should not break at / when commas available")
         # The threshold and its division should be on the same line
         self.assertTrue(
-            any("outbound_bytes_threshold" in line and "1000" in line for line in lines),
+            any("some_long_variable_name" in line and "1000" in line for line in lines),
             "Arithmetic expression should stay together on one line"
         )
 
@@ -578,9 +578,9 @@ class TestFormatting(unittest.TestCase):
         we should break after : (keeping ? and true expr together), not
         break after ? (which would waste space).
         """
-        code = b'''event handle_ep_call(host: addr, svc: string, region: string)
+        code = b'''event some_event_abc(host: addr, svc: string, region: string)
     {
-    local endpoints = max_endpoints_tracked > 0 ? calls$endpoints :
+    local endpoints = some_long_variable_ab > 0 ? calls$some_fld :
                                                   "Disabled";
     }
 '''
@@ -607,21 +607,21 @@ class TestFormatting(unittest.TestCase):
         The colon in 'var: type' is different from ternary ':' and should
         not be treated as a line break point.
         """
-        code = b'''global dhcp_fp_tracking: table[count, string] of TrackingRec
+        code = b'''global some_table_name_a: table[count, string] of TrackingRec
         &default_insert = TrackingRec() &create_expire = 10 sec;'''
         result = self._format(code).decode()
         lines = result.splitlines()
-        # First line should contain "dhcp_fp_tracking:" followed by table type
+        # First line should contain "some_table_name_a:" followed by table type
         first_line = lines[0]
-        self.assertIn("dhcp_fp_tracking:", first_line)
+        self.assertIn("some_table_name_a:", first_line)
         self.assertIn("table[", first_line)
-        # Should NOT have a line that's just "dhcp_fp_tracking:" followed by newline
-        bad_break = any(line.rstrip().endswith("dhcp_fp_tracking:") for line in lines)
+        # Should NOT have a line that's just "some_table_name_a:" followed by newline
+        bad_break = any(line.rstrip().endswith("some_table_name_a:") for line in lines)
         self.assertFalse(bad_break, "Type declaration should not break after colon")
 
     def test_nested_function_call_alignment(self):
         """Nested function calls should align correctly when outer call wraps."""
-        code = b'local filter = Log::Filter($name="conn-app", $path="conn_app", $include=set("id.orig_h", "id.orig_p", "id.resp_h", "id.resp_p", "app"), $policy=conn_apps_only);'
+        code = b'local filter = Log::Filter($name="log-name", $path="log_path", $include=set("id.orig_h", "id.orig_p", "id.resp_h", "id.resp_p", "app"), $policy=some_policy_fn);'
         result = self._format(code).decode()
         # Should not have MISINDENTATION marker
         self.assertNotIn("MISINDENTATION", result)
@@ -675,7 +675,7 @@ class TestFormatting(unittest.TestCase):
 
     def test_multiline_element_aligns_next_element(self):
         """When an element spans multiple lines, next element starts on new aligned line."""
-        code = b'local filter = Log::Filter($name="conn-app", $path="conn_app", $include=set("id.orig_h", "id.orig_p", "id.resp_h", "id.resp_p", "app"), $policy=conn_apps_only);'
+        code = b'local filter = Log::Filter($name="log-name", $path="log_path", $include=set("id.orig_h", "id.orig_p", "id.resp_h", "id.resp_p", "app"), $policy=some_policy_fn);'
         result = self._format(code).decode()
         lines = result.splitlines()
         # Find lines with $include and $policy
@@ -697,7 +697,7 @@ class TestFormatting(unittest.TestCase):
 
     def test_multiline_element_aligns_next_element_indented(self):
         """Same as above but inside an indented block - indentation shouldn't change behavior."""
-        code = b'event zeek_init() { local filter = Log::Filter($name="conn-app", $path="conn_app", $include=set("id.orig_h", "id.orig_p", "id.resp_h", "id.resp_p", "app"), $policy=conn_apps_only); }'
+        code = b'event zeek_init() { local filter = Log::Filter($name="log-name", $path="log_path", $include=set("id.orig_h", "id.orig_p", "id.resp_h", "id.resp_p", "app"), $policy=some_policy_fn); }'
         result = self._format(code).decode()
         lines = result.splitlines()
         # Find lines with $include and $policy
@@ -742,12 +742,12 @@ function foo()
     def test_record_args_alignment_ignores_source_newlines(self):
         """Record-style arguments should format consistently regardless of source whitespace."""
         # Single-line input
-        code1 = b'local filter = Log::Filter($name="conn-app", $path="conn_app", $include=set("id.orig_h", "id.orig_p", "id.resp_h", "id.resp_p", "app"), $policy=conn_apps_only);'
+        code1 = b'local filter = Log::Filter($name="log-name", $path="log_path", $include=set("id.orig_h", "id.orig_p", "id.resp_h", "id.resp_p", "app"), $policy=some_policy_fn);'
         # Multi-line input (same semantically)
-        code2 = b'''local filter = Log::Filter($name="conn-app", $path="conn_app",
+        code2 = b'''local filter = Log::Filter($name="log-name", $path="log_path",
                                $include=set("id.orig_h", "id.orig_p",
                                             "id.resp_h", "id.resp_p",
-                                            "app"), $policy=conn_apps_only);'''
+                                            "app"), $policy=some_policy_fn);'''
 
         result1 = self._format(code1)
         result2 = self._format(code2)
@@ -852,8 +852,8 @@ print 1;
         """Record field attr_list should not produce MISINDENTATION on line break."""
         # This line is long enough to require breaking when deeply indented
         code = b'''export {
-\ttype VMDetails: record {
-\t\tnetwork_tags: set[string] &log &optional; # Assocaited VM network tags
+\ttype SomeAttrs: record {
+\t\tsome_strings: set[string] &log &optional; # A set of associated strings
 \t};
 }
 '''
