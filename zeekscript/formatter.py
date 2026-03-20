@@ -1191,7 +1191,7 @@ class StmtFormatter(TypedInitializerFormatter):
             # Capture column where identifier starts for alignment
             id_col = self.ostream.get_visual_column()
             self._format_child()  # <id>
-            self._format_typed_initializer(align_col=id_col)
+            self._format_typed_initializer(align_col=id_col + 1)
             self._format_child(hints=Hint.NO_LB_BEFORE)  # ';'
             self._write_nl()
 

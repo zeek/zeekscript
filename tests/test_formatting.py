@@ -399,6 +399,27 @@ class TestFormatting(unittest.TestCase):
                 self.assertEqual(first_char_col, paren_col)
                 break
 
+    def test_local_declaration_rhs_spill_indent(self):
+        """Local RHS spilled to next line should indent one past identifier alignment."""
+        code = b'function some_func_bb(c: connection, cnt: count): interval { local some_long_variable_a = double_to_count(floor(c$orig$size / some_long_variable_bb)); }'
+        result = self._format(code).decode()
+        self.assertNotIn("MISINDENTATION", result)
+        lines = result.splitlines()
+        # Find the local declaration and its continuation
+        for i, line in enumerate(lines):
+            if "local some_long_variable_a =" in line and "double_to_count" not in line:
+                # RHS spilled to next line
+                cont_line = lines[i + 1]
+                # The identifier starts at tab (8) + len("local ") = 14
+                # Continuation should be at identifier_col + 1
+                local_line = line
+                local_idx = local_line.index("local ") + 6  # column of identifier
+                id_col = local_idx  # visual column (after expanding tab)
+                cont_col = len(cont_line) - len(cont_line.lstrip())
+                self.assertEqual(cont_col, id_col + 1,
+                    f"Expected indent one past identifier at col {id_col}, got {cont_col}")
+                break
+
     def test_ternary_as_function_argument_alignment(self):
         """Ternary expressions as function arguments should preserve outer alignment."""
         code = b'function f() { if ( ! some_function_name(some_argument, new_file, extra_vals, some_uids, some_ids, info$source ? info$source : "", info$mime ? info$mime : "", info$md5 ? info$md5 : "") ) print "failed"; }'
