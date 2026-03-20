@@ -145,13 +145,13 @@ class TestFormatting(unittest.TestCase):
 
     def test_event_handler_parameter_wrapping(self):
         """Event handler parameters should wrap at commas when line is too long."""
-        code = b'event ssl_encrypted_data(c: connection, is_orig: bool, record_version: count, content_type: count, length: count) &group="some-group" { }'
+        code = b'event some_encrypted_data(c: connection, is_orig: bool, some_record_vers: count, some_content_t: count, length: count) &group="some-group" { }'
         result = self._format(code).decode()
         lines = result.splitlines()
         # Parameters should wrap - not all on one line
         # First line should have some parameters, second line should have more
         self.assertTrue(
-            any("content_type:" in line for line in lines[1:]),
+            any("some_content_t:" in line for line in lines[1:]),
             "Parameters should wrap to multiple lines"
         )
         # The &group attribute should be on its own line or with closing params
@@ -159,6 +159,45 @@ class TestFormatting(unittest.TestCase):
             any("&group" in line for line in lines),
             "Attribute should be present"
         )
+
+    def test_event_attr_stays_inline_when_short(self):
+        """Short event header with &group fits on one line."""
+        code = b"event foo(c: connection) &group=bar { print c; }"
+        result = self._format(code).decode()
+        lines = result.splitlines()
+        self.assertIn("&group=bar", lines[0])
+
+    def test_event_attr_own_line_when_params_wrap(self):
+        """When params wrap, &group goes on its own continuation line."""
+        code = (
+            b"event SomeModule::some_raised_evt(c: connection, is_orig: bool,"
+            b" version: count, some_dcid: string, some_scid: string,"
+            b" some_retoken: string, some_integ_tag: string)"
+            b" &group=SomeEvtGroup { print c; }"
+        )
+        result = self._format(code).decode()
+        lines = result.splitlines()
+        # &group should be on its own line, not glued to closing paren
+        attr_line = [l for l in lines if "&group" in l]
+        self.assertEqual(len(attr_line), 1)
+        self.assertNotIn(")", attr_line[0])
+        # Params should align at same column
+        paren_col = lines[0].index("(") + 1
+        param_line = lines[1]
+        self.assertEqual(len(param_line) - len(param_line.lstrip()), paren_col)
+
+    def test_event_attr_underindented_when_deep_align_overflows(self):
+        """When param alignment + attr_list > 80, under-indent the attr_list."""
+        code = (
+            b"event some_generic_packet_threshold_crossed(c: connection,"
+            b" threshold: count)"
+            b" &group=MyPkg_SomeUnknownprotos_EvtGroup { print c; }"
+        )
+        result = self._format(code).decode()
+        lines = result.splitlines()
+        attr_line = [l for l in lines if "&group" in l]
+        self.assertEqual(len(attr_line), 1)
+        self.assertLessEqual(len(attr_line[0]), 80)
 
     def test_assignment_with_nested_function_alignment(self):
         """Assignment RHS with function call should align arguments correctly."""

@@ -719,6 +719,7 @@ class OutputStream:
                     # so we consider tokens "outer" when depth returns to or below 0
                     depth = 0
                     has_outer_breaks = False
+                    seen_first_token = False
                     for item in items_remaining:
                         token = item.data.strip()
                         if token in (b"(", b"[", b"{"):
@@ -728,6 +729,12 @@ class OutputStream:
                         elif depth <= 0 and token in break_tokens:
                             has_outer_breaks = True
                             break
+                        elif (depth <= 0 and token and seen_first_token
+                              and Hint.GOOD_AFTER_LB in item.formatter.hints):
+                            has_outer_breaks = True
+                            break
+                        if token:
+                            seen_first_token = True
                     if not has_outer_breaks:
                         remaining_len = sum(
                             visual_width(item.data, 0) for item in items_remaining

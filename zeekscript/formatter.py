@@ -860,7 +860,27 @@ class FuncHdrVariantFormatter(Formatter):
         self._format_child()  # <id>
         self._format_child()  # <func_params>
         if self._get_child_name() == "attr_list":
-            self._write_sp()
+            # If the unbroken header already exceeds 80 columns, the params
+            # will wrap.  Put the attr_list on its own continuation line so
+            # it aligns with the first parameter instead of being tacked on
+            # after the closing paren.
+            if self.ostream.get_visual_column() > self.ostream.MAX_LINE_LEN:
+                # If alignment + attr_list width would exceed 80, reduce
+                # alignment so the attr_list ends near column 78.
+                align = self.ostream.get_align_column()
+                attr_node = self._get_child()
+                attr_width = len(
+                    self.script.get_content(*attr_node.script_range()).split(b"\n")[0]
+                )
+                if align + attr_width > self.ostream.MAX_LINE_LEN:
+                    target_end = self.ostream.MAX_LINE_LEN - 2
+                    tab_col = self.ostream._tab_indent * self.ostream.TAB_SIZE
+                    new_align = max(tab_col + self.ostream.SPACE_INDENT,
+                                   target_end - attr_width)
+                    self.ostream.set_align_column(new_align)
+                self._write_nl(is_midline=True)
+            else:
+                self._write_sp()
             # Mark attr_list as preferred break point - if line needs wrapping,
             # prefer breaking before the attribute over breaking inside arguments.
             # Alignment column is still set from func_params, so attr_list aligns
