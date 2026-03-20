@@ -636,6 +636,34 @@ class OutputStream:
                     items_remaining, all_break_tuples, total_len, col_flushed, cont_indent, effective_max_len
                 )
 
+            # Avoid orphan operators: if breaking here would put a short
+            # operator token alone on the next line (because line2 also needs
+            # breaking right after the operator), include the operator on line1.
+            if chosen_break >= 0:
+                remainder = items_remaining[chosen_break + 1:]
+                # Find first non-whitespace token in remainder
+                first_idx = None
+                for ri, item in enumerate(remainder):
+                    if item.data.strip():
+                        first_idx = ri
+                        break
+                if first_idx is not None:
+                    first_token = remainder[first_idx].data.strip()
+                    # Check if it's a short operator (arithmetic/bitwise)
+                    if first_token in (b"*", b"+", b"-", b"/", b"%", b"&", b"|", b"^"):
+                        # Check if the operator would be orphaned: line2 would
+                        # need further breaking right after the operator
+                        op_abs_idx = chosen_break + 1 + first_idx
+                        # Find the next break point after the operator
+                        next_bp = None
+                        for bp in all_bps:
+                            if bp[0] == op_abs_idx:
+                                next_bp = bp
+                                break
+                        if next_bp is not None:
+                            # Shift break to after the operator instead
+                            chosen_break = op_abs_idx
+
             if chosen_break >= 0:
                 # Get the nesting depth at the break point for the next iteration
                 depth_at_break = current_depth

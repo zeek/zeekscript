@@ -541,6 +541,18 @@ class TestFormatting(unittest.TestCase):
             "Arithmetic expression should stay together on one line"
         )
 
+    def test_no_orphan_arithmetic_operator(self):
+        """Arithmetic operators should not be alone on a line."""
+        code = b'function some_func_bb(c: connection, cnt: count): interval { if ( some_long_variable_a > 0 ) { SomeModule::some_long_function_name(c, (some_long_variable_a + 3) * some_long_variable_bb, F); } }'
+        result = self._format(code).decode()
+        lines = result.splitlines()
+        # The * should be at end of a line, not orphaned on its own line
+        orphan_star = any(line.strip() == "*" for line in lines)
+        self.assertFalse(orphan_star, "* operator should not be alone on a line")
+        # * should be at end of some line
+        found_star_at_end = any(line.rstrip().endswith("*") for line in lines)
+        self.assertTrue(found_star_at_end, "Expected * at end of line")
+
     def test_arithmetic_operator_at_end_when_breaking(self):
         """When arithmetic must break, keep operator at end of line.
 
