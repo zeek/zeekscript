@@ -300,7 +300,10 @@ class OutputStream:
         needs_no_lb_after = False
         for out in self._linebuffer[::-1]:
             if out.data.strip() and needs_no_lb_after:
-                out.formatter.hints |= Hint.NO_LB_AFTER
+                # Don't suppress breaks after commas — they are natural break
+                # points in argument lists and should always remain available.
+                if out.data.strip() != b",":
+                    out.formatter.hints |= Hint.NO_LB_AFTER
                 needs_no_lb_after = False
             if Hint.NO_LB_BEFORE in out.formatter.hints:
                 needs_no_lb_after = True

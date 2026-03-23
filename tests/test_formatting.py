@@ -984,6 +984,18 @@ print 1;
         brace_indent = len(close_brace) - len(close_brace.lstrip())
         self.assertEqual(brace_indent, switch_indent)
 
+    def test_comma_before_bracket_is_break_point(self):
+        """Comma before [...] initializer should be a valid line break point."""
+        code = b'event zeek_init() { SomeModule::some_register_fn(SomeModule::SOME_ANALYZER, [$get_handle=SomeModule::get_handle, $describe=SomeModule::describe_it]); }'
+        result = self._format(code).decode()
+        lines = result.splitlines()
+        # The comma should break the line, not end up at start of continuation
+        call_line = next(l for l in lines if "some_register_fn" in l)
+        self.assertTrue(call_line.rstrip().endswith(","))
+        # The continuation should start with [
+        next_idx = lines.index(call_line) + 1
+        self.assertTrue(lines[next_idx].lstrip().startswith("["))
+
 
 class TestFormattingErrors(unittest.TestCase):
     def _format(self, content):
