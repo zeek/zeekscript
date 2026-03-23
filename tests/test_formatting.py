@@ -951,6 +951,19 @@ print 1;
         # The output should still be valid (no MISINDENTATION markers)
         self.assertIn(b"&optional", result)
 
+    def test_switch_paren_expr_has_spaces(self):
+        """Parenthesized switch expressions should have spaces inside parens."""
+        code = b'function f() { switch (val) { case 0: break; } }'
+        result = self._format(code).decode()
+        self.assertIn("switch ( val )", result)
+
+    def test_switch_bare_expr_no_spaces(self):
+        """Non-parenthesized switch expressions should remain unchanged."""
+        code = b'function f() { switch val { case 0: break; } }'
+        result = self._format(code).decode()
+        self.assertIn("switch val", result)
+        self.assertNotIn("switch ( val )", result)
+
 
 class TestFormattingErrors(unittest.TestCase):
     def _format(self, content):

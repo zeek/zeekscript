@@ -102,6 +102,7 @@ class Hint(enum.Flag):
     INIT_LENIENT = enum.auto()  # Use lenient line length (don't wrap unless very long)
     ATTR_SPACES = enum.auto()  # Use spaces around '=' in attributes
     BRACE_TO_CONSTRUCTOR = enum.auto()  # Transform { } to set( ) or table( )
+    SPACED_PARENS = enum.auto()  # Add spaces inside parentheses: ( expr )
 
 
 class Formatter:
@@ -1114,7 +1115,7 @@ class StmtFormatter(TypedInitializerFormatter):
         elif start_token == "switch":
             self._format_child()  # 'switch'
             self._write_sp()
-            self._format_child()  # <expr>
+            self._format_child(hints=Hint.SPACED_PARENS)  # <expr>
             self._write_nl()
             self._format_child(indent=True)  # '{'
 
@@ -1740,11 +1741,16 @@ class ExprFormatter(SpaceSeparatedFormatter, ComplexSequenceFormatterMixin):
             # so the line-breaker knows to prefer breaking before it. This keeps
             # operators like || and + at the end of line 1. When GOOD_AFTER_LB is
             # set, don't add NO_LB_BEFORE since that would prevent the desired break.
+            spaced = Hint.SPACED_PARENS in self.hints
             paren_hints = self.hints
             if Hint.GOOD_AFTER_LB not in self.hints:
                 paren_hints |= Hint.NO_LB_BEFORE
             self._format_child(hints=paren_hints)  # '('
+            if spaced:
+                self._write_sp()
             self._format_child(hints=Hint.NO_LB_AFTER)  # <expr>
+            if spaced:
+                self._write_sp()
             self._format_child()  # ')'
 
         elif ct1 == "$" and ct3 == "=":

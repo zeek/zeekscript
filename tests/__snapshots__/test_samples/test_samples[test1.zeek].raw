@@ -134,7 +134,7 @@ function b_function(a: int, b: count,
 	call( # with an interrupting comment
 	     arg1, arg2);
 
-	switch (foo)
+	switch ( foo )
 		{
 		case A:
 			bar();
