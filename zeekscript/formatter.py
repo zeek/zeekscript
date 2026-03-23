@@ -1116,8 +1116,8 @@ class StmtFormatter(TypedInitializerFormatter):
             self._format_child()  # 'switch'
             self._write_sp()
             self._format_child(hints=Hint.SPACED_PARENS)  # <expr>
-            self._write_nl()
-            self._format_child(indent=True)  # '{'
+            self._write_sp()
+            self._format_child()  # '{'
 
             # Shorten braces to "{ }" if there is at most whitespace between them.
             child = self._get_child()
@@ -1131,9 +1131,9 @@ class StmtFormatter(TypedInitializerFormatter):
             else:
                 if self._get_child_name() == "case_list":
                     self._write_nl()
-                    self._format_child(indent=True)  # <case_list>
+                    self._format_child()  # <case_list>
                 self._write_nl()
-                self._format_child(indent=True)  # '}'
+                self._format_child()  # '}'
             self._write_nl()
 
         elif start_token == "for":

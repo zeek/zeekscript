@@ -964,6 +964,26 @@ print 1;
         self.assertIn("switch val", result)
         self.assertNotIn("switch ( val )", result)
 
+    def test_switch_brace_on_same_line_and_case_not_indented(self):
+        """Switch opening brace on same line, cases/closing brace at switch indent."""
+        code = b'function f() { switch (val) { case 0: break; case 1: break; } }'
+        result = self._format(code).decode()
+        lines = result.splitlines()
+        switch_line = next(l for l in lines if "switch" in l)
+        # Opening brace on same line as switch
+        self.assertTrue(switch_line.rstrip().endswith("{"))
+        # Find indent of the switch line
+        switch_indent = len(switch_line) - len(switch_line.lstrip())
+        # Case lines should be at same indent level as switch
+        case_lines = [l for l in lines if l.lstrip().startswith("case ")]
+        for cl in case_lines:
+            case_indent = len(cl) - len(cl.lstrip())
+            self.assertEqual(case_indent, switch_indent)
+        # Closing brace at same indent level as switch
+        close_brace = next(l for l in lines if l.strip() == "}")
+        brace_indent = len(close_brace) - len(close_brace.lstrip())
+        self.assertEqual(brace_indent, switch_indent)
+
 
 class TestFormattingErrors(unittest.TestCase):
     def _format(self, content):
