@@ -359,16 +359,22 @@ class OutputStream:
                         # over breaking after ?. Type declaration : has no such hint.
                         is_preferred_op = token in (b"&&", b"||")
                         # Check if the next non-whitespace token has GOOD_AFTER_LB
+                        # or is a comma (which suppresses this break point)
                         is_before_good_lb = False
+                        next_is_comma = False
                         for j in range(i + 1, len(items)):
                             next_token = items[j].data.strip()
                             if next_token:
                                 is_before_good_lb = j in good_lb_indices
+                                next_is_comma = next_token == b","
                                 break
-                        all_break_points.append(
-                            (i, total_len, nesting_depth, is_comma, is_before_good_lb,
-                             is_preferred_op)
-                        )
+                        # Don't register a break point right before a comma —
+                        # the comma itself is a better break point.
+                        if not next_is_comma:
+                            all_break_points.append(
+                                (i, total_len, nesting_depth, is_comma,
+                                 is_before_good_lb, is_preferred_op)
+                            )
 
             return all_break_points, total_len, has_init_lenient, nesting_depth
 

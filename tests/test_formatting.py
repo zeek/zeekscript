@@ -996,6 +996,20 @@ print 1;
         next_idx = lines.index(call_line) + 1
         self.assertTrue(lines[next_idx].lstrip().startswith("["))
 
+    def test_comma_stays_with_value_not_on_next_line(self):
+        """Comma should stay on same line as its value, not start the next line."""
+        code = b'event foo() { SomeModule::seen([$some_field=SomeModule::build_value(c$some_data$items[stream]), $some_type=SomeModule::URL, $conn=c, $where=SomeModule::IN_URL]); }'
+        result = self._format(code).decode()
+        lines = result.splitlines()
+        # Find the line with build_value — the comma should be at the end
+        val_line = next(l for l in lines if "build_value" in l)
+        self.assertTrue(val_line.rstrip().endswith(","),
+                        f"Comma not at end of line: {val_line!r}")
+        # No line should start with a comma
+        for line in lines:
+            self.assertFalse(line.lstrip().startswith(","),
+                             f"Line starts with comma: {line!r}")
+
     def test_export_trailing_comments_indented(self):
         """Comments at end of export block should be indented like declarations."""
         code = b'export {\n\tglobal some_evt: event(rec: Info);\n\n\t## Some trailing comment\n\t## Another trailing comment\n}\n'
