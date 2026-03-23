@@ -996,6 +996,16 @@ print 1;
         next_idx = lines.index(call_line) + 1
         self.assertTrue(lines[next_idx].lstrip().startswith("["))
 
+    def test_export_trailing_comments_indented(self):
+        """Comments at end of export block should be indented like declarations."""
+        code = b'export {\n\tglobal some_evt: event(rec: Info);\n\n\t## Some trailing comment\n\t## Another trailing comment\n}\n'
+        result = self._format(code).decode()
+        lines = result.splitlines()
+        for line in lines:
+            if line.lstrip().startswith("##"):
+                self.assertTrue(line.startswith("\t"),
+                                f"Comment not indented: {line!r}")
+
 
 class TestFormattingErrors(unittest.TestCase):
     def _format(self, content):

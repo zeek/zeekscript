@@ -530,6 +530,13 @@ class ExportDeclFormatter(Formatter):
         self._write_nl()
         while self._get_child_name() == "decl":
             self._format_child(indent=True)
+        # Indent any trailing comments (CST siblings of '}') before the
+        # unindented closing brace.
+        close_brace = self._get_child()
+        if close_brace:
+            for node in close_brace.prev_cst_siblings:
+                self._format_child_impl(node, indent=True)
+            close_brace.prev_cst_siblings = []
         self._format_child()  # '}'
         self._write_nl()
 
