@@ -43,6 +43,500 @@ class Output:
         self.hints = hints  # Hints active when this output was written
 
 
+class LineBreaker:
+    """Handles line-wrapping logic for a single buffered line.
+
+    Iteratively breaks lines that exceed MAX_LINE_LEN (80 columns):
+
+    1. Find valid break points (after tokens without NO_LB_AFTER hint)
+    2. Filter to prefer breaks at outermost nesting level and after commas
+    3. Prefer breaks before GOOD_AFTER_LB tokens (keeps operators at line end)
+    4. Choose a break that balances line lengths while keeping both under limit
+    5. Skip breaks that would make things worse (line2 >= original length)
+    6. If no break keeps both lines under limit, minimize line1's excess
+    7. Repeat for remainder until all lines fit or no valid breaks remain
+    """
+
+    def __init__(self, stream: "OutputStream", items: list[Output]) -> None:
+        self.stream = stream
+        self.col_flushed = 0
+        self.tbd: list[Output] = []
+        self.break_align_col = 0
+        self.current_depth = 0
+        self.items_remaining = items
+
+    @staticmethod
+    def visual_width(data: bytes, start_col: int, tab_size: int) -> int:
+        """Calculate visual width of data, accounting for tab stops."""
+        col = start_col
+        for byte in data:
+            if byte == ord(b"\t"):
+                col = ((col // tab_size) + 1) * tab_size
+            else:
+                col += 1
+        return col - start_col
+
+    def _write_linebreak(self) -> None:
+        s = self.stream
+        total_indent = s._tab_indent + s._preproc_depth
+        s._write(Formatter.NL)
+        s._write(b"\t" * total_indent)
+        tab_col = total_indent * s.TAB_SIZE
+
+        # Check if first non-whitespace item needs special handling
+        align_col = self.break_align_col
+        use_tab_wrap = False
+        for item in self.tbd:
+            if item.data.strip():
+                if item.hints is not None and Hint.INIT_ELEMENT in item.hints:
+                    use_tab_wrap = True
+                break
+
+        if use_tab_wrap:
+            # Initializer elements use an extra tab for continuation
+            s._write(b"\t")
+            self.col_flushed = tab_col + s.TAB_SIZE
+        elif align_col > 0 and align_col < s.MAX_ALIGN_COL:
+            # Align to the specified column (e.g., after opening paren)
+            # Skip if alignment uses more than half the line (too much whitespace)
+            space_count = max(0, align_col - tab_col)
+            s._write(b" " * space_count)
+            self.col_flushed = tab_col + space_count
+        elif align_col >= s.MAX_ALIGN_COL:
+            # Alignment uses too much whitespace, use TAB_SIZE
+            # to maintain visual hierarchy with parent constructs
+            s._write(b" " * s.TAB_SIZE)
+            self.col_flushed = tab_col + s.TAB_SIZE
+        else:
+            # align_col == 0: no alignment set - this shouldn't happen.
+            s._write(s.MISINDENT_MARKER)
+            s._write(b"\t" * total_indent)
+            self.col_flushed = tab_col
+
+        # Remove leading whitespace from continuation
+        while self.tbd and not self.tbd[0].data.strip():
+            self.tbd.pop(0)
+
+    def find_break_points(
+        self, items: list[Output], start_col: int, start_depth: int = 0
+    ) -> tuple[list[BreakPoint], int, bool, int]:
+        """Find valid break points in a list of items.
+
+        Returns (all_break_points, total_len, has_init_lenient, end_depth).
+        """
+        tab_size = self.stream.TAB_SIZE
+        total_len = start_col
+        all_break_points: list[BreakPoint] = []
+        has_init_lenient = False
+        nesting_depth = start_depth
+
+        # First pass: collect indices of tokens with GOOD_AFTER_LB
+        good_lb_indices: set[int] = set()
+        for i, out in enumerate(items):
+            if out.data.strip() and Hint.GOOD_AFTER_LB in out.formatter.hints:
+                good_lb_indices.add(i)
+
+        for i, out in enumerate(items):
+            token = out.data.strip()
+            if token in (b"(", b"[", b"{"):
+                nesting_depth += 1
+            elif token in (b")", b"]", b"}"):
+                nesting_depth -= 1
+
+            if Hint.ZERO_WIDTH not in out.formatter.hints:
+                # Exclude newlines from line length calculation
+                if out.data != b'\n' and out.data != b'\r\n':
+                    total_len += self.visual_width(out.data, total_len, tab_size)
+
+            if token:
+                if out.hints is not None and Hint.INIT_LENIENT in out.hints:
+                    has_init_lenient = True
+                if Hint.NO_LB_AFTER not in out.formatter.hints:
+                    is_comma = token == b","
+                    # Check if current token is a preferred logical operator.
+                    is_preferred_op = token in (b"&&", b"||")
+                    # Check if the next non-whitespace token has GOOD_AFTER_LB
+                    # or is a comma (which suppresses this break point)
+                    is_before_good_lb = False
+                    next_is_comma = False
+                    for j in range(i + 1, len(items)):
+                        next_token = items[j].data.strip()
+                        if next_token:
+                            is_before_good_lb = j in good_lb_indices
+                            next_is_comma = next_token == b","
+                            break
+                    # Don't register a break point right before a comma —
+                    # the comma itself is a better break point.
+                    if not next_is_comma:
+                        all_break_points.append(BreakPoint(
+                            i, total_len, nesting_depth, is_comma,
+                            is_before_good_lb, is_preferred_op,
+                        ))
+
+        return all_break_points, total_len, has_init_lenient, nesting_depth
+
+    @staticmethod
+    def _as_filtered(bp: BreakPoint) -> FilteredBreak:
+        return FilteredBreak(bp.index, bp.visual_column, bp.is_before_good_lb)
+
+    @staticmethod
+    def filter_break_points(
+        all_break_points: list[BreakPoint],
+    ) -> list[FilteredBreak]:
+        """Filter break points by nesting depth, comma preference, and GOOD_AFTER_LB.
+
+        Prefers breaks at the minimum non-zero nesting depth to avoid breaking
+        inside nested function calls when an outer break is available.
+        At each depth, prefers breaks in this order:
+        1. Commas (for argument lists)
+        2. Preferred operators (&&, ||) - logical structure
+        3. All other breaks at that depth
+
+        GOOD_AFTER_LB breaks from outer depths are included as fallback options,
+        but GOOD_AFTER_LB breaks at the same depth as commas are excluded
+        (prevents arithmetic operators competing with commas).
+        """
+        as_filtered = LineBreaker._as_filtered
+
+        if not all_break_points:
+            return []
+
+        depths = sorted(set(bp.nesting_depth for bp in all_break_points))
+        non_zero_depths = [d for d in depths if d > 0]
+        target_depths = non_zero_depths if non_zero_depths else depths
+
+        for depth in target_depths:
+            at_depth = [bp for bp in all_break_points if bp.nesting_depth == depth]
+            if at_depth:
+                # Priority: commas > preferred ops (&&, ||) > all other breaks
+                comma_breaks = [as_filtered(bp) for bp in at_depth if bp.is_comma]
+                if comma_breaks:
+                    # Only include GOOD_AFTER_LB breaks from OUTER depths as fallbacks.
+                    outer_good_lb = [
+                        as_filtered(bp) for bp in all_break_points
+                        if bp.is_before_good_lb and bp.nesting_depth < depth
+                    ]
+                    return comma_breaks + outer_good_lb
+
+                preferred_breaks = [as_filtered(bp) for bp in at_depth if bp.is_preferred_op]
+                if preferred_breaks:
+                    return preferred_breaks
+
+                # No commas or preferred ops - include all GOOD_AFTER_LB as options
+                good_lb_breaks = [
+                    as_filtered(bp) for bp in all_break_points if bp.is_before_good_lb
+                ]
+                return [as_filtered(bp) for bp in at_depth] + good_lb_breaks
+
+        # Fallback: return all GOOD_AFTER_LB breaks
+        return [LineBreaker._as_filtered(bp) for bp in all_break_points if bp.is_before_good_lb]
+
+    def choose_break(
+        self,
+        items: list[Output],
+        break_points: list[FilteredBreak],
+        total_len: int,
+        start_col: int,
+        continuation_indent: int,
+        effective_max_len: int,
+    ) -> int:
+        """Choose the best break point index, or -1 if no break needed.
+
+        Strategy:
+        1. If line fits, no break needed
+        2. Find breaks where both line1 and line2 fit under MAX_LINE_LEN
+        3. Among valid breaks, prefer those before GOOD_AFTER_LB tokens
+        4. Among remaining valid breaks, prefer the latest where line2 >= 2/3
+           of line1 (balances lines while maximizing content on line1)
+        5. If no break keeps both lines under limit, pick the break that
+           keeps line1 closest to MAX_LINE_LEN (minimizing excess)
+        6. Skip breaks that aren't "worth it"
+        7. If chosen break isn't worthwhile, try alternative break points
+        """
+        s = self.stream
+        tab_size = s.TAB_SIZE
+
+        if total_len <= effective_max_len:
+            return -1
+        num_items = len([o for o in items if o.data.strip()])
+        has_good_lb = any(bp.is_before_good_lb for bp in break_points)
+        significantly_over = total_len > effective_max_len + 20
+        if num_items < s.MIN_LINE_ITEMS and not has_good_lb and not significantly_over:
+            return -1
+        if not break_points:
+            return -1
+
+        # Adjust break point columns relative to start_col
+        adjusted_breaks = [
+            FilteredBreak(bp.index, bp.visual_column - start_col, bp.is_before_good_lb)
+            for bp in break_points
+        ]
+
+        # Find breaks where both lines fit under limit
+        valid_breaks: list[tuple[int, int, int, bool]] = []
+        for bp in adjusted_breaks:
+            idx, col, is_good = bp.index, bp.visual_column, bp.is_before_good_lb
+            abs_col = start_col + col
+            remainder = total_len - abs_col
+            # Get the actual alignment for the item after this break
+            break_cont = continuation_indent
+            for j in range(idx + 1, len(items)):
+                if items[j].data.strip():
+                    if items[j].align_column > 0:
+                        break_cont = items[j].align_column
+                    break
+            line2_len = break_cont + remainder
+            if abs_col <= s.MAX_LINE_LEN and line2_len <= s.MAX_LINE_LEN:
+                valid_breaks.append((idx, abs_col, line2_len, is_good))
+
+        if not valid_breaks:
+            # No break keeps both lines under limit.
+            # Pick break that keeps line1 closest to 80.
+            target = s.MAX_LINE_LEN
+
+            def score(bp: FilteredBreak) -> tuple[int, int]:
+                abs_col = start_col + bp.visual_column
+                if abs_col <= target:
+                    return (0, target - abs_col)
+                else:
+                    return (1, abs_col - target)
+
+            best_bp = min(adjusted_breaks, key=score)
+            best_break = best_bp.index
+        else:
+            # Prefer breaks before GOOD_AFTER_LB tokens
+            good_lb_breaks = [vb for vb in valid_breaks if vb[3]]
+            candidates = good_lb_breaks if good_lb_breaks else valid_breaks
+
+            # Among candidates, prefer latest where line2 >= 2/3 of line1
+            best_break = -1
+            for idx, abs_col, line2_len, _ in reversed(candidates):
+                if line2_len >= abs_col * 2 // 3:
+                    best_break = idx
+                    break
+            if best_break < 0:
+                best_break = min(candidates, key=lambda x: abs(x[1] - x[2]))[0]
+
+        # Check if break is worth it
+        if best_break >= 0:
+            break_col = next(
+                start_col + bp.visual_column for bp in adjusted_breaks if bp.index == best_break
+            )
+            remainder = total_len - break_col
+            if remainder < s.MIN_LINE_EXCESS and total_len <= s.MAX_LINE_LEN + s.MIN_LINE_EXCESS:
+                return -1
+
+        # Check there's content after the break
+        if best_break >= 0:
+            has_content = any(items[j].data.strip() for j in range(best_break + 1, len(items)))
+            if not has_content:
+                return -1
+
+        # Check if breaking would actually help
+        def is_break_worthwhile(break_idx: int) -> bool:
+            remaining_items = items[break_idx + 1:]
+            while remaining_items and not remaining_items[0].data.strip():
+                remaining_items = remaining_items[1:]
+            if not remaining_items:
+                return False
+            cont_align = continuation_indent
+            if remaining_items[0].align_column > 0:
+                cont_align = remaining_items[0].align_column
+            remaining_len = sum(self.visual_width(item.data, 0, tab_size) for item in remaining_items)
+            line2_len = cont_align + remaining_len
+            if line2_len > total_len:
+                return False
+            if line2_len == total_len:
+                first_token = remaining_items[0].data.strip()
+                if first_token.startswith(b'"') or first_token.startswith(b"'"):
+                    return False
+                remaining_bps = [bp for bp in adjusted_breaks if bp.index > break_idx]
+                for bp in remaining_bps:
+                    token = items[bp.index].data.strip()
+                    if token not in (b")", b"]", b"}", b";"):
+                        return True
+                return False
+            return True
+
+        # Validate the chosen break, try alternatives if not worthwhile
+        if best_break >= 0 and not is_break_worthwhile(best_break):
+            for bp in adjusted_breaks:
+                if bp.index != best_break and is_break_worthwhile(bp.index):
+                    best_break = bp.index
+                    break
+            else:
+                best_break = -1
+
+        # Final check: ensure there's content after the break
+        if best_break >= 0:
+            has_content = any(items[j].data.strip() for j in range(best_break + 1, len(items)))
+            if not has_content:
+                return -1
+
+        return best_break
+
+    def run(self) -> None:
+        """Process the line buffer, breaking lines as needed."""
+        s = self.stream
+        tab_size = s.TAB_SIZE
+
+        # Count non-whitespace items for MIN_LINE_ITEMS check
+        line_items = sum(1 for out in self.items_remaining if out.data.strip())
+
+        # Propagate NO_LB_BEFORE backward as NO_LB_AFTER
+        needs_no_lb_after = False
+        for out in self.items_remaining[::-1]:
+            if out.data.strip() and needs_no_lb_after:
+                if out.data.strip() != b",":
+                    out.formatter.hints |= Hint.NO_LB_AFTER
+                needs_no_lb_after = False
+            if Hint.NO_LB_BEFORE in out.formatter.hints:
+                needs_no_lb_after = True
+
+        while self.items_remaining:
+            all_bps, total_len, has_init_lenient, end_depth = self.find_break_points(
+                self.items_remaining, self.col_flushed, self.current_depth
+            )
+            break_points = self.filter_break_points(all_bps)
+
+            effective_max_len = s.MAX_LINE_LEN * 2 if has_init_lenient else s.MAX_LINE_LEN
+
+            # Determine continuation indent for potential breaks
+            total_indent = s._tab_indent + s._preproc_depth
+            tab_col = total_indent * s.TAB_SIZE
+            cont_indent = 0
+            if break_points:
+                first_break_idx = break_points[0].index
+                for j in range(first_break_idx + 1, len(self.items_remaining)):
+                    if self.items_remaining[j].data.strip():
+                        cont_indent = self.items_remaining[j].align_column
+                        break
+            if cont_indent == 0:
+                cont_indent = tab_col + s.SPACE_INDENT
+            elif cont_indent >= s.MAX_ALIGN_COL:
+                cont_indent = tab_col + s.TAB_SIZE
+
+            chosen_break = self.choose_break(
+                self.items_remaining, break_points, total_len, self.col_flushed,
+                cont_indent, effective_max_len
+            )
+
+            # If no valid break with filtered points, or if chosen break still
+            # produces an over-limit line1, try all break points.
+            try_all_breaks = chosen_break < 0 and total_len > effective_max_len
+            if not try_all_breaks and chosen_break >= 0:
+                for bp in all_bps:
+                    if bp.index == chosen_break:
+                        if bp.visual_column > effective_max_len:
+                            try_all_breaks = True
+                        break
+            if try_all_breaks:
+                all_break_tuples = [self._as_filtered(bp) for bp in all_bps]
+                chosen_break = self.choose_break(
+                    self.items_remaining, all_break_tuples, total_len,
+                    self.col_flushed, cont_indent, effective_max_len
+                )
+
+            # Avoid orphan operators
+            if chosen_break >= 0:
+                remainder = self.items_remaining[chosen_break + 1:]
+                first_idx = None
+                for ri, item in enumerate(remainder):
+                    if item.data.strip():
+                        first_idx = ri
+                        break
+                if first_idx is not None:
+                    first_token = remainder[first_idx].data.strip()
+                    if first_token in (b"*", b"+", b"-", b"/", b"%", b"&", b"|", b"^"):
+                        op_abs_idx = chosen_break + 1 + first_idx
+                        next_bp = None
+                        for bp in all_bps:
+                            if bp.index == op_abs_idx:
+                                next_bp = bp
+                                break
+                        if next_bp is not None:
+                            chosen_break = op_abs_idx
+
+            if chosen_break >= 0:
+                # Get nesting depth at break point for next iteration
+                depth_at_break = self.current_depth
+                for bp in all_bps:
+                    if bp.index == chosen_break:
+                        depth_at_break = bp.nesting_depth
+                        break
+
+                # Output items up to and including break point
+                for out in self.items_remaining[: chosen_break + 1]:
+                    s._write(out.data)
+                    self.col_flushed += self.visual_width(out.data, self.col_flushed, tab_size)
+
+                self.current_depth = depth_at_break
+                self.items_remaining = self.items_remaining[chosen_break + 1 :]
+
+                # Remove leading whitespace from remaining
+                removed_ws_width = 0
+                while self.items_remaining and not self.items_remaining[0].data.strip():
+                    removed_ws_width += len(self.items_remaining[0].data)
+                    self.items_remaining.pop(0)
+
+                # Find alignment column from first remaining item
+                self.break_align_col = 0
+                if self.items_remaining:
+                    self.break_align_col = self.items_remaining[0].align_column
+
+                # Adjust nested alignments
+                for item in self.items_remaining:
+                    if item.align_column > self.break_align_col:
+                        item.align_column = (
+                            self.break_align_col
+                            + (item.align_column - self.col_flushed - removed_ws_width)
+                        )
+
+                # Check if remaining content would fit with shallower alignment
+                if self.break_align_col > 0:
+                    break_tokens = (b",", b"/", b"*", b"+", b"-", b"||", b"&&")
+                    depth = 0
+                    has_outer_breaks = False
+                    seen_first_token = False
+                    for item in self.items_remaining:
+                        token = item.data.strip()
+                        if token in (b"(", b"[", b"{"):
+                            depth += 1
+                        elif token in (b")", b"]", b"}"):
+                            depth -= 1
+                        elif depth <= 0 and token in break_tokens:
+                            has_outer_breaks = True
+                            break
+                        elif (depth <= 0 and token and seen_first_token
+                              and Hint.GOOD_AFTER_LB in item.formatter.hints):
+                            has_outer_breaks = True
+                            break
+                        if token:
+                            seen_first_token = True
+                    if not has_outer_breaks:
+                        remaining_len = sum(
+                            self.visual_width(item.data, 0, tab_size)
+                            for item in self.items_remaining
+                        )
+                        line2_len = self.break_align_col + remaining_len
+                        if line2_len > s.MAX_LINE_LEN:
+                            target_end = s.MAX_LINE_LEN - 2
+                            shallow_align = max(tab_col + s.SPACE_INDENT,
+                                              target_end - remaining_len)
+                            if shallow_align + remaining_len <= s.MAX_LINE_LEN:
+                                self.break_align_col = shallow_align
+
+                # Write linebreak
+                self.tbd = self.items_remaining
+                self._write_linebreak()
+            else:
+                # No break needed - output all remaining items
+                for out in self.items_remaining:
+                    s._write(out.data)
+                    self.col_flushed += self.visual_width(out.data, self.col_flushed, tab_size)
+                break
+
+
 class OutputStream:
     """An indenting, column-aware, line-buffered, line-wrapping,
     trailing-whitespace-stripping output stream wrapper. When used as a context
@@ -232,566 +726,14 @@ class OutputStream:
         return visual_col
 
     def _flush_line(self) -> None:
-        """Flushes out the line buffer, applying line wrapping as needed.
-
-        Without linewrapping, this simply flushes the buffer. With linewrapping,
-        this iteratively breaks lines that exceed MAX_LINE_LEN (80 columns):
-
-        1. Find valid break points (after tokens without NO_LB_AFTER hint)
-        2. Filter to prefer breaks at the outermost nesting level and after commas
-        3. Prefer breaks before GOOD_AFTER_LB tokens (keeps operators at line end)
-        4. Choose a break that balances line lengths while keeping both under limit
-        5. Skip breaks that would make things worse (line2 >= original length)
-        6. If no break keeps both lines under limit, minimize line1's excess
-        7. Repeat for remainder until all lines fit or no valid breaks remain
-
-        Break points track nesting depth (parentheses/brackets/braces) so that
-        breaks inside nested function calls are avoided when outer breaks exist.
-        Continuation lines align to the column specified by align_column (typically
-        set after an opening parenthesis by the formatter). For atomic content
-        (no further break points), alignment may be adjusted shallower to avoid
-        cascading breaks.
-        """
-
+        """Flushes out the line buffer, applying line wrapping as needed."""
         # Without linebreaking active, just flush the buffer.
         if not self._enable_linebreaks or not self._use_linebreaks:
             for out in self._linebuffer:
                 self._write(out.data)
-
-            self._linebuffer = []
-            self._col = 0
-            return
-
-        col_flushed = 0  # Visual column up to which we've currently written a line
-        tbd: list[Output] = []  # Items for write_linebreak() to inspect for hints
-        line_items = 0  # Number of non-whitespace tokens on line (for MIN_LINE_ITEMS check)
-
-        def visual_width(data: bytes, start_col: int) -> int:
-            """Calculate visual width of data, accounting for tab stops."""
-            col = start_col
-            for byte in data:
-                if byte == ord(b"\t"):
-                    col = ((col // self.TAB_SIZE) + 1) * self.TAB_SIZE
-                else:
-                    col += 1
-            return col - start_col
-
-        # Alignment column for continuation lines, set before each write_linebreak()
-        break_align_col = 0
-
-        def write_linebreak() -> None:
-            nonlocal tbd, col_flushed
-            total_indent = self._tab_indent + self._preproc_depth
-            self._write(Formatter.NL)
-            self._write(b"\t" * total_indent)
-            tab_col = total_indent * self.TAB_SIZE
-
-            # Check if first non-whitespace item needs special handling
-            align_col = break_align_col
-            use_tab_wrap = False
-            for item in tbd:
-                if item.data.strip():
-                    if item.hints is not None and Hint.INIT_ELEMENT in item.hints:
-                        use_tab_wrap = True
-                    break
-
-            if use_tab_wrap:
-                # Initializer elements use an extra tab for continuation
-                self._write(b"\t")
-                col_flushed = tab_col + self.TAB_SIZE
-            elif align_col > 0 and align_col < self.MAX_ALIGN_COL:
-                # Align to the specified column (e.g., after opening paren)
-                # Skip if alignment uses more than half the line (too much whitespace)
-                space_count = max(0, align_col - tab_col)
-                self._write(b" " * space_count)
-                col_flushed = tab_col + space_count
-            elif align_col >= self.MAX_ALIGN_COL:
-                # Alignment uses too much whitespace, use TAB_SIZE
-                # to maintain visual hierarchy with parent constructs
-                self._write(b" " * self.TAB_SIZE)
-                col_flushed = tab_col + self.TAB_SIZE
-            else:
-                # align_col == 0: no alignment set - this shouldn't happen.
-                # Uses self._write() since we're already in the flushing phase.
-                self._write(self.MISINDENT_MARKER)
-                self._write(b"\t" * total_indent)
-                col_flushed = tab_col
-
-            # Remove leading whitespace from continuation
-            while tbd and not tbd[0].data.strip():
-                tbd.pop(0)
-
-        # Count number of non-whitespace items on the line. This helps with some
-        # linebreak heuristics below.
-        for out in self._linebuffer:
-            if out.data.strip():
-                line_items += 1
-
-        # It is logistically more difficult to honor NO_LB_BEFORE as it arises,
-        # because we need to "look-ahead" to prevent breaking. To simplify,
-        # reverse-iterate over the line's tokens and tuck NO_LB_AFTER onto
-        # tokens that precede NO_LB_BEFORE.
-        needs_no_lb_after = False
-        for out in self._linebuffer[::-1]:
-            if out.data.strip() and needs_no_lb_after:
-                # Don't suppress breaks after commas — they are natural break
-                # points in argument lists and should always remain available.
-                if out.data.strip() != b",":
-                    out.formatter.hints |= Hint.NO_LB_AFTER
-                needs_no_lb_after = False
-            if Hint.NO_LB_BEFORE in out.formatter.hints:
-                needs_no_lb_after = True
-
-        def find_break_points(
-            items: list[Output], start_col: int, start_depth: int = 0
-        ) -> tuple[list[BreakPoint], int, bool, int]:
-            """Find valid break points in a list of items.
-
-            Returns (all_break_points, total_len, has_init_lenient, end_depth).
-            """
-            total_len = start_col
-            all_break_points: list[BreakPoint] = []
-            has_init_lenient = False
-            nesting_depth = start_depth
-
-            # First pass: collect indices of tokens with GOOD_AFTER_LB
-            good_lb_indices: set[int] = set()
-            for i, out in enumerate(items):
-                if out.data.strip() and Hint.GOOD_AFTER_LB in out.formatter.hints:
-                    good_lb_indices.add(i)
-
-            for i, out in enumerate(items):
-                token = out.data.strip()
-                if token in (b"(", b"[", b"{"):
-                    nesting_depth += 1
-                elif token in (b")", b"]", b"}"):
-                    nesting_depth -= 1
-
-                if Hint.ZERO_WIDTH not in out.formatter.hints:
-                    # Exclude newlines from line length calculation
-                    if out.data != b'\n' and out.data != b'\r\n':
-                        total_len += visual_width(out.data, total_len)
-
-                if token:
-                    if out.hints is not None and Hint.INIT_LENIENT in out.hints:
-                        has_init_lenient = True
-                    if Hint.NO_LB_AFTER not in out.formatter.hints:
-                        is_comma = token == b","
-                        # Check if current token is a preferred logical operator.
-                        # We prefer breaking after && and || to keep them at end of line.
-                        # Note: ternary ? and : are not included here. The formatter
-                        # marks ternary : with GOOD_AFTER_LB to prefer breaking there
-                        # over breaking after ?. Type declaration : has no such hint.
-                        is_preferred_op = token in (b"&&", b"||")
-                        # Check if the next non-whitespace token has GOOD_AFTER_LB
-                        # or is a comma (which suppresses this break point)
-                        is_before_good_lb = False
-                        next_is_comma = False
-                        for j in range(i + 1, len(items)):
-                            next_token = items[j].data.strip()
-                            if next_token:
-                                is_before_good_lb = j in good_lb_indices
-                                next_is_comma = next_token == b","
-                                break
-                        # Don't register a break point right before a comma —
-                        # the comma itself is a better break point.
-                        if not next_is_comma:
-                            all_break_points.append(BreakPoint(
-                                i, total_len, nesting_depth, is_comma,
-                                is_before_good_lb, is_preferred_op,
-                            ))
-
-            return all_break_points, total_len, has_init_lenient, nesting_depth
-
-        def as_filtered(bp: BreakPoint) -> FilteredBreak:
-            return FilteredBreak(bp.index, bp.visual_column, bp.is_before_good_lb)
-
-        def filter_break_points(
-            all_break_points: list[BreakPoint],
-        ) -> list[FilteredBreak]:
-            """Filter break points by nesting depth, comma preference, and GOOD_AFTER_LB.
-
-            Prefers breaks at the minimum non-zero nesting depth to avoid breaking
-            inside nested function calls when an outer break is available.
-            At each depth, prefers breaks in this order:
-            1. Commas (for argument lists)
-            2. Preferred operators (&&, ||) - logical structure
-            3. All other breaks at that depth
-
-            GOOD_AFTER_LB breaks from outer depths are included as fallback options,
-            but GOOD_AFTER_LB breaks at the same depth as commas are excluded
-            (prevents arithmetic operators competing with commas).
-            """
-            if not all_break_points:
-                return []
-
-            depths = sorted(set(bp.nesting_depth for bp in all_break_points))
-            non_zero_depths = [d for d in depths if d > 0]
-            target_depths = non_zero_depths if non_zero_depths else depths
-
-            for depth in target_depths:
-                at_depth = [bp for bp in all_break_points if bp.nesting_depth == depth]
-                if at_depth:
-                    # Priority: commas > preferred ops (&&, ||) > all other breaks
-                    comma_breaks = [as_filtered(bp) for bp in at_depth if bp.is_comma]
-                    if comma_breaks:
-                        # Only include GOOD_AFTER_LB breaks from OUTER depths as fallbacks.
-                        # This prevents arithmetic operators at the same depth from
-                        # competing with commas.
-                        outer_good_lb = [
-                            as_filtered(bp) for bp in all_break_points
-                            if bp.is_before_good_lb and bp.nesting_depth < depth
-                        ]
-                        return comma_breaks + outer_good_lb
-
-                    preferred_breaks = [as_filtered(bp) for bp in at_depth if bp.is_preferred_op]
-                    if preferred_breaks:
-                        # Don't include other good_lb_breaks - preferred ops are strictly preferred
-                        return preferred_breaks
-
-                    # No commas or preferred ops - include all GOOD_AFTER_LB as options
-                    good_lb_breaks = [
-                        as_filtered(bp) for bp in all_break_points if bp.is_before_good_lb
-                    ]
-                    return [as_filtered(bp) for bp in at_depth] + good_lb_breaks
-
-            # Fallback: return all GOOD_AFTER_LB breaks
-            return [as_filtered(bp) for bp in all_break_points if bp.is_before_good_lb]
-
-        def choose_break(
-            items: list[Output],
-            break_points: list[FilteredBreak],
-            total_len: int,
-            start_col: int,
-            continuation_indent: int,
-            effective_max_len: int,
-        ) -> int:
-            """Choose the best break point index, or -1 if no break needed.
-
-            Strategy:
-            1. If line fits, no break needed
-            2. Find breaks where both line1 and line2 fit under MAX_LINE_LEN
-            3. Among valid breaks, prefer those before GOOD_AFTER_LB tokens (keeps
-               operators like || and + at end of line 1, not start of line 2)
-            4. Among remaining valid breaks, prefer the latest where line2 >= 2/3
-               of line1 (balances lines while maximizing content on line1)
-            5. If no break keeps both lines under limit, pick the break that
-               keeps line1 closest to MAX_LINE_LEN (minimizing excess)
-            6. Skip breaks that aren't "worth it":
-               - Too little content after the break
-               - line2 would be longer than original (makes things worse)
-               - line2 equals original and starts with unbreakable content (string)
-            7. If chosen break isn't worthwhile, try alternative break points
-            """
-            if total_len <= effective_max_len:
-                return -1
-            num_items = len([o for o in items if o.data.strip()])
-            # Allow breaking short-item lines if:
-            # - Line is significantly over limit (long tokens), or
-            # - There are GOOD_AFTER_LB hints (explicit break preference)
-            has_good_lb = any(bp.is_before_good_lb for bp in break_points)
-            significantly_over = total_len > effective_max_len + 20
-            if num_items < self.MIN_LINE_ITEMS and not has_good_lb and not significantly_over:
-                return -1
-            if not break_points:
-                return -1
-
-            # Adjust break point columns relative to start_col
-            # Preserve is_before_good_lb flag
-            adjusted_breaks = [
-                FilteredBreak(bp.index, bp.visual_column - start_col, bp.is_before_good_lb)
-                for bp in break_points
-            ]
-
-            # Find breaks where both lines fit under limit
-            # Note: col here is the line length up to and including that token
-            valid_breaks: list[tuple[int, int, int, bool]] = []
-            for bp in adjusted_breaks:
-                idx, col, is_good = bp.index, bp.visual_column, bp.is_before_good_lb
-                abs_col = start_col + col
-                remainder = total_len - abs_col
-                # Get the actual alignment for the item after this break
-                break_cont = continuation_indent
-                for j in range(idx + 1, len(items)):
-                    if items[j].data.strip():
-                        if items[j].align_column > 0:
-                            break_cont = items[j].align_column
-                        break
-                line2_len = break_cont + remainder
-                if abs_col <= self.MAX_LINE_LEN and line2_len <= self.MAX_LINE_LEN:
-                    valid_breaks.append((idx, abs_col, line2_len, is_good))
-
-            if not valid_breaks:
-                # No break keeps both lines under limit.
-                # Pick break that keeps line1 closest to 80.
-                # Don't prefer GOOD_AFTER_LB here - those only help when
-                # both lines fit (in valid_breaks case). In the fallback,
-                # line2 will need further breaking anyway, so prefer breaks
-                # that maximize content on line1.
-                target = self.MAX_LINE_LEN
-
-                def score(bp: FilteredBreak) -> tuple[int, int]:
-                    abs_col = start_col + bp.visual_column
-                    if abs_col <= target:
-                        return (0, target - abs_col)
-                    else:
-                        return (1, abs_col - target)
-
-                best_bp = min(adjusted_breaks, key=score)
-                best_break = best_bp.index
-            else:
-                # Prefer breaks before GOOD_AFTER_LB tokens (keeps || at end of line)
-                good_lb_breaks = [vb for vb in valid_breaks if vb[3]]
-                candidates = good_lb_breaks if good_lb_breaks else valid_breaks
-
-                # Among candidates, prefer latest where line2 >= 2/3 of line1
-                best_break = -1
-                for idx, abs_col, line2_len, _ in reversed(candidates):
-                    if line2_len >= abs_col * 2 // 3:
-                        best_break = idx
-                        break
-                if best_break < 0:
-                    best_break = min(candidates, key=lambda x: abs(x[1] - x[2]))[0]
-
-            # Check if break is worth it
-            if best_break >= 0:
-                break_col = next(
-                    start_col + bp.visual_column for bp in adjusted_breaks if bp.index == best_break
-                )
-                remainder = total_len - break_col
-                if remainder < self.MIN_LINE_EXCESS and total_len <= self.MAX_LINE_LEN + self.MIN_LINE_EXCESS:
-                    return -1
-
-            # Check there's content after the break
-            if best_break >= 0:
-                has_content = any(items[j].data.strip() for j in range(best_break + 1, len(items)))
-                if not has_content:
-                    return -1
-
-            # Check if breaking would actually help
-            def is_break_worthwhile(break_idx: int) -> bool:
-                """Check if a break point is worthwhile (reduces max line len)."""
-                remaining_items = items[break_idx + 1:]
-                while remaining_items and not remaining_items[0].data.strip():
-                    remaining_items = remaining_items[1:]
-                if not remaining_items:
-                    return False
-                # Get alignment for continuation
-                cont_align = continuation_indent
-                if remaining_items[0].align_column > 0:
-                    cont_align = remaining_items[0].align_column
-                remaining_len = sum(visual_width(item.data, 0) for item in remaining_items)
-                line2_len = cont_align + remaining_len
-                if line2_len > total_len:
-                    # Breaking makes things WORSE
-                    return False
-                if line2_len == total_len:
-                    # Breaking is neutral. Not worthwhile if remaining starts
-                    # with a string (unbreakable element that dominates length)
-                    first_token = remaining_items[0].data.strip()
-                    if first_token.startswith(b'"') or first_token.startswith(b"'"):
-                        return False
-                    # Also not worthwhile if no useful further breaks
-                    remaining_bps = [bp for bp in adjusted_breaks if bp.index > break_idx]
-                    for bp in remaining_bps:
-                        token = items[bp.index].data.strip()
-                        if token not in (b")", b"]", b"}", b";"):
-                            return True  # Has useful breaks
-                    return False  # No useful breaks
-                return True  # line2_len < total_len - breaking helps
-
-            # Validate the chosen break, try alternatives if not worthwhile
-            if best_break >= 0 and not is_break_worthwhile(best_break):
-                # Try other breaks in adjusted_breaks
-                for bp in adjusted_breaks:
-                    if bp.index != best_break and is_break_worthwhile(bp.index):
-                        best_break = bp.index
-                        break
-                else:
-                    # No worthwhile break found
-                    best_break = -1
-
-            # Final check: ensure there's content after the break
-            if best_break >= 0:
-                has_content = any(items[j].data.strip() for j in range(best_break + 1, len(items)))
-                if not has_content:
-                    return -1
-
-            return best_break
-
-        # Process items iteratively, breaking as many times as needed
-        items_remaining = list(self._linebuffer)
-        current_depth = 0  # Track nesting depth across iterations
-
-        while items_remaining:
-            # Find break points for remaining items
-            all_bps, total_len, has_init_lenient, end_depth = find_break_points(
-                items_remaining, col_flushed, current_depth
-            )
-            break_points = filter_break_points(all_bps)
-
-            effective_max_len = self.MAX_LINE_LEN * 2 if has_init_lenient else self.MAX_LINE_LEN
-
-            # Determine continuation indent for potential breaks
-            total_indent = self._tab_indent + self._preproc_depth
-            tab_col = total_indent * self.TAB_SIZE
-            cont_indent = 0
-            if break_points:
-                first_break_idx = break_points[0].index
-                for j in range(first_break_idx + 1, len(items_remaining)):
-                    if items_remaining[j].data.strip():
-                        cont_indent = items_remaining[j].align_column
-                        break
-            # Fall back if alignment is 0 or uses too much of the line
-            if cont_indent == 0:
-                cont_indent = tab_col + self.SPACE_INDENT
-            elif cont_indent >= self.MAX_ALIGN_COL:
-                # Alignment uses too much whitespace, use TAB_SIZE for hierarchy
-                cont_indent = tab_col + self.TAB_SIZE
-
-            chosen_break = choose_break(
-                items_remaining, break_points, total_len, col_flushed, cont_indent, effective_max_len
-            )
-
-            # If no valid break with filtered points, or if chosen break still
-            # produces an over-limit line1, try all break points. This handles
-            # cases like deeply nested calls where outer breaks leave line1 too long.
-            try_all_breaks = chosen_break < 0 and total_len > effective_max_len
-            if not try_all_breaks and chosen_break >= 0:
-                # Check if chosen break produces over-limit line1
-                for bp in all_bps:
-                    if bp.index == chosen_break:
-                        if bp.visual_column > effective_max_len:
-                            try_all_breaks = True
-                        break
-            if try_all_breaks:
-                all_break_tuples = [as_filtered(bp) for bp in all_bps]
-                chosen_break = choose_break(
-                    items_remaining, all_break_tuples, total_len, col_flushed, cont_indent, effective_max_len
-                )
-
-            # Avoid orphan operators: if breaking here would put a short
-            # operator token alone on the next line (because line2 also needs
-            # breaking right after the operator), include the operator on line1.
-            if chosen_break >= 0:
-                remainder = items_remaining[chosen_break + 1:]
-                # Find first non-whitespace token in remainder
-                first_idx = None
-                for ri, item in enumerate(remainder):
-                    if item.data.strip():
-                        first_idx = ri
-                        break
-                if first_idx is not None:
-                    first_token = remainder[first_idx].data.strip()
-                    # Check if it's a short operator (arithmetic/bitwise)
-                    if first_token in (b"*", b"+", b"-", b"/", b"%", b"&", b"|", b"^"):
-                        # Check if the operator would be orphaned: line2 would
-                        # need further breaking right after the operator
-                        op_abs_idx = chosen_break + 1 + first_idx
-                        # Find the next break point after the operator
-                        next_bp = None
-                        for bp in all_bps:
-                            if bp.index == op_abs_idx:
-                                next_bp = bp
-                                break
-                        if next_bp is not None:
-                            # Shift break to after the operator instead
-                            chosen_break = op_abs_idx
-
-            if chosen_break >= 0:
-                # Get the nesting depth at the break point for the next iteration
-                depth_at_break = current_depth
-                for bp in all_bps:
-                    if bp.index == chosen_break:
-                        depth_at_break = bp.nesting_depth
-                        break
-
-                # Output items up to and including break point
-                for out in items_remaining[: chosen_break + 1]:
-                    self._write(out.data)
-                    col_flushed += visual_width(out.data, col_flushed)
-
-                # Update depth for next iteration
-                current_depth = depth_at_break
-
-                # Prepare remaining items and get alignment
-                items_remaining = items_remaining[chosen_break + 1 :]
-
-                # Remove leading whitespace from remaining, tracking how much
-                removed_ws_width = 0
-                while items_remaining and not items_remaining[0].data.strip():
-                    removed_ws_width += len(items_remaining[0].data)
-                    items_remaining.pop(0)
-
-                # Find alignment column from first remaining item
-                break_align_col = 0
-                if items_remaining:
-                    break_align_col = items_remaining[0].align_column
-
-                # Adjust nested alignments. These were computed before the break
-                # when positions were different. Items inside nested calls had
-                # their align columns based on the unbroken line position; after
-                # the break they need to be shifted to account for the new line
-                # starting at break_align_col instead of col_flushed.
-                for item in items_remaining:
-                    if item.align_column > break_align_col:
-                        # Shift: new_pos = new_start + (old_pos - old_break_point - ws)
-                        item.align_column = (
-                            break_align_col
-                            + (item.align_column - col_flushed - removed_ws_width)
-                        )
-
-                # Check if remaining content would fit with shallower alignment
-                # Only do this when content is "atomic" - no commas or binary operators
-                # at the outer level that would naturally cause additional breaks
-                if break_align_col > 0:
-                    # Check if remaining items have breaks that should be preserved
-                    # (commas for multi-element content, binary ops for expressions)
-                    break_tokens = (b",", b"/", b"*", b"+", b"-", b"||", b"&&")
-                    # Track nesting - remaining content may start inside parens,
-                    # so we consider tokens "outer" when depth returns to or below 0
-                    depth = 0
-                    has_outer_breaks = False
-                    seen_first_token = False
-                    for item in items_remaining:
-                        token = item.data.strip()
-                        if token in (b"(", b"[", b"{"):
-                            depth += 1
-                        elif token in (b")", b"]", b"}"):
-                            depth -= 1
-                        elif depth <= 0 and token in break_tokens:
-                            has_outer_breaks = True
-                            break
-                        elif (depth <= 0 and token and seen_first_token
-                              and Hint.GOOD_AFTER_LB in item.formatter.hints):
-                            has_outer_breaks = True
-                            break
-                        if token:
-                            seen_first_token = True
-                    if not has_outer_breaks:
-                        remaining_len = sum(
-                            visual_width(item.data, 0) for item in items_remaining
-                        )
-                        line2_len = break_align_col + remaining_len
-                        if line2_len > self.MAX_LINE_LEN:
-                            # Deep alignment would cause another break - use shallower
-                            # Calculate alignment so line ends near column 78 (margin - 2)
-                            # to make it clear the line was split for length
-                            target_end = self.MAX_LINE_LEN - 2
-                            shallow_align = max(tab_col + self.SPACE_INDENT,
-                                              target_end - remaining_len)
-                            if shallow_align + remaining_len <= self.MAX_LINE_LEN:
-                                break_align_col = shallow_align
-
-                # Write linebreak
-                tbd = items_remaining  # For write_linebreak to inspect
-                write_linebreak()
-            else:
-                # No break needed - output all remaining items
-                for out in items_remaining:
-                    self._write(out.data)
-                    col_flushed += visual_width(out.data, col_flushed)
-                break
+        else:
+            breaker = LineBreaker(self, list(self._linebuffer))
+            breaker.run()
 
         self._linebuffer = []
         self._col = 0
