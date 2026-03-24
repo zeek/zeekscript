@@ -221,11 +221,8 @@ class Formatter:
         """Format a given number of children of the node.
 
         Using this function ensures that no line breaks can happen between the
-        requested children. "num" is the number of children to format, "hint" is
-        a set of hints to tuck onto every child, and "first_hints" is an
-        additional possible hint set for the first child only. (There's
-        currently no indent flag, since the concept doesn't make much sense for
-        a sequence of children. This might change in the future.)
+        requested children. "num" is the number of children to format, "hints"
+        is a set of hints to tuck onto every child.
         """
         hints = hints or Hint.NONE
 
@@ -1372,7 +1369,7 @@ class ExprListFormatter(Formatter, ComplexSequenceFormatterMixin):
                     self._format_child(hints=Hint.NO_LB_BEFORE)  # ','
                     if force_align_args and align_col > 0:
                         # Write newline with alignment to first argument
-                        tab_col = self.indent * 8
+                        tab_col = self.indent * self.ostream.TAB_SIZE
                         space_count = max(0, align_col - tab_col)
                         self._write(self.NL + b"\t" * self.indent + b" " * space_count)
                     else:
@@ -1437,11 +1434,30 @@ class ExprFormatter(SpaceSeparatedFormatter, ComplexSequenceFormatterMixin):
     # types, so we use helpers or parse into them to identify what particular
     # kind of expression we're facing.
 
+    BOOLEAN_OPS = ("||", "&&")
+    BINARY_OPS = (
+        # Arithmetic
+        "/", "*", "+", "-", "%",
+        # Comparison
+        "==", "!=", "<", ">", "<=", ">=",
+        # Bitwise
+        "&", "|", "^",
+        # Pattern match
+        "~", "!~",
+        # Membership
+        "in",
+    )
+    ASSIGNMENT_OPS = ("=", "+=", "-=")
+
+    def _is_infix_expr(self, *ops: str) -> bool:
+        """True if this is a 3-child infix expression with any of the given operators."""
+        return (
+            len(self.node.nonerr_children) == 3
+            and self._get_child_token(offset=1, absolute=True) in ops
+        )
+
     def _is_binary_boolean(self) -> bool:
-        """Predicate, returns true if this an || or && expression."""
-        return len(self.node.nonerr_children) == 3 and self._get_child_token(
-            offset=1, absolute=True
-        ) in ("||", "&&")
+        return self._is_infix_expr(*self.BOOLEAN_OPS)
 
     def _is_inside_binary_boolean(self) -> bool:
         """Returns true if any parent expression is a boolean (|| or &&)."""
@@ -1455,31 +1471,10 @@ class ExprFormatter(SpaceSeparatedFormatter, ComplexSequenceFormatterMixin):
         return False
 
     def _is_binary_operator(self) -> bool:
-        """Predicate, returns true if this is a binary operator expression.
-
-        Includes arithmetic, comparison, bitwise, pattern match, and membership operators.
-        Boolean (&&, ||) and !in are handled separately.
-        """
-        return len(self.node.nonerr_children) == 3 and self._get_child_token(
-            offset=1, absolute=True
-        ) in (
-            # Arithmetic
-            "/", "*", "+", "-", "%",
-            # Comparison
-            "==", "!=", "<", ">", "<=", ">=",
-            # Bitwise
-            "&", "|", "^",
-            # Pattern match
-            "~", "!~",
-            # Membership
-            "in",
-        )
+        return self._is_infix_expr(*self.BINARY_OPS)
 
     def _is_assignment(self) -> bool:
-        """Predicate, returns true if this is an assignment expression."""
-        return len(self.node.nonerr_children) == 3 and self._get_child_token(
-            offset=1, absolute=True
-        ) in ("=", "+=", "-=")
+        return self._is_infix_expr(*self.ASSIGNMENT_OPS)
 
     def _is_ternary(self) -> bool:
         """Predicate, returns true if this is a ternary (? :) expression."""
@@ -1578,8 +1573,8 @@ class ExprFormatter(SpaceSeparatedFormatter, ComplexSequenceFormatterMixin):
 
         # Get alignment column (should be set to after '[' by caller)
         align_col = self.ostream.get_align_column()
-        tab_col = self.indent * 8  # TAB_SIZE = 8
-        max_col = 80
+        tab_col = self.indent * self.ostream.TAB_SIZE
+        max_col = self.ostream.MAX_LINE_LEN
 
         # Collect fields and their associated comments
         fields = []  # List of (expr_node, comment_text_or_None)
@@ -1745,7 +1740,7 @@ class ExprFormatter(SpaceSeparatedFormatter, ComplexSequenceFormatterMixin):
     def _format_initializer(self, ct1: str) -> None:
         # Vector/table/set initializers: '{'/'[' <expr_list> '}'/']'
         # Use multi-line if comments present or content is too long
-        do_linebreak = self.has_comments() or self._compact_length() > 80
+        do_linebreak = self.has_comments() or self._compact_length() > self.ostream.MAX_LINE_LEN
 
         # When BRACE_TO_CONSTRUCTOR hint is set, transform { } to set( ) or table( )
         transform_brace = (
@@ -1766,7 +1761,7 @@ class ExprFormatter(SpaceSeparatedFormatter, ComplexSequenceFormatterMixin):
             # so the fields start at a shallower column.
             if is_record and do_linebreak:
                 field_col = self.ostream.get_visual_column() + 1
-                if field_col + self._max_record_field_len() > 80:
+                if field_col + self._max_record_field_len() > self.ostream.MAX_LINE_LEN:
                     self._write_nl(is_midline=True)
             self._format_child(hints=Hint.NO_LB_BEFORE)  # '{'/'['
 
@@ -1849,7 +1844,7 @@ class ExprFormatter(SpaceSeparatedFormatter, ComplexSequenceFormatterMixin):
         # This produces consistent output regardless of input formatting.
         do_linebreak = False
         if is_constructor:
-            if self.has_comments() or self._compact_length() > 80:
+            if self.has_comments() or self._compact_length() > self.ostream.MAX_LINE_LEN:
                 do_linebreak = True
 
         self._format_child(hints=self.hints)  # 'table' etc or function name expr
@@ -1920,7 +1915,7 @@ class ExprFormatter(SpaceSeparatedFormatter, ComplexSequenceFormatterMixin):
     def _format_assignment(self) -> None:
         # Assignment expressions: prefer breaking after '=' operator
         # Set alignment for continuation at one indent level (8 spaces) up
-        tab_col = self.indent * 8  # TAB_SIZE = 8
+        tab_col = self.indent * self.ostream.TAB_SIZE
         with self.ostream.aligned_to(self.ostream.get_align_column()):
             self._format_child(hints=self.hints)  # LHS <expr>
             self._write_sp()
@@ -1933,7 +1928,7 @@ class ExprFormatter(SpaceSeparatedFormatter, ComplexSequenceFormatterMixin):
         # Ternary (? :) expressions: prefer breaking after :
         # After ?: indent 8 spaces extra
         # After :: align with the true-branch expression
-        tab_col = self.indent * 8  # TAB_SIZE = 8
+        tab_col = self.indent * self.ostream.TAB_SIZE
         with self.ostream.aligned_to(self.ostream.get_align_column()):
             self._format_child(hints=self.hints)  # condition <expr>
             self._write_sp()

@@ -380,9 +380,6 @@ class LineBreaker:
         s = self.stream
         tab_size = s.TAB_SIZE
 
-        # Count non-whitespace items for MIN_LINE_ITEMS check
-        line_items = sum(1 for out in self.items_remaining if out.data.strip())
-
         # Propagate NO_LB_BEFORE backward as NO_LB_AFTER
         needs_no_lb_after = False
         for out in self.items_remaining[::-1]:
@@ -762,7 +759,6 @@ class OutputStream:
             if isinstance(self._ostream, TextIO):
                 # Clunky: must write string here, not bytes. We could
                 # use _ostream.buffer -- not sure how portable that is.
-                # self._ostream.write(output.decode("UTF-8"))
                 self._ostream.write(output.decode("UTF-8"))
             else:
                 self._ostream.write(output)

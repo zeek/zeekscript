@@ -132,234 +132,38 @@ Located in `OutputStream._flush_line()`, the algorithm:
 
 ---
 
-## Potential Refactoring Opportunities
+## Completed Refactoring
 
-### High Priority
+The following structural improvements have been applied:
 
-#### 1. Extract Statement Type Handlers from StmtFormatter
+- **StmtFormatter**: `format()` is now a ~25-line dispatcher delegating to 16 `_format_*` methods
+- **ExprFormatter**: `format()` is now a ~35-line dispatcher delegating to 22 `_format_*` methods
+- **LineBreaker class**: Extracted from `_flush_line()` — nested closures became class methods (`find_break_points`, `filter_break_points`, `choose_break`, `_write_linebreak`), main loop became `run()`
+- **`_compact_length()`**: Deduplicated inline compact-length estimators in ExprFormatter
+- **Alignment context managers**: `aligned_to` / `aligned_to_if_unset` replaced 18 save/restore pairs
+- **BreakPoint/FilteredBreak NamedTuples**: Replaced raw tuples in line-breaker
+- **Type fixes**: `_format_child(indent: bool)`, `Node.__hash__`, `Node.no_format` attribute
+- **Dead code removal**: Unused debug print, unused variable
 
-**Current state**: `StmtFormatter.format()` is ~205 lines handling 14+ statement types in one method with if/elif chains.
-
-**Suggestion**: Extract into separate methods or handler classes:
-
-```python
-class StmtFormatter:
-    def format(self):
-        handlers = {
-            "if": self._format_if_stmt,
-            "switch": self._format_switch_stmt,
-            "for": self._format_for_stmt,
-            "while": self._format_while_stmt,
-            "when": self._format_when_stmt,
-            "return": self._format_return_stmt,
-            "{": self._format_block_stmt,
-            # ...
-        }
-        handler = handlers.get(self._get_child_token(), self._format_default)
-        handler()
-
-    def _format_if_stmt(self):
-        # ~50 lines of focused if-statement logic
-        ...
-
-    def _format_switch_stmt(self):
-        # ~30 lines of focused switch logic
-        ...
-```
-
-**Benefits**:
-- Each method is testable in isolation
-- Easier to understand and modify specific statement types
-- Reduces cyclomatic complexity
-- Clear extension point for new statement types
-
-#### 2. Extract Expression Type Handlers from ExprFormatter
-
-**Current state**: `ExprFormatter.format()` is ~259 lines handling 13+ expression types.
-
-**Suggestion**: Same dispatch pattern as StmtFormatter:
-
-```python
-class ExprFormatter:
-    def format(self):
-        # Dispatch based on expression structure
-        if self._is_index_expr():
-            self._format_index_expr()
-        elif self._is_call_expr():
-            self._format_call_expr()
-        elif self._is_binary_op():
-            self._format_binary_op()
-        elif self._is_constructor():
-            self._format_constructor()
-        # ...
-
-    def _format_index_expr(self):
-        # Focused indexing logic
-        ...
-
-    def _format_constructor(self):
-        # Focused constructor logic (currently ~80 lines)
-        ...
-```
-
-**Alternative**: Use handler classes for complex expression types:
-
-```python
-class ConstructorExprHandler:
-    def __init__(self, formatter: ExprFormatter):
-        self.f = formatter
-
-    def format(self):
-        # All constructor formatting logic here
-        ...
-```
-
-#### 3. Decompose OutputStream._flush_line()
-
-**Current state**: 500+ lines with 4 nested helper functions and deep nesting (5+ levels).
-
-**Suggestion**: Extract into a LineBreaker class or separate methods:
-
-```python
-class LineBreaker:
-    def __init__(self, items: list[Output], line_limit: int = 80):
-        self.items = items
-        self.line_limit = line_limit
-
-    def find_break_points(self) -> list[BreakPoint]:
-        # Currently nested function, ~100 lines
-        ...
-
-    def filter_break_points(self, break_points: list[BreakPoint]) -> list[BreakPoint]:
-        # Currently nested function, ~80 lines
-        ...
-
-    def choose_break(self, break_points: list[BreakPoint]) -> int:
-        # Currently nested function, ~60 lines
-        ...
-
-    def apply_break(self, break_index: int) -> tuple[bytes, list[Output]]:
-        # Apply chosen break, return line and remaining items
-        ...
-```
+## Potential Further Improvements
 
 ### Medium Priority
 
-#### 4. Consolidate Predicate Methods in ExprFormatter
+#### Consolidate Predicate Methods in ExprFormatter
 
-**Current state**: Multiple similar predicates with repeated patterns:
-
-```python
-def _is_binary_boolean(self) -> bool:
-    return len(self.node.nonerr_children) == 3 and \
-           self._get_child_token(offset=1, absolute=True) in ("||", "&&")
-
-def _is_binary_operator(self) -> bool:
-    return len(self.node.nonerr_children) == 3 and \
-           self._get_child_token(offset=1, absolute=True) in ("/", "*", "+", "-", "%", ...)
-
-def _is_assignment(self) -> bool:
-    return len(self.node.nonerr_children) == 3 and \
-           self._get_child_token(offset=1, absolute=True) in ("=", "+=", "-=", ...)
-```
-
-**Suggestion**: Single parameterized method:
-
-```python
-BINARY_BOOLEAN_OPS = {"||", "&&"}
-BINARY_ARITHMETIC_OPS = {"/", "*", "+", "-", "%", ...}
-ASSIGNMENT_OPS = {"=", "+=", "-=", ...}
-
-def _is_binary_op_of(self, operators: set[str]) -> bool:
-    return (len(self.node.nonerr_children) == 3 and
-            self._get_child_token(offset=1, absolute=True) in operators)
-
-# Usage
-if self._is_binary_op_of(BINARY_BOOLEAN_OPS):
-    ...
-```
-
-#### 5. Clarify Parameter Types
-
-**Current state**: Some parameters have misleading types:
-
-```python
-def _format_child(self, child: Node | None = None,
-                  indent: int = False,  # Actually boolean!
-                  hints: Hint = Hint.NONE) -> None:
-```
-
-**Suggestion**: Fix type annotation or use dataclass:
-
-```python
-@dataclass
-class FormatOptions:
-    indent: bool = False
-    hints: Hint = Hint.NONE
-
-def _format_child(self, child: Node | None = None,
-                  opts: FormatOptions | None = None) -> None:
-```
+Multiple predicates share the pattern `len(nonerr_children) == 3 and token(offset=1) in (...)`:
+`_is_binary_boolean`, `_is_binary_operator`, `_is_assignment`. Could unify with a parameterized
+`_is_binary_op_of(operators)` method.
 
 ### Lower Priority
 
-#### 6. Explicit Formatter Registration
+#### Document CST/AST Distinction
 
-**Current state**: NodeMapper uses naming convention for auto-discovery.
+The dual navigation (AST vs CST) is a key design decision but not well documented in code
+comments. Could add a design doc section to node.py.
 
-**Trade-off**: Convention is convenient but can be surprising. Explicit registration would be clearer:
+#### OutputStream State Management
 
-```python
-# Current (implicit)
-class ModuleDeclFormatter(Formatter):  # Auto-registered for "module_decl"
-    ...
-
-# Alternative (explicit)
-@register_formatter("module_decl")
-class ModuleDeclFormatter(Formatter):
-    ...
-```
-
-#### 7. Document CST/AST Distinction
-
-The dual navigation (AST vs CST) is a key design decision but not well documented in code comments. Consider adding a design doc section to node.py explaining:
-- Why both are needed
-- When to use which
-- How tree patching works
-
-#### 8. State Management in OutputStream
-
-**Current state**: Many mutable flags create complex state machine:
-- `_col`, `_tab_indent`, `_align_column`
-- `_use_linebreaks`, `_use_tab_indent`, `_use_space_align`
-- `_current_hints`
-
-**Consideration**: These interact in non-obvious ways. Could benefit from:
-- State transition diagram in comments
-- Invariant assertions
-- Or restructuring to reduce mutable state
-
----
-
-## Testing Considerations
-
-When refactoring:
-
-1. **Preserve snapshot tests**: The `test_samples.py` snapshots catch formatting regressions
-2. **Add unit tests for extracted methods**: Each `_format_*_stmt()` method should have targeted tests
-3. **Test edge cases**: Empty blocks, single-element constructs, deeply nested expressions
-4. **Verify comment preservation**: Comments must not be lost or misplaced
-
-## Summary
-
-| Issue | Priority | Effort | Impact |
-|-------|----------|--------|--------|
-| Extract StmtFormatter handlers | High | Medium | High maintainability improvement |
-| Extract ExprFormatter handlers | High | Medium | High maintainability improvement |
-| Decompose _flush_line() | High | High | Improves debuggability |
-| Consolidate predicates | Medium | Low | Reduces duplication |
-| Fix parameter types | Medium | Low | Improves clarity |
-| Explicit formatter registration | Low | Low | Minor clarity improvement |
-| Document CST/AST | Low | Low | Improves onboarding |
-
-The architecture is fundamentally sound. The main opportunities are reducing method size and improving separation of concerns within the existing structure.
+Many mutable flags (`_col`, `_tab_indent`, `_align_column`, `_use_linebreaks`,
+`_use_tab_indent`, `_use_space_align`, `_current_hints`) interact in non-obvious ways.
+Could benefit from invariant assertions or a state transition diagram.

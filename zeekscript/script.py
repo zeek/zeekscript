@@ -5,7 +5,7 @@ import os
 import pathlib
 import sys
 from collections.abc import Generator
-from typing import IO, Any, AnyStr, BinaryIO, TextIO, TypeAlias
+from typing import IO, AnyStr, BinaryIO, TextIO
 
 import tree_sitter
 import tree_sitter_zeek
@@ -14,9 +14,6 @@ from .error import FileError
 from .formatter import Formatter
 from .node import Node
 from .output import OutputStream
-
-MaybeNone: TypeAlias = Any
-
 
 class Script:
     """Representation of a single Zeek script file."""
@@ -29,7 +26,7 @@ class Script:
         implies stdin.
         """
         self.file = file
-        self.source: bytes | MaybeNone = None  # The file's full content, once parsed
+        self.source: bytes | None = None  # The file's full content, once parsed
         self.ts_tree: tree_sitter.Tree | None = (
             None  # The tree-sitter parse tree for the script
         )
