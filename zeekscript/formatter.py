@@ -1050,214 +1050,244 @@ class StmtFormatter(TypedInitializerFormatter):
             self._format_curly_statement_list()  # '{' <stmt_list> '}'
             self._write_nl()
 
+    def _format_block_stmt(self) -> None:
+        # We don't have to do anything re. Whitesmith here: if this needs
+        # to be indented, the caller has already ensured so via indent=True.
+        self._format_curly_statement_list(indent=False)  # '{' <stmt_list> '}'
+
+    def _format_print_or_event(self) -> None:
+        self._format_child()  # 'print'/'event'
+        self._write_sp()
+        # Align wrapped arguments to column after 'print '/'event '
+        with self.ostream.aligned_to(self.ostream.get_visual_column()):
+            self._format_child_range(2)  # <expr_list>/<event_hdr> ';'
+        self._write_nl()
+
+    def _format_if(self) -> None:
+        self._format_child()  # 'if'
+        self._write_sp()
+        self._format_child(hints=Hint.NO_LB_BEFORE)  # '('
+        self._write_sp()
+        # Align wrapped conditionals to after '( '
+        with self.ostream.aligned_to(self.ostream.get_visual_column()):
+            self._format_child()  # <expr>
+        self._write_sp()
+        self._format_child(hints=Hint.NO_LB_BEFORE)  # ')'
+
+        # Our if-statement layout is either
+        #
+        #   if ( foo )
+        #           bar();
+        #   ...
+        #
+        # or
+        #
+        #   if ( foo )
+        #           {
+        #           bar();
+        #           }
+        #   ...
+        #
+        # We need to establish whether the subsequent statement is a
+        # {}-block: if it's not, we write a newline and need to indent,
+        # because {}-blocks take care of indentation as another statement
+        # type (higher up in this function).
+        #
+        # Exception: preserve compact if-statement style when:
+        # 1. Original source has body on same line as condition
+        # 2. There's at least one adjacent compact if (forms a block)
+        # This allows switch-case-like patterns to stay compact.
+
+        if (
+            self._is_compact_if(self.node)
+            and self._has_adjacent_compact_if(self.node)
+        ):
+            self._write_sp()
+            self._format_child()  # <stmt> on same line
+        else:
+            self._format_stmt_block()
+
+        # An else-block also requires special treatment
+        if self._get_child_token() == "else":
+            self._format_child()  # 'else'
+
+            # Special treatment of "else if": we keep those on the same
+            # line, since otherwise, a switch-case-like cascade of if-else
+            # would get progressively more indented.
+            if child := self._get_child():
+                if child.has_property(
+                    lambda n: n.nonerr_children[0].token() == "if"
+                ):
+                    self._write_sp()
+                    self._format_child()  # <stmt>
+                else:
+                    self._format_stmt_block()
+            else:
+                self._format_stmt_block()
+
+    def _format_switch(self) -> None:
+        self._format_child()  # 'switch'
+        self._write_sp()
+        self._format_child(hints=Hint.SPACED_PARENS)  # <expr>
+        self._write_sp()
+        self._format_child()  # '{'
+
+        # Shorten braces to "{ }" if there is at most whitespace between them.
+        child = self._get_child()
+        if (
+            self._get_child_token() == "}"
+            and child
+            and child.has_only_whitespace_before()
+        ):
+            self._write_sp()
+            self._format_child()  # '}'
+        else:
+            if self._get_child_name() == "case_list":
+                self._write_nl()
+                self._format_child()  # <case_list>
+            self._write_nl()
+            self._format_child()  # '}'
+        self._write_nl()
+
+    def _format_for(self) -> None:
+        self._format_child()  # 'for'
+        self._write_sp()
+        self._format_child(hints=Hint.NO_LB_BEFORE)  # '('
+        self._write_sp()
+        # Align wrapped for-loop content to column after '( '
+        with self.ostream.aligned_to(self.ostream.get_visual_column()):
+            if self._get_child_token() == "[":
+                self._format_child(hints=Hint.NO_LB_BEFORE)  # '['
+                while self._get_child_token() != "]":
+                    self._format_child()  # <id>
+                    if self._get_child_token() == ",":
+                        self._format_child(hints=Hint.NO_LB_BEFORE)  # ','
+                        self._write_sp()
+                self._format_child(hints=Hint.NO_LB_BEFORE)  # ']'
+            else:
+                self._format_child()  # <id>
+
+            while self._get_child_token() == ",":
+                self._format_child(hints=Hint.NO_LB_BEFORE)  # ','
+                self._write_sp()
+                self._format_child()  # <id>
+            self._write_sp()
+            self._format_child()  # 'in'
+            self._write_sp()
+            self._format_child()  # <expr>
+        self._write_sp()
+        self._format_child(hints=Hint.NO_LB_BEFORE)  # ')'
+        self._format_stmt_block()  # <stmt>
+
+    def _format_while(self) -> None:
+        self._format_child()  # 'while'
+        self._write_sp()
+        self._format_child(hints=Hint.NO_LB_BEFORE)  # '('
+        self._write_sp()
+        # Align wrapped conditionals to after '( '
+        with self.ostream.aligned_to(self.ostream.get_visual_column()):
+            self._format_child()  # <expr>
+        self._write_sp()
+        self._format_child(hints=Hint.NO_LB_BEFORE)  # ')'
+        self._format_stmt_block()  # <stmt>
+
+    def _format_loop_control(self) -> None:
+        self._format_child_range(2)  # loop control statement, ';'
+        self._write_nl()
+
+    def _format_return(self) -> None:
+        self._format_child()  # 'return'
+        # There's also an optional 'return" before when statements,
+        # so detour in that case and be done.
+        if self._get_child_token() == "when":
+            self._write_sp()
+            self._format_when()
+            return
+        if self._get_child_name() == "expr":
+            self._write_sp()
+            self._format_child()  # <expr>
+        self._format_child(hints=Hint.NO_LB_BEFORE)  # ';'
+        self._write_nl()
+
+    def _format_set_mgmt(self) -> None:
+        self._format_child()  # 'add'/'delete'
+        self._write_sp()
+        self._format_child_range(2)  # <expr> ';'
+        self._write_nl()
+
+    def _format_local_or_const(self) -> None:
+        self._format_child()  # 'local'/'const'
+        self._write_sp()
+        # Capture column where identifier starts for alignment
+        id_col = self.ostream.get_visual_column()
+        self._format_child()  # <id>
+        self._format_typed_initializer(align_col=id_col + 1)
+        self._format_child(hints=Hint.NO_LB_BEFORE)  # ';'
+        self._write_nl()
+
+    def _format_index_slice_assign(self) -> None:
+        self._format_child()  # <index_slice>
+        self._write_sp()
+        self._format_child()  # '='
+        self._write_sp()
+        self._format_child_range(2)  # <expr> ';'
+        self._write_nl()
+
+    def _format_expr_stmt(self) -> None:
+        self._format_child_range(2)  # <expr> ';'
+        self._write_nl()
+
+    def _format_preproc_stmt(self) -> None:
+        self._format_child()  # <preproc_directive>
+        self._write_nl()
+
+    def _format_assert(self) -> None:
+        self._format_child()  # 'assert'
+        self._write_sp()
+        self._format_children()
+        self._write_nl()
+
+    def _format_empty_stmt(self) -> None:
+        self._format_child(hints=Hint.NO_LB_BEFORE)  # ';'
+        self._write_nl()
+
     def format(self) -> None:
         # Statements aren't currently broken down into more specific symbol
         # types in the grammar, so we just examine their beginning.
         start_name, start_token = self._get_child_name(), self._get_child_token()
 
         if start_token == "{":
-            # We don't have to do anything re. Whitesmith here: if this needs
-            # to be indented, the caller has already ensured so via indent=True.
-            self._format_curly_statement_list(indent=False)  # '{' <stmt_list> '}'
-
+            self._format_block_stmt()
         elif start_token in ["print", "event"]:
-            self._format_child()  # 'print'/'event'
-            self._write_sp()
-            # Align wrapped arguments to column after 'print '/'event '
-            with self.ostream.aligned_to(self.ostream.get_visual_column()):
-                self._format_child_range(2)  # <expr_list>/<event_hdr> ';'
-            self._write_nl()
-
+            self._format_print_or_event()
         elif start_token == "if":
-            self._format_child()  # 'if'
-            self._write_sp()
-            self._format_child(hints=Hint.NO_LB_BEFORE)  # '('
-            self._write_sp()
-            # Align wrapped conditionals to after '( '
-            with self.ostream.aligned_to(self.ostream.get_visual_column()):
-                self._format_child()  # <expr>
-            self._write_sp()
-            self._format_child(hints=Hint.NO_LB_BEFORE)  # ')'
-
-            # Our if-statement layout is either
-            #
-            #   if ( foo )
-            #           bar();
-            #   ...
-            #
-            # or
-            #
-            #   if ( foo )
-            #           {
-            #           bar();
-            #           }
-            #   ...
-            #
-            # We need to establish whether the subsequent statement is a
-            # {}-block: if it's not, we write a newline and need to indent,
-            # because {}-blocks take care of indentation as another statement
-            # type (higher up in this function).
-            #
-            # Exception: preserve compact if-statement style when:
-            # 1. Original source has body on same line as condition
-            # 2. There's at least one adjacent compact if (forms a block)
-            # This allows switch-case-like patterns to stay compact.
-
-            if (
-                self._is_compact_if(self.node)
-                and self._has_adjacent_compact_if(self.node)
-            ):
-                self._write_sp()
-                self._format_child()  # <stmt> on same line
-            else:
-                self._format_stmt_block()
-
-            # An else-block also requires special treatment
-            if self._get_child_token() == "else":
-                self._format_child()  # 'else'
-
-                # Special treatment of "else if": we keep those on the same
-                # line, since otherwise, a switch-case-like cascade of if-else
-                # would get progressively more indented.
-                if child := self._get_child():
-                    if child.has_property(
-                        lambda n: n.nonerr_children[0].token() == "if"
-                    ):
-                        self._write_sp()
-                        self._format_child()  # <stmt>
-                    else:
-                        self._format_stmt_block()
-                else:
-                    self._format_stmt_block()
-
+            self._format_if()
         elif start_token == "switch":
-            self._format_child()  # 'switch'
-            self._write_sp()
-            self._format_child(hints=Hint.SPACED_PARENS)  # <expr>
-            self._write_sp()
-            self._format_child()  # '{'
-
-            # Shorten braces to "{ }" if there is at most whitespace between them.
-            child = self._get_child()
-            if (
-                self._get_child_token() == "}"
-                and child
-                and child.has_only_whitespace_before()
-            ):
-                self._write_sp()
-                self._format_child()  # '}'
-            else:
-                if self._get_child_name() == "case_list":
-                    self._write_nl()
-                    self._format_child()  # <case_list>
-                self._write_nl()
-                self._format_child()  # '}'
-            self._write_nl()
-
+            self._format_switch()
         elif start_token == "for":
-            self._format_child()  # 'for'
-            self._write_sp()
-            self._format_child(hints=Hint.NO_LB_BEFORE)  # '('
-            self._write_sp()
-            # Align wrapped for-loop content to column after '( '
-            with self.ostream.aligned_to(self.ostream.get_visual_column()):
-                if self._get_child_token() == "[":
-                    self._format_child(hints=Hint.NO_LB_BEFORE)  # '['
-                    while self._get_child_token() != "]":
-                        self._format_child()  # <id>
-                        if self._get_child_token() == ",":
-                            self._format_child(hints=Hint.NO_LB_BEFORE)  # ','
-                            self._write_sp()
-                    self._format_child(hints=Hint.NO_LB_BEFORE)  # ']'
-                else:
-                    self._format_child()  # <id>
-
-                while self._get_child_token() == ",":
-                    self._format_child(hints=Hint.NO_LB_BEFORE)  # ','
-                    self._write_sp()
-                    self._format_child()  # <id>
-                self._write_sp()
-                self._format_child()  # 'in'
-                self._write_sp()
-                self._format_child()  # <expr>
-            self._write_sp()
-            self._format_child(hints=Hint.NO_LB_BEFORE)  # ')'
-            self._format_stmt_block()  # <stmt>
-
+            self._format_for()
         elif start_token == "while":
-            self._format_child()  # 'while'
-            self._write_sp()
-            self._format_child(hints=Hint.NO_LB_BEFORE)  # '('
-            self._write_sp()
-            # Align wrapped conditionals to after '( '
-            with self.ostream.aligned_to(self.ostream.get_visual_column()):
-                self._format_child()  # <expr>
-            self._write_sp()
-            self._format_child(hints=Hint.NO_LB_BEFORE)  # ')'
-            self._format_stmt_block()  # <stmt>
-
+            self._format_while()
         elif start_token in ["next", "break", "fallthrough"]:
-            self._format_child_range(2)  # loop control statement, ';'
-            self._write_nl()
-
+            self._format_loop_control()
         elif start_token == "return":
-            self._format_child()  # 'return'
-            # There's also an optional 'return" before when statements,
-            # so detour in that case and be done.
-            if self._get_child_token() == "when":
-                self._write_sp()
-                self._format_when()
-                return
-            if self._get_child_name() == "expr":
-                self._write_sp()
-                self._format_child()  # <expr>
-            self._format_child(hints=Hint.NO_LB_BEFORE)  # ';'
-            self._write_nl()
-
+            self._format_return()
         elif start_token in ["add", "delete"]:
-            self._format_child()  # set management
-            self._write_sp()
-            self._format_child_range(2)  # <expr> ';'
-            self._write_nl()
-
+            self._format_set_mgmt()
         elif start_token in ["local", "const"]:
-            self._format_child()  # 'local'/'const'
-            self._write_sp()
-            # Capture column where identifier starts for alignment
-            id_col = self.ostream.get_visual_column()
-            self._format_child()  # <id>
-            self._format_typed_initializer(align_col=id_col + 1)
-            self._format_child(hints=Hint.NO_LB_BEFORE)  # ';'
-            self._write_nl()
-
+            self._format_local_or_const()
         elif start_token == "when":
             self._format_when()
-
         elif start_name == "index_slice":
-            self._format_child()  # <index_slice>
-            self._write_sp()
-            self._format_child()  # '='
-            self._write_sp()
-            self._format_child_range(2)  # <expr> ';'
-            self._write_nl()
-
+            self._format_index_slice_assign()
         elif start_name == "expr":
-            self._format_child_range(2)  # <expr> ';'
-            self._write_nl()
-
+            self._format_expr_stmt()
         elif start_name == "preproc_directive":
-            self._format_child()  # <preproc_directive>
-            self._write_nl()
-
+            self._format_preproc_stmt()
         elif start_token == "assert":
-            self._format_child()  # 'assert'
-            self._write_sp()
-            self._format_children()
-            self._write_nl()
-
+            self._format_assert()
         elif start_token == ";":
-            self._format_child(hints=Hint.NO_LB_BEFORE)  # ';'
-            self._write_nl()
+            self._format_empty_stmt()
 
 
 class ExprListFormatter(Formatter, ComplexSequenceFormatterMixin):
