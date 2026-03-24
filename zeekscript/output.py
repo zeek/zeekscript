@@ -501,7 +501,9 @@ class LineBreaker:
                             depth += 1
                         elif token in (b")", b"]", b"}"):
                             depth -= 1
-                        elif depth <= 0 and token in break_tokens:
+                        elif token in break_tokens:
+                            # Break tokens at any depth indicate the line-breaker
+                            # can wrap further in subsequent iterations.
                             has_outer_breaks = True
                             break
                         elif (depth <= 0 and token and seen_first_token

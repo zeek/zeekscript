@@ -1017,6 +1017,29 @@ print 1;
         self.assertEqual(content_col, bracket_col,
                          f"Expected align at col {bracket_col}, got {content_col}")
 
+    def test_record_constructor_aligns_with_preceding_arg(self):
+        """Record constructor in func call aligns with preceding argument."""
+        code = (
+            b'event zeek_init()\n'
+            b'\t{\n'
+            b'\tLog::create_stream(SOME_LOG,\n'
+            b'\t\t[$columns=SomeInfo, $path="some_log_path",'
+            b' $policy=some_log_policy]);\n'
+            b'\t}\n'
+        )
+        result = self._format(code).decode()
+        lines = result.rstrip().split('\n')
+        for line in lines:
+            self.assertLessEqual(len(line), 80, f"Line too long: {repr(line)}")
+        self.assertNotIn("MISINDENTATION", result)
+        # The '[' should align with the first argument after '('
+        call_line = [l for l in lines if "create_stream" in l][0]
+        paren_col = call_line.index('(') + 1
+        bracket_line = [l for l in lines if "[$columns" in l][0]
+        bracket_col = len(bracket_line) - len(bracket_line.lstrip())
+        self.assertEqual(bracket_col, paren_col,
+                         f"Expected [ at col {paren_col}, got {bracket_col}")
+
     def test_switch_paren_expr_has_spaces(self):
         """Parenthesized switch expressions should have spaces inside parens."""
         code = b'function f() { switch (val) { case 0: break; } }'
