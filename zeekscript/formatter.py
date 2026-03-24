@@ -1789,10 +1789,15 @@ class ExprFormatter(SpaceSeparatedFormatter, ComplexSequenceFormatterMixin):
                 # Otherwise: allow multiple fields per line
                 with self.ostream.aligned_to(self.ostream.get_visual_column()):
                     self._format_record_fields(one_per_line=do_linebreak)
-            elif do_linebreak:
+            elif do_linebreak and (ct1 == "{" or self.has_comments()):
                 self._write_nl()
                 self._format_child(hints=Hint.COMPLEX_BLOCK)  # Inner expression(s)
                 self._write_nl()
+            elif do_linebreak:
+                # Non-record [...] too long for one line: flow elements with
+                # alignment to column after '[', let line-breaker wrap.
+                with self.ostream.aligned_to(self.ostream.get_visual_column()):
+                    self._format_child()
             else:
                 self._format_child()  # Inner expression(s)
 

@@ -972,6 +972,29 @@ print 1;
         # set[...] stays intact (not split internally)
         self.assertIn("set[string, subnet, subnet, transport_proto, SomeModule::SomeType]", result)
 
+    def test_bracket_expr_flows_elements_across_lines(self):
+        """Long [...] expression flows elements with line-breaking, not one-per-line."""
+        code = (
+            b'event some_handler(rec: SomeModule::Info)\n'
+            b'\t{\n'
+            b'\tif ( [aaa, bbb, ccc, rec$source_field, rec$type_field, rec$name_field,\n'
+            b'\t      rec$orig_flag, rec$byte_count] in some_long_cache_name )\n'
+            b'\t\treturn;\n'
+            b'\t}\n'
+        )
+        result = self._format(code).decode()
+        lines = result.rstrip().split('\n')
+        # All lines under 80 columns
+        for line in lines:
+            self.assertLessEqual(len(line), 80, f"Line too long: {repr(line)}")
+        self.assertNotIn("MISINDENTATION", result)
+        # Elements should flow (multiple per line), not one-per-line
+        if_line = [l for l in lines if l.strip().startswith("if")][0]
+        self.assertIn("[aaa, bbb, ccc,", if_line)
+        # Continuation aligns to column after '['
+        cont_line = [l for l in lines if "rec$orig_flag" in l][0]
+        self.assertIn("rec$orig_flag, rec$byte_count]", cont_line)
+
     def test_switch_paren_expr_has_spaces(self):
         """Parenthesized switch expressions should have spaces inside parens."""
         code = b'function f() { switch (val) { case 0: break; } }'
