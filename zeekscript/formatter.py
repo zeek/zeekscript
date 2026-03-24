@@ -1680,304 +1680,344 @@ class ExprFormatter(SpaceSeparatedFormatter, ComplexSequenceFormatterMixin):
 
         return False
 
+    def _format_index_expr(self) -> None:
+        self._format_child()  # <expr>
+        self._format_child(hints=Hint.NO_LB_BEFORE | Hint.NO_LB_AFTER)  # '['
+        self._format_child()  # <expr_list>
+        self._format_child(hints=Hint.NO_LB_BEFORE)  # ']'
+
+    def _format_record_field_access(self) -> None:
+        # Never break on record $ operator - keep expr$field together
+        self._format_child(hints=Hint.NO_LB_AFTER)
+        self._format_child(hints=Hint.NO_LB_BEFORE | Hint.NO_LB_AFTER)
+        while self._get_child():
+            self._format_child(hints=Hint.NO_LB_BEFORE)
+
+    def _format_index_slice_expr(self) -> None:
+        while self._get_child():
+            self._format_child()
+
+    def _format_negation(self) -> None:
+        # Negation looks better when spaced apart
+        # Propagate GOOD_AFTER_LB so line-breaker prefers breaking before this expr
+        first_hints = Hint.NO_LB_AFTER | (self.hints & Hint.GOOD_AFTER_LB)
+        self._format_child(hints=first_hints)
+        self._write_sp()
+        self._format_child()
+
+    def _format_unary_op(self) -> None:
+        # No space when those operators are involved
+        # Propagate GOOD_AFTER_LB so line-breaker prefers breaking before this expr
+        first_hints = Hint.NO_LB_AFTER | (self.hints & Hint.GOOD_AFTER_LB)
+        self._format_child(hints=first_hints)
+        while self._get_child():
+            self._format_child()
+
+    def _format_not_in(self) -> None:
+        # '!in' binary operator - handle like other binary operators
+        inside_boolean = self._is_inside_binary_boolean()
+        with self.ostream.aligned_to_if_unset(self.ostream.get_visual_column()):
+            self._format_child(hints=self.hints)  # <expr> - propagate incoming hints
+            self._write_sp()
+            self._format_child(hints=Hint.NO_LB_AFTER)  # '!'
+            self._format_child()  # 'in'
+            self._write_sp()
+            hints = Hint.NONE if inside_boolean else Hint.GOOD_AFTER_LB
+            self._format_child(hints=hints)  # <expr>
+
+    def _format_initializer(self, ct1: str) -> None:
+        # Vector/table/set initializers: '{'/'[' <expr_list> '}'/']'
+        # Use multi-line if comments present or content is too long
+        do_linebreak = self.has_comments()
+        if not do_linebreak:
+            # Estimate compact length to decide if multi-line needed
+            compact_len = 0
+            for child, _ in self.node.traverse(include_cst=True):
+                if child.is_nl():
+                    continue
+                if not child.nonerr_children:  # leaf node
+                    compact_len += child.end_byte - child.start_byte
+            if compact_len > 80:
+                do_linebreak = True
+
+        # When BRACE_TO_CONSTRUCTOR hint is set, transform { } to set( ) or table( )
+        transform_brace = (
+            ct1 == "{" and Hint.BRACE_TO_CONSTRUCTOR in self.hints
+        )
+
+        # Record constructors [$field=val, ...] use alignment-based formatting
+        # like function calls, not one-per-line
+        is_record = ct1 == "[" and self._is_record_constructor()
+
+        if transform_brace:
+            # Determine if table or set based on whether entries have = assignments
+            constructor = "table" if self._is_brace_init_table() else "set"
+            self._next_child()  # Skip the '{' token (don't format it)
+            self._write(constructor + "(")
+        else:
+            # For record constructors that would overflow, break before '['
+            # so the fields start at a shallower column.
+            if is_record and do_linebreak:
+                field_col = self.ostream.get_visual_column() + 1
+                if field_col + self._max_record_field_len() > 80:
+                    self._write_nl(is_midline=True)
+            self._format_child(hints=Hint.NO_LB_BEFORE)  # '{'/'['
+
+        # Only format inner content if there's an expr_list (not empty)
+        if self._get_child_name() == "expr_list":
+            if is_record:
+                # Record constructor: format fields with alignment to first $field.
+                # Has comments or too long: one field per line
+                # Otherwise: allow multiple fields per line
+                with self.ostream.aligned_to(self.ostream.get_visual_column()):
+                    self._format_record_fields(one_per_line=do_linebreak)
+            elif do_linebreak:
+                self._write_nl()
+                self._format_child(hints=Hint.COMPLEX_BLOCK)  # Inner expression(s)
+                self._write_nl()
+            else:
+                self._format_child()  # Inner expression(s)
+
+        if transform_brace:
+            self._next_child()  # Skip the '}' token (don't format it)
+            self._write(")")
+        else:
+            self._format_child()  # '}'/']'
+
+    def _format_paren_expr(self) -> None:
+        # Propagate GOOD_AFTER_LB (if set on this expression) to the '(' token
+        # so the line-breaker knows to prefer breaking before it. This keeps
+        # operators like || and + at the end of line 1. When GOOD_AFTER_LB is
+        # set, don't add NO_LB_BEFORE since that would prevent the desired break.
+        spaced = Hint.SPACED_PARENS in self.hints
+        paren_hints = self.hints
+        if Hint.GOOD_AFTER_LB not in self.hints:
+            paren_hints |= Hint.NO_LB_BEFORE
+        self._format_child(hints=paren_hints)  # '('
+        if spaced:
+            self._write_sp()
+        self._format_child(hints=Hint.NO_LB_AFTER)  # <expr>
+        if spaced:
+            self._write_sp()
+        self._format_child()  # ')'
+
+    def _format_field_assign(self) -> None:
+        self._format_child_range(4)  # '$'<id> = <expr>
+
+    def _format_field_lambda(self) -> None:
+        self._format_child_range(2)  # '$'<id>
+        self._write_sp()
+        self._format_child(
+            hints=Hint.NO_LB_BEFORE | Hint.NO_LB_AFTER
+        )  # <begin_lambda>
+        self._write_sp()
+        self._format_child(hints=Hint.NO_LB_BEFORE)  # '='
+        self._write_sp()
+        self._format_child()  # <func_body>
+
+    def _format_copy(self) -> None:
+        self._format_child()  # 'copy'
+        self._format_child(hints=Hint.NO_LB_BEFORE)  # '('
+        self._format_child_range(2)  # <expr> ')'
+
+    def _format_has_field(self) -> None:
+        # Never break on record ?$ operator - keep expr?$field together
+        self._format_child(hints=Hint.NO_LB_AFTER)  # <expr>
+        self._format_child(hints=Hint.NO_LB_BEFORE | Hint.NO_LB_AFTER)  # '?$'
+        self._format_child(hints=Hint.NO_LB_BEFORE)  # <id>
+
+    def _format_anon_function(self) -> None:
+        self._format_child_range(2)  # 'function' <begin_lambda>
+        self._write_sp()
+        self._format_child()  # <func_body>
+
+    def _format_call_expr(self, ct1: str) -> None:
+        # Constructor calls like table(...), set(...), vector(...)
+        # or regular function calls like Broker::publish(...)
+        is_constructor = ct1 in ("table", "set", "vector", "record")
+
+        # For constructors, use one-per-line if:
+        # 1. There are comments to preserve, OR
+        # 2. The content is too long to fit on a single line (>80 chars)
+        # This produces consistent output regardless of input formatting.
+        do_linebreak = False
+        if is_constructor:
+            if self.has_comments():
+                do_linebreak = True
+            else:
+                # Estimate compact length by summing leaf node lengths.
+                # Add 1 for space after each comma.
+                compact_len = 0
+                comma_count = 0
+                for child, _ in self.node.traverse(include_cst=True):
+                    if child.is_nl():
+                        continue
+                    # Count leaf nodes (no children means leaf)
+                    if not child.nonerr_children:
+                        compact_len += child.end_byte - child.start_byte
+                    if child.token() == ",":
+                        comma_count += 1
+                compact_len += comma_count  # Space after each comma
+                # If constructor can't fit on one line, use one-per-line format.
+                if compact_len > 80:
+                    do_linebreak = True
+
+        self._format_child(hints=self.hints)  # 'table' etc or function name expr
+        # Set alignment to column after '(' BEFORE formatting it, so any
+        # CST siblings (like comments) can use the alignment for continuations
+        with self.ostream.aligned_to(self.ostream.get_visual_column() + 1):
+            self._format_child(hints=Hint.NO_LB_BEFORE)  # '('
+            if self._get_child_name() == "expr_list":
+                if do_linebreak:
+                    self._write_nl()
+                    self._format_child(hints=Hint.COMPLEX_BLOCK)
+                    self._write_nl()
+                else:
+                    self._format_child()
+            self._format_child(hints=Hint.NO_LB_BEFORE)  # ')'
+        if self._get_child_name() == "attr_list":
+            self._write_sp()
+            self._format_child()
+
+    def _format_binary_boolean(self) -> None:
+        # For Boolean AND/OR, check if this is a toplevel sequence of them,
+        # and if so, recommend linebreaks before the following operand.
+        # ("toplevel" means that this must be AND/OR and all parent
+        # expressions must be, up to something that isn't an expression --
+        # a statement, for example.)
+        #
+        # We do this so we can line-break complex boolean expressions so
+        # that each line ends with the boolean operator, and the following
+        # operand starts on the next line.
+        hints = Hint.NONE
+
+        if self._is_expr_chain_of(ExprFormatter._is_binary_boolean):
+            # Okay! It's AND/ORs all the way up to something not an expr.
+            hints = Hint.GOOD_AFTER_LB
+
+        # Set alignment for continuations when no outer alignment exists
+        with self.ostream.aligned_to_if_unset(self.ostream.get_visual_column()):
+            self._format_child(hints=self.hints)  # <expr> - propagate incoming hints
+            self._write_sp()
+            self._format_child()  # '&&' / '||'
+            self._write_sp()
+            self._format_child(hints=hints)  # <expr>
+
+    def _format_string_concat(self) -> None:
+        # This helps OutputStream nicely align long strings broken into
+        # substrings concatenated by "+". We put the hint on the second
+        # operand so linebreaks put '+' at end of line, not start of next.
+        # Set alignment for continuations when no outer alignment exists.
+        with self.ostream.aligned_to_if_unset(self.ostream.get_visual_column()):
+            self._format_child()  # <expr>
+            self._write_sp()
+            self._format_child()  # '+'
+            self._write_sp()
+            self._format_child(hints=Hint.GOOD_AFTER_LB)  # <expr>
+
+    def _format_binary_op(self) -> None:
+        # For binary operators (arithmetic, comparison, etc.), set GOOD_AFTER_LB
+        # so that when breaking, the operator stays at end of line 1.
+        # However, filter_break_points deprioritizes these vs commas.
+        # Only set alignment when no outer alignment exists.
+        with self.ostream.aligned_to_if_unset(self.ostream.get_visual_column()):
+            self._format_child(hints=self.hints)  # <expr> - propagate incoming hints
+            self._write_sp()
+            self._format_child()  # operator
+            self._write_sp()
+            self._format_child(hints=Hint.GOOD_AFTER_LB)  # <expr>
+
+    def _format_assignment(self) -> None:
+        # Assignment expressions: prefer breaking after '=' operator
+        # Set alignment for continuation at one indent level (8 spaces) up
+        tab_col = self.indent * 8  # TAB_SIZE = 8
+        with self.ostream.aligned_to(self.ostream.get_align_column()):
+            self._format_child(hints=self.hints)  # LHS <expr>
+            self._write_sp()
+            self._format_child()  # '=' or '+=' or '-='
+            self._write_sp()
+            self.ostream.set_align_column(tab_col + 8)  # One indent level up
+            self._format_child(hints=Hint.GOOD_AFTER_LB)  # RHS <expr>
+
+    def _format_ternary(self) -> None:
+        # Ternary (? :) expressions: prefer breaking after :
+        # After ?: indent 8 spaces extra
+        # After :: align with the true-branch expression
+        tab_col = self.indent * 8  # TAB_SIZE = 8
+        with self.ostream.aligned_to(self.ostream.get_align_column()):
+            self._format_child(hints=self.hints)  # condition <expr>
+            self._write_sp()
+            self._format_child()  # '?'
+            self._write_sp()
+            # Set alignment for break after '?' - 8 spaces extra
+            self.ostream.set_align_column(tab_col + 8)
+            true_col = self.ostream.get_visual_column()  # Remember position of true expr
+            self._format_child(hints=Hint.GOOD_AFTER_LB)  # true <expr>
+            self._write_sp()
+            self._format_child(hints=Hint.GOOD_AFTER_LB)  # ':'
+            self._write_sp()
+            # Set alignment for break after ':' - align with true expr
+            self.ostream.set_align_column(true_col)
+            self._format_child(hints=Hint.GOOD_AFTER_LB)  # false <expr>
+
+    def _format_schedule(self) -> None:
+        # schedule <expr> { <event_hdr> }
+        self._format_child()  # 'schedule'
+        self._write_sp()
+        # Set alignment before interval so if line wraps, continuation aligns
+        with self.ostream.aligned_to(self.ostream.get_visual_column()):
+            self._format_child()  # <expr> (interval)
+            self._write_sp()
+            self._format_child(hints=Hint.NO_LB_AFTER)  # '{'
+            self._write_sp()
+            self._format_child()  # <event_hdr>
+            self._write_sp()
+            self._format_child()  # '}'
+
     def format(self) -> None:
         cn1, cn2 = (self._get_child_name(offset=n) for n in (0, 1))
         ct1, ct2, ct3 = (self._get_child_token(offset=n) for n in (0, 1, 2))
 
         if cn1 == "expr" and ct2 == "[":
-            self._format_child()  # <expr>
-            self._format_child(hints=Hint.NO_LB_BEFORE | Hint.NO_LB_AFTER)  # '['
-            self._format_child()  # <expr_list>
-            self._format_child(hints=Hint.NO_LB_BEFORE)  # ']'
-
+            self._format_index_expr()
         elif cn1 == "expr" and ct2 == "$":
-            # Never break on record $ operator - keep expr$field together
-            self._format_child(hints=Hint.NO_LB_AFTER)
-            self._format_child(hints=Hint.NO_LB_BEFORE | Hint.NO_LB_AFTER)
-            while self._get_child():
-                self._format_child(hints=Hint.NO_LB_BEFORE)
-
+            self._format_record_field_access()
         elif cn1 == "expr" and cn2 == "index_slice":
-            while self._get_child():
-                self._format_child()
-
+            self._format_index_slice_expr()
         elif ct1 == "!":
-            # Negation looks better when spaced apart
-            # Propagate GOOD_AFTER_LB so line-breaker prefers breaking before this expr
-            first_hints = Hint.NO_LB_AFTER | (self.hints & Hint.GOOD_AFTER_LB)
-            self._format_child(hints=first_hints)
-            self._write_sp()
-            self._format_child()
-
+            self._format_negation()
         elif ct1 in ["|", "++", "--", "~", "-", "+"]:
-            # No space when those operators are involved
-            # Propagate GOOD_AFTER_LB so line-breaker prefers breaking before this expr
-            first_hints = Hint.NO_LB_AFTER | (self.hints & Hint.GOOD_AFTER_LB)
-            self._format_child(hints=first_hints)
-            while self._get_child():
-                self._format_child()
-
+            self._format_unary_op()
         elif cn1 == "expr" and ct2 == "!" and ct3 == "in":
-            # '!in' binary operator - handle like other binary operators
-            inside_boolean = self._is_inside_binary_boolean()
-            with self.ostream.aligned_to_if_unset(self.ostream.get_visual_column()):
-                self._format_child(hints=self.hints)  # <expr> - propagate incoming hints
-                self._write_sp()
-                self._format_child(hints=Hint.NO_LB_AFTER)  # '!'
-                self._format_child()  # 'in'
-                self._write_sp()
-                hints = Hint.NONE if inside_boolean else Hint.GOOD_AFTER_LB
-                self._format_child(hints=hints)  # <expr>
-
+            self._format_not_in()
         elif ct1 in ["{", "["]:
-            # Vector/table/set initializers: '{'/'[' <expr_list> '}'/']'
-            # Use multi-line if comments present or content is too long
-            do_linebreak = self.has_comments()
-            if not do_linebreak:
-                # Estimate compact length to decide if multi-line needed
-                compact_len = 0
-                for child, _ in self.node.traverse(include_cst=True):
-                    if child.is_nl():
-                        continue
-                    if not child.nonerr_children:  # leaf node
-                        compact_len += child.end_byte - child.start_byte
-                if compact_len > 80:
-                    do_linebreak = True
-
-            # When BRACE_TO_CONSTRUCTOR hint is set, transform { } to set( ) or table( )
-            transform_brace = (
-                ct1 == "{" and Hint.BRACE_TO_CONSTRUCTOR in self.hints
-            )
-
-            # Record constructors [$field=val, ...] use alignment-based formatting
-            # like function calls, not one-per-line
-            is_record = ct1 == "[" and self._is_record_constructor()
-
-            if transform_brace:
-                # Determine if table or set based on whether entries have = assignments
-                constructor = "table" if self._is_brace_init_table() else "set"
-                self._next_child()  # Skip the '{' token (don't format it)
-                self._write(constructor + "(")
-            else:
-                # For record constructors that would overflow, break before '['
-                # so the fields start at a shallower column.
-                if is_record and do_linebreak:
-                    field_col = self.ostream.get_visual_column() + 1
-                    if field_col + self._max_record_field_len() > 80:
-                        self._write_nl(is_midline=True)
-                self._format_child(hints=Hint.NO_LB_BEFORE)  # '{'/'['
-
-            # Only format inner content if there's an expr_list (not empty)
-            if self._get_child_name() == "expr_list":
-                if is_record:
-                    # Record constructor: format fields with alignment to first $field.
-                    # Has comments or too long: one field per line
-                    # Otherwise: allow multiple fields per line
-                    with self.ostream.aligned_to(self.ostream.get_visual_column()):
-                        self._format_record_fields(one_per_line=do_linebreak)
-                elif do_linebreak:
-                    self._write_nl()
-                    self._format_child(hints=Hint.COMPLEX_BLOCK)  # Inner expression(s)
-                    self._write_nl()
-                else:
-                    self._format_child()  # Inner expression(s)
-
-            if transform_brace:
-                self._next_child()  # Skip the '}' token (don't format it)
-                self._write(")")
-            else:
-                self._format_child()  # '}'/']'
-
+            self._format_initializer(ct1)
         elif ct1 == "(":
-            # Propagate GOOD_AFTER_LB (if set on this expression) to the '(' token
-            # so the line-breaker knows to prefer breaking before it. This keeps
-            # operators like || and + at the end of line 1. When GOOD_AFTER_LB is
-            # set, don't add NO_LB_BEFORE since that would prevent the desired break.
-            spaced = Hint.SPACED_PARENS in self.hints
-            paren_hints = self.hints
-            if Hint.GOOD_AFTER_LB not in self.hints:
-                paren_hints |= Hint.NO_LB_BEFORE
-            self._format_child(hints=paren_hints)  # '('
-            if spaced:
-                self._write_sp()
-            self._format_child(hints=Hint.NO_LB_AFTER)  # <expr>
-            if spaced:
-                self._write_sp()
-            self._format_child()  # ')'
-
+            self._format_paren_expr()
         elif ct1 == "$" and ct3 == "=":
-            self._format_child_range(4)  # '$'<id> = <expr>
-
-        elif ct1 == "$":  # The function version, with possible capture
-            self._format_child_range(2)  # '$'<id>
-            self._write_sp()
-            self._format_child(
-                hints=Hint.NO_LB_BEFORE | Hint.NO_LB_AFTER
-            )  # <begin_lambda>
-            self._write_sp()
-            self._format_child(hints=Hint.NO_LB_BEFORE)  # '='
-            self._write_sp()
-            self._format_child()  # <func_body>
-
+            self._format_field_assign()
+        elif ct1 == "$":
+            self._format_field_lambda()
         elif ct1 == "copy":
-            self._format_child()  # 'copy'
-            self._format_child(hints=Hint.NO_LB_BEFORE)  # '('
-            self._format_child_range(2)  # <expr> ')'
-
+            self._format_copy()
         elif ct2 == "?$":
-            # Never break on record ?$ operator - keep expr?$field together
-            self._format_child(hints=Hint.NO_LB_AFTER)  # <expr>
-            self._format_child(hints=Hint.NO_LB_BEFORE | Hint.NO_LB_AFTER)  # '?$'
-            self._format_child(hints=Hint.NO_LB_BEFORE)  # <id>
-
+            self._format_has_field()
         elif ct1 == "function":
-            self._format_child_range(2)  # 'function' <begin_lambda>
-            self._write_sp()
-            self._format_child()  # <func_body>
-
+            self._format_anon_function()
         elif ct2 == "(":
-            # Constructor calls like table(...), set(...), vector(...)
-            # or regular function calls like Broker::publish(...)
-            is_constructor = ct1 in ("table", "set", "vector", "record")
-
-            # For constructors, use one-per-line if:
-            # 1. There are comments to preserve, OR
-            # 2. The content is too long to fit on a single line (>80 chars)
-            # This produces consistent output regardless of input formatting.
-            do_linebreak = False
-            if is_constructor:
-                if self.has_comments():
-                    do_linebreak = True
-                else:
-                    # Estimate compact length by summing leaf node lengths.
-                    # Add 1 for space after each comma.
-                    compact_len = 0
-                    comma_count = 0
-                    for child, _ in self.node.traverse(include_cst=True):
-                        if child.is_nl():
-                            continue
-                        # Count leaf nodes (no children means leaf)
-                        if not child.nonerr_children:
-                            compact_len += child.end_byte - child.start_byte
-                        if child.token() == ",":
-                            comma_count += 1
-                    compact_len += comma_count  # Space after each comma
-                    # If constructor can't fit on one line, use one-per-line format.
-                    if compact_len > 80:
-                        do_linebreak = True
-
-            self._format_child(hints=self.hints)  # 'table' etc or function name expr
-            # Set alignment to column after '(' BEFORE formatting it, so any
-            # CST siblings (like comments) can use the alignment for continuations
-            with self.ostream.aligned_to(self.ostream.get_visual_column() + 1):
-                self._format_child(hints=Hint.NO_LB_BEFORE)  # '('
-                if self._get_child_name() == "expr_list":
-                    if do_linebreak:
-                        self._write_nl()
-                        self._format_child(hints=Hint.COMPLEX_BLOCK)
-                        self._write_nl()
-                    else:
-                        self._format_child()
-                self._format_child(hints=Hint.NO_LB_BEFORE)  # ')'
-            if self._get_child_name() == "attr_list":
-                self._write_sp()
-                self._format_child()
-
+            self._format_call_expr(ct1)
         elif self._is_binary_boolean():
-            # For Boolean AND/OR, check if this is a toplevel sequence of them,
-            # and if so, recommend linebreaks before the following operand.
-            # ("toplevel" means that this must be AND/OR and all parent
-            # expressions must be, up to something that isn't an expression --
-            # a statement, for example.)
-            #
-            # We do this so we can line-break complex boolean expressions so
-            # that each line ends with the boolean operator, and the following
-            # operand starts on the next line.
-            hints = Hint.NONE
-
-            if self._is_expr_chain_of(ExprFormatter._is_binary_boolean):
-                # Okay! It's AND/ORs all the way up to something not an expr.
-                hints = Hint.GOOD_AFTER_LB
-
-            # Set alignment for continuations when no outer alignment exists
-            with self.ostream.aligned_to_if_unset(self.ostream.get_visual_column()):
-                self._format_child(hints=self.hints)  # <expr> - propagate incoming hints
-                self._write_sp()
-                self._format_child()  # '&&' / '||'
-                self._write_sp()
-                self._format_child(hints=hints)  # <expr>
-
+            self._format_binary_boolean()
         elif self._is_string_concat():
-            # This helps OutputStream nicely align long strings broken into
-            # substrings concatenated by "+". We put the hint on the second
-            # operand so linebreaks put '+' at end of line, not start of next.
-            # Set alignment for continuations when no outer alignment exists.
-            with self.ostream.aligned_to_if_unset(self.ostream.get_visual_column()):
-                self._format_child()  # <expr>
-                self._write_sp()
-                self._format_child()  # '+'
-                self._write_sp()
-                self._format_child(hints=Hint.GOOD_AFTER_LB)  # <expr>
-
+            self._format_string_concat()
         elif self._is_binary_operator():
-            # For binary operators (arithmetic, comparison, etc.), set GOOD_AFTER_LB
-            # so that when breaking, the operator stays at end of line 1.
-            # However, filter_break_points deprioritizes these vs commas.
-            # Only set alignment when no outer alignment exists.
-            with self.ostream.aligned_to_if_unset(self.ostream.get_visual_column()):
-                self._format_child(hints=self.hints)  # <expr> - propagate incoming hints
-                self._write_sp()
-                self._format_child()  # operator
-                self._write_sp()
-                self._format_child(hints=Hint.GOOD_AFTER_LB)  # <expr>
-
+            self._format_binary_op()
         elif self._is_assignment():
-            # Assignment expressions: prefer breaking after '=' operator
-            # Set alignment for continuation at one indent level (8 spaces) up
-            tab_col = self.indent * 8  # TAB_SIZE = 8
-            with self.ostream.aligned_to(self.ostream.get_align_column()):
-                self._format_child(hints=self.hints)  # LHS <expr>
-                self._write_sp()
-                self._format_child()  # '=' or '+=' or '-='
-                self._write_sp()
-                self.ostream.set_align_column(tab_col + 8)  # One indent level up
-                self._format_child(hints=Hint.GOOD_AFTER_LB)  # RHS <expr>
-
+            self._format_assignment()
         elif self._is_ternary():
-            # Ternary (? :) expressions: prefer breaking after :
-            # After ?: indent 8 spaces extra
-            # After :: align with the true-branch expression
-            tab_col = self.indent * 8  # TAB_SIZE = 8
-            with self.ostream.aligned_to(self.ostream.get_align_column()):
-                self._format_child(hints=self.hints)  # condition <expr>
-                self._write_sp()
-                self._format_child()  # '?'
-                self._write_sp()
-                # Set alignment for break after '?' - 8 spaces extra
-                self.ostream.set_align_column(tab_col + 8)
-                true_col = self.ostream.get_visual_column()  # Remember position of true expr
-                self._format_child(hints=Hint.GOOD_AFTER_LB)  # true <expr>
-                self._write_sp()
-                self._format_child(hints=Hint.GOOD_AFTER_LB)  # ':'
-                self._write_sp()
-                # Set alignment for break after ':' - align with true expr
-                self.ostream.set_align_column(true_col)
-                self._format_child(hints=Hint.GOOD_AFTER_LB)  # false <expr>
-
+            self._format_ternary()
         elif ct1 == "schedule":
-            # schedule <expr> { <event_hdr> }
-            self._format_child()  # 'schedule'
-            self._write_sp()
-            # Set alignment before interval so if line wraps, continuation aligns
-            with self.ostream.aligned_to(self.ostream.get_visual_column()):
-                self._format_child()  # <expr> (interval)
-                self._write_sp()
-                self._format_child(hints=Hint.NO_LB_AFTER)  # '{'
-                self._write_sp()
-                self._format_child()  # <event_hdr>
-                self._write_sp()
-                self._format_child()  # '}'
-
+            self._format_schedule()
         else:
             # Fall back to simple space-separation
             super().format()
