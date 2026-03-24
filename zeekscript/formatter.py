@@ -572,12 +572,16 @@ class TypedInitializerFormatter(Formatter):
         if align_col > 0:
             self.ostream.set_align_column(align_col)
 
+        type_width = 0
         if has_explicit_type:
             self._format_child()  # ':'
             self._write_sp()
+            col_before_type = self.ostream.get_column()
             self._format_child(hints=Hint.GOOD_AFTER_LB)  # <type> - preferred break point
+            type_width = self.ostream.get_column() - col_before_type
 
-        if self._get_child_name() == "initializer":
+        has_initializer = self._get_child_name() == "initializer"
+        if has_initializer:
             self._write_sp()
             # Only transform {..} to set()/table() when type can be inferred (no explicit type)
             init_hints = Hint.BRACE_TO_CONSTRUCTOR if not has_explicit_type else Hint.NONE
@@ -585,7 +589,19 @@ class TypedInitializerFormatter(Formatter):
             self._format_child(hints=init_hints)  # <initializer>
 
         if self._get_child_name() == "attr_list":
-            self._write_sp()
+            # When type + attr (no initializer) won't fit on the continuation
+            # line, wrap attr to its own line aligned one space past the type.
+            if not has_initializer and align_col > 0:
+                attr_node = self.node.nonerr_children[self._cidx]
+                attr_len = attr_node.end_byte - attr_node.start_byte
+                cont_len = align_col + type_width + 1 + attr_len
+                if cont_len > self.ostream.MAX_LINE_LEN:
+                    self.ostream.set_align_column(align_col + 1)
+                    self._write_nl(is_midline=True)
+                else:
+                    self._write_sp()
+            else:
+                self._write_sp()
             self._format_child()
 
         # Reset alignment

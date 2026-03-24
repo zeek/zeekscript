@@ -951,6 +951,27 @@ print 1;
         # The output should still be valid (no MISINDENTATION markers)
         self.assertIn(b"&optional", result)
 
+    def test_global_set_type_wraps_attr_when_long(self):
+        """When set[...] type + attr_list exceeds 80 cols, attr wraps to next line."""
+        code = (
+            b'global some_long_cache_name:'
+            b' set[string, subnet, subnet, transport_proto, SomeModule::SomeType]'
+            b' &read_expire=cache_interval;\n'
+        )
+        result = self._format(code).decode()
+        lines = result.rstrip().split('\n')
+        self.assertEqual(len(lines), 3)
+        # All lines under 80 columns
+        for line in lines:
+            self.assertLessEqual(len(line), 80, f"Line too long: {repr(line)}")
+        self.assertNotIn("MISINDENTATION", result)
+        # attr_list is on its own continuation line, one space past type alignment
+        self.assertIn("&read_expire=cache_interval;", lines[2])
+        self.assertTrue(lines[2].startswith(" " * 9),
+                        f"Expected 9-space indent, got: {repr(lines[2])}")
+        # set[...] stays intact (not split internally)
+        self.assertIn("set[string, subnet, subnet, transport_proto, SomeModule::SomeType]", result)
+
     def test_switch_paren_expr_has_spaces(self):
         """Parenthesized switch expressions should have spaces inside parens."""
         code = b'function f() { switch (val) { case 0: break; } }'
