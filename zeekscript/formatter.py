@@ -1406,10 +1406,19 @@ class ExprListFormatter(Formatter, ComplexSequenceFormatterMixin):
                 if self._get_child():
                     self._format_child(hints=Hint.NO_LB_BEFORE)  # ','
                     if force_align_args and align_col > 0:
-                        # Write newline with alignment to first argument
-                        tab_col = self.indent * self.ostream.TAB_SIZE
-                        space_count = max(0, align_col - tab_col)
-                        self._write(self.NL + b"\t" * self.indent + b" " * space_count)
+                        # Check if the next field fits on the current line.
+                        next_expr = self._get_child()
+                        next_len = (next_expr.end_byte - next_expr.start_byte
+                                    if next_expr else 0)
+                        # +2 for " $", field needs comma too unless last
+                        fits = (self.ostream.get_visual_column() + 1 + next_len
+                                <= self.ostream.MAX_LINE_LEN)
+                        if fits:
+                            self._write_sp()
+                        else:
+                            tab_col = self.indent * self.ostream.TAB_SIZE
+                            space_count = max(0, align_col - tab_col)
+                            self._write(self.NL + b"\t" * self.indent + b" " * space_count)
                     else:
                         self._write_sp()
 

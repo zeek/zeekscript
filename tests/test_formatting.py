@@ -1261,6 +1261,29 @@ print 1;
                                 f"Comment not indented: {line!r}")
 
 
+    def test_record_args_fill_line_before_wrapping(self):
+        """Record-style $field=value args should fill the line before wrapping."""
+        code = (
+            b'function some_fn()\n'
+            b'    {\n'
+            b'    local info = SomeModule::SomeFn($note=Found, $uid=uid,\n'
+            b'            $msg=fmt("%s found on %s entity using %s item.",\n'
+            b'                usecase_desc, orig_entity, item),\n'
+            b'            $sub=fmt("Score: %s. Days: %s",\n'
+            b'                item_score, history_days),\n'
+            b'            $identifier=cat(orig_entity, usecase, item));\n'
+            b'    }\n'
+        )
+        result = self._format(code).decode()
+        self.assertNotIn("MISINDENTATION", result)
+        lines = result.splitlines()
+        # $note=Found and $uid=uid should be on the same line
+        first_field_line = [l for l in lines if '$note=' in l]
+        self.assertEqual(len(first_field_line), 1)
+        self.assertIn('$uid=uid', first_field_line[0],
+                       "$uid=uid should be on the same line as $note=Found")
+
+
 class TestFormattingErrors(unittest.TestCase):
     def _format(self, content):
         script = zeekscript.Script(io.BytesIO(content))
