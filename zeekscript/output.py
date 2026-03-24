@@ -1,7 +1,9 @@
 """Functionality related to output."""
 
+import contextlib
 import os
 import sys
+from collections.abc import Generator
 from types import TracebackType
 from typing import Any, BinaryIO, TextIO
 
@@ -129,6 +131,25 @@ class OutputStream:
     def get_align_column(self) -> int:
         """Get the current alignment column."""
         return self._align_column
+
+    @contextlib.contextmanager
+    def aligned_to(self, column: int) -> Generator[None]:
+        """Context manager that sets alignment column and restores it on exit."""
+        saved = self._align_column
+        self._align_column = column
+        try:
+            yield
+        finally:
+            self._align_column = saved
+
+    @contextlib.contextmanager
+    def aligned_to_if_unset(self, column: int) -> Generator[None]:
+        """Like aligned_to, but only sets alignment if not already set (non-zero)."""
+        if self._align_column == 0:
+            with self.aligned_to(column):
+                yield
+        else:
+            yield
 
     def set_hints(self, hints: Hint | None) -> None:
         """Set hints to apply to subsequent output items."""
