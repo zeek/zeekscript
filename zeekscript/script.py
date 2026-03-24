@@ -160,6 +160,126 @@ class Script:
 
         return self.source[start_byte:end_byte]
 
+    @staticmethod
+    def _is_annotation(text: bytes) -> bytes | None:
+        """If text is a #@ annotation comment, return the annotation name."""
+        for prefix in (b"#@ ", b"##@ "):
+            if text.startswith(prefix):
+                return text[len(prefix):]
+        return None
+
+    def _scan_format_annotations(self) -> None:
+        """Scan comments for #@ formatting annotations and mark AST nodes.
+
+        Sets node.no_format on affected AST nodes:
+        - bytes value: raw source to output instead of formatting
+        - True: node is inside a range already emitted by an earlier sibling
+
+        Raises ValueError on unbalanced BEGIN/END or NO-FORMAT inside a range.
+        """
+        assert self.root is not None
+
+        # First pass: find all annotation comments and validate.
+        annotations: list[tuple[bytes, Node]] = []  # (kind, comment_node)
+        begin_comment: Node | None = None
+
+        for node, _ in self.root.traverse(include_cst=True):
+            if not node.is_comment():
+                continue
+            text = self.get_content(*node.script_range()).strip()
+            kind = self._is_annotation(text)
+            if kind is None:
+                continue
+            if kind == b"NO-FORMAT":
+                if begin_comment is not None:
+                    raise ValueError(
+                        f"#@ NO-FORMAT at line {node.start_point[0] + 1} "
+                        f"inside #@ BEGIN-NO-FORMAT region "
+                        f"(started at line {begin_comment.start_point[0] + 1})"
+                    )
+                annotations.append((kind, node))
+            elif kind == b"BEGIN-NO-FORMAT":
+                if begin_comment is not None:
+                    raise ValueError(
+                        f"Nested #@ BEGIN-NO-FORMAT at line {node.start_point[0] + 1} "
+                        f"(previous at line {begin_comment.start_point[0] + 1})"
+                    )
+                begin_comment = node
+                annotations.append((kind, node))
+            elif kind == b"END-NO-FORMAT":
+                if begin_comment is None:
+                    raise ValueError(
+                        f"#@ END-NO-FORMAT at line {node.start_point[0] + 1} "
+                        f"without matching #@ BEGIN-NO-FORMAT"
+                    )
+                annotations.append((kind, node))
+                begin_comment = None
+
+        if begin_comment is not None:
+            raise ValueError(
+                f"#@ BEGIN-NO-FORMAT at line {begin_comment.start_point[0] + 1} "
+                f"without matching #@ END-NO-FORMAT"
+            )
+
+        # Second pass: mark AST nodes.
+        # Mark all annotation comments so CST sibling loops skip them.
+        for _, comment in annotations:
+            comment.no_format = True
+
+        for kind, comment in annotations:
+            if kind == b"NO-FORMAT":
+                # Find the AST node this comment is attached to.
+                ast_node = comment.ast_parent
+                if ast_node is None:
+                    continue
+                # Capture the AST node through trailing CST (the comment).
+                # Include the annotation comment if it's a prev_cst_sibling
+                # (comment-before-statement case), but not other whitespace.
+                start = ast_node.start_byte
+                for pcs in ast_node.prev_cst_siblings:
+                    if pcs.start_byte == comment.start_byte:
+                        start = comment.start_byte
+                        break
+                end = ast_node.end_byte
+                check: Node | None = ast_node
+                while check:
+                    if check.next_cst_siblings:
+                        end = max(end, check.next_cst_siblings[-1].end_byte)
+                    check = check.children[-1] if check.children else None
+                raw = self.source[start:end].lstrip()
+                ast_node.no_format = raw
+
+            elif kind == b"BEGIN-NO-FORMAT":
+                # Find the raw range start (beginning of the line)
+                line_start = comment.start_byte
+                while line_start > 0 and self.source[line_start - 1:line_start] not in (b"\n", b"\r"):
+                    line_start -= 1
+                # Store for the END marker to use
+                comment._range_line_start = line_start
+
+            elif kind == b"END-NO-FORMAT":
+                # Find matching BEGIN
+                begin = None
+                for k, c in annotations:
+                    if k == b"BEGIN-NO-FORMAT" and hasattr(c, "_range_line_start"):
+                        begin = c
+                # Should always find one (validated above)
+                if begin is None:
+                    continue
+                raw = self.source[begin._range_line_start:comment.end_byte]
+                del begin._range_line_start
+                # Mark all AST nodes in the range
+                first = True
+                for node, _ in self.root.traverse():
+                    if node.start_byte >= begin.start_byte and node.end_byte <= comment.end_byte:
+                        if not node.children:
+                            continue  # Skip leaf nodes, mark their parents
+                        if first:
+                            node.no_format = raw
+                            first = False
+                        else:
+                            node.no_format = True  # Skip, already emitted
+
     def format(
         self, output: BinaryIO | TextIO | None = None, enable_linebreaks: bool = True
     ) -> None:
@@ -170,6 +290,8 @@ class Script:
         controls whether to use linebreaks at all.
         """
         assert self.root is not None, "call Script.parse() before Script.format()"
+
+        self._scan_format_annotations()
 
         def do_format(out: BinaryIO | TextIO) -> None:
             with OutputStream(out, enable_linebreaks) as ostream:

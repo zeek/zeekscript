@@ -1010,6 +1010,77 @@ print 1;
             self.assertFalse(line.lstrip().startswith(","),
                              f"Line starts with comma: {line!r}")
 
+    def test_no_format_before_statement(self):
+        """#@ NO-FORMAT before a statement preserves its original formatting."""
+        code = b'#@ NO-FORMAT\nglobal x =    1;\nglobal y = 2;\n'
+        result = self._format(code).decode()
+        self.assertIn("global x =    1;", result)
+        self.assertIn("#@ NO-FORMAT", result)
+        # Second statement should be formatted normally
+        self.assertIn("global y = 2;", result)
+
+    def test_no_format_trailing_comment(self):
+        """Trailing #@ NO-FORMAT preserves the statement's original formatting."""
+        code = b'global x =    1; #@ NO-FORMAT\nglobal y = 2;\n'
+        result = self._format(code).decode()
+        self.assertIn("global x =    1; #@ NO-FORMAT", result)
+        self.assertIn("global y = 2;", result)
+
+    def test_begin_end_no_format_range(self):
+        """BEGIN/END-NO-FORMAT preserves formatting for the entire range."""
+        code = b'global a = 1;\n#@ BEGIN-NO-FORMAT\nglobal x =    1;\nglobal y =    2;\n#@ END-NO-FORMAT\nglobal z = 3;\n'
+        result = self._format(code).decode()
+        self.assertIn("global x =    1;", result)
+        self.assertIn("global y =    2;", result)
+        self.assertIn("#@ BEGIN-NO-FORMAT", result)
+        self.assertIn("#@ END-NO-FORMAT", result)
+        # Surrounding statements formatted normally
+        self.assertIn("global a = 1;", result)
+        self.assertIn("global z = 3;", result)
+
+    def test_no_format_unbalanced_begin(self):
+        """Unbalanced BEGIN-NO-FORMAT without END should raise an error."""
+        code = b'#@ BEGIN-NO-FORMAT\nglobal x = 1;\n'
+        with self.assertRaises(ValueError) as ctx:
+            self._format(code)
+        self.assertIn("without matching #@ END-NO-FORMAT", str(ctx.exception))
+
+    def test_no_format_unbalanced_end(self):
+        """END-NO-FORMAT without BEGIN should raise an error."""
+        code = b'#@ END-NO-FORMAT\nglobal x = 1;\n'
+        with self.assertRaises(ValueError) as ctx:
+            self._format(code)
+        self.assertIn("without matching #@ BEGIN-NO-FORMAT", str(ctx.exception))
+
+    def test_no_format_inside_begin_end(self):
+        """NO-FORMAT inside BEGIN/END range should raise an error."""
+        code = b'#@ BEGIN-NO-FORMAT\n#@ NO-FORMAT\nglobal x = 1;\n#@ END-NO-FORMAT\n'
+        with self.assertRaises(ValueError) as ctx:
+            self._format(code)
+        self.assertIn("inside #@ BEGIN-NO-FORMAT region", str(ctx.exception))
+
+    def test_no_format_trailing_in_func_body(self):
+        """Trailing #@ NO-FORMAT inside a function body uses correct indentation."""
+        code = (
+            b'hook SomeModule::some_log_policy()\n'
+            b'    {\n'
+            b'    some_code();\n'
+            b'\n'
+            b'    local o_s = rec_id$orig_h/subnet_mask; #@ NO-FORMAT\n'
+            b'    local r_s = rec_id$resp_h/subnet_mask; #@ NO-FORMAT\n'
+            b'\n'
+            b'    more_code();\n'
+            b'    }\n'
+        )
+        result = self._format(code).decode()
+        lines = result.splitlines()
+        # Both NO-FORMAT lines should be tab-indented and preserve original content
+        no_fmt_lines = [l for l in lines if "#@ NO-FORMAT" in l]
+        self.assertEqual(len(no_fmt_lines), 2)
+        for line in no_fmt_lines:
+            self.assertTrue(line.startswith("\t"), f"Expected tab indent: {line!r}")
+            self.assertIn("/subnet_mask; #@ NO-FORMAT", line)
+
     def test_export_trailing_comments_indented(self):
         """Comments at end of export block should be indented like declarations."""
         code = b'export {\n\tglobal some_evt: event(rec: Info);\n\n\t## Some trailing comment\n\t## Another trailing comment\n}\n'

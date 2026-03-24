@@ -189,12 +189,28 @@ class Formatter:
             self._format_child(node, indent)
 
         for node in child.prev_cst_siblings:
+            if getattr(node, "no_format", None):
+                continue
             self._format_child_impl(node, indent)
+
+        # Check if this node should skip formatting due to #@ annotations.
+        no_format = getattr(child, "no_format", None)
+        if no_format is not None:
+            if isinstance(no_format, bytes):
+                raw = no_format
+                if not raw.endswith(self.NL):
+                    raw += self.NL
+                # Write indentation, then raw content
+                self._write_indent()
+                self._write(raw, raw=True)
+            return
 
         # The hints apply to AST (not CST) nodes, so now:
         self._format_child_impl(child, indent, hints)
 
         for node in child.next_cst_siblings:
+            if getattr(node, "no_format", None):
+                continue
             self._format_child_impl(node, indent)
 
         # Mirroring the above, handle any trailing errors last.
@@ -279,6 +295,11 @@ class Formatter:
         if isinstance(data, str):
             data = data.encode("UTF-8")
 
+        if raw:
+            # Raw mode: bypass indent logic, write data as-is
+            self.ostream.write(data, self, raw=True)
+            return
+
         # Transparently indent at the beginning of lines, but only if we're not
         # writing a newline anyway.
         if not data.startswith(self.NL) and self._write_indent():
@@ -287,7 +308,7 @@ class Formatter:
             # would result without the presence of interrupting comments.
             data = data.lstrip()
 
-        self.ostream.write(data, self, raw)
+        self.ostream.write(data, self)
 
     def _write_indent(self) -> bool:
         if self.ostream.get_column() == 0:
