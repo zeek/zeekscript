@@ -1632,6 +1632,18 @@ class ExprFormatter(SpaceSeparatedFormatter, ComplexSequenceFormatterMixin):
 
         self._next_child()  # Consume the expr_list we just formatted
 
+    def _max_record_field_len(self) -> int:
+        """Return the length of the longest $field=value expression in a record constructor."""
+        expr_list = self._get_child(offset=1)
+        if not expr_list or expr_list.name() != "expr_list":
+            return 0
+        max_len = 0
+        for child in expr_list.nonerr_children:
+            if child.name() == "expr":
+                field_len = child.end_byte - child.start_byte
+                max_len = max(max_len, field_len)
+        return max_len
+
     def _is_record_constructor(self) -> bool:
         """Returns True if this [...] expression is a record constructor.
 
@@ -1739,6 +1751,12 @@ class ExprFormatter(SpaceSeparatedFormatter, ComplexSequenceFormatterMixin):
                 self._next_child()  # Skip the '{' token (don't format it)
                 self._write(constructor + "(")
             else:
+                # For record constructors that would overflow, break before '['
+                # so the fields start at a shallower column.
+                if is_record and do_linebreak:
+                    field_col = self.ostream.get_visual_column() + 1
+                    if field_col + self._max_record_field_len() > 80:
+                        self._write_nl(is_midline=True)
                 self._format_child(hints=Hint.NO_LB_BEFORE)  # '{'/'['
 
             # Only format inner content if there's an expr_list (not empty)

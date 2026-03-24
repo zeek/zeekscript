@@ -1081,6 +1081,26 @@ print 1;
             self.assertTrue(line.startswith("\t"), f"Expected tab indent: {line!r}")
             self.assertIn("/subnet_mask; #@ NO-FORMAT", line)
 
+    def test_record_constructor_breaks_before_bracket_when_deep(self):
+        """Record constructor [$field=val] moves to next line when fields would overflow."""
+        code = (
+            b'event some_evt()\n'
+            b'    {\n'
+            b'    SomeModule::setup_stream(SOME_STREAM_LOG, [$columns=SomeStreamInfo,\n'
+            b'                                               $path="some_long_module_stream_path",\n'
+            b'                                               $policy=some_stream_log_policy\n'
+            b'                       ]);\n'
+            b'    }\n'
+        )
+        result = self._format(code).decode()
+        lines = result.splitlines()
+        # The [ should be on the continuation line, not on the first line
+        call_line = [l for l in lines if "setup_stream" in l][0]
+        self.assertNotIn("[", call_line)
+        # All lines should fit under 80
+        for line in lines:
+            self.assertLessEqual(len(line), 80, f"Line too long: {line!r}")
+
     def test_export_trailing_comments_indented(self):
         """Comments at end of export block should be indented like declarations."""
         code = b'export {\n\tglobal some_evt: event(rec: Info);\n\n\t## Some trailing comment\n\t## Another trailing comment\n}\n'
