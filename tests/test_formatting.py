@@ -1215,6 +1215,21 @@ print 1;
             self.assertTrue(line.startswith("\t"), f"Expected tab indent: {line!r}")
             self.assertIn("/subnet_mask; #@ NO-FORMAT", line)
 
+    def test_no_format_sole_statement_in_func_body(self):
+        """NO-FORMAT on the only statement in a function body gets tab indented."""
+        code = (
+            b'function some_fn(h: addr): string\n'
+            b'    {\n'
+            b'    return some_call(h) ? other_call(h/some_mask) : "fallback"; #@ NO-FORMAT\n'
+            b'    }\n'
+        )
+        result = self._format(code).decode()
+        lines = result.splitlines()
+        no_fmt_lines = [l for l in lines if "#@ NO-FORMAT" in l]
+        self.assertEqual(len(no_fmt_lines), 1)
+        self.assertTrue(no_fmt_lines[0].startswith("\t"),
+                        f"Expected tab indent: {no_fmt_lines[0]!r}")
+
     def test_record_constructor_breaks_before_bracket_when_deep(self):
         """Record constructor [$field=val] moves to next line when fields would overflow."""
         code = (

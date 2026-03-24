@@ -200,8 +200,14 @@ class Formatter:
                 raw = no_format
                 if not raw.endswith(self.NL):
                     raw += self.NL
-                # Write indentation, then raw content
+                # Write indentation, then raw content. Use self.indent
+                # plus the indent flag, since the no_format node may be
+                # deeper than the formatter (e.g. stmt_list annotated at
+                # the func_body level).
+                saved_indent = self.indent
+                self.indent = self.indent + int(indent)
                 self._write_indent()
+                self.indent = saved_indent
                 self._write(raw, raw=True)
             return
 
