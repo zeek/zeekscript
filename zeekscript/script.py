@@ -226,6 +226,10 @@ class Script:
         for _, comment in annotations:
             comment.no_format = True
 
+        # Track line-start positions for BEGIN-NO-FORMAT ranges.
+        # Keyed by comment node identity so we don't monkey-patch nodes.
+        range_line_starts: dict[int, int] = {}
+
         for kind, comment in annotations:
             if kind == b"NO-FORMAT":
                 # Find the AST node this comment is attached to.
@@ -254,20 +258,18 @@ class Script:
                 line_start = comment.start_byte
                 while line_start > 0 and self.source[line_start - 1:line_start] not in (b"\n", b"\r"):
                     line_start -= 1
-                # Store for the END marker to use
-                comment._range_line_start = line_start
+                range_line_starts[id(comment)] = line_start
 
             elif kind == b"END-NO-FORMAT":
                 # Find matching BEGIN
                 begin = None
                 for k, c in annotations:
-                    if k == b"BEGIN-NO-FORMAT" and hasattr(c, "_range_line_start"):
+                    if k == b"BEGIN-NO-FORMAT" and id(c) in range_line_starts:
                         begin = c
                 # Should always find one (validated above)
                 if begin is None:
                     continue
-                raw = self.source[begin._range_line_start:comment.end_byte]
-                del begin._range_line_start
+                raw = self.source[range_line_starts.pop(id(begin)):comment.end_byte]
                 # Mark all AST nodes in the range
                 first = True
                 for node, _ in self.root.traverse():

@@ -171,7 +171,7 @@ class Formatter:
         formatter.format()
 
     def _format_child(
-        self, child: Node | None = None, indent: int = False, hints: Hint = Hint.NONE
+        self, child: Node | None = None, indent: bool = False, hints: Hint = Hint.NONE
     ) -> None:
         if child is None:
             child = self._next_child()
@@ -189,12 +189,12 @@ class Formatter:
             self._format_child(node, indent)
 
         for node in child.prev_cst_siblings:
-            if getattr(node, "no_format", None):
+            if node.no_format is not None:
                 continue
             self._format_child_impl(node, indent)
 
         # Check if this node should skip formatting due to #@ annotations.
-        no_format = getattr(child, "no_format", None)
+        no_format = child.no_format
         if no_format is not None:
             if isinstance(no_format, bytes):
                 raw = no_format
@@ -209,7 +209,7 @@ class Formatter:
         self._format_child_impl(child, indent, hints)
 
         for node in child.next_cst_siblings:
-            if getattr(node, "no_format", None):
+            if node.no_format is not None:
                 continue
             self._format_child_impl(node, indent)
 
@@ -1669,7 +1669,7 @@ class ExprFormatter(SpaceSeparatedFormatter, ComplexSequenceFormatterMixin):
         return False
 
     def format(self) -> None:
-        cn1, cn2, _ = (self._get_child_name(offset=n) for n in (0, 1, 2))
+        cn1, cn2 = (self._get_child_name(offset=n) for n in (0, 1))
         ct1, ct2, ct3 = (self._get_child_token(offset=n) for n in (0, 1, 2))
 
         if cn1 == "expr" and ct2 == "[":

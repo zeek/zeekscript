@@ -116,6 +116,11 @@ class Node:
         self.prev_error_siblings: list[Node] = []
         self.next_error_siblings: list[Node] = []
 
+        # When set by _scan_format_annotations(), controls formatting:
+        # - bytes: raw source to emit instead of formatting
+        # - True: node is inside a no-format range already emitted
+        self.no_format: bytes | bool | None = None
+
     def __eq__(self, other: object) -> bool:
         """Two nodes are equal when the cover the same range in the script."""
         return (
@@ -127,7 +132,7 @@ class Node:
     def __hash__(self) -> int:
         """A nodes identity is determined by its type and source range"""
         self.script_range()
-        return hash([self.type, self.start_byte, self.end_byte])
+        return hash((self.type, self.start_byte, self.end_byte))
 
     def name(self) -> str | None:
         """Returns the type of a named node.

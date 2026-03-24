@@ -142,10 +142,6 @@ class OutputStream:
             self._col = len(data.split(Formatter.NL)[-1])
             return
 
-        # For troubleshooting received hinting
-        # print_error('XXX "%s" %s' % (data, formatter.hints))
-
-
         # In case the data spans multiple lines, break up the lines now.
         # Potential line-wrapping is applied when we flush individual lines.
         for chunk in data.splitlines(keepends=True):
