@@ -692,9 +692,13 @@ class RedefEnumDeclFormatter(Formatter, ComplexSequenceFormatterMixin):
 
         self._format_child()  # '{'
 
-        # Multi-element redefs should linebreak as well
-        if child := self._get_child():
-            do_linebreak |= len(child.children) > 1
+        # Linebreak if enum body won't fit on a single line
+        if not do_linebreak and self._get_child_name() == "enum_body":
+            body = self.node.nonerr_children[self._cidx]
+            commas = sum(1 for c, _ in body.traverse() if c.token() == ",")
+            body_len = body.end_byte - body.start_byte + commas
+            if self.ostream.get_column() + 1 + body_len + 2 > self.ostream.MAX_LINE_LEN:
+                do_linebreak = True
 
         if do_linebreak:
             self._write_nl()
@@ -792,6 +796,16 @@ class TypeFormatter(SpaceSeparatedFormatter, ComplexSequenceFormatterMixin):
             self._format_child()  # 'enum'
             self._write_sp()
             self._format_child()  # '{'
+
+            # Check if enum body fits on a single line with '{ ... }'
+            if not do_linebreak and self._get_child_name() == "enum_body":
+                body = self.node.nonerr_children[self._cidx]
+                # Estimate: count commas to add spaces after them
+                commas = sum(1 for c, _ in body.traverse() if c.token() == ",")
+                body_len = body.end_byte - body.start_byte + commas
+                # Current col + space + body + space + '}'
+                if self.ostream.get_column() + 1 + body_len + 2 > self.ostream.MAX_LINE_LEN:
+                    do_linebreak = True
 
             if do_linebreak:
                 self._write_nl()

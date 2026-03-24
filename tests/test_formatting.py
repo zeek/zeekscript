@@ -308,23 +308,50 @@ class TestFormatting(unittest.TestCase):
         self.assertEqual(len(lines), 1)
         self.assertIn('{ NOT = 0, LOW = 1, MED = 2, HIGH = 3 }', result)
 
-    def test_enum_wrap_alignment(self):
-        """Wrapped enum values should align to after '{ '."""
+    def test_enum_one_per_line_when_long(self):
+        """Enum constants go one-per-line when they don't fit on a single line."""
         code = b'type SomeEnumAA: enum { SE_DNS_A, SE_DNS_AAAA, SE_DNS_A6, SE_DNS_PTR, SE_HTTP_HOST, SE_TLS_SNI, SE_NTLM_AUTH, SE_UNKNOWN, };'
         result = self._format(code).decode()
-        # Should not have MISINDENTATION marker
         self.assertNotIn("MISINDENTATION", result)
-        # Verify continuation aligns to after '{ '
         lines = result.splitlines()
-        self.assertGreater(len(lines), 1)
-        # Find column of first enum value after '{ '
-        line1 = lines[0]
-        brace_idx = line1.index('{ ')
-        first_val_col = brace_idx + 2  # after '{ '
-        # Continuation should align to same column
-        line2 = lines[1]
-        first_char_col = len(line2) - len(line2.lstrip())
-        self.assertEqual(first_char_col, first_val_col)
+        # First line: "type SomeEnumAA: enum {"
+        self.assertIn('enum {', lines[0])
+        # Each constant on its own tab-indented line
+        for const in ['SE_DNS_A,', 'SE_DNS_AAAA,', 'SE_DNS_A6,', 'SE_DNS_PTR,',
+                      'SE_HTTP_HOST,', 'SE_TLS_SNI,', 'SE_NTLM_AUTH,', 'SE_UNKNOWN,']:
+            self.assertTrue(any(l.strip() == const for l in lines),
+                            f"{const} should be on its own line")
+
+    def test_enum_one_per_line_in_export(self):
+        """Enum in export block goes one-per-line when constants don't fit on one line."""
+        code = (
+            b'export {\n'
+            b'type AnomalyTypes: enum {\n'
+            b'\tANOMALY, NEW_ENTITY, NEW_ITEM, NEW_ENTITY_NEW_ITEM,\n'
+            b'\tNEW_ENTITY_ITEM_PAIR, UNKNOWN\n'
+            b'};\n'
+            b'}\n'
+        )
+        result = self._format(code).decode()
+        self.assertNotIn("MISINDENTATION", result)
+        lines = result.splitlines()
+        # Each constant should be on its own line, tab-indented inside export
+        for const in ['ANOMALY,', 'NEW_ENTITY,', 'NEW_ITEM,',
+                      'NEW_ENTITY_NEW_ITEM,', 'NEW_ENTITY_ITEM_PAIR,', 'UNKNOWN']:
+            self.assertTrue(any(const in l for l in lines),
+                            f"{const} should appear on its own line")
+        # Constants should NOT be compacted onto fewer lines
+        const_lines = [l for l in lines if any(c in l for c in ['ANOMALY', 'NEW_ENTITY', 'UNKNOWN'])]
+        # Each constant line should have at most one constant
+        for l in const_lines:
+            consts_on_line = sum(1 for c in ['ANOMALY', 'NEW_ENTITY', 'NEW_ITEM',
+                                              'NEW_ENTITY_NEW_ITEM', 'NEW_ENTITY_ITEM_PAIR',
+                                              'UNKNOWN'] if c in l)
+            # NEW_ENTITY_NEW_ITEM contains NEW_ENTITY and NEW_ITEM, so skip those
+            if 'NEW_ENTITY_NEW_ITEM' in l or 'NEW_ENTITY_ITEM_PAIR' in l:
+                continue
+            self.assertLessEqual(consts_on_line, 1,
+                                 f"Multiple constants on one line: {l}")
 
     def test_event_type_parameter_alignment(self):
         """Event type parameters should align to after the opening paren."""
