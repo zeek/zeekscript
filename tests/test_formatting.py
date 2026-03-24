@@ -1127,6 +1127,24 @@ print 1;
         self.assertIn("global a = 1;", result)
         self.assertIn("global z = 3;", result)
 
+    def test_begin_end_no_format_in_export(self):
+        """BEGIN/END-NO-FORMAT inside export block should not duplicate END annotation."""
+        code = (
+            b'export {\n'
+            b'\t#@ BEGIN-NO-FORMAT\n'
+            b'\ttype SomeType: enum {\n'
+            b'\t\tVAL_A,\n'
+            b'\t\tVAL_B\n'
+            b'\t};\n'
+            b'\t#@ END-NO-FORMAT\n'
+            b'}\n'
+        )
+        result = self._format(code).decode()
+        self.assertEqual(result.count("#@ END-NO-FORMAT"), 1,
+                         "END-NO-FORMAT should appear exactly once")
+        self.assertIn("#@ BEGIN-NO-FORMAT", result)
+        self.assertIn("type SomeType", result)
+
     def test_no_format_unbalanced_begin(self):
         """Unbalanced BEGIN-NO-FORMAT without END should raise an error."""
         code = b'#@ BEGIN-NO-FORMAT\nglobal x = 1;\n'

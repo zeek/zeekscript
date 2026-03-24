@@ -553,6 +553,8 @@ class ExportDeclFormatter(Formatter):
         close_brace = self._get_child()
         if close_brace:
             for node in close_brace.prev_cst_siblings:
+                if node.no_format is not None:
+                    continue
                 self._format_child_impl(node, indent=True)
             close_brace.prev_cst_siblings = []
         self._format_child()  # '}'
