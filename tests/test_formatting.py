@@ -995,6 +995,28 @@ print 1;
         cont_line = [l for l in lines if "rec$orig_flag" in l][0]
         self.assertIn("rec$orig_flag, rec$byte_count]", cont_line)
 
+    def test_index_expr_continuation_aligns_after_bracket(self):
+        """Index expr continuation lines align to column after '['."""
+        code = (
+            b'event some_handler(rec: SomeModule::Info)\n'
+            b'\t{\n'
+            b'\tadd some_long_cache[aaa, bbb, ccc, rec$source_field,'
+            b' rec$type_field, rec$name_field, rec$orig_flag, rec$byte_count];\n'
+            b'\t}\n'
+        )
+        result = self._format(code).decode()
+        lines = result.rstrip().split('\n')
+        for line in lines:
+            self.assertLessEqual(len(line), 80, f"Line too long: {repr(line)}")
+        self.assertNotIn("MISINDENTATION", result)
+        # Continuation should align to column after '['
+        add_line = [l for l in lines if "add " in l][0]
+        bracket_col = add_line.index('[') + 1
+        cont_line = [l for l in lines if l.strip().startswith("rec$")][0]
+        content_col = len(cont_line) - len(cont_line.lstrip())
+        self.assertEqual(content_col, bracket_col,
+                         f"Expected align at col {bracket_col}, got {content_col}")
+
     def test_switch_paren_expr_has_spaces(self):
         """Parenthesized switch expressions should have spaces inside parens."""
         code = b'function f() { switch (val) { case 0: break; } }'

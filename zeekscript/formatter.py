@@ -1711,8 +1711,9 @@ class ExprFormatter(SpaceSeparatedFormatter, ComplexSequenceFormatterMixin):
     def _format_index_expr(self) -> None:
         self._format_child()  # <expr>
         self._format_child(hints=Hint.NO_LB_BEFORE | Hint.NO_LB_AFTER)  # '['
-        self._format_child()  # <expr_list>
-        self._format_child(hints=Hint.NO_LB_BEFORE)  # ']'
+        with self.ostream.aligned_to(self.ostream.get_visual_column()):
+            self._format_child()  # <expr_list>
+            self._format_child(hints=Hint.NO_LB_BEFORE)  # ']'
 
     def _format_record_field_access(self) -> None:
         # Never break on record $ operator - keep expr$field together
