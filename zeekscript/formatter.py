@@ -1656,6 +1656,23 @@ class ExprFormatter(SpaceSeparatedFormatter, ComplexSequenceFormatterMixin):
                 max_len = max(max_len, field_len)
         return max_len
 
+    def _compact_length(self) -> int:
+        """Estimate the single-line length of this expression's content.
+
+        Sums leaf node byte lengths, skipping newlines, and adds one
+        space per comma for the separator spaces.
+        """
+        length = 0
+        comma_count = 0
+        for child, _ in self.node.traverse(include_cst=True):
+            if child.is_nl():
+                continue
+            if not child.nonerr_children:  # leaf node
+                length += child.end_byte - child.start_byte
+            if child.token() == ",":
+                comma_count += 1
+        return length + comma_count
+
     def _is_record_constructor(self) -> bool:
         """Returns True if this [...] expression is a record constructor.
 
@@ -1728,17 +1745,7 @@ class ExprFormatter(SpaceSeparatedFormatter, ComplexSequenceFormatterMixin):
     def _format_initializer(self, ct1: str) -> None:
         # Vector/table/set initializers: '{'/'[' <expr_list> '}'/']'
         # Use multi-line if comments present or content is too long
-        do_linebreak = self.has_comments()
-        if not do_linebreak:
-            # Estimate compact length to decide if multi-line needed
-            compact_len = 0
-            for child, _ in self.node.traverse(include_cst=True):
-                if child.is_nl():
-                    continue
-                if not child.nonerr_children:  # leaf node
-                    compact_len += child.end_byte - child.start_byte
-            if compact_len > 80:
-                do_linebreak = True
+        do_linebreak = self.has_comments() or self._compact_length() > 80
 
         # When BRACE_TO_CONSTRUCTOR hint is set, transform { } to set( ) or table( )
         transform_brace = (
@@ -1842,25 +1849,8 @@ class ExprFormatter(SpaceSeparatedFormatter, ComplexSequenceFormatterMixin):
         # This produces consistent output regardless of input formatting.
         do_linebreak = False
         if is_constructor:
-            if self.has_comments():
+            if self.has_comments() or self._compact_length() > 80:
                 do_linebreak = True
-            else:
-                # Estimate compact length by summing leaf node lengths.
-                # Add 1 for space after each comma.
-                compact_len = 0
-                comma_count = 0
-                for child, _ in self.node.traverse(include_cst=True):
-                    if child.is_nl():
-                        continue
-                    # Count leaf nodes (no children means leaf)
-                    if not child.nonerr_children:
-                        compact_len += child.end_byte - child.start_byte
-                    if child.token() == ",":
-                        comma_count += 1
-                compact_len += comma_count  # Space after each comma
-                # If constructor can't fit on one line, use one-per-line format.
-                if compact_len > 80:
-                    do_linebreak = True
 
         self._format_child(hints=self.hints)  # 'table' etc or function name expr
         # Set alignment to column after '(' BEFORE formatting it, so any
