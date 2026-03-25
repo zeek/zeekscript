@@ -802,39 +802,53 @@ def _format_func_params(node: Node, script: Script) -> Doc:
     parts.append(text("("))  # '('
     idx += 1
 
-    if idx < len(kids) and _name(kids[idx]) == "formal_args":
-        # Align arguments to column after '('
-        parts.append(align(concat(
-            format_child(kids[idx], script),
-            text(")"),
-        )))
+    # Build the trailing content after args: ) [: <type>]
+    trailing_parts: list[Doc] = [text(")")]
+    args_idx = idx
+    has_args = idx < len(kids) and _name(kids[idx]) == "formal_args"
+    if has_args:
+        idx += 1  # formal_args
+        idx += 1  # ')'
+
+    if idx < len(kids) and _tok(kids[idx]) == ":":
+        trailing_parts.append(text(":"))
         idx += 1
-        idx += 1  # skip ')'
-    else:
-        parts.append(text(")"))  # ')'
+        trailing_parts.append(SPACE)
+        trailing_parts.append(format_child(kids[idx], script))  # <type>
         idx += 1
 
-    # Optional return type
-    if idx < len(kids) and _tok(kids[idx]) == ":":
-        parts.append(text(":"))
-        idx += 1
-        parts.append(SPACE)
-        parts.append(format_child(kids[idx], script))  # <type>
-        idx += 1
+    trailing = concat(*trailing_parts)
+
+    if has_args:
+        # Pass trailing content (e.g. "): return_type") to formal_args so
+        # fill accounts for it when deciding whether the last arg fits.
+        args_node = kids[args_idx]
+        pre = _format_prev_cst(args_node, script)
+        args_node.prev_cst_siblings = []
+        args_doc = _format_formal_args(args_node, script, trailing=trailing)
+        parts.append(align(concat(pre, args_doc)))
+    else:
+        parts.append(trailing)
 
     return group(concat(*parts))
 
 
-def _format_formal_args(node: Node, script: Script) -> Doc:
-    # formal_arg [, formal_arg]*
+def _format_formal_args(node: Node, script: Script,
+                        trailing: Doc = EMPTY) -> Doc:
+    """Format formal args with fill-style wrapping.
+
+    trailing is appended to the last arg so fill accounts for content
+    that follows the args (like ): return_type) when deciding breaks.
+    """
     kids = node.nonerr_children
     items: list[Doc] = []
     for child in kids:
         if _name(child) == "formal_arg":
             items.append(format_child(child, script))
-        # commas handled as separators
+    if items and trailing != EMPTY:
+        items[-1] = concat(items[-1], trailing)
     sep = concat(text(","), LINE)
-    return join(sep, items)
+    return fill(*intersperse(sep, items))
 
 
 def _format_formal_arg(node: Node, script: Script) -> Doc:
