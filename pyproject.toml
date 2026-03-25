@@ -8,7 +8,7 @@ description = "A Zeek script formatter and analyzer"
 readme = "README.md"
 
 classifiers=[
-    "Programming Language :: Python :: 3.7",
+    "Programming Language :: Python :: 3.10",
     "License :: OSI Approved :: BSD License",
     "Topic :: Utilities",
 ]

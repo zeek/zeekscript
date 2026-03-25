@@ -13,7 +13,7 @@ from typing import TYPE_CHECKING
 from .ir import (
     COLUMN0LINE, EMPTY, HARDLINE, LINE, SOFTLINE, SPACE,
     Concat, Doc, HardLine,
-    align, concat, dedent, fill, group, if_break, intersperse,
+    align, concat, dedent, dedent_spaces, fill, group, if_break, intersperse,
     join, nest, resolve, text,
 )
 from .node import Node
@@ -216,6 +216,14 @@ def _prev_cst_detects_leading_blank(node: Node) -> bool:
             return nl_count >= 2
         else:
             nl_count = 0
+    return False
+
+
+def _has_lambda(node: Node) -> bool:
+    """True if node contains a begin_lambda child (anonymous function)."""
+    for child in (node.nonerr_children or []):
+        if _name(child) == "begin_lambda":
+            return True
     return False
 
 
@@ -1841,14 +1849,20 @@ def _format_expr_has_field(node: Node, script: Script) -> Doc:
 
 
 def _format_expr_anon_func(node: Node, script: Script) -> Doc:
-    # function<begin_lambda> <func_body>
+    # function<begin_lambda> [: <type>] <func_body>
     # No space between 'function' and begin_lambda (starts with '(')
+    # func_body uses dedent() to escape enclosing align() contexts,
+    # so the Whitesmith block gets tab-based indentation.
     kids = node.nonerr_children
     parts: list[Doc] = []
     for i, child in enumerate(kids):
-        if i > 0 and _name(child) != "begin_lambda":
-            parts.append(SPACE)
-        parts.append(format_child(child, script))
+        if _name(child) == "func_body":
+            # func_body already starts with HARDLINE; no SPACE needed.
+            parts.append(dedent_spaces(format_child(child, script)))
+        else:
+            if i > 0 and _name(child) != "begin_lambda":
+                parts.append(SPACE)
+            parts.append(format_child(child, script))
     return concat(*parts)
 
 
@@ -2029,6 +2043,10 @@ def _format_initializer_node(node: Node, script: Script,
         return concat(text(op), SPACE, expr_doc)
     else:
         expr_doc = format_child(expr, script)
+        # Lambda RHS: func_body has HARDLINE which would force the group
+        # to break LINE after '='. Keep '= function(...)' together instead.
+        if _has_lambda(expr):
+            return concat(text(op), SPACE, expr_doc)
         return group(concat(
             text(op),
             LINE,

@@ -94,8 +94,13 @@ class Dedent:
     """Reset indentation to column 0 for the inner document."""
     doc: Doc
 
+@dataclass(frozen=True, slots=True)
+class DedentSpaces:
+    """Reset space-based indentation to 0, preserving tab nesting."""
+    doc: Doc
 
-Doc = Union[Text, Line, SoftLine, HardLine, Column0Line, Concat, Nest, Align, Group, IfBreak, Fill, Dedent]
+
+Doc = Union[Text, Line, SoftLine, HardLine, Column0Line, Concat, Nest, Align, Group, IfBreak, Fill, Dedent, DedentSpaces]
 
 
 # --- Singletons and common tokens ---
@@ -153,6 +158,10 @@ def fill(*docs: Doc) -> Fill:
 
 def dedent(doc: Doc) -> Dedent:
     return Dedent(doc)
+
+
+def dedent_spaces(doc: Doc) -> DedentSpaces:
+    return DedentSpaces(doc)
 
 
 def join(sep: Doc, docs: Sequence[Doc]) -> Doc:
@@ -219,7 +228,7 @@ def _flat_width(doc: Doc, remaining: int) -> int | None:
         elif isinstance(d, Concat):
             for sub in reversed(d.docs):
                 stack.append(sub)
-        elif isinstance(d, (Nest, Align, Dedent)):
+        elif isinstance(d, (Nest, Align, Dedent, DedentSpaces)):
             stack.append(d.doc)
         elif isinstance(d, Group):
             stack.append(d.doc)
@@ -307,6 +316,9 @@ def resolve(doc: Doc, max_width: int = MAX_WIDTH) -> bytes:
 
         elif isinstance(d, Dedent):
             stack.append((_Indent(), mode, d.doc))
+
+        elif isinstance(d, DedentSpaces):
+            stack.append((_Indent(indent.tabs, 0), mode, d.doc))
 
         elif isinstance(d, Group):
             if mode == _FLAT:
