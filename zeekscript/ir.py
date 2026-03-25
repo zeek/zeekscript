@@ -47,6 +47,12 @@ class HardLine:
     def __repr__(self) -> str:
         return "HARDLINE"
 
+class Column0Line:
+    """Always a newline to column 0 (no indentation)."""
+    __slots__ = ()
+    def __repr__(self) -> str:
+        return "COLUMN0LINE"
+
 @dataclass(frozen=True, slots=True)
 class Concat:
     """Sequence of documents."""
@@ -83,8 +89,13 @@ class Fill:
     """
     docs: tuple[Doc, ...]
 
+@dataclass(frozen=True, slots=True)
+class Dedent:
+    """Reset indentation to column 0 for the inner document."""
+    doc: Doc
 
-Doc = Union[Text, Line, SoftLine, HardLine, Concat, Nest, Align, Group, IfBreak, Fill]
+
+Doc = Union[Text, Line, SoftLine, HardLine, Column0Line, Concat, Nest, Align, Group, IfBreak, Fill, Dedent]
 
 
 # --- Singletons and common tokens ---
@@ -92,6 +103,7 @@ Doc = Union[Text, Line, SoftLine, HardLine, Concat, Nest, Align, Group, IfBreak,
 LINE = Line()
 SOFTLINE = SoftLine()
 HARDLINE = HardLine()
+COLUMN0LINE = Column0Line()
 EMPTY = Text("")
 SPACE = Text(" ")
 
@@ -137,6 +149,10 @@ def if_break(broken: Doc, flat: Doc) -> IfBreak:
 
 def fill(*docs: Doc) -> Fill:
     return Fill(tuple(docs))
+
+
+def dedent(doc: Doc) -> Dedent:
+    return Dedent(doc)
 
 
 def join(sep: Doc, docs: Sequence[Doc]) -> Doc:
@@ -198,12 +214,12 @@ def _flat_width(doc: Doc, remaining: int) -> int | None:
             w += 1  # space in flat mode
         elif isinstance(d, SoftLine):
             pass    # nothing in flat mode
-        elif isinstance(d, HardLine):
+        elif isinstance(d, (HardLine, Column0Line)):
             return None  # forces break
         elif isinstance(d, Concat):
             for sub in reversed(d.docs):
                 stack.append(sub)
-        elif isinstance(d, (Nest, Align)):
+        elif isinstance(d, (Nest, Align, Dedent)):
             stack.append(d.doc)
         elif isinstance(d, Group):
             stack.append(d.doc)
@@ -254,6 +270,23 @@ def resolve(doc: Doc, max_width: int = MAX_WIDTH) -> bytes:
             parts.append(ind)
             col = indent.width()
 
+        elif isinstance(d, Column0Line):
+            # If the last meaningful output was a newline (possibly followed
+            # by whitespace-only indent), reuse it instead of adding another.
+            # This prevents blank lines when a HARDLINE precedes a COLUMN0LINE.
+            if parts:
+                # Check if we're at the start of a line (only whitespace since last nl)
+                tail = parts[-1]
+                if tail.strip() == "" and len(parts) >= 2 and parts[-2].endswith(nl):
+                    # Remove the indent-only part, we're going to column 0
+                    parts.pop()
+                    col = 0
+                else:
+                    parts.append(nl)
+                    col = 0
+            else:
+                col = 0
+
         elif isinstance(d, Concat):
             for sub in reversed(d.docs):
                 stack.append((indent, mode, sub))
@@ -268,6 +301,9 @@ def resolve(doc: Doc, max_width: int = MAX_WIDTH) -> bytes:
                 sp = FALLBACK_INDENT
             ni = _Indent(indent.tabs, sp)
             stack.append((ni, mode, d.doc))
+
+        elif isinstance(d, Dedent):
+            stack.append((_Indent(), mode, d.doc))
 
         elif isinstance(d, Group):
             if mode == _FLAT:

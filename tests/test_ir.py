@@ -3,8 +3,8 @@
 import unittest
 
 from zeekscript.ir import (
-    HARDLINE, LINE, SOFTLINE, SPACE, EMPTY,
-    Text, align, concat, fill, group, if_break, intersperse,
+    COLUMN0LINE, HARDLINE, LINE, SOFTLINE, SPACE, EMPTY,
+    Text, align, concat, dedent, fill, group, if_break, intersperse,
     join, nest, resolve, text,
 )
 
@@ -188,6 +188,53 @@ class TestIR(unittest.TestCase):
     def test_single_concat(self):
         doc = concat(text("only"))
         self.assertIsInstance(doc, Text)
+
+    def test_column0line(self):
+        # COLUMN0LINE should go to column 0 regardless of nesting
+        doc = concat(
+            text("header"),
+            nest(1, concat(
+                HARDLINE,
+                text("indented"),
+                COLUMN0LINE,
+                text("@if ( cond )"),
+            )),
+        )
+        result = self._resolve(doc)
+        lines = result.strip().split("\n")
+        self.assertEqual(lines[0], "header")
+        self.assertEqual(lines[1], "\tindented")
+        self.assertEqual(lines[2], "@if ( cond )")
+
+    def test_column0line_absorbs_preceding_indent(self):
+        # When HARDLINE is followed by COLUMN0LINE, no blank line
+        doc = concat(
+            text("stmt;"),
+            HARDLINE,
+            COLUMN0LINE,
+            text("@if"),
+        )
+        result = self._resolve(doc)
+        self.assertEqual(result, "stmt;\n@if\n")
+
+    def test_dedent(self):
+        # Dedent resets indentation to 0
+        doc = concat(
+            text("header"),
+            nest(2, concat(
+                HARDLINE,
+                text("deep"),
+                dedent(concat(HARDLINE, text("shallow"))),
+                HARDLINE,
+                text("deep again"),
+            )),
+        )
+        result = self._resolve(doc)
+        lines = result.strip().split("\n")
+        self.assertEqual(lines[0], "header")
+        self.assertEqual(lines[1], "\t\tdeep")
+        self.assertEqual(lines[2], "shallow")
+        self.assertEqual(lines[3], "\t\tdeep again")
 
 
 if __name__ == "__main__":

@@ -11,7 +11,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from .ir import (
-    EMPTY, HARDLINE, LINE, SOFTLINE, SPACE, Doc,
+    COLUMN0LINE, EMPTY, HARDLINE, LINE, SOFTLINE, SPACE, Doc,
     align, concat, fill, group, if_break, intersperse,
     join, nest, resolve, text,
 )
@@ -266,17 +266,87 @@ def _format_space_separated(node: Node, script: Script) -> Doc:
 # Statement list / body helpers
 # ---------------------------------------------------------------------------
 
-def _format_body_items(nodes: list[Node], script: Script) -> Doc:
+def _is_preproc_item(node: Node) -> bool:
+    """True if this node contains a preproc_directive as its first child."""
+    if not node.nonerr_children:
+        return False
+    first = _child_name(node, 0)
+    if first == "preproc_directive":
+        return True
+    # decl > stmt > preproc_directive
+    if first == "stmt":
+        return _is_preproc_item(node.nonerr_children[0])
+    return False
+
+
+def _preproc_token(node: Node) -> str | None:
+    """Return the preproc keyword (@if, @endif, etc.) or None."""
+    n = node
+    while n and n.nonerr_children:
+        first = n.nonerr_children[0]
+        if _name(first) == "preproc_directive":
+            kids = first.nonerr_children
+            return _tok(kids[0]) if kids else None
+        if _name(first) in ("stmt", "decl"):
+            n = first
+        else:
+            break
+    return None
+
+
+def _format_body_items(nodes: list[Node], script: Script,
+                       top_level: bool = False) -> Doc:
     """Format a list of statements/declarations, preserving blank lines.
 
-    Each item ends with its own HARDLINE. This function only adds
-    extra blank lines where the source had them.
+    Each item ends with its own HARDLINE (except preproc stmts which have
+    no trailing HARDLINE). Preproc directives output at column 0 via
+    COLUMN0LINE transitions. At top level, content between @if/@endif gets
+    an extra indent level via nest().
     """
     parts: list[Doc] = []
-    for i, node in enumerate(nodes):
+    prev_was_preproc = False
+    preproc_depth = 0
+
+    # Two-pass: first collect items with their preproc depth, then build doc.
+    items: list[tuple[Node, int]] = []
+    for node in nodes:
+        is_preproc = _is_preproc_item(node)
+        if is_preproc:
+            tok = _preproc_token(node)
+            if tok in ("@endif", "@else"):
+                preproc_depth = max(0, preproc_depth - 1)
+            items.append((node, preproc_depth))
+            if tok in ("@if", "@ifdef", "@ifndef", "@else"):
+                preproc_depth += 1
+        else:
+            items.append((node, preproc_depth))
+
+    for i, (node, depth) in enumerate(items):
+        is_preproc = _is_preproc_item(node)
+        # Only apply preproc indent at top level (matching old formatter)
+        effective_depth = depth if top_level else 0
+
         if i > 0 and _wants_blank_before(node):
-            parts.append(HARDLINE)  # extra blank line
-        parts.append(format_child(node, script))
+            parts.append(HARDLINE)
+        if is_preproc:
+            parts.append(COLUMN0LINE)
+            if effective_depth > 0:
+                parts.append(text("\t" * effective_depth))
+            parts.append(format_child(node, script))
+        else:
+            doc = format_child(node, script)
+            if effective_depth > 0:
+                if prev_was_preproc:
+                    parts.append(nest(effective_depth, concat(HARDLINE, doc)))
+                else:
+                    parts.append(nest(effective_depth, doc))
+            else:
+                if prev_was_preproc:
+                    parts.append(HARDLINE)
+                parts.append(doc)
+        prev_was_preproc = is_preproc
+    if prev_was_preproc:
+        parts.append(HARDLINE)
     return concat(*parts)
 
 
@@ -348,7 +418,7 @@ def _format_source_file(node: Node, script: Script) -> Doc:
     items = [c for c in node.nonerr_children if _name(c) in ("decl", "stmt")]
     if not items:
         return EMPTY
-    return _format_body_items(items, script)
+    return _format_body_items(items, script, top_level=True)
 
 
 def _format_decl(node: Node, script: Script) -> Doc:
@@ -932,7 +1002,8 @@ def _format_stmt(node: Node, script: Script) -> Doc:
     elif cn1 == "expr":
         return _format_stmt_expr(node, script)
     elif cn1 == "preproc_directive":
-        return concat(format_child(kids[0], script), HARDLINE)
+        # No trailing HARDLINE — _format_body_items handles transitions
+        return format_child(kids[0], script)
     elif ct1 == "assert":
         return _format_stmt_assert(node, script)
     elif ct1 == ";":
@@ -2022,14 +2093,13 @@ def _format_interval(node: Node, script: Script) -> Doc:
 
 
 def _format_preproc_directive(node: Node, script: Script) -> Doc:
-    # @if/@ifdef/@ifndef/@else/@endif ... - no linebreaking, space-separated
+    # @if/@ifdef/@ifndef/@else/@endif ... - always at column 0, no linebreaking
     kids = node.nonerr_children
     parts: list[Doc] = []
     for i, child in enumerate(kids):
         if i > 0:
             parts.append(SPACE)
         parts.append(format_child(child, script))
-    parts.append(HARDLINE)
     return concat(*parts)
 
 
