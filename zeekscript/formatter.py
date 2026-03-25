@@ -1377,6 +1377,13 @@ class ExprListFormatter(Formatter, ComplexSequenceFormatterMixin):
     # Single-element expr_lists (like print arguments) shouldn't use these hints.
     MIN_ELEMENTS_FOR_INIT_HINTS = 2
 
+    @staticmethod
+    def _is_lambda_expr(node) -> bool:
+        """True if this expr node is an anonymous function/event (lambda)."""
+        return node is not None and any(
+            c.name() == "begin_lambda" for c in node.children
+        )
+
     def _should_align_record_args(self) -> bool:
         """Check if record-style args ($field=value) should use explicit layout.
 
@@ -1467,8 +1474,10 @@ class ExprListFormatter(Formatter, ComplexSequenceFormatterMixin):
                     # uses the shallower column for any further wrapping.
                     self.ostream.set_align_column(align_col)
 
+            is_first_expr = True
             while self._get_child_name() == "expr":
                 self._format_child()  # <expr>
+                is_first_expr = False
                 if self._get_child():
                     self._format_child(hints=Hint.NO_LB_BEFORE)  # ','
                     if force_align_args and align_col > 0:
@@ -1483,6 +1492,10 @@ class ExprListFormatter(Formatter, ComplexSequenceFormatterMixin):
                         else:
                             self.ostream.set_align_column(align_col)
                             self._write_nl(is_midline=True)
+                    elif (not is_first_expr
+                          and self._is_lambda_expr(self._get_child())):
+                        # Lambda args (not first) always start on own line.
+                        self._write_nl(is_midline=True)
                     else:
                         self._write_sp()
 

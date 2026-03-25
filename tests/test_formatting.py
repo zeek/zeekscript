@@ -1361,6 +1361,44 @@ print 1;
         self.assertEqual(cont_col, eq_pos)
 
 
+    def test_lambda_arg_starts_on_own_line(self):
+        """Lambda args (not first) start on their own continuation line."""
+        code = (
+            b'event zeek_init()\n'
+            b'    {\n'
+            b'    register_handler(some_usecase, function(h: addr, si: SomeInfo)\n'
+            b'        {\n'
+            b'        print h;\n'
+            b'        }, 6.0);\n'
+            b'    }\n'
+        )
+        result = self._format(code).decode()
+        self.assertNotIn("MISINDENTATION", result)
+        lines = result.splitlines()
+        # The lambda head should be on its own line (after the comma)
+        lambda_line = [l for l in lines if 'function(' in l][0]
+        comma_line = [l for l in lines if 'some_usecase,' in l][0]
+        self.assertNotIn('function(', comma_line)
+        self.assertIn('function(', lambda_line)
+
+    def test_lambda_first_arg_stays_inline(self):
+        """Lambda as first argument stays on the same line as the call."""
+        code = (
+            b'event zeek_init()\n'
+            b'    {\n'
+            b'    register_handler(function(h: addr, si: SomeInfo)\n'
+            b'        {\n'
+            b'        print h;\n'
+            b'        }, 6.0);\n'
+            b'    }\n'
+        )
+        result = self._format(code).decode()
+        self.assertNotIn("MISINDENTATION", result)
+        lines = result.splitlines()
+        call_line = [l for l in lines if 'register_handler(' in l][0]
+        self.assertIn('function(', call_line)
+
+
 class TestFormattingErrors(unittest.TestCase):
     def _format(self, content):
         script = zeekscript.Script(io.BytesIO(content))
