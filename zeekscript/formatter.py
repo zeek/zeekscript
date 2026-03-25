@@ -905,14 +905,32 @@ class TypeFormatter(SpaceSeparatedFormatter, ComplexSequenceFormatterMixin):
             super().format()
 
     def _format_typelist(self) -> None:
-        # Prevent line breaks inside type brackets - keep table[...] and set[...] intact
-        self._format_child(hints=Hint.NO_LB_BEFORE | Hint.NO_LB_AFTER)  # '['
-        while self._get_child_name() == "type":
-            self._format_child(hints=Hint.NO_LB_AFTER)  # <type>
-            if self._get_child_token() == ",":
-                self._format_child(hints=Hint.NO_LB_BEFORE | Hint.NO_LB_AFTER)  # ','
-                self._write_sp()
-        self._format_child(hints=Hint.NO_LB_BEFORE | Hint.NO_LB_AFTER)  # ']'
+        # Estimate if the type list fits on the current line.
+        # Sum type byte lengths + commas + spaces + brackets.
+        types = [c for c in self.node.nonerr_children if c.name() == "type"]
+        type_len = sum(t.end_byte - t.start_byte for t in types)
+        list_len = 1 + type_len + max(0, len(types) - 1) * 2 + 1  # [ types , ... ]
+        fits = self.ostream.get_visual_column() + list_len <= self.ostream.MAX_LINE_LEN
+
+        if fits:
+            # Keep table[...] and set[...] on one line
+            self._format_child(hints=Hint.NO_LB_BEFORE | Hint.NO_LB_AFTER)  # '['
+            while self._get_child_name() == "type":
+                self._format_child(hints=Hint.NO_LB_AFTER)  # <type>
+                if self._get_child_token() == ",":
+                    self._format_child(hints=Hint.NO_LB_BEFORE | Hint.NO_LB_AFTER)  # ','
+                    self._write_sp()
+            self._format_child(hints=Hint.NO_LB_BEFORE | Hint.NO_LB_AFTER)  # ']'
+        else:
+            # Too long: allow wrapping inside [...], align after [
+            self._format_child(hints=Hint.NO_LB_BEFORE)  # '['
+            with self.ostream.aligned_to(self.ostream.get_visual_column()):
+                while self._get_child_name() == "type":
+                    self._format_child()  # <type>
+                    if self._get_child_token() == ",":
+                        self._format_child(hints=Hint.NO_LB_BEFORE)  # ','
+                        self._write_sp()
+                self._format_child(hints=Hint.NO_LB_BEFORE)  # ']'
 
 
 class TypeSpecFormatter(Formatter):

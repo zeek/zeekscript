@@ -1440,6 +1440,24 @@ print 1;
         cont_col = len(cont_line.expandtabs(8)) - len(cont_line.expandtabs(8).lstrip())
         self.assertEqual(cont_col, bracket_col + 1)
 
+    def test_typelist_wraps_when_long(self):
+        """Long table[...] type list wraps with alignment after [."""
+        code = (
+            b'global some_state: table[SomeModule::CertInfo,'
+            b' SomeModule::AltNameInfo, SomeModule::ConstraintInfo]'
+            b' of count &default=0;\n'
+        )
+        result = self._format(code).decode()
+        lines = result.splitlines()
+        # The line with table[ should end with a comma (wrapped)
+        table_line = [l for l in lines if 'table[' in l][0]
+        self.assertTrue(table_line.rstrip().endswith(','))
+        # Continuation aligns after [
+        bracket_col = table_line.expandtabs(8).index('[') + 1
+        cont_line = lines[lines.index(table_line) + 1]
+        cont_col = len(cont_line.expandtabs(8)) - len(cont_line.expandtabs(8).lstrip())
+        self.assertEqual(cont_col, bracket_col)
+
     def test_long_regex_no_misindentation(self):
         """Long unbreakable regex pattern doesn't produce MISINDENTATION."""
         code = (
