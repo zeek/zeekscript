@@ -1841,18 +1841,30 @@ def _format_expr_call(node: Node, script: Script) -> Doc:
     # Function name
     parts.append(format_child(kids[0], script))
     # '('
-    parts.append(text("("))
+    open_paren = kids[1]
+    has_open_comment = any(
+        _is_comment(sib) for sib in open_paren.next_cst_siblings
+    )
     idx = 2  # skip name and '('
 
     # Arguments
     if idx < len(kids) and _name(kids[idx]) == "expr_list":
         args_doc = _format_expr_list_inline(kids[idx], script)
         close = text(")")
-        # Align args to column after '('
-        parts.append(align(concat(args_doc, close)))
+        if has_open_comment:
+            # Comment after '(' forces args to next line, aligned after '('
+            comment_doc = _format_next_cst(open_paren, script)
+            open_paren.next_cst_siblings = []
+            parts.append(text("("))
+            parts.append(align(concat(comment_doc, HARDLINE, args_doc, close)))
+        else:
+            parts.append(format_child(open_paren, script))
+            # Align args to column after '('
+            parts.append(align(concat(args_doc, close)))
         idx += 1
         idx += 1  # skip ')'
     else:
+        parts.append(format_child(open_paren, script))
         parts.append(text(")"))
         idx += 1
 
@@ -1894,16 +1906,17 @@ def _format_expr_ternary(node: Node, script: Script) -> Doc:
 
 
 def _format_expr_assignment(node: Node, script: Script) -> Doc:
-    # <expr> = <expr>
+    # <expr> = <expr>  or  <expr> += <expr>  etc.
     kids = node.nonerr_children
     op = _source_str(kids[1], script)
-    return group(align(concat(
+    return group(concat(
         format_child(kids[0], script),
         SPACE,
         text(op),
         LINE,
+        if_break(broken=text("    "), flat=EMPTY),
         format_child(kids[2], script),
-    )))
+    ))
 
 
 def _format_expr_binary(node: Node, script: Script) -> Doc:
@@ -2258,13 +2271,20 @@ def _format_no_space(node: Node, script: Script) -> Doc:
 
 
 def _format_preproc_directive(node: Node, script: Script) -> Doc:
-    # @if/@ifdef/@ifndef/@else/@endif ... - always at column 0, no linebreaking
+    # @if/@ifdef/@ifndef/@else/@endif ... - always at column 0, no linebreaking.
+    # Use format_child for CST siblings (comments) but build a flat text
+    # representation to prevent line-wrapping of expressions.
     kids = node.nonerr_children
     parts: list[Doc] = []
     for i, child in enumerate(kids):
         if i > 0:
             parts.append(SPACE)
-        parts.append(format_child(child, script))
+        # Format children as plain text to avoid group/align line-breaking,
+        # but process CST siblings (comments) normally.
+        cst_doc = _format_next_cst(child, script)
+        parts.append(text(_source_str(child, script)))
+        if cst_doc != EMPTY:
+            parts.append(cst_doc)
     return concat(*parts)
 
 
