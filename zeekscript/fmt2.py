@@ -97,7 +97,7 @@ def _format_prev_cst(node: Node, script: Script) -> Doc:
         else:
             nl_count = 0
     # If there are 2+ trailing NLs (blank line between comments and the node),
-    # emit the blank line
+    # emit the blank line.
     if nl_count >= 2 and parts:
         parts.append(HARDLINE)
     return concat(*parts)
@@ -132,11 +132,21 @@ def _format_next_cst(node: Node, script: Script) -> Doc:
 def _wants_blank_before(node: Node) -> bool:
     """True if there should be a blank line before this node.
 
-    Checks prev_cst_siblings for a sequence of 2+ consecutive newlines
-    anywhere in the sequence (indicating a blank line in the source).
+    Returns True only when the blank line is NOT already handled by
+    _format_prev_cst. When comments are present in prev_cst_siblings,
+    _format_prev_cst handles all blank lines (both before first comment
+    and between last comment and node), so this returns False.
+
+    Only returns True for blank lines with no associated comments.
     """
+    sibs = node.prev_cst_siblings
+    has_comments = any(_is_comment(sib) for sib in sibs)
+    if has_comments:
+        # _format_prev_cst handles blank lines around comments
+        return False
+
     nl_count = 0
-    for sib in node.prev_cst_siblings:
+    for sib in sibs:
         if _is_nl(sib):
             nl_count += 1
             if nl_count >= 2:
@@ -2092,6 +2102,14 @@ def _format_interval(node: Node, script: Script) -> Doc:
     )
 
 
+def _format_no_space(node: Node, script: Script) -> Doc:
+    """Concatenate children with no spaces (for subnet, etc.)."""
+    kids = node.nonerr_children
+    if not kids:
+        return text(_source_str(node, script))
+    return concat(*[format_child(c, script) for c in kids])
+
+
 def _format_preproc_directive(node: Node, script: Script) -> Doc:
     # @if/@ifdef/@ifndef/@else/@endif ... - always at column 0, no linebreaking
     kids = node.nonerr_children
@@ -2104,7 +2122,7 @@ def _format_preproc_directive(node: Node, script: Script) -> Doc:
 
 
 def _format_pragma(node: Node, script: Script) -> Doc:
-    return concat(text(_source_str(node, script)), HARDLINE)
+    return text(_source_str(node, script))
 
 
 def _format_begin_lambda(node: Node, script: Script) -> Doc:
@@ -2156,6 +2174,7 @@ _FORMATTERS: dict[str, callable] = {
     "attr_list": _format_attr_list,
     "initializer": _format_initializer,
     "interval": _format_interval,
+    "subnet": _format_no_space,
     "preproc_directive": _format_preproc_directive,
     "pragma": _format_pragma,
     "begin_lambda": _format_begin_lambda,
