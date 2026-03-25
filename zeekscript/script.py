@@ -280,15 +280,29 @@ class Script:
                             node.no_format = True  # Skip, already emitted
 
     def format(
-        self, output: BinaryIO | TextIO | None = None, enable_linebreaks: bool = True
+        self, output: BinaryIO | TextIO | None = None, enable_linebreaks: bool = True,
+        use_ir: bool = False,
     ) -> None:
         """Formats the script and writes out the result.
 
         The output destination can be one of three things: a filename, a file
         object, or None, which means stdout. enable_linebreaks, True by default,
-        controls whether to use linebreaks at all.
+        controls whether to use linebreaks at all. use_ir, False by default,
+        selects the IR-based formatter (fmt2) instead of the classic one.
         """
         assert self.root is not None, "call Script.parse() before Script.format()"
+
+        if use_ir:
+            from .fmt2 import format_script
+            result = format_script(self)
+            if output is None:
+                sys.stdout.buffer.write(result)
+            elif isinstance(output, str):
+                with open(output, "wb") as ostream:
+                    ostream.write(result)
+            else:
+                output.write(result)
+            return
 
         self._scan_format_annotations()
 
