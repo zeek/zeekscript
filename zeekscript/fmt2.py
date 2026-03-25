@@ -13,7 +13,7 @@ from typing import TYPE_CHECKING
 from .ir import (
     COLUMN0LINE, EMPTY, HARDLINE, LINE, SOFTLINE, SPACE,
     Concat, Doc, HardLine,
-    align, concat, fill, group, if_break, intersperse,
+    align, concat, dedent, fill, group, if_break, intersperse,
     join, nest, resolve, text,
 )
 from .node import Node
@@ -549,6 +549,17 @@ def _format_export_decl(node: Node, script: Script) -> Doc:
     )
 
 
+def _type_constructor_name(type_node: Node) -> str | None:
+    """Extract constructor name (vector/table/set) from a type node."""
+    kids = type_node.nonerr_children
+    if not kids:
+        return None
+    first = kids[0].type
+    if first in ("vector", "table", "set"):
+        return first
+    return None
+
+
 def _format_typed_initializer(kids: list[Node], start_idx: int, script: Script) -> tuple[Doc, int]:
     """Format [: <type>] [<initializer>] [<attr_list>] sequence.
 
@@ -557,19 +568,27 @@ def _format_typed_initializer(kids: list[Node], start_idx: int, script: Script) 
     idx = start_idx
     parts: list[Doc] = []
 
+    type_name = None
     has_explicit_type = idx < len(kids) and _tok(kids[idx]) == ":"
     if has_explicit_type:
         idx += 1  # skip ':'
+        type_node = kids[idx]
+        type_name = _type_constructor_name(type_node)
         parts.append(text(":"))
         parts.append(SPACE)
-        parts.append(format_child(kids[idx], script))  # <type>
+        parts.append(format_child(type_node, script))  # <type>
         idx += 1
 
     if idx < len(kids) and _name(kids[idx]) == "initializer":
         parts.append(SPACE)
-        # Transform { } to set()/table() when no explicit type
-        transform_braces = not has_explicit_type
-        parts.append(_format_initializer_node(kids[idx], script, transform_braces))
+        # Transform { } to constructor() form when type is known,
+        # or auto-detect set/table when no explicit type
+        if not has_explicit_type:
+            constructor = ""  # sentinel: auto-detect from content
+        else:
+            constructor = type_name  # None if type isn't vector/table/set
+        parts.append(_format_initializer_node(kids[idx], script,
+                                              constructor=constructor))
         idx += 1
 
     if idx < len(kids) and _name(kids[idx]) == "attr_list":
@@ -1976,21 +1995,14 @@ def _format_expr_list_inline(node: Node, script: Script) -> Doc:
 def _format_expr_list_multiline(node: Node, script: Script) -> Doc:
     """Format expr_list with one element per line."""
     kids = node.nonerr_children
-    items: list[Doc] = []
+    parts: list[Doc] = []
     for child in kids:
         if _name(child) == "expr":
-            items.append(format_child(child, script))
-
-    if not items:
-        return EMPTY
-
-    parts: list[Doc] = []
-    for i, item in enumerate(items):
-        if i > 0:
-            parts.append(HARDLINE)
-        parts.append(item)
-        if i < len(items) - 1:
-            parts.append(text(","))
+            if parts:
+                parts.append(HARDLINE)
+            parts.append(format_child(child, script))
+        elif _tok(child) == ",":
+            parts.append(format_child(child, script))
     return concat(*parts)
 
 
@@ -1999,24 +2011,29 @@ def _format_expr_list_multiline(node: Node, script: Script) -> Doc:
 # ---------------------------------------------------------------------------
 
 def _format_initializer(node: Node, script: Script) -> Doc:
-    return _format_initializer_node(node, script, transform_braces=False)
+    return _format_initializer_node(node, script)
 
 
-def _format_initializer_node(node: Node, script: Script, transform_braces: bool = False) -> Doc:
+def _format_initializer_node(node: Node, script: Script,
+                             constructor: str | None = None) -> Doc:
     # <init_class> <expr>  where init_class contains '=' or '+=' etc.
+    # constructor: None = no transform, "" = auto-detect, "vector"/"table"/"set" = use that name
     kids = node.nonerr_children
     init_class = kids[0]  # contains the operator token
     op = _source_str(init_class, script)
     expr = kids[1]
-    if transform_braces:
-        expr_doc = _format_expr_with_brace_transform(expr, script)
+    if constructor is not None:
+        # Constructor transform: keep "= constructor(" together on one line
+        expr_doc = _format_expr_with_brace_transform(
+            expr, script, constructor or None)
+        return concat(text(op), SPACE, expr_doc)
     else:
         expr_doc = format_child(expr, script)
-    return group(concat(
-        text(op),
-        LINE,
-        expr_doc,
-    ))
+        return group(concat(
+            text(op),
+            LINE,
+            expr_doc,
+        ))
 
 
 def _is_brace_init_table(node: Node) -> bool:
@@ -2035,14 +2052,16 @@ def _is_brace_init_table(node: Node) -> bool:
     return False
 
 
-def _format_expr_with_brace_transform(node: Node, script: Script) -> Doc:
-    """Format an expression, transforming { } to set()/table() if applicable."""
+def _format_expr_with_brace_transform(node: Node, script: Script,
+                                      constructor: str | None = None) -> Doc:
+    """Format an expression, transforming { } to constructor() form."""
     kids = node.nonerr_children
     if not kids or _tok(kids[0]) != "{":
         return format_child(node, script)
 
-    # Determine constructor name
-    constructor = "table" if _is_brace_init_table(node) else "set"
+    # Determine constructor name from content if not provided
+    if constructor is None:
+        constructor = "table" if _is_brace_init_table(node) else "set"
 
     # Get the content between { and }
     has_content = len(kids) > 2 and _name(kids[1]) == "expr_list"
@@ -2057,9 +2076,11 @@ def _format_expr_with_brace_transform(node: Node, script: Script) -> Doc:
         body = _format_expr_list_multiline(expr_list, script)
         return concat(
             text(constructor + "("),
-            nest(1, concat(HARDLINE, body)),
-            HARDLINE,
-            text(")"),
+            dedent(concat(
+                nest(1, concat(HARDLINE, body)),
+                HARDLINE,
+                text(")"),
+            )),
         )
     else:
         body = _format_expr_list_inline(expr_list, script)
