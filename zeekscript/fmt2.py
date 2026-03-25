@@ -173,6 +173,34 @@ def _wants_blank_before(node: Node) -> bool:
     return False
 
 
+def _blank_line_in_source(prev_node: Node, curr_node: Node,
+                          source: bytes) -> bool:
+    """True if the source between two nodes contains a blank line.
+
+    This catches blank lines that _wants_blank_before misses when the
+    previous node has a trailing comment whose next_cst_siblings consume
+    a NL that would otherwise appear in curr_node's prev_cst_siblings.
+    """
+    gap = source[prev_node.end_byte:curr_node.start_byte]
+    return b"\n\n" in gap or b"\r\n\r\n" in gap
+
+
+def _prev_cst_detects_leading_blank(node: Node) -> bool:
+    """True if _format_prev_cst would emit a blank line before the first comment.
+
+    Used to avoid double blank lines when _blank_line_in_source also detects one.
+    """
+    nl_count = 0
+    for sib in node.prev_cst_siblings:
+        if _is_nl(sib):
+            nl_count += 1
+        elif _is_comment(sib):
+            return nl_count >= 2
+        else:
+            nl_count = 0
+    return False
+
+
 def _has_comments(node: Node) -> bool:
     """True if node's subtree contains comments."""
     for child, _ in node.traverse(include_cst=True):
@@ -354,6 +382,13 @@ def _format_body_items(nodes: list[Node], script: Script,
         effective_depth = depth if top_level else 0
 
         blank_before = i > 0 and _wants_blank_before(node)
+        # Fallback: check source for blank lines missed by _wants_blank_before
+        # (e.g. when previous stmt has trailing comment consuming a NL)
+        if not blank_before and i > 0:
+            prev = items[i - 1][0]
+            if (_blank_line_in_source(prev, node, script.source)
+                    and not _prev_cst_detects_leading_blank(node)):
+                blank_before = True
         if blank_before:
             parts.append(HARDLINE)
         if is_preproc:
