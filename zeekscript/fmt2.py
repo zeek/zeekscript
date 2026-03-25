@@ -123,9 +123,25 @@ def _format_prev_cst(node: Node, script: Script) -> Doc:
 def _format_next_cst(node: Node, script: Script) -> Doc:
     """Format next_cst_siblings (trailing comments after an AST node)."""
     parts: list[Doc] = []
+    zeekygen_prev_parts: list[Doc] = []
+
     for sib in node.next_cst_siblings:
         if sib.no_format is not None:
             continue
+        if sib.is_zeekygen_prev_comment():
+            # Collect consecutive ##< comments for aligned output
+            if zeekygen_prev_parts:
+                zeekygen_prev_parts.append(HARDLINE)
+            zeekygen_prev_parts.append(text(_source_str(sib, script)))
+            continue
+        if _is_nl(sib) and zeekygen_prev_parts:
+            # Skip NLs between consecutive ##< comments
+            continue
+        # Flush any collected ##< comments before processing other nodes
+        if zeekygen_prev_parts:
+            parts.append(SPACE)
+            parts.append(align(concat(*zeekygen_prev_parts)))
+            zeekygen_prev_parts = []
         if sib.is_minor_comment():
             # End-of-line comment
             if sib.prev_cst_sibling and not sib.prev_cst_sibling.is_nl():
@@ -135,14 +151,16 @@ def _format_next_cst(node: Node, script: Script) -> Doc:
                 # Own-line comment
                 parts.append(HARDLINE)
                 parts.append(text(_source_str(sib, script)))
-        elif sib.is_zeekygen_prev_comment():
-            # ##< comments - space then comment
-            parts.append(SPACE)
-            parts.append(text(_source_str(sib, script)))
         elif _is_comment(sib):
             parts.append(HARDLINE)
             parts.append(text(_source_str(sib, script)))
         # Skip newlines - they're handled by the structure
+
+    # Flush trailing ##< comments
+    if zeekygen_prev_parts:
+        parts.append(SPACE)
+        parts.append(align(concat(*zeekygen_prev_parts)))
+
     return concat(*parts)
 
 
@@ -682,12 +700,14 @@ def _format_type_enum(node: Node, script: Script) -> Doc:
     do_linebreak = _has_comments(node) or _compact_length(enum_body) > 80
 
     if do_linebreak:
+        pre_body = _format_prev_cst(enum_body, script)
+        enum_body.prev_cst_siblings = []
         body_doc = _format_enum_body_multiline(enum_body, script)
         return concat(
             text("enum"),
             SPACE,
             text("{"),
-            nest(1, concat(HARDLINE, body_doc)),
+            nest(1, concat(HARDLINE, pre_body, body_doc)),
             HARDLINE,
             text("}"),
         )
@@ -746,7 +766,7 @@ def _format_enum_body_multiline(node: Node, script: Script) -> Doc:
                 parts.append(HARDLINE)
             parts.append(format_child(child, script))
         elif _tok(child) == ",":
-            parts.append(text(","))
+            parts.append(format_child(child, script))
     return concat(*parts)
 
 
@@ -977,8 +997,10 @@ def _format_redef_enum_decl(node: Node, script: Script) -> Doc:
             do_linebreak = _compact_length(enum_body) > 60  # generous threshold
 
         if do_linebreak:
+            pre_body = _format_prev_cst(enum_body, script)
+            enum_body.prev_cst_siblings = []
             body_doc = _format_enum_body_multiline(enum_body, script)
-            parts.append(nest(1, concat(HARDLINE, body_doc)))
+            parts.append(nest(1, concat(HARDLINE, pre_body, body_doc)))
             parts.append(HARDLINE)
         else:
             body_doc = _format_enum_body_inline(enum_body, script)
