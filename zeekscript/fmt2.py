@@ -76,6 +76,22 @@ def _is_nl(node: Node) -> bool:
     return node.is_named and node.type == "nl"
 
 
+def _find_semi(kids: list[Node]) -> Node | None:
+    """Find the ';' token in a list of children."""
+    for k in kids:
+        if _tok(k) == ";":
+            return k
+    return None
+
+
+def _format_semi(kids: list[Node], script: Script) -> Doc:
+    """Format a ';' token with its CST siblings (trailing comments)."""
+    semi = _find_semi(kids)
+    if semi is None:
+        return text(";")
+    return format_child(semi, script)
+
+
 # ---------------------------------------------------------------------------
 # Comment handling
 # ---------------------------------------------------------------------------
@@ -401,7 +417,10 @@ def _format_curly_stmt_list(node: Node, script: Script, start_idx: int) -> tuple
     # stmt_list (optional)
     stmts_doc = EMPTY
     if idx < len(kids) and _name(kids[idx]) == "stmt_list":
-        stmts_doc = _format_stmt_list(kids[idx], script)
+        # Include any CST siblings (comments between { and first stmt)
+        pre_stmts = _format_prev_cst(kids[idx], script)
+        kids[idx].prev_cst_siblings = []  # consumed
+        stmts_doc = concat(pre_stmts, _format_stmt_list(kids[idx], script))
         idx += 1
 
     # '}'
@@ -843,7 +862,9 @@ def _format_func_body(node: Node, script: Script) -> Doc:
     stmts_doc = EMPTY
     for child in kids:
         if _name(child) == "stmt_list":
-            stmts_doc = _format_stmt_list(child, script)
+            pre_stmts = _format_prev_cst(child, script)
+            child.prev_cst_siblings = []
+            stmts_doc = concat(pre_stmts, _format_stmt_list(child, script))
 
     # Handle comments before '}'
     close_brace = kids[-1] if kids else None
@@ -1034,7 +1055,9 @@ def _format_stmt_block(node: Node, script: Script) -> Doc:
 
     stmts_doc = EMPTY
     if idx < len(kids) and _name(kids[idx]) == "stmt_list":
-        stmts_doc = _format_stmt_list(kids[idx], script)
+        pre_stmts = _format_prev_cst(kids[idx], script)
+        kids[idx].prev_cst_siblings = []
+        stmts_doc = concat(pre_stmts, _format_stmt_list(kids[idx], script))
         idx += 1
 
     assert _tok(kids[idx]) == "}"
@@ -1397,7 +1420,9 @@ def _format_curly_stmt_list_from_kids(kids: list[Node], start_idx: int, script: 
 
     stmts_doc = EMPTY
     if idx < len(kids) and _name(kids[idx]) == "stmt_list":
-        stmts_doc = _format_stmt_list(kids[idx], script)
+        pre_stmts = _format_prev_cst(kids[idx], script)
+        kids[idx].prev_cst_siblings = []
+        stmts_doc = concat(pre_stmts, _format_stmt_list(kids[idx], script))
         idx += 1
 
     assert idx < len(kids) and _tok(kids[idx]) == "}"
@@ -1430,7 +1455,7 @@ def _format_stmt_expr(node: Node, script: Script) -> Doc:
     kids = node.nonerr_children
     return concat(
         format_child(kids[0], script),
-        text(";"),
+        _format_semi(kids, script),
         HARDLINE,
     )
 
