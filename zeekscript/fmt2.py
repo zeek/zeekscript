@@ -11,7 +11,8 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from .ir import (
-    COLUMN0LINE, EMPTY, HARDLINE, LINE, SOFTLINE, SPACE, Doc,
+    COLUMN0LINE, EMPTY, HARDLINE, LINE, SOFTLINE, SPACE,
+    Concat, Doc, HardLine,
     align, concat, fill, group, if_break, intersperse,
     join, nest, resolve, text,
 )
@@ -1020,9 +1021,32 @@ def _format_stmt(node: Node, script: Script) -> Doc:
 
 
 def _format_stmt_block(node: Node, script: Script) -> Doc:
-    """Format a { stmt_list } block statement."""
-    doc, _ = _format_curly_stmt_list(node, script, 0)
-    return doc
+    """Format a standalone { stmt_list } block statement.
+
+    Standalone blocks (not control-flow bodies) use braces at the current
+    indent level. Control-flow bodies use _format_indented_body which calls
+    _format_curly_stmt_list for the Whitesmith style.
+    """
+    kids = node.nonerr_children
+    idx = 0
+    assert _tok(kids[idx]) == "{"
+    idx += 1
+
+    stmts_doc = EMPTY
+    if idx < len(kids) and _name(kids[idx]) == "stmt_list":
+        stmts_doc = _format_stmt_list(kids[idx], script)
+        idx += 1
+
+    assert _tok(kids[idx]) == "}"
+    close_brace = kids[idx]
+    pre_close = _format_prev_cst(close_brace, script)
+    close_brace.prev_cst_siblings = []
+
+    if stmts_doc == EMPTY and pre_close == EMPTY:
+        return concat(text("{ }"), HARDLINE)
+
+    body = concat(stmts_doc, pre_close) if pre_close != EMPTY else stmts_doc
+    return concat(text("{"), HARDLINE, body, text("}"), HARDLINE)
 
 
 def _format_stmt_print_or_event(node: Node, script: Script) -> Doc:
@@ -1043,21 +1067,41 @@ def _format_stmt_print_or_event(node: Node, script: Script) -> Doc:
     return concat(*parts)
 
 
-def _format_stmt_body(node: Node, script: Script, kids: list[Node], idx: int) -> tuple[Doc, int]:
-    """Format a statement body (either a block or indented single statement).
+def _is_brace_block(child: Node) -> bool:
+    """Check if a stmt child is a {}-block."""
+    return _child_tok(child, 0) == "{"
 
-    Returns (doc, next_idx).
+
+def _format_indented_body(child: Node, script: Script) -> Doc:
+    """Format a statement body with proper indentation.
+
+    Brace-blocks already include nest(1) from _format_whitesmith_block,
+    so we emit them directly. Non-block bodies get wrapped in nest(1),
+    with the trailing HARDLINE moved outside the nest so that any
+    continuation (else, timeout) starts at the correct outer indent.
     """
-    child = kids[idx]
-    # Check if it's a {}-block
-    if _child_tok(child, 0) == "{":
-        body_doc = format_child(child, script)
-        return concat(HARDLINE, nest(1, concat(HARDLINE, body_doc)), HARDLINE), idx + 1
-    else:
-        # Actually, Whitesmith blocks are handled inside the stmt formatter.
-        # For non-block: newline + indent + stmt
-        body_doc = format_child(child, script)
-        return nest(1, concat(HARDLINE, body_doc)), idx + 1
+    if _is_brace_block(child):
+        # Use Whitesmith style directly — it includes its own nest(1).
+        # Don't go through format_child/stmt dispatcher (which uses the
+        # standalone block formatter).
+        doc, _ = _format_curly_stmt_list(child, script, 0)
+        return doc
+    body_doc = format_child(child, script)
+    # Non-block stmts end with HARDLINE. Move it outside the nest so
+    # the newline uses the outer indent level.
+    stripped = _strip_trailing_hardline(body_doc)
+    return concat(nest(1, concat(HARDLINE, stripped)), HARDLINE)
+
+
+def _strip_trailing_hardline(doc: Doc) -> Doc:
+    """Remove a trailing HARDLINE from a doc if present."""
+    if isinstance(doc, HardLine):
+        return EMPTY
+    if isinstance(doc, Concat):
+        docs = doc.docs
+        if docs and isinstance(docs[-1], HardLine):
+            return concat(*docs[:-1])
+    return doc
 
 
 def _is_compact_if(node: Node, script: Script) -> bool:
@@ -1113,12 +1157,14 @@ def _format_stmt_if(node: Node, script: Script) -> Doc:
         parts.append(SPACE)
         parts.append(format_child(body_child, script))
     else:
-        # Normal: body on next line (the stmt itself ends with HARDLINE)
-        body_doc = format_child(body_child, script)
-        parts.append(nest(1, concat(HARDLINE, body_doc)))
+        parts.append(_format_indented_body(body_child, script))
 
     # else clause
     if idx < len(kids) and _tok(kids[idx]) == "else":
+        # Brace-block bodies don't end with HARDLINE (they end with '}'),
+        # so we need one. Non-block stmts already end with HARDLINE.
+        if _is_brace_block(body_child):
+            parts.append(HARDLINE)
         parts.append(text("else"))
         idx += 1
         if idx < len(kids):
@@ -1128,8 +1174,7 @@ def _format_stmt_if(node: Node, script: Script) -> Doc:
                 parts.append(SPACE)
                 parts.append(format_child(else_body, script))
             else:
-                body_doc = format_child(else_body, script)
-                parts.append(nest(1, concat(HARDLINE, body_doc)))
+                parts.append(_format_indented_body(else_body, script))
 
     return concat(*parts)
 
@@ -1203,10 +1248,9 @@ def _format_stmt_for(node: Node, script: Script) -> Doc:
     parts.append(text(")"))  # ')'
     idx += 1
 
-    # Body (the stmt itself ends with HARDLINE)
+    # Body
     if idx < len(kids):
-        body_doc = format_child(kids[idx], script)
-        parts.append(nest(1, concat(HARDLINE, body_doc)))
+        parts.append(_format_indented_body(kids[idx], script))
 
     return concat(*parts)
 
@@ -1224,10 +1268,9 @@ def _format_stmt_while(node: Node, script: Script) -> Doc:
     parts.append(text(")"))  # ')'
     idx += 1
 
-    # Body (the stmt itself ends with HARDLINE)
+    # Body
     if idx < len(kids):
-        body_doc = format_child(kids[idx], script)
-        parts.append(nest(1, concat(HARDLINE, body_doc)))
+        parts.append(_format_indented_body(kids[idx], script))
 
     return concat(*parts)
 
@@ -1320,25 +1363,23 @@ def _format_when_clause(kids: list[Node], start_idx: int, script: Script) -> Doc
 
     # Body
     if idx < len(kids):
-        body_doc = format_child(kids[idx], script)
-        parts.append(nest(1, concat(HARDLINE, body_doc)))
-        parts.append(HARDLINE)
+        parts.append(_format_indented_body(kids[idx], script))
         idx += 1
 
     # timeout clause
     if idx < len(kids) and _tok(kids[idx]) == "timeout":
+        parts.append(HARDLINE)
         parts.append(text("timeout"))
         idx += 1
         parts.append(SPACE)
         parts.append(format_child(kids[idx], script))  # <expr>
         idx += 1
-        parts.append(HARDLINE)
         # { stmt_list }
         if idx < len(kids):
             block_doc, idx = _format_curly_stmt_list_from_kids(kids, idx, script)
             parts.append(block_doc)
-        parts.append(HARDLINE)
 
+    parts.append(HARDLINE)
     return concat(*parts)
 
 
