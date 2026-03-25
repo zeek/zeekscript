@@ -384,7 +384,7 @@ class LineBreaker:
         needs_no_lb_after = False
         for out in self.items_remaining[::-1]:
             if out.data.strip() and needs_no_lb_after:
-                if out.data.strip() != b",":
+                if out.data.strip() not in (b",", b"&&", b"||"):
                     out.formatter.hints |= Hint.NO_LB_AFTER
                 needs_no_lb_after = False
             if Hint.NO_LB_BEFORE in out.formatter.hints:

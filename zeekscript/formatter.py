@@ -1967,7 +1967,10 @@ class ExprFormatter(SpaceSeparatedFormatter, ComplexSequenceFormatterMixin):
                 with self.ostream.aligned_to(self.ostream.get_visual_column()):
                     self._format_child()
             else:
-                self._format_child()  # Inner expression(s)
+                # Align to column after '['/'{' so the line-breaker
+                # uses the right continuation column if wrapping.
+                with self.ostream.aligned_to(self.ostream.get_visual_column()):
+                    self._format_child()  # Inner expression(s)
 
         if transform_brace:
             self._next_child()  # Skip the '}' token (don't format it)

@@ -1416,6 +1416,30 @@ print 1;
         self.assertIn('function(', call_line)
 
 
+    def test_boolean_op_not_blocked_by_bracket(self):
+        """&& before [...] stays at end of line, not pushed to start of next."""
+        code = (
+            b'event some_evt(si: SomeInfo)\n'
+            b'\t{\n'
+            b'\tif ( coal_max_entries > 0 && |coalesced_state| >= coal_max_entries &&\n'
+            b'\t     [server_name, server_subj, server_issuer, client_subj,\n'
+            b'\t      client_issuer, ja3] !in coalesced_state )\n'
+            b'\t\treturn;\n'
+            b'\t}\n'
+        )
+        result = self._format(code).decode()
+        lines = result.splitlines()
+        # The && should be at end of line, not start of next
+        and_line = [l for l in lines if '&& [' in l or 'coal_max_entries &&' in l]
+        self.assertTrue(any(l.rstrip().endswith('&&') for l in and_line),
+                        f"Expected && at end of line, got: {and_line}")
+        # Continuation inside [...] aligns one past [
+        bracket_line = [l for l in lines if '[server_name' in l][0]
+        bracket_col = bracket_line.expandtabs(8).index('[')
+        cont_line = [l for l in lines if 'client_issuer' in l][0]
+        cont_col = len(cont_line.expandtabs(8)) - len(cont_line.expandtabs(8).lstrip())
+        self.assertEqual(cont_col, bracket_col + 1)
+
     def test_long_regex_no_misindentation(self):
         """Long unbreakable regex pattern doesn't produce MISINDENTATION."""
         code = (
