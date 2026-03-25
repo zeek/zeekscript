@@ -717,6 +717,11 @@ class InitializerFormatter(Formatter):
             self._write_nl(is_midline=True)
         else:
             self._write_sp()
+            # Align continuation to column after '= ', falling back to
+            # the parent's alignment when that would be past the halfway point.
+            rhs_col = self.ostream.get_visual_column()
+            if rhs_col <= self.ostream.MAX_LINE_LEN // 2:
+                self.ostream.set_align_column(rhs_col)
         # Forward hints (like BRACE_TO_CONSTRUCTOR) from parent to expr
         self._format_child(hints=self.hints)  # <expr>
 

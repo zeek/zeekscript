@@ -1342,6 +1342,25 @@ print 1;
         self.assertEqual(cont_col, eq_pos)
 
 
+    def test_initializer_continuation_aligns_after_equals(self):
+        """Initializer RHS continuation aligns to column after '= '."""
+        code = (
+            b'event some_evt()\n'
+            b'    {\n'
+            b'    local some_services = worker_si$some_entities |\n'
+            b'                          worker_si$other_entities;\n'
+            b'    }\n'
+        )
+        result = self._format(code).decode()
+        self.assertNotIn("MISINDENTATION", result)
+        lines = result.splitlines()
+        assign_line = [l for l in lines if '= worker_si$' in l][0]
+        cont_line = lines[lines.index(assign_line) + 1]
+        eq_pos = assign_line.expandtabs(8).index('= ') + 2
+        cont_col = len(cont_line.expandtabs(8)) - len(cont_line.expandtabs(8).lstrip())
+        self.assertEqual(cont_col, eq_pos)
+
+
 class TestFormattingErrors(unittest.TestCase):
     def _format(self, content):
         script = zeekscript.Script(io.BytesIO(content))
