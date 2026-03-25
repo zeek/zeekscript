@@ -1440,6 +1440,33 @@ print 1;
         cont_col = len(cont_line.expandtabs(8)) - len(cont_line.expandtabs(8).lstrip())
         self.assertEqual(cont_col, bracket_col + 1)
 
+    def test_record_constructor_comments_aligned_with_fields(self):
+        """Comments between record constructor fields align with $ fields."""
+        code = (
+            b'event some_evt(c: connection)\n'
+            b'\t{\n'
+            b'\tNOTICE([$note=Some_Notice,\n'
+            b'\t\t$conn=c,\n'
+            b'\t\t# This is a comment about the next field.\n'
+            b'\t\t# Another comment line.\n'
+            b'\t\t$identifier=cat(id$orig_h, id$resp_h)]);\n'
+            b'\t}\n'
+        )
+        result = self._format(code).decode()
+        self.assertNotIn("MISINDENTATION", result)
+        lines = result.splitlines()
+        # [ should stay on first line with NOTICE(
+        notice_line = [l for l in lines if 'NOTICE(' in l][0]
+        self.assertIn('[$note=', notice_line)
+        # Comments should be at same alignment as $ fields
+        field_line = [l for l in lines if '$conn=' in l][0]
+        field_col = field_line.expandtabs(8).index('$')
+        comment_lines = [l for l in lines if l.strip().startswith('#')]
+        for cl in comment_lines:
+            comment_col = cl.expandtabs(8).index('#')
+            self.assertEqual(comment_col, field_col,
+                             f"Comment misaligned: {repr(cl)}")
+
     def test_typelist_wraps_when_long(self):
         """Long table[...] type list wraps with alignment after [."""
         code = (

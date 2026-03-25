@@ -1828,6 +1828,19 @@ class ExprFormatter(SpaceSeparatedFormatter, ComplexSequenceFormatterMixin):
                 else:
                     self._write_sp()
 
+            # Emit any preceding CST comments with field alignment
+            # instead of letting the default handler use tab indentation.
+            # Mark them with no_format=True so _format_child skips them.
+            for sib in expr_node.prev_cst_siblings:
+                if sib.is_comment():
+                    comment_text = self.script.get_content(*sib.script_range())
+                    space_count = max(0, align_col - tab_col)
+                    indent_str = self.NL + b"\t" * self.indent + b" " * space_count
+                    self.ostream.write(indent_str, self)
+                    self.ostream.set_align_column(align_col)
+                    self.ostream.write(comment_text, self)
+                    sib.no_format = True
+
             self._format_child(child=expr_node)
 
             if not is_last:
@@ -1850,6 +1863,25 @@ class ExprFormatter(SpaceSeparatedFormatter, ComplexSequenceFormatterMixin):
             if child.name() == "expr":
                 field_len = child.end_byte - child.start_byte
                 max_len = max(max_len, field_len)
+        return max_len
+
+    def _max_simple_field_len(self) -> int:
+        """Return the length of the longest simple $field=value (no nested calls).
+
+        Fields with nested function calls wrap internally, so they
+        don't determine whether [ should break to a new line.
+        """
+        expr_list = self._get_child(offset=1)
+        if not expr_list or expr_list.name() != "expr_list":
+            return 0
+        max_len = 0
+        for child in expr_list.nonerr_children:
+            if child.name() == "expr":
+                has_call = any(
+                    c.token() == "(" for c, _ in child.traverse() if c != child
+                )
+                if not has_call:
+                    max_len = max(max_len, child.end_byte - child.start_byte)
         return max_len
 
     def _compact_length(self) -> int:
@@ -1960,10 +1992,11 @@ class ExprFormatter(SpaceSeparatedFormatter, ComplexSequenceFormatterMixin):
             self._write(constructor + "(")
         else:
             # For record constructors that would overflow, break before '['
-            # so the fields start at a shallower column.
+            # so the fields start at a shallower column.  Only check
+            # simple fields (no nested calls) since calls wrap internally.
             if is_record and do_linebreak:
                 field_col = self.ostream.get_visual_column() + 1
-                if field_col + self._max_record_field_len() > self.ostream.MAX_LINE_LEN:
+                if field_col + self._max_simple_field_len() > self.ostream.MAX_LINE_LEN:
                     self._write_nl(is_midline=True)
             self._format_child(hints=Hint.NO_LB_BEFORE)  # '{'/'['
 
