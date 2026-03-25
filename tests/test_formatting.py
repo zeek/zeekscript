@@ -1679,3 +1679,95 @@ class TestScriptConstruction(unittest.TestCase):
         obj = io.BytesIO(self.DATA.encode("UTF-8"))
         script = zeekscript.Script(obj)
         script.parse()
+
+
+class TestIRFormatting(unittest.TestCase):
+    """Tests for the IR-based formatter (use_ir=True).
+
+    These cover intentional style divergences from the old formatter.
+    """
+
+    def _format(self, content):
+        script = zeekscript.Script(io.BytesIO(content))
+        self.assertTrue(script.parse())
+        self.assertFalse(script.has_error())
+        buf = io.BytesIO()
+        script.format(buf, use_ir=True)
+        return buf.getvalue()
+
+    def test_vector_constructor_inline(self):
+        code = b"const xs: vector of count = {1, 2, 3};"
+        result = self._format(code).decode()
+        self.assertIn("vector(1, 2, 3)", result)
+        self.assertNotIn("{", result)
+
+    def test_vector_constructor_multiline(self):
+        # Comments force one-per-line mode
+        code = (
+            b"const xs: vector of double = {\n"
+            b"\t0.01,\n"
+            b"\t0.02, # a note\n"
+            b"\t0.03,\n"
+            b"\t0.04\n"
+            b"};"
+        )
+        result = self._format(code).decode()
+        lines = result.strip().split("\n")
+        # First line: declaration with vector(
+        self.assertIn("= vector(", lines[0])
+        # Items indented one tab
+        self.assertTrue(lines[1].startswith("\t"))
+        self.assertIn("0.01,", lines[1])
+        # Closing ) at column 0
+        self.assertEqual(lines[-1], ");")
+
+    def test_vector_constructor_with_comments(self):
+        code = (
+            b"const xs: vector of double = {\n"
+            b"\t0.01,\n"
+            b"\t0.02, # note\n"
+            b"\t0.03\n"
+            b"};"
+        )
+        result = self._format(code).decode()
+        self.assertIn("vector(", result)
+        self.assertIn("# note", result)
+
+    def test_table_constructor_inline(self):
+        code = b'const tbl: table[count] of string = {[1] = "a"};'
+        result = self._format(code).decode()
+        self.assertIn('table([1] = "a")', result)
+        self.assertNotIn("{", result)
+
+    def test_table_constructor_multiline(self):
+        code = (
+            b'const tbl: table[count] of string = {\n'
+            b'\t[0x00] = "AAAA",\n'
+            b'\t[0x01] = "BBBB",\n'
+            b'\t[0x02] = "CCCC",\n'
+            b'\t[0x03] = "DDDD",\n'
+            b'\t[0x04] = "EEEE",\n'
+            b'\t[0x05] = "FFFF"\n'
+            b'};'
+        )
+        result = self._format(code).decode()
+        lines = result.strip().split("\n")
+        self.assertIn("= table(", lines[0])
+        self.assertEqual(lines[-1], ");")
+
+    def test_set_constructor_inline(self):
+        code = b"const ss: set[addr] = {1.2.3.4, 5.6.7.8};"
+        result = self._format(code).decode()
+        self.assertIn("set(1.2.3.4, 5.6.7.8)", result)
+
+    def test_set_constructor_no_type(self):
+        # Without explicit type, auto-detect set from content
+        code = b"const ss = {1.2.3.4, 5.6.7.8};"
+        result = self._format(code).decode()
+        self.assertIn("set(", result)
+
+    def test_table_constructor_no_type(self):
+        # Without explicit type, auto-detect table from [key]=val content
+        code = b'const tbl = {[1] = "a", [2] = "b"};'
+        result = self._format(code).decode()
+        self.assertIn("table(", result)
