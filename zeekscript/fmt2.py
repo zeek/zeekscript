@@ -1230,8 +1230,10 @@ def _format_stmt_switch(node: Node, script: Script) -> Doc:
             if idx < len(kids) and _name(kids[idx]) == "case_list":
                 parts.append(HARDLINE)
                 parts.append(format_child(kids[idx], script))
+                # case_list ends with HARDLINE from last stmt_list
                 idx += 1
-            parts.append(HARDLINE)
+            else:
+                parts.append(HARDLINE)
             parts.append(text("}"))
             idx += 1
 
@@ -2053,12 +2055,16 @@ def _format_case_list(node: Node, script: Script) -> Doc:
             parts.append(text(":"))
             idx += 1
         elif _name(kids[idx]) == "stmt_list":
-            parts.append(nest(1, concat(HARDLINE, _format_stmt_list(kids[idx], script))))
+            stmts_doc = _format_stmt_list(kids[idx], script)
+            # Strip trailing HARDLINE from stmts and place it outside the
+            # nest so the next case label starts at the correct indent.
+            stripped = _strip_trailing_hardline(stmts_doc)
+            parts.append(nest(1, concat(HARDLINE, stripped)))
+            parts.append(HARDLINE)
             idx += 1
         else:
             parts.append(format_child(kids[idx], script))
             idx += 1
-        parts.append(HARDLINE)
     return concat(*parts)
 
 
