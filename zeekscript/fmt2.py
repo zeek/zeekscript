@@ -874,7 +874,8 @@ def _format_func_body(node: Node, script: Script) -> Doc:
         close_brace.prev_cst_siblings = []
 
     if stmts_doc == EMPTY and pre_close == EMPTY:
-        return text("{ }")
+        # Empty body still uses Whitesmith layout: newline + indented { }
+        return nest(1, concat(HARDLINE, text("{ }")))
 
     body = concat(stmts_doc, pre_close) if pre_close != EMPTY else stmts_doc
     return _format_whitesmith_block(body)
