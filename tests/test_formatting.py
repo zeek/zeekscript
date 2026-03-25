@@ -1284,6 +1284,43 @@ print 1;
                        "$uid=uid should be on the same line as $note=Found")
 
 
+    def test_record_args_break_after_equals_when_deep(self):
+        """Deep record-style args break after '=' and use shallow alignment."""
+        code = (
+            b'function some_fn()\n'
+            b'    {\n'
+            b'    if ( some_condition )\n'
+            b'        {\n'
+            b'        local info = SomeLongModule::SomeFn($ts=ts, $uid=uid,\n'
+            b'            $use_case=usecase,\n'
+            b'            $use_case_description=usecase_desc,\n'
+            b'            $entity_training_items=entity_training_items,\n'
+            b'            $entity=entity, $original_entity=original_entity,\n'
+            b'            $item=item,\n'
+            b'            $first_seen_type=some_enum_map[some_type],\n'
+            b'            $history_days=history_days, $history=history);\n'
+            b'        }\n'
+            b'    }\n'
+        )
+        result = self._format(code).decode()
+        self.assertNotIn("MISINDENTATION", result)
+        lines = result.splitlines()
+        # Should break after '='
+        eq_line = [l for l in lines if 'info =' in l]
+        self.assertEqual(len(eq_line), 1)
+        self.assertTrue(eq_line[0].rstrip().endswith('='),
+                        "Should break after '='")
+        # No line should exceed 80 columns
+        for line in lines:
+            self.assertLessEqual(len(line.expandtabs(8)), 80,
+                                 f"Line exceeds 80 cols: {line!r}")
+        # Short fields that fit together should share a line
+        entity_line = [l for l in lines if '$entity=' in l and '$original_entity=' not in l]
+        if entity_line:
+            self.assertIn('$original_entity=', entity_line[0],
+                          "$entity and $original_entity should share a line")
+
+
 class TestFormattingErrors(unittest.TestCase):
     def _format(self, content):
         script = zeekscript.Script(io.BytesIO(content))

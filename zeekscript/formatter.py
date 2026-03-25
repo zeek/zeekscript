@@ -675,9 +675,48 @@ class ComplexSequenceFormatterMixin(HasCommentsProtocol):
 
 
 class InitializerFormatter(Formatter):
+    def _rhs_would_overflow(self) -> bool:
+        """Check if formatting the RHS inline would produce overflowing lines.
+
+        Returns True if the RHS is a function call with record-style args
+        where the alignment after '(' would cause simple fields to overflow.
+        """
+        expr = self._get_child()
+        if not expr or expr.name() != "expr":
+            return False
+        children = list(expr.nonerr_children)
+        if len(children) < 3 or children[1].token() != "(":
+            return False
+        expr_list = None
+        for c in children:
+            if c.name() == "expr_list":
+                expr_list = c
+                break
+        if not expr_list:
+            return False
+        exprs = [c for c in expr_list.children if c.name() == "expr"]
+        if len(exprs) < 2:
+            return False
+        first_children = list(exprs[0].nonerr_children)
+        if not (first_children and first_children[0].token() and
+                first_children[0].token().startswith("$")):
+            return False
+        # Estimate column after '(': current_col + space + func_name + '('
+        func_name_len = children[0].end_byte - children[0].start_byte
+        paren_col = self.ostream.get_visual_column() + func_name_len + 1
+        # Check if any simple field (no nested calls) would overflow
+        for e in exprs:
+            has_call = any(c.token() == "(" for c, _ in e.traverse() if c != e)
+            if not has_call and paren_col + (e.end_byte - e.start_byte) + 1 > self.ostream.MAX_LINE_LEN:
+                return True
+        return False
+
     def format(self) -> None:
         self._format_child()  # '=', '+=', etc
-        self._write_sp()
+        if self._rhs_would_overflow():
+            self._write_nl(is_midline=True)
+        else:
+            self._write_sp()
         # Forward hints (like BRACE_TO_CONSTRUCTOR) from parent to expr
         self._format_child(hints=self.hints)  # <expr>
 
@@ -1334,12 +1373,13 @@ class ExprListFormatter(Formatter, ComplexSequenceFormatterMixin):
     MIN_ELEMENTS_FOR_INIT_HINTS = 2
 
     def _should_align_record_args(self) -> bool:
-        """Check if record-style args ($field=value) should each be on their own line.
+        """Check if record-style args ($field=value) should use explicit layout.
 
         Returns True if:
         1. Arguments are record-style ($field=value)
-        2. At least one argument contains a nested call (set, table, etc.) that
-           is likely to wrap to multiple lines
+        2. At least one argument contains a nested call likely to wrap, OR
+           the alignment is so deep that simple fields would overflow even
+           after the line-breaker adjusts alignment
         """
         exprs = [c for c in self.node.children if c.name() == "expr"]
         if len(exprs) < 2:
@@ -1351,17 +1391,19 @@ class ExprListFormatter(Formatter, ComplexSequenceFormatterMixin):
                 first_children[0].token().startswith("$")):
             return False
 
-        # Check if any element contains a nested call (set(...), table(...), etc.)
-        # that is likely to wrap
+        # Many record-style fields benefit from explicit layout to pack
+        # short fields together on lines.
+        if len(exprs) >= 6:
+            return True
+
+        # Check if any element contains a nested call likely to wrap
         for expr in exprs:
             for child, _ in expr.traverse():
                 if child == expr:
                     continue
-                # Look for function-style calls: <expr> '(' ...
                 if child.name() == "expr":
                     children = list(child.nonerr_children)
                     if len(children) >= 2 and children[1].token() == "(":
-                        # Check if call has multiple arguments (likely to wrap)
                         for c in children:
                             if c.name() == "expr_list":
                                 args = [x for x in c.children if x.name() == "expr"]
@@ -1401,6 +1443,25 @@ class ExprListFormatter(Formatter, ComplexSequenceFormatterMixin):
             force_align_args = self._should_align_record_args()
             align_col = self.ostream.get_align_column() if force_align_args else 0
 
+            # If alignment is too deep for the longest simple field (one
+            # without nested calls that can wrap internally), use a shallower
+            # tab-based continuation (one extra tab from current indent).
+            if force_align_args and align_col > 0:
+                exprs = [c for c in self.node.children if c.name() == "expr"]
+                max_simple = 0
+                for e in exprs:
+                    # Simple field: no nested parens (function calls wrap internally)
+                    has_call = any(
+                        c.token() == "(" for c, _ in e.traverse() if c != e
+                    )
+                    if not has_call:
+                        max_simple = max(max_simple, e.end_byte - e.start_byte)
+                if max_simple > 0 and align_col + max_simple + 1 > self.ostream.MAX_LINE_LEN:
+                    align_col = (self.indent + 1) * self.ostream.TAB_SIZE
+                    # Update OutputStream alignment so the line-breaker
+                    # uses the shallower column for any further wrapping.
+                    self.ostream.set_align_column(align_col)
+
             while self._get_child_name() == "expr":
                 self._format_child()  # <expr>
                 if self._get_child():
@@ -1410,15 +1471,13 @@ class ExprListFormatter(Formatter, ComplexSequenceFormatterMixin):
                         next_expr = self._get_child()
                         next_len = (next_expr.end_byte - next_expr.start_byte
                                     if next_expr else 0)
-                        # +2 for " $", field needs comma too unless last
                         fits = (self.ostream.get_visual_column() + 1 + next_len
                                 <= self.ostream.MAX_LINE_LEN)
                         if fits:
                             self._write_sp()
                         else:
-                            tab_col = self.indent * self.ostream.TAB_SIZE
-                            space_count = max(0, align_col - tab_col)
-                            self._write(self.NL + b"\t" * self.indent + b" " * space_count)
+                            self.ostream.set_align_column(align_col)
+                            self._write_nl(is_midline=True)
                     else:
                         self._write_sp()
 
