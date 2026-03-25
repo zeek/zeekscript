@@ -625,8 +625,11 @@ class GlobalDeclFormatter(TypedInitializerFormatter):
     def format(self) -> None:
         self._format_child()  # "global", "option", etc
         self._write_sp()
-        # Capture column where identifier starts for alignment
+        # Capture column where identifier starts for alignment.
+        # Set it on the stream so the line-breaker can use it if
+        # it needs to break after the keyword (e.g., long regex values).
         id_col = self.ostream.get_visual_column()
+        self.ostream.set_align_column(id_col)
         self._format_child()  # <id>
         self._format_typed_initializer(align_col=id_col + 1)
         self._format_child(hints=Hint.NO_LB_BEFORE)  # ';'
@@ -721,7 +724,22 @@ class InitializerFormatter(Formatter):
             # the parent's alignment when that would be past the halfway point.
             rhs_col = self.ostream.get_visual_column()
             if rhs_col <= self.ostream.MAX_LINE_LEN // 2:
-                self.ostream.set_align_column(rhs_col)
+                # If the RHS is a single unbreakable token (like a
+                # long regex) that won't fit, use the parent's
+                # shallower alignment so the line-breaker can break
+                # after '=' without rejecting it as not worthwhile.
+                rhs = self._get_child()
+                rhs_children = list(rhs.nonerr_children) if rhs else []
+                if (len(rhs_children) <= 1
+                    and rhs is not None
+                    and rhs_col + (rhs.end_byte - rhs.start_byte) > self.ostream.MAX_LINE_LEN):
+                    parent_align = self.ostream.get_align_column()
+                    if parent_align > 0 and parent_align < rhs_col:
+                        self.ostream.set_align_column(parent_align)
+                    else:
+                        self.ostream.set_align_column(rhs_col)
+                else:
+                    self.ostream.set_align_column(rhs_col)
         # Forward hints (like BRACE_TO_CONSTRUCTOR) from parent to expr
         self._format_child(hints=self.hints)  # <expr>
 

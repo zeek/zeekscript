@@ -1399,6 +1399,21 @@ print 1;
         self.assertIn('function(', call_line)
 
 
+    def test_long_regex_no_misindentation(self):
+        """Long unbreakable regex pattern doesn't produce MISINDENTATION."""
+        code = (
+            b'const some_long_pattern_name = '
+            b'/\\x4c\\x00\\x6f\\x00\\x67\\x00\\x69\\x00\\x6e\\x00'
+            b'\\x20\\x00\\x66\\x00\\x61\\x00\\x69\\x00\\x6c\\x00'
+            b'\\x65\\x00\\x64\\x00\\x20\\x00\\x66\\x00\\x6f\\x00'
+            b'\\x72\\x00\\x20\\x00\\x75\\x00\\x73\\x00\\x65\\x00'
+            b'\\x72\\x00/;\n'
+        )
+        result = self._format(code).decode()
+        self.assertNotIn("MISINDENTATION", result)
+        self.assertIn("some_long_pattern_name", result)
+
+
 class TestFormattingErrors(unittest.TestCase):
     def _format(self, content):
         script = zeekscript.Script(io.BytesIO(content))
