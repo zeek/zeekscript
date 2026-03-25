@@ -206,8 +206,8 @@ class TestIR(unittest.TestCase):
         self.assertEqual(lines[1], "\tindented")
         self.assertEqual(lines[2], "@if ( cond )")
 
-    def test_column0line_absorbs_preceding_indent(self):
-        # When HARDLINE is followed by COLUMN0LINE, no blank line
+    def test_column0line_at_top_level(self):
+        # At top level (no indent), HARDLINE + COLUMN0LINE = two newlines
         doc = concat(
             text("stmt;"),
             HARDLINE,
@@ -215,7 +215,19 @@ class TestIR(unittest.TestCase):
             text("@if"),
         )
         result = self._resolve(doc)
-        self.assertEqual(result, "stmt;\n@if\n")
+        self.assertEqual(result, "stmt;\n\n@if\n")
+
+    def test_column0line_absorbs_indent(self):
+        # Inside indented context, COLUMN0LINE absorbs the indent
+        doc = nest(1, concat(
+            HARDLINE,
+            text("stmt;"),
+            HARDLINE,
+            COLUMN0LINE,
+            text("@if"),
+        ))
+        result = self._resolve(doc)
+        self.assertIn("\tstmt;\n@if\n", result)
 
     def test_dedent(self):
         # Dedent resets indentation to 0

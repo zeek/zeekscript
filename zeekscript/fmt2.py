@@ -336,7 +336,8 @@ def _format_body_items(nodes: list[Node], script: Script,
         # Only apply preproc indent at top level (matching old formatter)
         effective_depth = depth if top_level else 0
 
-        if i > 0 and _wants_blank_before(node):
+        blank_before = i > 0 and _wants_blank_before(node)
+        if blank_before:
             parts.append(HARDLINE)
         if is_preproc:
             parts.append(COLUMN0LINE)
@@ -562,13 +563,8 @@ def _format_type(node: Node, script: Script) -> Doc:
     elif ct1 == "table":
         return _format_type_set_or_table(node, script, "table")
     elif ct1 == "function":
-        # function <func_params>
-        parts = []
-        for child in kids:
-            if parts:
-                parts.append(SPACE)
-            parts.append(format_child(child, script))
-        return concat(*parts)
+        # function<func_params> — no space before '('
+        return concat(*[format_child(c, script) for c in kids])
     elif ct1 in ("event", "hook"):
         # event/hook ( [formal_args] )
         parts = [format_child(kids[0], script)]
@@ -1680,11 +1676,12 @@ def _format_expr_has_field(node: Node, script: Script) -> Doc:
 
 
 def _format_expr_anon_func(node: Node, script: Script) -> Doc:
-    # function <begin_lambda> <func_body>
+    # function<begin_lambda> <func_body>
+    # No space between 'function' and begin_lambda (starts with '(')
     kids = node.nonerr_children
     parts: list[Doc] = []
     for i, child in enumerate(kids):
-        if i > 0:
+        if i > 0 and _name(child) != "begin_lambda":
             parts.append(SPACE)
         parts.append(format_child(child, script))
     return concat(*parts)

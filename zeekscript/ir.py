@@ -271,14 +271,17 @@ def resolve(doc: Doc, max_width: int = MAX_WIDTH) -> bytes:
             col = indent.width()
 
         elif isinstance(d, Column0Line):
-            # If the last meaningful output was a newline (possibly followed
-            # by whitespace-only indent), reuse it instead of adding another.
-            # This prevents blank lines when a HARDLINE precedes a COLUMN0LINE.
+            # If the last output was a newline followed by non-empty
+            # whitespace indent, remove the indent (reuse the newline).
+            # This prevents blank lines when a HARDLINE precedes a
+            # COLUMN0LINE inside indented contexts. When the indent is
+            # empty (top level), we don't absorb — the HARDLINE's newline
+            # stands and COLUMN0LINE adds another.
             if parts:
-                # Check if we're at the start of a line (only whitespace since last nl)
                 tail = parts[-1]
-                if tail.strip() == "" and len(parts) >= 2 and parts[-2].endswith(nl):
-                    # Remove the indent-only part, we're going to column 0
+                if (tail and tail.strip() == "" and
+                        len(parts) >= 2 and parts[-2].endswith(nl)):
+                    # Remove non-empty indent, reuse the newline
                     parts.pop()
                     col = 0
                 else:
