@@ -1402,6 +1402,37 @@ class ExprListFormatter(Formatter, ComplexSequenceFormatterMixin):
             c.name() == "begin_lambda" for c in node.children
         )
 
+    @staticmethod
+    def _record_first_field_len(node) -> int:
+        """Return byte length of the first $field=value in a record constructor expr."""
+        children = list(node.nonerr_children)
+        if len(children) < 2:
+            return 0
+        expr_list = children[1] if children[1].name() == "expr_list" else None
+        if not expr_list:
+            return 0
+        for child in expr_list.nonerr_children:
+            if child.name() == "expr":
+                return child.end_byte - child.start_byte
+        return 0
+
+    @staticmethod
+    def _is_record_constructor_expr(node) -> bool:
+        """True if this expr node is a [$field=val, ...] record constructor."""
+        if node is None:
+            return False
+        children = list(node.nonerr_children)
+        if len(children) < 3 or children[0].token() != "[":
+            return False
+        expr_list = children[1] if children[1].name() == "expr_list" else None
+        if not expr_list:
+            return False
+        for child in expr_list.nonerr_children:
+            if child.name() == "expr" and child.nonerr_children:
+                first = child.nonerr_children[0].token()
+                return first is not None and first.startswith("$")
+        return False
+
     def _should_align_record_args(self) -> bool:
         """Check if record-style args ($field=value) should use explicit layout.
 
@@ -1497,7 +1528,17 @@ class ExprListFormatter(Formatter, ComplexSequenceFormatterMixin):
                 self._format_child()  # <expr>
                 is_first_expr = False
                 if self._get_child():
-                    self._format_child(hints=Hint.NO_LB_BEFORE)  # ','
+                    # Keep record constructor args on the same line as
+                    # the preceding comma when the [ + first field fits.
+                    next_expr = self._get_child(offset=1)
+                    comma_hints = Hint.NO_LB_BEFORE
+                    if self._is_record_constructor_expr(next_expr):
+                        first_field_len = self._record_first_field_len(next_expr)
+                        # ", [$first_field," must fit on this line
+                        if (self.ostream.get_visual_column() + 2 + 1 + first_field_len + 1
+                                <= self.ostream.MAX_LINE_LEN):
+                            comma_hints |= Hint.NO_LB_AFTER
+                    self._format_child(hints=comma_hints)  # ','
                     if force_align_args and align_col > 0:
                         # Check if the next field fits on the current line.
                         next_expr = self._get_child()

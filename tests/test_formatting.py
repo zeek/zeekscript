@@ -1059,13 +1059,30 @@ print 1;
         for line in lines:
             self.assertLessEqual(len(line), 80, f"Line too long: {repr(line)}")
         self.assertNotIn("MISINDENTATION", result)
-        # The '[' should align with the first argument after '('
+        # The '[' should stay on the same line as the preceding arg
         call_line = [l for l in lines if "create_stream" in l][0]
-        paren_col = call_line.index('(') + 1
-        bracket_line = [l for l in lines if "[$columns" in l][0]
-        bracket_col = len(bracket_line) - len(bracket_line.lstrip())
-        self.assertEqual(bracket_col, paren_col,
-                         f"Expected [ at col {paren_col}, got {bracket_col}")
+        self.assertIn("[$columns", call_line)
+
+    def test_record_constructor_stays_inline_when_fits(self):
+        """Record constructor [ stays on same line when first field fits."""
+        code = (
+            b'event zeek_init()\n'
+            b'\t{\n'
+            b'\tLog::create_stream(LOG, [$columns=Conn::Info,\n'
+            b'\t                $path=path, $policy=Conn::log_policy]);\n'
+            b'\t}\n'
+        )
+        result = self._format(code).decode()
+        lines = result.rstrip().split('\n')
+        for line in lines:
+            self.assertLessEqual(len(line), 80, f"Line too long: {repr(line)}")
+        self.assertNotIn("MISINDENTATION", result)
+        # [ stays on the same line as LOG
+        call_line = [l for l in lines if "create_stream" in l][0]
+        self.assertIn("LOG, [$columns", call_line)
+        # Fields wrap aligned after [
+        cont_line = lines[lines.index(call_line) + 1]
+        self.assertIn("$policy=", cont_line)
 
     def test_switch_paren_expr_has_spaces(self):
         """Parenthesized switch expressions should have spaces inside parens."""
