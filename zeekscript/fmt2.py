@@ -1184,8 +1184,14 @@ def _format_stmt_switch(node: Node, script: Script) -> Doc:
     parts = [text("switch"), SPACE]
     idx = 1
 
-    # expr (with parentheses around it)
-    parts.append(format_child(kids[idx], script))  # <expr>
+    # expr is ( <inner_expr> ) — format with spaces inside parens
+    expr_node = kids[idx]
+    expr_kids = expr_node.nonerr_children
+    parts.append(text("("))
+    parts.append(SPACE)
+    parts.append(format_child(expr_kids[1], script))  # inner expr
+    parts.append(SPACE)
+    parts.append(text(")"))
     idx += 1
     parts.append(SPACE)
 
@@ -1434,11 +1440,12 @@ def _format_stmt_assert(node: Node, script: Script) -> Doc:
     kids = node.nonerr_children
     parts = [text("assert"), SPACE]
     for child in kids[1:]:
-        parts.append(format_child(child, script))
-        parts.append(SPACE)
-    # Remove trailing space, add semicolon
-    if parts and parts[-1] == SPACE:
-        parts.pop()
+        if _tok(child) == ";":
+            parts.append(text(";"))
+        elif _name(child) == "assert_msg":
+            parts.append(format_child(child, script))
+        else:
+            parts.append(format_child(child, script))
     parts.append(HARDLINE)
     return concat(*parts)
 
@@ -2170,7 +2177,16 @@ def _format_begin_lambda(node: Node, script: Script) -> Doc:
 
 
 def _format_assert_msg(node: Node, script: Script) -> Doc:
-    return _format_space_separated(node, script)
+    # , <expr>
+    kids = node.nonerr_children
+    parts: list[Doc] = []
+    for child in kids:
+        if _tok(child) == ",":
+            parts.append(text(","))
+            parts.append(SPACE)
+        else:
+            parts.append(format_child(child, script))
+    return concat(*parts)
 
 
 # ---------------------------------------------------------------------------
