@@ -2123,8 +2123,9 @@ def _format_pragma(node: Node, script: Script) -> Doc:
 
 
 def _format_begin_lambda(node: Node, script: Script) -> Doc:
-    # ( [formal_args] ) [: type] - same as func_params
-    return _format_func_params(node, script)
+    # begin_lambda contains a single func_params child
+    kids = node.nonerr_children
+    return _format_func_params(kids[0], script)
 
 
 def _format_assert_msg(node: Node, script: Script) -> Doc:
