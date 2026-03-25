@@ -2026,14 +2026,18 @@ class ExprFormatter(SpaceSeparatedFormatter, ComplexSequenceFormatterMixin):
 
     def _format_assignment(self) -> None:
         # Assignment expressions: prefer breaking after '=' operator
-        # Set alignment for continuation at one indent level (8 spaces) up
+        # Align continuation to column after '= ', but fall back to
+        # tab+indent when that would be too deep (over half the line).
         tab_col = self.indent * self.ostream.TAB_SIZE
         with self.ostream.aligned_to(self.ostream.get_align_column()):
             self._format_child(hints=self.hints)  # LHS <expr>
             self._write_sp()
             self._format_child()  # '=' or '+=' or '-='
             self._write_sp()
-            self.ostream.set_align_column(tab_col + 8)  # One indent level up
+            rhs_col = self.ostream.get_visual_column()
+            if rhs_col > self.ostream.MAX_LINE_LEN // 2:
+                rhs_col = tab_col + self.ostream.SPACE_INDENT
+            self.ostream.set_align_column(rhs_col)
             self._format_child(hints=Hint.GOOD_AFTER_LB)  # RHS <expr>
 
     def _format_ternary(self) -> None:

@@ -1321,6 +1321,27 @@ print 1;
                           "$entity and $original_entity should share a line")
 
 
+    def test_assignment_continuation_aligns_after_equals(self):
+        """Assignment RHS continuation aligns to column after '= '."""
+        code = (
+            b'event some_evt()\n'
+            b'    {\n'
+            b'    si$successful_entities = si$successful_entities |\n'
+            b'                             worker_si$successful_entities;\n'
+            b'    }\n'
+        )
+        result = self._format(code).decode()
+        self.assertNotIn("MISINDENTATION", result)
+        lines = result.splitlines()
+        # Find the assignment line and its continuation
+        assign_line = [l for l in lines if '= si$' in l][0]
+        cont_line = lines[lines.index(assign_line) + 1]
+        # Continuation should align to column after '= '
+        eq_pos = assign_line.expandtabs(8).index('= ') + 2
+        cont_col = len(cont_line.expandtabs(8)) - len(cont_line.expandtabs(8).lstrip())
+        self.assertEqual(cont_col, eq_pos)
+
+
 class TestFormattingErrors(unittest.TestCase):
     def _format(self, content):
         script = zeekscript.Script(io.BytesIO(content))
