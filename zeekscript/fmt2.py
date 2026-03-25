@@ -1108,7 +1108,9 @@ def _format_indented_body(child: Node, script: Script) -> Doc:
         # Don't go through format_child/stmt dispatcher (which uses the
         # standalone block formatter).
         doc, _ = _format_curly_stmt_list(child, script, 0)
-        return doc
+        # Add trailing HARDLINE so the stmt consistently ends with a newline
+        # (Whitesmith blocks end with '}', not HARDLINE).
+        return concat(doc, HARDLINE)
     body_doc = format_child(child, script)
     # Non-block stmts end with HARDLINE. Move it outside the nest so
     # the newline uses the outer indent level.
@@ -1184,10 +1186,7 @@ def _format_stmt_if(node: Node, script: Script) -> Doc:
 
     # else clause
     if idx < len(kids) and _tok(kids[idx]) == "else":
-        # Brace-block bodies don't end with HARDLINE (they end with '}'),
-        # so we need one. Non-block stmts already end with HARDLINE.
-        if _is_brace_block(body_child):
-            parts.append(HARDLINE)
+        # Body always ends with HARDLINE (both brace-block and non-block)
         parts.append(text("else"))
         idx += 1
         if idx < len(kids):
@@ -1397,7 +1396,7 @@ def _format_when_clause(kids: list[Node], start_idx: int, script: Script) -> Doc
 
     # timeout clause
     if idx < len(kids) and _tok(kids[idx]) == "timeout":
-        parts.append(HARDLINE)
+        # Body already ends with HARDLINE from _format_indented_body
         parts.append(text("timeout"))
         idx += 1
         parts.append(SPACE)
