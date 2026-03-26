@@ -1816,20 +1816,14 @@ def _format_record_constructor(node: Node, script: Script, do_linebreak: bool) -
 
     sep = concat(text(","), LINE)
 
-    if do_linebreak:
-        # One field per line, aligned to after '['
-        items = join(sep, field_docs)
-        return concat(
-            text("["),
-            align(concat(items, text("]"))),
-        )
-    else:
-        # All on one line if fits
-        items = join(concat(text(","), SPACE), field_docs)
-        return group(concat(
-            text("["),
-            align(concat(items, text("]"))),
-        ))
+    # Use fill() with LINE separators so fields can wrap when the
+    # enclosing context (e.g., a function call) needs line breaks.
+    # fill() packs as many fields per line as fit.
+    items = fill(*intersperse(sep, field_docs))
+    return concat(
+        text("["),
+        align(concat(items, text("]"))),
+    )
 
 
 def _format_expr_paren(node: Node, script: Script) -> Doc:
@@ -1918,7 +1912,18 @@ def _format_expr_call(node: Node, script: Script) -> Doc:
 
     # Arguments
     if idx < len(kids) and _name(kids[idx]) == "expr_list":
-        args_doc = _format_expr_list_inline(kids[idx], script)
+        expr_list = kids[idx]
+        # Check if any arg is a record constructor — if so, use SPACE
+        # before it instead of LINE so the '[' stays on the same line
+        # as the preceding arg and the record's fields wrap internally.
+        has_record_arg = any(
+            _name(c) == "expr" and _is_record_constructor(c)
+            for c in expr_list.nonerr_children
+        )
+        if has_record_arg:
+            args_doc = _format_expr_list_with_record(expr_list, script)
+        else:
+            args_doc = _format_expr_list_inline(expr_list, script)
         close = text(")")
         if has_open_comment:
             # Comment after '(' forces args to next line, aligned after '('
@@ -2083,6 +2088,35 @@ def _format_expr_schedule(node: Node, script: Script) -> Doc:
 def _format_expr_list(node: Node, script: Script) -> Doc:
     """Default expr_list formatter: comma-separated, wrappable."""
     return _format_expr_list_inline(node, script)
+
+
+def _format_expr_list_with_record(node: Node, script: Script) -> Doc:
+    """Format expr_list where one arg is a record constructor.
+
+    Uses SPACE (not LINE) before the record constructor arg so the '['
+    stays on the same line as preceding args. The record's internal
+    fill() handles wrapping its fields.
+    """
+    kids = node.nonerr_children
+    items: list[Doc] = []
+    is_record: list[bool] = []
+    for child in kids:
+        if _name(child) == "expr":
+            items.append(format_child(child, script))
+            is_record.append(_is_record_constructor(child))
+
+    if not items:
+        return EMPTY
+
+    # Build fill parts: use SPACE before record args, LINE before others
+    fill_parts: list[Doc] = [items[0]]
+    for i in range(1, len(items)):
+        if is_record[i]:
+            fill_parts.append(concat(text(","), SPACE))
+        else:
+            fill_parts.append(concat(text(","), LINE))
+        fill_parts.append(items[i])
+    return fill(*fill_parts)
 
 
 def _format_expr_list_inline(node: Node, script: Script) -> Doc:

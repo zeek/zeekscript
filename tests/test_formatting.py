@@ -1969,6 +1969,24 @@ class TestIRFormatting(unittest.TestCase):
         result = self._format(code).decode()
         self.assertEqual(result.strip(), 'redef foo += set("a", "b", "c");')
 
+    def test_record_constructor_wraps_fields_in_call(self):
+        # Record constructor arg stays on same line as preceding args,
+        # with its fields wrapping internally at the aligned column.
+        code = (
+            b"event zeek_init()\n"
+            b"\t{\n"
+            b'\tSome::create_stream(SOME::LOG, [$columns=Info, $path="some_path",\n'
+            b"\t                               $policy=log_policy]);\n"
+            b"\t}\n"
+        )
+        result = self._format(code).decode()
+        lines = result.strip().split("\n")
+        # '[' stays on same line as first arg
+        self.assertIn("SOME::LOG, [$columns=Info", lines[2])
+        # All lines fit in 80 columns
+        for line in lines:
+            self.assertLessEqual(len(line), 80)
+
     def test_table_constructor_no_type(self):
         # Without explicit type, auto-detect table from [key]=val content
         code = b'const tbl = {[1] = "a", [2] = "b"};'
