@@ -1987,24 +1987,6 @@ class TestIRFormatting(unittest.TestCase):
         for line in lines:
             self.assertLessEqual(len(line), 80)
 
-    def test_ternary_colon_break_aligns_to_condition(self):
-        # When only : breaks, IR aligns false expr to condition column
-        # (old formatter aligns to after "? ").
-        code = b'local x = cond ? some_very_very_very_long_true_value_expression_here : some_very_very_very_long_false_value_expression_here;'
-        result = self._format(code).decode()
-        lines = result.splitlines()
-        # Should break after :
-        found_colon_at_end = any(line.rstrip().endswith(":") for line in lines)
-        self.assertTrue(found_colon_at_end, "Expected : at end of line when breaking")
-        # False expr aligns with condition (col 10 = after "local x = ")
-        for i, line in enumerate(lines):
-            if line.rstrip().endswith(":") and i + 1 < len(lines):
-                false_col = len(lines[i + 1]) - len(lines[i + 1].lstrip())
-                cond_col = line.index("cond")
-                self.assertEqual(false_col, cond_col,
-                    f"False expr should align with condition at col {cond_col}")
-                break
-
     def test_table_constructor_no_type(self):
         # Without explicit type, auto-detect table from [key]=val content
         code = b'const tbl = {[1] = "a", [2] = "b"};'

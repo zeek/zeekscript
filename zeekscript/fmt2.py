@@ -13,6 +13,8 @@ from typing import TYPE_CHECKING
 from .ir import (
     COLUMN0LINE, EMPTY, HARDLINE, LINE, SOFTLINE, SPACE,
     Concat, Doc, HardLine,
+    MAX_WIDTH,
+    _flat_width,
     align, concat, dedent, dedent_spaces, fill, group, if_break, intersperse,
     join, nest, resolve, text,
 )
@@ -1982,21 +1984,35 @@ def _format_expr_boolean(node: Node, script: Script) -> Doc:
 
 def _format_expr_ternary(node: Node, script: Script) -> Doc:
     # <expr> ? <expr> : <expr>
-    # Single fill with align(): fill greedily packs items, so it keeps
-    # "cond ? true_expr :" together when it fits, only breaking at : when
-    # the false expr overflows. When ? must break too, align() ensures
-    # continuation aligns with where the condition started.
     kids = node.nonerr_children
     cond = format_child(kids[0], script)
     true_expr = format_child(kids[2], script)
     false_expr = format_child(kids[4], script)
-    return align(fill(
-        concat(cond, SPACE, text("?")),
-        LINE,
-        concat(true_expr, SPACE, text(":")),
-        LINE,
-        false_expr,
-    ))
+
+    cond_w = _flat_width(cond, MAX_WIDTH) or MAX_WIDTH
+    true_w = _flat_width(true_expr, MAX_WIDTH) or MAX_WIDTH
+
+    if cond_w + true_w + 5 <= MAX_WIDTH:
+        # "cond ? true :" can fit on one line. Keep ? inline and use
+        # align() after "? " so a : break aligns false with true.
+        return concat(
+            cond, SPACE, text("?"), SPACE,
+            align(group(concat(
+                true_expr, SPACE, text(":"),
+                LINE,
+                false_expr,
+            ))),
+        )
+    else:
+        # "cond ? true :" is too wide — use fill for independent ? and
+        # : breaks, both aligning to the condition column.
+        return align(fill(
+            concat(cond, SPACE, text("?")),
+            LINE,
+            concat(true_expr, SPACE, text(":")),
+            LINE,
+            false_expr,
+        ))
 
 
 def _format_expr_assignment(node: Node, script: Script) -> Doc:
