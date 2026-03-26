@@ -2127,6 +2127,7 @@ def _format_expr_with_brace_transform(node: Node, script: Script,
 def _format_index_slice(node: Node, script: Script) -> Doc:
     # [ expr : expr ] or [expr:] or [:expr] or [:]
     # Space around ':' when either side is compound (not literal/constant/empty)
+    # Breaks after ':' when too long; RHS aligns with LHS (after '[')
     kids = node.nonerr_children
 
     # Determine if we need spaces around ':'
@@ -2136,25 +2137,30 @@ def _format_index_slice(node: Node, script: Script) -> Doc:
             use_space = True
             break
 
-    parts: list[Doc] = []
-    prev_was_colon = False
+    lhs_doc = EMPTY
+    rhs_doc = EMPTY
+    seen_colon = False
     for i, child in enumerate(kids):
         ct = _tok(child)
-        if ct == "[":
-            parts.append(text("["))
-        elif ct == "]":
-            parts.append(text("]"))
+        if ct in ("[", "]"):
+            continue
         elif ct == ":":
-            if use_space and i > 1:  # space before ':' if there's content before
-                parts.append(SPACE)
-            parts.append(text(":"))
-            prev_was_colon = True
+            seen_colon = True
+        elif seen_colon:
+            rhs_doc = format_child(child, script)
         else:
-            if prev_was_colon and use_space:
-                parts.append(SPACE)
-            parts.append(format_child(child, script))
-            prev_was_colon = False
-    return concat(*parts)
+            lhs_doc = format_child(child, script)
+
+    # Build: [ align( lhs : LINE rhs ] )
+    colon_sp = SPACE if use_space else EMPTY
+    inner = concat(lhs_doc, colon_sp, text(":"))
+    if rhs_doc != EMPTY:
+        if use_space:
+            inner = concat(inner, LINE, rhs_doc)
+        else:
+            inner = concat(inner, rhs_doc)
+
+    return group(concat(text("["), align(concat(inner, text("]")))))
 
 
 def _format_capture_list(node: Node, script: Script) -> Doc:

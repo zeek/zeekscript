@@ -1796,6 +1796,27 @@ class TestIRFormatting(unittest.TestCase):
         result = self._format(code).decode()
         self.assertIn("x !in y", result)
 
+    def test_long_slice_breaks_at_colon(self):
+        # Long index slices break after ':' with RHS aligned under LHS
+        # Old formatter breaks within the arithmetic instead.
+        code = (
+            b"function some_func()\n"
+            b"\t{\n"
+            b"\tlocal val = some_long_func_name("
+            b"data[some$off - 1 + 8 : some$off - 1 + 10 + 23 / 15 - 3]);\n"
+            b"\t}\n"
+        )
+        result = self._format(code).decode()
+        lines = result.strip().split("\n")
+        slice_lines = [l for l in lines if "some$off" in l]
+        # Should break after ':'
+        self.assertTrue(slice_lines[0].rstrip().endswith(":"))
+        # RHS should align with LHS (after '[')
+        self.assertEqual(len(slice_lines), 2)
+        lhs_col = slice_lines[0].index("[") + 1
+        rhs_col = len(slice_lines[1]) - len(slice_lines[1].lstrip())
+        self.assertEqual(lhs_col, rhs_col)
+
     def test_table_constructor_no_type(self):
         # Without explicit type, auto-detect table from [key]=val content
         code = b'const tbl = {[1] = "a", [2] = "b"};'
