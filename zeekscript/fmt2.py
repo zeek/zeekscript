@@ -1648,6 +1648,9 @@ def _format_expr(node: Node, script: Script) -> Doc:
         "&", "|", "^", "~", "!~", "in",
     ):
         return _format_expr_binary(node, script)
+    # !in: tree-sitter gives 4 children (expr ! in expr)
+    if _nch(node) == 4 and ct2 == "!" and _child_tok(node, 2) == "in":
+        return _format_expr_not_in(node, script)
     # Schedule
     if ct1 == "schedule":
         return _format_expr_schedule(node, script)
@@ -1962,6 +1965,18 @@ def _format_expr_binary(node: Node, script: Script) -> Doc:
         text(op),
         LINE,
         format_child(kids[2], script),
+    )))
+
+
+def _format_expr_not_in(node: Node, script: Script) -> Doc:
+    # <expr> ! in <expr> — tree-sitter splits !in into two tokens
+    kids = node.nonerr_children
+    return group(align(concat(
+        format_child(kids[0], script),
+        SPACE,
+        text("!in"),
+        LINE,
+        format_child(kids[3], script),
     )))
 
 

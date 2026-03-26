@@ -1766,6 +1766,36 @@ class TestIRFormatting(unittest.TestCase):
         result = self._format(code).decode()
         self.assertIn("set(", result)
 
+    def test_not_in_breaks_after_operator(self):
+        # !in breaks like other binary ops: operator stays on first line
+        code = (
+            b"function some_func(a: int)\n"
+            b"\t{\n"
+            b"\tif ( some_very_long_access_to_a_member[foo]"
+            b" !in SomeModule::other$nested_field )\n"
+            b"\t\t{\n"
+            b'\t\tprint "hi";\n'
+            b"\t\t}\n"
+            b"\t}\n"
+        )
+        result = self._format(code).decode()
+        lines = result.strip().split("\n")
+        not_in_lines = [l for l in lines if "!in" in l]
+        self.assertEqual(len(not_in_lines), 1)
+        # Operator stays at end of first line, operand on continuation
+        self.assertTrue(not_in_lines[0].rstrip().endswith("!in"))
+
+    def test_not_in_stays_inline_when_short(self):
+        code = (
+            b"function some_func()\n"
+            b"\t{\n"
+            b"\tif ( x !in y )\n"
+            b'\t\tprint "hi";\n'
+            b"\t}\n"
+        )
+        result = self._format(code).decode()
+        self.assertIn("x !in y", result)
+
     def test_table_constructor_no_type(self):
         # Without explicit type, auto-detect table from [key]=val content
         code = b'const tbl = {[1] = "a", [2] = "b"};'
