@@ -14,7 +14,7 @@ from .ir import (
     COLUMN0LINE, EMPTY, HARDLINE, LINE, SOFTLINE, SPACE,
     Concat, Doc, Group, HardLine,
     MAX_WIDTH,
-    _flat_width,
+    TAB_SIZE, _flat_width,
     align, concat, dedent, dedent_spaces, fill, group, if_break, intersperse,
     join, nest, resolve, text,
 )
@@ -957,13 +957,28 @@ def _format_func_hdr_variant(node: Node, script: Script) -> Doc:
     parts.append(format_child(kids[idx], script))  # <id>
     idx += 1
     # Check for attr_list to pass into func_params for aligned wrapping.
-    # attr_suffix is placed inside the func_params group/align so the
-    # attr_list wraps to the column after '(' when the header overflows.
+    # Compute paren column to decide if attr fits at paren alignment.
     attr_suffix = EMPTY
+    attr_suffix_outside = EMPTY
     if (idx + 1 < len(kids) and _name(kids[idx + 1]) == "attr_list"):
-        attr_suffix = concat(LINE, format_child(kids[idx + 1], script))
+        attr_doc = format_child(kids[idx + 1], script)
+        # Estimate paren column: sum of keyword/id flat widths + spaces + '('
+        prefix_w = sum(_flat_width(p, MAX_WIDTH) or 0 for p in parts) + 1  # +1 for '('
+        attr_w = _flat_width(attr_doc, MAX_WIDTH) or MAX_WIDTH
+        if prefix_w + attr_w < MAX_WIDTH:
+            # Attr fits at paren-column alignment
+            attr_suffix = concat(LINE, attr_doc)
+        else:
+            # Attr too long for paren alignment — right-align so the
+            # attr line ends near MAX_WIDTH.  dedent() resets indent
+            # to col 0 so we can position with exact spaces.
+            indent_col = max(TAB_SIZE, MAX_WIDTH - attr_w - 3)
+            attr_suffix_outside = dedent(concat(
+                LINE, text(" " * indent_col), attr_doc))
 
-    parts.append(_format_func_params(kids[idx], script, attr_suffix=attr_suffix))
+    parts.append(_format_func_params(kids[idx], script,
+                                     attr_suffix=attr_suffix,
+                                     attr_suffix_outside=attr_suffix_outside))
     idx += 1
 
     if idx < len(kids) and _name(kids[idx]) == "attr_list":
@@ -973,7 +988,8 @@ def _format_func_hdr_variant(node: Node, script: Script) -> Doc:
 
 
 def _format_func_params(node: Node, script: Script,
-                        attr_suffix: Doc = EMPTY) -> Doc:
+                        attr_suffix: Doc = EMPTY,
+                        attr_suffix_outside: Doc = EMPTY) -> Doc:
     # ( [formal_args] ) [: <type>] [attr_suffix]
     kids = node.nonerr_children
     parts: list[Doc] = []
@@ -1007,8 +1023,11 @@ def _format_func_params(node: Node, script: Script,
         args_node.prev_cst_siblings = []
         args_doc = _format_formal_args(args_node, script, trailing=trailing)
         parts.append(align(concat(pre, args_doc, attr_suffix)))
+        # attr_suffix_outside is placed outside align() for cases where
+        # paren-column alignment would exceed 80 columns.
+        parts.append(attr_suffix_outside)
     else:
-        parts.append(concat(trailing, attr_suffix))
+        parts.append(concat(trailing, attr_suffix, attr_suffix_outside))
 
     return group(concat(*parts))
 
