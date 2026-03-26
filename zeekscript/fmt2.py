@@ -12,7 +12,7 @@ from typing import TYPE_CHECKING
 
 from .ir import (
     COLUMN0LINE, EMPTY, HARDLINE, LINE, SOFTLINE, SPACE,
-    Concat, Doc, HardLine,
+    Concat, Doc, Group, HardLine,
     MAX_WIDTH,
     _flat_width,
     align, concat, dedent, dedent_spaces, fill, group, if_break, intersperse,
@@ -92,6 +92,47 @@ def _format_semi(kids: list[Node], script: Script) -> Doc:
     if semi is None:
         return text(";")
     return format_child(semi, script)
+
+
+def _inject_trailing_into_fill(doc: Doc, suffix: Doc) -> tuple[Doc, bool]:
+    """Inject suffix into the last item of the innermost Fill in doc.
+
+    Walks through Group, Concat (rightmost), and Align to find a Fill,
+    then appends suffix to its last item.  When the Fill is inside a
+    Concat with trailing siblings (like a closing ')'), those siblings
+    are absorbed into the fill's last item too (before the suffix).
+    This ensures the fill's last group accounts for trailing content
+    in its flat-width check.  Returns (new_doc, True) on success.
+    """
+    from .ir import Align, Fill
+    if isinstance(doc, Fill):
+        docs = list(doc.docs)
+        if docs:
+            docs[-1] = concat(docs[-1], suffix)
+            return Fill(tuple(docs)), True
+        return doc, False
+    if isinstance(doc, Group):
+        new_child, ok = _inject_trailing_into_fill(doc.doc, suffix)
+        if ok:
+            return Group(new_child), True
+    if isinstance(doc, Align):
+        new_child, ok = _inject_trailing_into_fill(doc.doc, suffix)
+        if ok:
+            return Align(new_child), True
+    if isinstance(doc, Concat):
+        docs = list(doc.docs)
+        for i in range(len(docs) - 1, -1, -1):
+            # Collect trailing siblings — these will be absorbed into
+            # the fill's last item along with the suffix.
+            trailing = docs[i + 1:]
+            combined = concat(*trailing, suffix) if trailing else suffix
+            new_child, ok = _inject_trailing_into_fill(docs[i], combined)
+            if ok:
+                before = docs[:i]
+                if before:
+                    return Concat(tuple(before + [new_child])), True
+                return new_child, True
+    return doc, False
 
 
 # ---------------------------------------------------------------------------
@@ -1605,11 +1646,23 @@ def _format_stmt_index_assign(node: Node, script: Script) -> Doc:
 def _format_stmt_expr(node: Node, script: Script) -> Doc:
     # <expr> ;
     kids = node.nonerr_children
-    return concat(
-        format_child(kids[0], script),
-        _format_semi(kids, script),
-        HARDLINE,
+    expr_doc = format_child(kids[0], script)
+    semi_doc = _format_semi(kids, script)
+    # Include the semi (and any trailing comment) inside the expression's
+    # fill so the fill's last group accounts for trailing content.
+    # Skip injection for #@ annotation comments — they should not count
+    # toward line length.
+    semi_node = _find_semi(kids)
+    has_annotation = semi_node is not None and any(
+        _source_str(sib, script).startswith("#@")
+        for sib in (semi_node.next_cst_siblings or [])
+        if _is_comment(sib)
     )
+    if not has_annotation:
+        merged, ok = _inject_trailing_into_fill(expr_doc, semi_doc)
+        if ok:
+            return concat(merged, HARDLINE)
+    return concat(expr_doc, semi_doc, HARDLINE)
 
 
 def _format_stmt_assert(node: Node, script: Script) -> Doc:
