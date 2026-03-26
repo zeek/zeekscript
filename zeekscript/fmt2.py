@@ -2165,11 +2165,60 @@ def _is_brace_init_table(node: Node) -> bool:
     return False
 
 
+def _format_constructor_call(node: Node, script: Script,
+                             constructor: str) -> Doc:
+    """Format set(...), vector(...), table(...) with dedent multiline layout.
+
+    Multiline: items indented one tab past the enclosing block, ')' at
+    the enclosing block's indent level (uses dedent_spaces to escape
+    align() but preserve tab nesting).
+    Inline: aligned after '('.
+    """
+    kids = node.nonerr_children
+    # kids: constructor '(' [expr_list] ')' [attr_list]
+    has_content = any(_name(c) == "expr_list" for c in kids)
+    if not has_content:
+        return text(constructor + "()")
+
+    expr_list = next(c for c in kids if _name(c) == "expr_list")
+    do_linebreak = _has_comments(node) or _compact_length(expr_list) > 80
+
+    if do_linebreak:
+        body = _format_expr_list_multiline(expr_list, script)
+        return concat(
+            text(constructor + "("),
+            dedent_spaces(concat(
+                nest(1, concat(HARDLINE, body)),
+                HARDLINE,
+                text(")"),
+            )),
+        )
+    else:
+        body = _format_expr_list_inline(expr_list, script)
+        return group(concat(
+            text(constructor + "("),
+            align(concat(body, text(")"))),
+        ))
+
+
 def _format_expr_with_brace_transform(node: Node, script: Script,
                                       constructor: str | None = None) -> Doc:
-    """Format an expression, transforming { } to constructor() form."""
+    """Format an expression, transforming { } to constructor() form.
+
+    Also handles expressions that are already in constructor() form
+    (e.g., set(...), vector(...), table(...)) by applying the same
+    dedent multiline layout.
+    """
     kids = node.nonerr_children
-    if not kids or _tok(kids[0]) != "{":
+    if not kids:
+        return format_child(node, script)
+
+    # Already in constructor() form: set(...), vector(...), table(...)
+    first_tok = _tok(kids[0])
+    if first_tok in ("set", "vector", "table") and len(kids) >= 3 and _tok(kids[1]) == "(":
+        return _format_constructor_call(node, script, first_tok)
+
+    if first_tok != "{":
         return format_child(node, script)
 
     # Determine constructor name from content if not provided
@@ -2189,7 +2238,7 @@ def _format_expr_with_brace_transform(node: Node, script: Script,
         body = _format_expr_list_multiline(expr_list, script)
         return concat(
             text(constructor + "("),
-            dedent(concat(
+            dedent_spaces(concat(
                 nest(1, concat(HARDLINE, body)),
                 HARDLINE,
                 text(")"),

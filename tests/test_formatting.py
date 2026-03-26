@@ -1928,6 +1928,47 @@ class TestIRFormatting(unittest.TestCase):
         lines = result.strip().split("\n")
         self.assertIn('&group="bar"', lines[0])
 
+    def test_constructor_call_multiline_dedent(self):
+        # set(...) already in constructor form uses dedent multiline layout
+        code = (
+            b'redef some_hosts += set(\n'
+            b'\t"some.host.example.com",\n'
+            b'\t"another.longer.hostname.example.org",\n'
+            b'\t"yet.another.host.example.net",\n'
+            b');\n'
+        )
+        result = self._format(code).decode()
+        lines = result.strip().split("\n")
+        # First line: redef ... set(
+        self.assertIn("set(", lines[0])
+        # Items at one-tab indent
+        self.assertTrue(lines[1].startswith("\t"))
+        # Closing ) at column 0
+        self.assertEqual(lines[-1], ");")
+
+    def test_constructor_call_nested_in_export(self):
+        # Inside export {}, items get extra tab from enclosing block
+        code = (
+            b"export {\n"
+            b'\toption some_hosts = set(\n'
+            b'\t\t"some.host.example.com",\n'
+            b'\t\t"another.longer.hostname.example.org",\n'
+            b'\t\t"yet.another.host.example.net"\n'
+            b"\t);\n"
+            b"}\n"
+        )
+        result = self._format(code).decode()
+        lines = result.strip().split("\n")
+        # Items at two-tab indent (export + constructor)
+        self.assertTrue(lines[2].startswith("\t\t"))
+        # Closing ); at one-tab indent
+        self.assertEqual(lines[-2], "\t);")
+
+    def test_constructor_call_inline_when_short(self):
+        code = b'redef foo += set("a", "b", "c");\n'
+        result = self._format(code).decode()
+        self.assertEqual(result.strip(), 'redef foo += set("a", "b", "c");')
+
     def test_table_constructor_no_type(self):
         # Without explicit type, auto-detect table from [key]=val content
         code = b'const tbl = {[1] = "a", [2] = "b"};'
