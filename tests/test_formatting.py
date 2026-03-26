@@ -1905,6 +1905,29 @@ class TestIRFormatting(unittest.TestCase):
         result = self._format(code).decode()
         self.assertIn("{ # Start tracking.", result)
 
+    def test_event_attr_wraps_when_header_overflows(self):
+        code = (
+            b'event ssl_extension(c: connection, is_client: bool,'
+            b' code: count, val: string) &group="doh-generic"\n'
+            b"\t{\n\t}\n"
+        )
+        result = self._format(code).decode()
+        lines = result.strip().split("\n")
+        # Params line ends with )
+        self.assertTrue(lines[0].rstrip().endswith(")"))
+        self.assertLessEqual(len(lines[0]), 80)
+        # Attr on continuation line, aligned with params
+        self.assertIn('&group="doh-generic"', lines[1])
+        paren_col = lines[0].index("(") + 1
+        attr_col = len(lines[1]) - len(lines[1].lstrip())
+        self.assertEqual(paren_col, attr_col)
+
+    def test_event_attr_stays_inline_when_short(self):
+        code = b'event foo(c: connection) &group="bar"\n\t{\n\t}\n'
+        result = self._format(code).decode()
+        lines = result.strip().split("\n")
+        self.assertIn('&group="bar"', lines[0])
+
     def test_table_constructor_no_type(self):
         # Without explicit type, auto-detect table from [key]=val content
         code = b'const tbl = {[1] = "a", [2] = "b"};'

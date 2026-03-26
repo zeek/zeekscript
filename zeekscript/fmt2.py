@@ -879,19 +879,25 @@ def _format_func_hdr_variant(node: Node, script: Script) -> Doc:
     idx += 1
     parts.append(format_child(kids[idx], script))  # <id>
     idx += 1
-    parts.append(format_child(kids[idx], script))  # <func_params>
+    # Check for attr_list to pass into func_params for aligned wrapping.
+    # attr_suffix is placed inside the func_params group/align so the
+    # attr_list wraps to the column after '(' when the header overflows.
+    attr_suffix = EMPTY
+    if (idx + 1 < len(kids) and _name(kids[idx + 1]) == "attr_list"):
+        attr_suffix = concat(LINE, format_child(kids[idx + 1], script))
+
+    parts.append(_format_func_params(kids[idx], script, attr_suffix=attr_suffix))
     idx += 1
 
     if idx < len(kids) and _name(kids[idx]) == "attr_list":
-        parts.append(SPACE)
-        parts.append(format_child(kids[idx], script))
-        idx += 1
+        idx += 1  # already handled via attr_suffix
 
     return concat(*parts)
 
 
-def _format_func_params(node: Node, script: Script) -> Doc:
-    # ( [formal_args] ) [: <type>]
+def _format_func_params(node: Node, script: Script,
+                        attr_suffix: Doc = EMPTY) -> Doc:
+    # ( [formal_args] ) [: <type>] [attr_suffix]
     kids = node.nonerr_children
     parts: list[Doc] = []
     idx = 0
@@ -923,9 +929,9 @@ def _format_func_params(node: Node, script: Script) -> Doc:
         pre = _format_prev_cst(args_node, script)
         args_node.prev_cst_siblings = []
         args_doc = _format_formal_args(args_node, script, trailing=trailing)
-        parts.append(align(concat(pre, args_doc)))
+        parts.append(align(concat(pre, args_doc, attr_suffix)))
     else:
-        parts.append(trailing)
+        parts.append(concat(trailing, attr_suffix))
 
     return group(concat(*parts))
 
