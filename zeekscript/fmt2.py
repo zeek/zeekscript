@@ -648,31 +648,51 @@ def _format_typed_initializer(kids: list[Node], start_idx: int, script: Script) 
 
     type_name = None
     has_explicit_type = idx < len(kids) and _tok(kids[idx]) == ":"
+    type_doc = EMPTY
     if has_explicit_type:
         idx += 1  # skip ':'
         type_node = kids[idx]
         type_name = _type_constructor_name(type_node)
-        parts.append(text(":"))
-        parts.append(SPACE)
-        parts.append(format_child(type_node, script))  # <type>
+        type_doc = format_child(type_node, script)  # <type>
         idx += 1
 
+    init_doc = EMPTY
     if idx < len(kids) and _name(kids[idx]) == "initializer":
-        parts.append(SPACE)
         # Transform { } to constructor() form when type is known,
         # or auto-detect set/table when no explicit type
         if not has_explicit_type:
             constructor = ""  # sentinel: auto-detect from content
         else:
             constructor = type_name  # None if type isn't vector/table/set
-        parts.append(_format_initializer_node(kids[idx], script,
-                                              constructor=constructor))
+        init_doc = concat(SPACE, _format_initializer_node(
+            kids[idx], script, constructor=constructor))
         idx += 1
 
+    attr_doc = EMPTY
     if idx < len(kids) and _name(kids[idx]) == "attr_list":
-        parts.append(SPACE)
-        parts.append(format_child(kids[idx], script))
+        attr_doc = format_child(kids[idx], script)
         idx += 1
+
+    if has_explicit_type:
+        parts.append(text(":"))
+        parts.append(SPACE)
+        if attr_doc != EMPTY:
+            # align() captures column at the type keyword.  The inner
+            # group() independently checks whether attr fits on the
+            # current line; if not, SOFTLINE breaks to align indent
+            # and text(" ") gives 1-space offset past the type keyword.
+            parts.append(align(concat(
+                type_doc, init_doc,
+                group(concat(SOFTLINE, text(" "), attr_doc)),
+            )))
+        else:
+            parts.append(type_doc)
+            parts.append(init_doc)
+    else:
+        parts.append(init_doc)
+        if attr_doc != EMPTY:
+            parts.append(SPACE)
+            parts.append(attr_doc)
 
     return concat(*parts), idx
 
@@ -840,8 +860,10 @@ def _format_type_set_or_table(node: Node, script: Script, keyword: str) -> Doc:
         idx += 1  # skip ']'
 
         sep = concat(text(","), LINE)
-        type_list = join(sep, type_docs)
-        bracket_content = group(concat(text("["), align(concat(type_list, text("]")))))
+        bracket_content = group(concat(
+            text("["),
+            align(concat(fill(*intersperse(sep, type_docs)), text("]"))),
+        ))
         parts.append(bracket_content)
 
     # 'of' <type> (for table)

@@ -1992,3 +1992,27 @@ class TestIRFormatting(unittest.TestCase):
         code = b'const tbl = {[1] = "a", [2] = "b"};'
         result = self._format(code).decode()
         self.assertIn("table(", result)
+
+    def test_set_type_flows_params_and_wraps_attr(self):
+        """set[...] type params flow across lines; attr wraps 1 space past type keyword."""
+        code = (
+            b'global some_long_cache_name:'
+            b' set[string, subnet, subnet, transport_proto, SomeModule::SomeType]'
+            b' &read_expire=cache_interval;\n'
+        )
+        result = self._format(code).decode()
+        lines = result.rstrip().split('\n')
+        # All lines under 80 columns
+        for line in lines:
+            self.assertLessEqual(len(line), 80, f"Line too long: {repr(line)}")
+        # Type params flow (not one-per-line): first line has multiple types
+        self.assertIn("set[string, subnet, subnet, transport_proto,", result)
+        # attr_list wraps to its own line
+        attr_line = [l for l in lines if "&read_expire" in l][0]
+        self.assertNotIn("]", attr_line, "attr should be on its own line, not after ]")
+        # attr indented 1 space past where 'set' starts
+        set_line = [l for l in lines if "set[" in l][0]
+        set_col = set_line.index("set")
+        attr_col = len(attr_line) - len(attr_line.lstrip())
+        self.assertEqual(attr_col, set_col + 1,
+                         f"Expected attr at col {set_col+1}, got {attr_col}")
