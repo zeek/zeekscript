@@ -338,7 +338,7 @@ def resolve(doc: Doc, max_width: int = MAX_WIDTH) -> bytes:
                 stack.append((indent, _FLAT, d.doc))
             else:
                 fw = _flat_width(d.doc, max_width - col)
-                if fw is not None and col + fw <= max_width:
+                if fw is not None and col + fw < max_width:
                     stack.append((indent, _FLAT, d.doc))
                 else:
                     stack.append((indent, _BREAK, d.doc))
