@@ -281,13 +281,13 @@ class Script:
 
     def format(
         self, output: BinaryIO | TextIO | None = None, enable_linebreaks: bool = True,
-        use_ir: bool = False,
+        use_ir: bool = True,
     ) -> None:
         """Formats the script and writes out the result.
 
         The output destination can be one of three things: a filename, a file
         object, or None, which means stdout. enable_linebreaks, True by default,
-        controls whether to use linebreaks at all. use_ir, False by default,
+        controls whether to use linebreaks at all. use_ir, True by default,
         selects the IR-based formatter (fmt2) instead of the classic one.
         """
         assert self.root is not None, "call Script.parse() before Script.format()"

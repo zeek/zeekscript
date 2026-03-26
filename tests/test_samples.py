@@ -30,7 +30,7 @@ def snapshot(snapshot: SnapshotAssertion):
 def _format(script: zeekscript.Script):
     """Formats a given `Script`"""
     buf = io.BytesIO()
-    script.format(buf)
+    script.format(buf, use_ir=False)
     return buf.getvalue()
 
 

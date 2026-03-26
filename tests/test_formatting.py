@@ -23,7 +23,7 @@ class TestFormatting(unittest.TestCase):
         self.assertFalse(script.has_error())
 
         buf = io.BytesIO()
-        script.format(buf)
+        script.format(buf, use_ir=False)
 
         return buf.getvalue()
 
@@ -1510,7 +1510,7 @@ class TestFormattingErrors(unittest.TestCase):
         self.assertTrue(script.has_error())
 
         buf = io.BytesIO()
-        script.format(buf)
+        script.format(buf, use_ir=False)
 
         return buf.getvalue(), script.get_error()
 
@@ -1628,7 +1628,7 @@ class TestNewlineFormatting(unittest.TestCase):
         script.parse()
 
         buf = io.BytesIO()
-        script.format(buf)
+        script.format(buf, use_ir=False)
 
         given = buf.getvalue()
 
