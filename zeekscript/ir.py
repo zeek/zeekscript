@@ -240,11 +240,15 @@ def _flat_width(doc: Doc, remaining: int) -> int | None:
     return w
 
 
+MISINDENT_MARKER = "# MISINDENTATION" + os.linesep
+
+
 def resolve(doc: Doc, max_width: int = MAX_WIDTH) -> bytes:
     """Resolve a document IR tree into formatted bytes output."""
     nl = os.linesep
     parts: list[str] = []
     col = 0
+    misindent = False  # set when align() falls back
 
     # Stack entries: (indent_state, flat_or_break_mode, doc_node)
     stack: list[tuple[_Indent, int, Doc]] = [(_Indent(), _BREAK, doc)]
@@ -262,6 +266,9 @@ def resolve(doc: Doc, max_width: int = MAX_WIDTH) -> bytes:
                 col += 1
             else:
                 parts.append(nl)
+                if misindent:
+                    parts.append(MISINDENT_MARKER)
+                    misindent = False
                 ind = indent.render()
                 parts.append(ind)
                 col = indent.width()
@@ -269,6 +276,9 @@ def resolve(doc: Doc, max_width: int = MAX_WIDTH) -> bytes:
         elif isinstance(d, SoftLine):
             if mode != _FLAT:
                 parts.append(nl)
+                if misindent:
+                    parts.append(MISINDENT_MARKER)
+                    misindent = False
                 ind = indent.render()
                 parts.append(ind)
                 col = indent.width()
@@ -311,6 +321,7 @@ def resolve(doc: Doc, max_width: int = MAX_WIDTH) -> bytes:
             sp = max(0, col - indent.tabs * TAB_SIZE)
             if col >= MAX_ALIGN_COL:
                 sp = FALLBACK_INDENT
+                misindent = True
             ni = _Indent(indent.tabs, sp)
             stack.append((ni, mode, d.doc))
 
