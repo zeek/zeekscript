@@ -1730,74 +1730,71 @@ def _format_expr(node: Node, script: Script) -> Doc:
     if not kids:
         return text(_source_str(node, script))
 
-    cn1 = _child_name(node, 0)
-    ct1 = _child_tok(node, 0)
-    ct2 = _child_tok(node, 1)
-    ct3 = _child_tok(node, 2)
+    cn0 = _child_name(node, 0)
+    tok0 = _child_tok(node, 0)
+    tok1 = _child_tok(node, 1)
+    tok2 = _child_tok(node, 2)
 
     # Index: expr[...]
-    if cn1 == "expr" and ct2 == "[":
+    if cn0 == "expr" and tok1 == "[":
         return _format_expr_index(node, script)
     # Record field: expr$field
-    if cn1 == "expr" and ct2 == "$":
+    if cn0 == "expr" and tok1 == "$":
         return _format_expr_field_access(node, script)
     # Index slice: expr[a:b]
-    if cn1 == "expr" and _child_name(node, 1) == "index_slice":
+    if cn0 == "expr" and _child_name(node, 1) == "index_slice":
         return _format_expr_index_slice(node, script)
     # Negation: ! expr
-    if ct1 == "!":
+    if tok0 == "!":
         return _format_expr_negation(node, script)
     # Unary: ++, --, ~, -, +, |
-    if ct1 in ("|", "++", "--", "~", "-", "+"):
-        return _format_expr_unary(node, script)
-    # !in operator
-    if cn1 == "expr" and ct2 == "!" and ct3 == "in":
+    if tok0 in ("|", "++", "--", "~", "-", "+"):
+        return _format_no_space(node, script)
+    # !in operator: tree-sitter gives 4 children (expr ! in expr)
+    if cn0 == "expr" and tok1 == "!" and tok2 == "in":
         return _format_expr_not_in(node, script)
     # Initializers: { ... } or [ ... ]
-    if ct1 in ("{", "["):
+    if tok0 in ("{", "["):
         return _format_expr_initializer(node, script)
     # Parenthesized: ( expr )
-    if ct1 == "(":
+    if tok0 == "(":
         return _format_expr_paren(node, script)
     # Field assign: $name = expr
-    if ct1 == "$" and ct3 == "=":
+    if tok0 == "$" and tok2 == "=":
         return _format_expr_field_assign(node, script)
     # Field lambda: $name <begin_lambda> = <func_body>
-    if ct1 == "$" and _child_name(node, 2) == "begin_lambda":
+    if tok0 == "$" and _child_name(node, 2) == "begin_lambda":
         return _format_expr_field_lambda(node, script)
     # copy(expr)
-    if ct1 == "copy":
+    if tok0 == "copy":
         return _format_expr_copy(node, script)
-    # Has-field: expr?$field
-    if ct2 == "?$":
-        return _format_expr_has_field(node, script)
+    # Has-field: expr?$field — never breaks
+    if tok1 == "?$":
+        return _format_no_space(node, script)
     # Anonymous function: function <begin_lambda> <func_body>
-    if ct1 == "function":
+    if tok0 == "function":
         return _format_expr_anon_func(node, script)
     # Function/constructor calls: name(...)
-    if ct2 == "(":
+    if tok1 == "(":
         return _format_expr_call(node, script)
     # Binary boolean: && ||
-    if _nch(node) == 3 and ct2 in ("||", "&&"):
+    if _nch(node) == 3 and tok1 in ("||", "&&"):
         return _format_expr_boolean(node, script)
     # Ternary: cond ? true : false
-    if _nch(node) == 5 and ct2 == "?" and _child_tok(node, 3) == ":":
+    if _nch(node) == 5 and tok1 == "?" and _child_tok(node, 3) == ":":
         return _format_expr_ternary(node, script)
     # Assignment: lhs = rhs
-    if _nch(node) == 3 and ct2 in ("=", "+=", "-="):
+    if _nch(node) == 3 and tok1 in ("=", "+=", "-="):
         return _format_expr_assignment(node, script)
     # Binary operators
-    if _nch(node) == 3 and ct2 in (
+    if _nch(node) == 3 and tok1 in (
         "/", "*", "+", "-", "%",
         "==", "!=", "<", ">", "<=", ">=",
         "&", "|", "^", "~", "!~", "in",
     ):
         return _format_expr_binary(node, script)
-    # !in: tree-sitter gives 4 children (expr ! in expr)
-    if _nch(node) == 4 and ct2 == "!" and _child_tok(node, 2) == "in":
-        return _format_expr_not_in(node, script)
     # Schedule
-    if ct1 == "schedule":
+    if tok0 == "schedule":
         return _format_expr_schedule(node, script)
 
     # Default: space-separated
@@ -1839,27 +1836,6 @@ def _format_expr_negation(node: Node, script: Script) -> Doc:
     kids = node.nonerr_children
     return concat(text("!"), SPACE, format_child(kids[1], script))
 
-
-def _format_expr_unary(node: Node, script: Script) -> Doc:
-    # ++/--/~/- <expr> (no space)
-    kids = node.nonerr_children
-    parts: list[Doc] = []
-    for child in kids:
-        parts.append(format_child(child, script))
-    return concat(*parts)
-
-
-def _format_expr_not_in(node: Node, script: Script) -> Doc:
-    # <expr> !in <expr>
-    kids = node.nonerr_children
-    return group(align(concat(
-        format_child(kids[0], script),
-        SPACE,
-        text("!"),
-        text("in"),
-        SPACE,
-        format_child(kids[3], script),
-    )))
 
 
 def _format_expr_initializer(node: Node, script: Script) -> Doc:
@@ -2009,14 +1985,6 @@ def _format_expr_copy(node: Node, script: Script) -> Doc:
         text(")"),
     )
 
-
-def _format_expr_has_field(node: Node, script: Script) -> Doc:
-    # <expr> ?$ <id> - never breaks
-    kids = node.nonerr_children
-    parts: list[Doc] = []
-    for child in kids:
-        parts.append(format_child(child, script))
-    return concat(*parts)
 
 
 def _format_expr_anon_func(node: Node, script: Script) -> Doc:
