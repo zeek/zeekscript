@@ -1956,10 +1956,57 @@ def _format_expr_assignment(node: Node, script: Script) -> Doc:
     ))
 
 
+# Operators that form chains and should be flattened into a single group.
+_CHAINABLE_OPS = frozenset({"+", "-", "*", "/", "%"})
+
+
+def _collect_binary_chain(node: Node, script: Script) -> list[tuple[Doc, str | None]]:
+    """Collect a left-recursive chain of chainable binary operators.
+
+    Returns [(operand_doc, op_after), ...] where the last entry has op_after=None.
+    E.g. for `a + b + c - d`: [(a, "+"), (b, "+"), (c, "-"), (d, None)].
+    """
+    kids = node.nonerr_children
+    op = _source_str(kids[1], script)
+    lhs = kids[0]
+    rhs = kids[2]
+
+    # Check if LHS is also a chainable binary — if so, flatten
+    lhs_kids = lhs.nonerr_children if lhs.nonerr_children else []
+    if (len(lhs_kids) == 3
+            and _name(lhs) == "expr"
+            and _source_str(lhs_kids[1], script) in _CHAINABLE_OPS):
+        chain = _collect_binary_chain(lhs, script)
+    else:
+        chain = [(format_child(lhs, script), None)]
+
+    # Set the operator on the last entry, then append rhs
+    last_doc, _ = chain[-1]
+    chain[-1] = (last_doc, op)
+    chain.append((format_child(rhs, script), None))
+    return chain
+
+
 def _format_expr_binary(node: Node, script: Script) -> Doc:
     # <expr> op <expr>
     kids = node.nonerr_children
     op = _source_str(kids[1], script)
+
+    # Flatten chains of arithmetic operators into a single fill group.
+    # fill() packs as many operands per line as fit, only breaking when needed.
+    if op in _CHAINABLE_OPS:
+        chain = _collect_binary_chain(node, script)
+        # Build fill items: [operand1 op1, LINE, operand2 op2, LINE, ..., operandN]
+        fill_items: list[Doc] = []
+        for i, (operand, chain_op) in enumerate(chain):
+            if i > 0:
+                fill_items.append(LINE)
+            if chain_op is not None:
+                fill_items.append(concat(operand, SPACE, text(chain_op)))
+            else:
+                fill_items.append(operand)
+        return align(fill(*fill_items))
+
     return group(align(concat(
         format_child(kids[0], script),
         SPACE,
