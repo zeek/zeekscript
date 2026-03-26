@@ -99,8 +99,14 @@ class DedentSpaces:
     """Reset space-based indentation to 0, preserving tab nesting."""
     doc: Doc
 
+@dataclass(frozen=True, slots=True)
+class AlignCapped:
+    """Like Align, but falls back to tab-only nesting when column exceeds cap."""
+    doc: Doc
+    cap: int
 
-Doc = Union[Text, Line, SoftLine, HardLine, Column0Line, Concat, Nest, Align, Group, IfBreak, Fill, Dedent, DedentSpaces]
+
+Doc = Union[Text, Line, SoftLine, HardLine, Column0Line, Concat, Nest, Align, Group, IfBreak, Fill, Dedent, DedentSpaces, AlignCapped]
 
 
 # --- Singletons and common tokens ---
@@ -158,6 +164,10 @@ def fill(*docs: Doc) -> Fill:
 
 def dedent(doc: Doc) -> Dedent:
     return Dedent(doc)
+
+
+def align_capped(doc: Doc, cap: int) -> AlignCapped:
+    return AlignCapped(doc, cap)
 
 
 def dedent_spaces(doc: Doc) -> DedentSpaces:
@@ -228,7 +238,7 @@ def _flat_width(doc: Doc, remaining: int) -> int | None:
         elif isinstance(d, Concat):
             for sub in reversed(d.docs):
                 stack.append(sub)
-        elif isinstance(d, (Nest, Align, Dedent, DedentSpaces)):
+        elif isinstance(d, (Nest, Align, Dedent, DedentSpaces, AlignCapped)):
             stack.append(d.doc)
         elif isinstance(d, Group):
             stack.append(d.doc)
@@ -324,6 +334,14 @@ def resolve(doc: Doc, max_width: int = MAX_WIDTH) -> bytes:
                 if mode == _BREAK:
                     misindent = True
             ni = _Indent(indent.tabs, sp)
+            stack.append((ni, mode, d.doc))
+
+        elif isinstance(d, AlignCapped):
+            if col >= d.cap:
+                ni = _Indent(indent.tabs, 0)
+            else:
+                sp = max(0, col - indent.tabs * TAB_SIZE)
+                ni = _Indent(indent.tabs, sp)
             stack.append((ni, mode, d.doc))
 
         elif isinstance(d, Dedent):

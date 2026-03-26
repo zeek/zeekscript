@@ -13,10 +13,9 @@ from typing import TYPE_CHECKING
 from .ir import (
     COLUMN0LINE, EMPTY, HARDLINE, LINE, SOFTLINE, SPACE,
     Concat, Doc, Group, HardLine,
-    MAX_WIDTH,
-    TAB_SIZE, _flat_width,
-    align, concat, dedent, dedent_spaces, fill, group, if_break, intersperse,
-    join, nest, resolve, text,
+    MAX_ALIGN_COL, MAX_WIDTH, TAB_SIZE, _flat_width,
+    align, align_capped, concat, dedent, dedent_spaces, fill, group, if_break,
+    intersperse, join, nest, resolve, text,
 )
 from .node import Node
 
@@ -2070,16 +2069,26 @@ def _format_expr_call(node: Node, script: Script) -> Doc:
         else:
             args_doc = _format_expr_list_inline(expr_list, script)
         close = text(")")
+        # Compute dynamic cap: align args to after '(' when the column
+        # is shallow enough that even the widest single arg fits within
+        # MAX_WIDTH.  At deeper columns, fall back to tab-only nesting.
+        widest_arg = 0
+        half = MAX_WIDTH // 2
+        for c in expr_list.nonerr_children:
+            if _name(c) == "expr":
+                w = _flat_width(format_node(c, script), MAX_WIDTH)
+                if w is not None and w <= half and w > widest_arg:
+                    widest_arg = w
+        cap = MAX_WIDTH - widest_arg - 2 if widest_arg > 0 else MAX_ALIGN_COL
         if has_open_comment:
             # Comment after '(' forces args to next line, aligned after '('
             comment_doc = _format_next_cst(open_paren, script)
             open_paren.next_cst_siblings = []
             parts.append(text("("))
-            parts.append(align(concat(comment_doc, HARDLINE, args_doc, close)))
+            parts.append(align_capped(concat(comment_doc, HARDLINE, args_doc, close), cap))
         else:
             parts.append(format_child(open_paren, script))
-            # Align args to column after '('
-            parts.append(align(concat(args_doc, close)))
+            parts.append(align_capped(concat(args_doc, close), cap))
         idx += 1
         idx += 1  # skip ')'
     else:
@@ -2352,9 +2361,20 @@ def _format_initializer_node(node: Node, script: Script,
     op = _source_str(init_class, script)
     expr = kids[1]
     if constructor is not None:
-        # Constructor transform: keep "= constructor(" together on one line
         expr_doc = _format_expr_with_brace_transform(
             expr, script, constructor or None)
+        # For very wide pass-through expressions (not actual constructors),
+        # use nest(1) for shallow continuation instead of keeping together.
+        expr_kids = expr.nonerr_children
+        first_tok = _tok(expr_kids[0]) if expr_kids else None
+        if first_tok not in ("{", "[", "set", "vector", "table"):
+            expr_w = _flat_width(expr_doc, 500)
+            if expr_w is not None and expr_w > 3 * MAX_WIDTH:
+                return group(concat(
+                    text(op),
+                    nest(1, dedent_spaces(concat(LINE, expr_doc))),
+                ))
+        # Constructor or normal-width expression: keep "= expr" together
         return concat(text(op), SPACE, expr_doc)
     else:
         expr_doc = format_child(expr, script)
