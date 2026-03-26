@@ -551,7 +551,8 @@ def _format_export_decl(node: Node, script: Script) -> Doc:
         text("export"),
         SPACE,
         text("{"),
-        nest(1, concat(HARDLINE, body)),
+        nest(1, concat(HARDLINE, _strip_trailing_hardline(body))),
+        HARDLINE,
         text("}"),
         HARDLINE,
     )
