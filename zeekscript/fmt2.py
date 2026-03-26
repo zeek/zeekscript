@@ -1982,16 +1982,20 @@ def _format_expr_boolean(node: Node, script: Script) -> Doc:
 
 def _format_expr_ternary(node: Node, script: Script) -> Doc:
     # <expr> ? <expr> : <expr>
-    # Use fill() so ? and : break independently — fill packs greedily,
-    # preferring to break after : rather than after ?.
+    # Two-level fill: outer fill breaks at ? when needed, inner fill
+    # breaks at : first (greedy packing prefers later breaks).
+    # align() after ? makes true/false exprs align to same column.
     kids = node.nonerr_children
-    return align(fill(
-        concat(format_child(kids[0], script), SPACE, text("?")),
-        LINE,
+    true_false = align(fill(
         concat(format_child(kids[2], script), SPACE, text(":")),
         LINE,
         format_child(kids[4], script),
     ))
+    return fill(
+        concat(format_child(kids[0], script), SPACE, text("?")),
+        LINE,
+        true_false,
+    )
 
 
 def _format_expr_assignment(node: Node, script: Script) -> Doc:
