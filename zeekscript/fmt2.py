@@ -143,16 +143,15 @@ def _format_next_cst(node: Node, script: Script) -> Doc:
             parts.append(align(concat(*zeekygen_prev_parts)))
             zeekygen_prev_parts = []
         if sib.is_minor_comment():
-            # End-of-line comment
+            # End-of-line comment (comment follows code on same source line)
             if sib.prev_cst_sibling and not sib.prev_cst_sibling.is_nl():
                 parts.append(SPACE)
                 parts.append(text(_source_str(sib, script)))
             else:
-                # Own-line comment
-                parts.append(HARDLINE)
+                # Own-line comment: no HARDLINE needed because the
+                # preceding node's doc already ends with HARDLINE.
                 parts.append(text(_source_str(sib, script)))
         elif _is_comment(sib):
-            parts.append(HARDLINE)
             parts.append(text(_source_str(sib, script)))
         # Skip newlines - they're handled by the structure
 
@@ -262,7 +261,14 @@ def format_child(node: Node, script: Script) -> Doc:
     """
     # Handle no-format annotations
     if isinstance(node.no_format, bytes):
-        return text(node.no_format.decode("UTF-8", errors="replace"))
+        raw = node.no_format.decode("UTF-8", errors="replace")
+        # Statement/decl nodes end with HARDLINE in normal formatting;
+        # preserve this so _format_body_items gets proper newlines.
+        ntype = node.type
+        if ntype in ("stmt", "decl"):
+            raw = raw.rstrip("\n\r")
+            return concat(text(raw), HARDLINE)
+        return text(raw)
     if node.no_format is True:
         return EMPTY
 
@@ -441,6 +447,12 @@ def _format_body_items(nodes: list[Node], script: Script,
 
 def _format_stmt_list(node: Node, script: Script) -> Doc:
     """Format a stmt_list node."""
+    # Handle no-format annotation on the stmt_list itself
+    # (happens when a single-statement body has trailing #@ NO-FORMAT)
+    if isinstance(getattr(node, 'no_format', None), bytes):
+        raw = node.no_format.decode("UTF-8", errors="replace").rstrip("\n\r")
+        return concat(text(raw), HARDLINE)
+
     stmts = [c for c in node.nonerr_children if _name(c) == "stmt"]
     if not stmts:
         return EMPTY
@@ -1338,14 +1350,19 @@ def _format_stmt_switch(node: Node, script: Script) -> Doc:
     parts = [text("switch"), SPACE]
     idx = 1
 
-    # expr is ( <inner_expr> ) — format with spaces inside parens
+    # expr may be ( <inner_expr> ) or bare expr
     expr_node = kids[idx]
     expr_kids = expr_node.nonerr_children
-    parts.append(text("("))
-    parts.append(SPACE)
-    parts.append(format_child(expr_kids[1], script))  # inner expr
-    parts.append(SPACE)
-    parts.append(text(")"))
+    if _tok(expr_kids[0]) == "(":
+        # Parenthesized: add spaces inside parens
+        parts.append(text("("))
+        parts.append(SPACE)
+        parts.append(format_child(expr_kids[1], script))
+        parts.append(SPACE)
+        parts.append(text(")"))
+    else:
+        # Bare expression
+        parts.append(format_child(expr_node, script))
     idx += 1
     parts.append(SPACE)
 
@@ -1762,8 +1779,8 @@ def _format_expr_initializer(node: Node, script: Script) -> Doc:
     has_content = len(kids) > 2 and _name(kids[1]) == "expr_list"
 
     if not has_content:
-        # Empty: { } or [ ]
-        return concat(text(ct1), SPACE, text(close))
+        # Empty: [] or {}
+        return concat(text(ct1), text(close))
 
     expr_list = kids[1]
     do_linebreak = _has_comments(node) or _compact_length(expr_list) > 80
@@ -1965,32 +1982,33 @@ def _format_expr_boolean(node: Node, script: Script) -> Doc:
 
 def _format_expr_ternary(node: Node, script: Script) -> Doc:
     # <expr> ? <expr> : <expr>
+    # Use fill() so ? and : break independently — fill packs greedily,
+    # preferring to break after : rather than after ?.
     kids = node.nonerr_children
-    return group(align(concat(
-        format_child(kids[0], script),
-        SPACE,
-        text("?"),
+    return align(fill(
+        concat(format_child(kids[0], script), SPACE, text("?")),
         LINE,
-        format_child(kids[2], script),
-        SPACE,
-        text(":"),
+        concat(format_child(kids[2], script), SPACE, text(":")),
         LINE,
         format_child(kids[4], script),
-    )))
+    ))
 
 
 def _format_expr_assignment(node: Node, script: Script) -> Doc:
     # <expr> = <expr>  or  <expr> += <expr>  etc.
     kids = node.nonerr_children
     op = _source_str(kids[1], script)
-    return group(concat(
+    rhs = format_child(kids[2], script)
+    # No outer group: lhs = rhs stays together. The RHS's own internal
+    # groups handle line breaking. align() sets continuation column to
+    # after '= ' so binary operators etc. wrap there.
+    return concat(
         format_child(kids[0], script),
         SPACE,
         text(op),
-        LINE,
-        if_break(broken=text("    "), flat=EMPTY),
-        format_child(kids[2], script),
-    ))
+        SPACE,
+        align(rhs),
+    )
 
 
 # Operators that form chains and should be flattened into a single group.
@@ -2131,8 +2149,14 @@ def _format_expr_list_inline(node: Node, script: Script) -> Doc:
     if not items:
         return EMPTY
 
+    # Detect trailing comma (comma after last expr with no following expr)
+    has_trailing_comma = kids and _tok(kids[-1]) == ","
+
     sep = concat(text(","), LINE)
-    return fill(*intersperse(sep, items))
+    result = fill(*intersperse(sep, items))
+    if has_trailing_comma:
+        result = concat(result, text(","), SPACE)
+    return result
 
 
 def _format_expr_list_multiline(node: Node, script: Script) -> Doc:
@@ -2176,10 +2200,15 @@ def _format_initializer_node(node: Node, script: Script,
         # to break LINE after '='. Keep '= function(...)' together instead.
         if _has_lambda(expr):
             return concat(text(op), SPACE, expr_doc)
+        # Align continuation to column after '= '. When the group
+        # breaks, if_break inserts a newline aligned to after '= '.
         return group(concat(
             text(op),
-            LINE,
-            expr_doc,
+            SPACE,
+            align(concat(
+                if_break(broken=LINE, flat=EMPTY),
+                expr_doc,
+            )),
         ))
 
 
@@ -2314,7 +2343,7 @@ def _format_index_slice(node: Node, script: Script) -> Doc:
             lhs_doc = format_child(child, script)
 
     # Build: [ align( lhs : LINE rhs ] )
-    colon_sp = SPACE if use_space else EMPTY
+    colon_sp = SPACE if use_space and lhs_doc != EMPTY else EMPTY
     inner = concat(lhs_doc, colon_sp, text(":"))
     if rhs_doc != EMPTY:
         if use_space:
