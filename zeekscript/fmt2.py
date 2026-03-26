@@ -1843,8 +1843,23 @@ def _format_expr_initializer(node: Node, script: Script) -> Doc:
     if is_record:
         return _format_record_constructor(node, script, do_linebreak)
 
-    if do_linebreak and ct1 == "{":
-        # Multi-line brace init
+    has_comments = _has_comments(node)
+
+    if has_comments:
+        # Comments force one-per-line layout with tab indentation.
+        # dedent_spaces escapes enclosing align() so items nest at
+        # pure tab level, not tab+spaces.
+        body = _format_expr_list_multiline(expr_list, script)
+        return concat(
+            text(ct1),
+            dedent_spaces(concat(
+                nest(1, concat(HARDLINE, body)),
+                HARDLINE,
+                text(close),
+            )),
+        )
+    elif do_linebreak and ct1 == "{":
+        # Multi-line brace init (long, no comments)
         body = _format_expr_list_multiline(expr_list, script)
         return concat(
             text(ct1),
