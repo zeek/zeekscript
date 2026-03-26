@@ -321,7 +321,8 @@ def resolve(doc: Doc, max_width: int = MAX_WIDTH) -> bytes:
             sp = max(0, col - indent.tabs * TAB_SIZE)
             if col >= MAX_ALIGN_COL:
                 sp = FALLBACK_INDENT
-                misindent = True
+                if mode == _BREAK:
+                    misindent = True
             ni = _Indent(indent.tabs, sp)
             stack.append((ni, mode, d.doc))
 
