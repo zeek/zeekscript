@@ -1917,6 +1917,20 @@ def _format_expr_initializer(node: Node, script: Script) -> Doc:
         ))
 
 
+def _widest_record_field(node: Node, script: Script) -> int:
+    """Return the flat width of the widest $field=val in a record constructor."""
+    kids = node.nonerr_children
+    if len(kids) < 2 or _name(kids[1]) != "expr_list":
+        return 0
+    widest = 0
+    for child in kids[1].nonerr_children:
+        if _name(child) == "expr":
+            w = _flat_width(format_child(child, script), MAX_WIDTH)
+            if w is not None and w > widest:
+                widest = w
+    return widest
+
+
 def _is_record_constructor(node: Node) -> bool:
     """True if this [..] is a record constructor ($field=val style)."""
     kids = node.nonerr_children
@@ -2049,7 +2063,10 @@ def _format_expr_call(node: Node, script: Script) -> Doc:
             for c in expr_list.nonerr_children
         )
         if has_record_arg:
-            args_doc = _format_expr_list_with_record(expr_list, script)
+            # Pass call prefix width so record can decide LINE vs SPACE
+            call_prefix_w = (_flat_width(parts[0], MAX_WIDTH) or 0) + 1  # name + '('
+            args_doc = _format_expr_list_with_record(
+                expr_list, script, call_prefix_w=call_prefix_w)
         else:
             args_doc = _format_expr_list_inline(expr_list, script)
         close = text(")")
@@ -2238,32 +2255,47 @@ def _format_expr_list(node: Node, script: Script) -> Doc:
     return _format_expr_list_inline(node, script)
 
 
-def _format_expr_list_with_record(node: Node, script: Script) -> Doc:
+def _format_expr_list_with_record(node: Node, script: Script,
+                                   call_prefix_w: int = 0) -> Doc:
     """Format expr_list where one arg is a record constructor.
 
-    Uses SPACE (not LINE) before the record constructor arg so the '['
-    stays on the same line as preceding args. The record's internal
-    fill() handles wrapping its fields.
+    Uses SPACE before the record constructor arg when fields fit at
+    the resulting alignment column, LINE when they'd overflow.
     """
     kids = node.nonerr_children
     items: list[Doc] = []
     is_record: list[bool] = []
+    record_nodes: list[Node | None] = []
     for child in kids:
         if _name(child) == "expr":
             items.append(format_child(child, script))
-            is_record.append(_is_record_constructor(child))
+            is_rec = _is_record_constructor(child)
+            is_record.append(is_rec)
+            record_nodes.append(child if is_rec else None)
 
     if not items:
         return EMPTY
 
-    # Build fill parts: use SPACE before record args, LINE before others
+    # Compute flat width of args before each record constructor to
+    # decide whether fields would overflow if '[' stays inline.
+    pre_width = call_prefix_w
     fill_parts: list[Doc] = [items[0]]
+    pre_width += _flat_width(items[0], MAX_WIDTH) or 0
     for i in range(1, len(items)):
         if is_record[i]:
-            fill_parts.append(concat(text(","), SPACE))
+            # Check: would widest field overflow if '[' stays here?
+            # Column after ", [" = pre_width + 2 (", ") + 1 ("[")
+            bracket_col = pre_width + 3
+            rec_node = record_nodes[i]
+            widest = _widest_record_field(rec_node, script)
+            if bracket_col + widest > MAX_WIDTH - TAB_SIZE:
+                fill_parts.append(concat(text(","), LINE))
+            else:
+                fill_parts.append(concat(text(","), SPACE))
         else:
             fill_parts.append(concat(text(","), LINE))
         fill_parts.append(items[i])
+        pre_width += 2 + (_flat_width(items[i], MAX_WIDTH) or 0)
     return fill(*fill_parts)
 
 
