@@ -1817,6 +1817,94 @@ class TestIRFormatting(unittest.TestCase):
         rhs_col = len(slice_lines[1]) - len(slice_lines[1].lstrip())
         self.assertEqual(lhs_col, rhs_col)
 
+    def test_trailing_comment_on_print(self):
+        code = b'print "hello"; # a note\n'
+        result = self._format(code).decode()
+        self.assertIn('print "hello"; # a note', result)
+
+    def test_trailing_comment_on_return(self):
+        code = (
+            b"function some_func(): count\n"
+            b"\t{\n"
+            b"\treturn 42; # the answer\n"
+            b"\t}\n"
+        )
+        result = self._format(code).decode()
+        self.assertIn("return 42; # the answer", result)
+
+    def test_trailing_comment_on_next(self):
+        code = (
+            b"event some_evt()\n"
+            b"\t{\n"
+            b"\tfor (val in some_set)\n"
+            b"\t\tnext; # skip it\n"
+            b"\t}\n"
+        )
+        result = self._format(code).decode()
+        self.assertIn("next; # skip it", result)
+
+    def test_trailing_comment_on_add_delete(self):
+        code = (
+            b"event some_evt()\n"
+            b"\t{\n"
+            b"\tadd some_set[val]; # track it\n"
+            b"\tdelete some_set[val]; # remove it\n"
+            b"\t}\n"
+        )
+        result = self._format(code).decode()
+        self.assertIn("add some_set[val]; # track it", result)
+        self.assertIn("delete some_set[val]; # remove it", result)
+
+    def test_trailing_comment_on_local(self):
+        code = (
+            b"event some_evt()\n"
+            b"\t{\n"
+            b"\tlocal x = 1; # init\n"
+            b"\t}\n"
+        )
+        result = self._format(code).decode()
+        self.assertIn("local x = 1; # init", result)
+
+    def test_trailing_comment_on_module(self):
+        code = b"module SomeMod; # main module\n"
+        result = self._format(code).decode()
+        self.assertIn("module SomeMod; # main module", result)
+
+    def test_trailing_comment_on_type_decl(self):
+        code = b"type val: count; # a counter\n"
+        result = self._format(code).decode()
+        self.assertIn("type val: count; # a counter", result)
+
+    def test_trailing_comment_on_assert(self):
+        code = (
+            b"event some_evt()\n"
+            b"\t{\n"
+            b"\tassert 1 == 1; # sanity\n"
+            b"\t}\n"
+        )
+        result = self._format(code).decode()
+        self.assertIn("assert 1 == 1; # sanity", result)
+
+    def test_comment_only_file(self):
+        code = (
+            b"#\n"
+            b"# A comment-only file.\n"
+            b"#\n"
+        )
+        result = self._format(code).decode()
+        self.assertIn("# A comment-only file.", result)
+        self.assertEqual(result.count("#"), 3)
+
+    def test_trailing_comment_on_open_brace(self):
+        code = (
+            b"event some_evt()\n"
+            b"\t{ # Start tracking.\n"
+            b"\tprint 1;\n"
+            b"\t}\n"
+        )
+        result = self._format(code).decode()
+        self.assertIn("{ # Start tracking.", result)
+
     def test_table_constructor_no_type(self):
         # Without explicit type, auto-detect table from [key]=val content
         code = b'const tbl = {[1] = "a", [2] = "b"};'

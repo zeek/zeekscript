@@ -447,16 +447,18 @@ def _format_stmt_list(node: Node, script: Script) -> Doc:
     return _format_body_items(stmts, script)
 
 
-def _format_whitesmith_block(stmts_doc: Doc) -> Doc:
+def _format_whitesmith_block(stmts_doc: Doc, open_brace_comment: Doc = EMPTY) -> Doc:
     """Wrap statements in Whitesmith-style braces.
 
     Whitesmith: { and } indented to same level as body.
     Includes its own leading newline so the { gets proper indentation.
     stmts_doc is expected to end with HARDLINE (from last statement).
+    open_brace_comment: trailing comment on the '{' (e.g., "# Start tracking.").
     """
     return nest(1, concat(
         HARDLINE,
         text("{"),
+        open_brace_comment,
         HARDLINE,
         stmts_doc,
         text("}"),
@@ -472,7 +474,10 @@ def _format_curly_stmt_list(node: Node, script: Script, start_idx: int) -> tuple
     idx = start_idx
 
     # Expect '{'
-    assert _tok(kids[idx]) == "{"
+    open_brace = kids[idx]
+    assert _tok(open_brace) == "{"
+    open_brace_comment = _format_next_cst(open_brace, script)
+    open_brace.next_cst_siblings = []  # consumed
     idx += 1
 
     # stmt_list (optional)
@@ -494,11 +499,11 @@ def _format_curly_stmt_list(node: Node, script: Script, start_idx: int) -> tuple
 
     idx += 1
 
-    if stmts_doc == EMPTY and pre_close == EMPTY:
+    if stmts_doc == EMPTY and pre_close == EMPTY and open_brace_comment == EMPTY:
         return text("{ }"), idx
 
     body = concat(stmts_doc, pre_close) if pre_close != EMPTY else stmts_doc
-    return _format_whitesmith_block(body), idx
+    return _format_whitesmith_block(body, open_brace_comment), idx
 
 
 # ---------------------------------------------------------------------------
@@ -509,7 +514,16 @@ def _format_source_file(node: Node, script: Script) -> Doc:
     """Top-level source_file: sequence of decls/stmts with blank line preservation."""
     items = [c for c in node.nonerr_children if _name(c) in ("decl", "stmt")]
     if not items:
-        return EMPTY
+        # Comment-only file: comments live as prev_cst on a nullnode child.
+        parts: list[Doc] = []
+        for child in node.nonerr_children:
+            cst = _format_prev_cst(child, script)
+            if cst != EMPTY:
+                parts.append(cst)
+            cst = _format_next_cst(child, script)
+            if cst != EMPTY:
+                parts.append(cst)
+        return concat(*parts) if parts else EMPTY
     return _format_body_items(items, script, top_level=True)
 
 
@@ -528,7 +542,7 @@ def _format_module_decl(node: Node, script: Script) -> Doc:
         text("module"),
         SPACE,
         format_child(kids[1], script),
-        text(";"),
+        _format_semi(kids, script),
         HARDLINE,
     )
 
@@ -645,7 +659,7 @@ def _format_type_decl(node: Node, script: Script) -> Doc:
         parts.append(SPACE)
         parts.append(format_child(kids[idx], script))
         idx += 1
-    parts.append(text(";"))
+    parts.append(_format_semi(kids, script))
     parts.append(HARDLINE)
     return concat(*parts)
 
@@ -955,6 +969,15 @@ def _format_formal_arg(node: Node, script: Script) -> Doc:
 def _format_func_body(node: Node, script: Script) -> Doc:
     # Whitesmith: newline, then { stmts }
     kids = node.nonerr_children
+
+    # Trailing comment on '{'
+    open_brace_comment = EMPTY
+    for child in kids:
+        if _tok(child) == "{":
+            open_brace_comment = _format_next_cst(child, script)
+            child.next_cst_siblings = []
+            break
+
     # Find the '{' stmt_list '}' sequence
     stmts_doc = EMPTY
     for child in kids:
@@ -970,12 +993,12 @@ def _format_func_body(node: Node, script: Script) -> Doc:
         pre_close = _format_prev_cst(close_brace, script)
         close_brace.prev_cst_siblings = []
 
-    if stmts_doc == EMPTY and pre_close == EMPTY:
+    if stmts_doc == EMPTY and pre_close == EMPTY and open_brace_comment == EMPTY:
         # Empty body still uses Whitesmith layout: newline + indented { }
         return nest(1, concat(HARDLINE, text("{ }")))
 
     body = concat(stmts_doc, pre_close) if pre_close != EMPTY else stmts_doc
-    return _format_whitesmith_block(body)
+    return _format_whitesmith_block(body, open_brace_comment)
 
 
 def _format_type_spec(node: Node, script: Script) -> Doc:
@@ -994,7 +1017,7 @@ def _format_type_spec(node: Node, script: Script) -> Doc:
         parts.append(SPACE)
         parts.append(format_child(kids[idx], script))
         idx += 1
-    parts.append(text(";"))
+    parts.append(_format_semi(kids, script))
     return concat(*parts)
 
 
@@ -1039,7 +1062,7 @@ def _format_redef_enum_decl(node: Node, script: Script) -> Doc:
 
     parts.append(text("}"))
     idx += 1
-    parts.append(text(";"))
+    parts.append(_format_semi(kids, script))
     parts.append(HARDLINE)
     return concat(*parts)
 
@@ -1084,7 +1107,7 @@ def _format_redef_record_decl(node: Node, script: Script) -> Doc:
             parts.append(SPACE)
             parts.append(format_child(kids[idx], script))
             idx += 1
-        parts.append(text(";"))
+        parts.append(_format_semi(kids, script))
 
     parts.append(HARDLINE)
     return concat(*parts)
@@ -1135,7 +1158,7 @@ def _format_stmt(node: Node, script: Script) -> Doc:
     elif ct1 == "assert":
         return _format_stmt_assert(node, script)
     elif ct1 == ";":
-        return concat(text(";"), HARDLINE)
+        return concat(format_child(kids[0], script), HARDLINE)
     else:
         # Fallback
         return concat(_format_space_separated(node, script), HARDLINE)
@@ -1150,7 +1173,10 @@ def _format_stmt_block(node: Node, script: Script) -> Doc:
     """
     kids = node.nonerr_children
     idx = 0
-    assert _tok(kids[idx]) == "{"
+    open_brace = kids[idx]
+    assert _tok(open_brace) == "{"
+    open_brace_comment = _format_next_cst(open_brace, script)
+    open_brace.next_cst_siblings = []
     idx += 1
 
     stmts_doc = EMPTY
@@ -1165,11 +1191,11 @@ def _format_stmt_block(node: Node, script: Script) -> Doc:
     pre_close = _format_prev_cst(close_brace, script)
     close_brace.prev_cst_siblings = []
 
-    if stmts_doc == EMPTY and pre_close == EMPTY:
+    if stmts_doc == EMPTY and pre_close == EMPTY and open_brace_comment == EMPTY:
         return concat(text("{ }"), HARDLINE)
 
     body = concat(stmts_doc, pre_close) if pre_close != EMPTY else stmts_doc
-    return concat(text("{"), HARDLINE, body, text("}"), HARDLINE)
+    return concat(text("{"), open_brace_comment, HARDLINE, body, text("}"), HARDLINE)
 
 
 def _format_stmt_print_or_event(node: Node, script: Script) -> Doc:
@@ -1182,7 +1208,7 @@ def _format_stmt_print_or_event(node: Node, script: Script) -> Doc:
     inner_parts: list[Doc] = []
     for child in kids[1:]:
         if _tok(child) == ";":
-            inner_parts.append(text(";"))
+            inner_parts.append(format_child(child, script))
         else:
             inner_parts.append(format_child(child, script))
     parts.append(align(concat(*inner_parts)))
@@ -1409,7 +1435,7 @@ def _format_stmt_simple(node: Node, script: Script) -> Doc:
     # next;  break;  fallthrough;
     kids = node.nonerr_children
     keyword = _source_str(kids[0], script)
-    return concat(text(keyword), text(";"), HARDLINE)
+    return concat(text(keyword), _format_semi(kids, script), HARDLINE)
 
 
 def _format_stmt_return(node: Node, script: Script) -> Doc:
@@ -1430,7 +1456,7 @@ def _format_stmt_return(node: Node, script: Script) -> Doc:
         parts.append(format_child(kids[idx], script))
         idx += 1
 
-    parts.append(text(";"))
+    parts.append(_format_semi(kids, script))
     parts.append(HARDLINE)
     return concat(*parts)
 
@@ -1443,7 +1469,7 @@ def _format_stmt_set_mgmt(node: Node, script: Script) -> Doc:
         text(keyword),
         SPACE,
         format_child(kids[1], script),
-        text(";"),
+        _format_semi(kids, script),
         HARDLINE,
     )
 
@@ -1455,7 +1481,7 @@ def _format_stmt_local(node: Node, script: Script) -> Doc:
     id_doc = format_child(kids[1], script)
 
     typed_init, idx = _format_typed_initializer(kids, 2, script)
-    semi = text(";") if idx < len(kids) and _tok(kids[idx]) == ";" else EMPTY
+    semi = format_child(kids[idx], script) if idx < len(kids) and _tok(kids[idx]) == ";" else EMPTY
 
     inner = concat(id_doc, typed_init) if typed_init != EMPTY else id_doc
     return concat(
@@ -1567,7 +1593,7 @@ def _format_stmt_assert(node: Node, script: Script) -> Doc:
     parts = [text("assert"), SPACE]
     for child in kids[1:]:
         if _tok(child) == ";":
-            parts.append(text(";"))
+            parts.append(format_child(child, script))
         elif _name(child) == "assert_msg":
             parts.append(format_child(child, script))
         else:
