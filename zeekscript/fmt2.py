@@ -2273,6 +2273,7 @@ def _format_expr_list_with_record(node: Node, script: Script,
     """
     kids = node.nonerr_children
     items: list[Doc] = []
+    commas: list[Doc] = []
     is_record: list[bool] = []
     record_nodes: list[Node | None] = []
     for child in kids:
@@ -2281,6 +2282,8 @@ def _format_expr_list_with_record(node: Node, script: Script,
             is_rec = _is_record_constructor(child)
             is_record.append(is_rec)
             record_nodes.append(child if is_rec else None)
+        elif _tok(child) == ",":
+            commas.append(format_child(child, script))
 
     if not items:
         return EMPTY
@@ -2291,6 +2294,7 @@ def _format_expr_list_with_record(node: Node, script: Script,
     fill_parts: list[Doc] = [items[0]]
     pre_width += _flat_width(items[0], MAX_WIDTH) or 0
     for i in range(1, len(items)):
+        comma_doc = commas[i - 1] if i - 1 < len(commas) else text(",")
         if is_record[i]:
             # Check: would widest field overflow if '[' stays here?
             # Column after ", [" = pre_width + 2 (", ") + 1 ("[")
@@ -2298,11 +2302,11 @@ def _format_expr_list_with_record(node: Node, script: Script,
             rec_node = record_nodes[i]
             widest = _widest_record_field(rec_node, script)
             if bracket_col + widest > MAX_WIDTH - TAB_SIZE:
-                fill_parts.append(concat(text(","), LINE))
+                fill_parts.append(concat(comma_doc, LINE))
             else:
-                fill_parts.append(concat(text(","), SPACE))
+                fill_parts.append(concat(comma_doc, SPACE))
         else:
-            fill_parts.append(concat(text(","), LINE))
+            fill_parts.append(concat(comma_doc, LINE))
         fill_parts.append(items[i])
         pre_width += 2 + (_flat_width(items[i], MAX_WIDTH) or 0)
     return fill(*fill_parts)
@@ -2323,11 +2327,23 @@ def _format_expr_list_inline(node: Node, script: Script) -> Doc:
     # Detect trailing comma (comma after last expr with no following expr)
     has_trailing_comma = kids and _tok(kids[-1]) == ","
 
-    sep = concat(text(","), LINE)
-    result = fill(*intersperse(sep, items))
-    if has_trailing_comma:
-        result = concat(result, text(","), SPACE)
-    return result
+    # Build fill parts, using format_child on comma nodes to pick up
+    # any CST siblings (e.g. #@ annotation comments).
+    fill_parts: list[Doc] = [items[0]]
+    comma_idx = 0
+    for child in kids:
+        if _tok(child) == ",":
+            comma_doc = format_child(child, script)
+            comma_idx += 1
+            if has_trailing_comma and comma_idx == len(items):
+                # Trailing comma — not a separator between items
+                fill_parts.append(comma_doc)
+                fill_parts.append(SPACE)
+                break
+            fill_parts.append(concat(comma_doc, LINE))
+            if comma_idx < len(items):
+                fill_parts.append(items[comma_idx])
+    return fill(*fill_parts)
 
 
 def _format_expr_list_multiline(node: Node, script: Script) -> Doc:
