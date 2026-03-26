@@ -501,6 +501,20 @@ def _format_stmt_list(node: Node, script: Script) -> Doc:
     return _format_body_items(stmts, script)
 
 
+def _format_same_line_brace_block(body: Doc) -> Doc:
+    """Format a same-line brace block: { on current line, } at base indent.
+
+    Used for record, enum, redef-record, export — where { stays on the
+    same line as the keyword and } aligns with the keyword.
+    """
+    return concat(
+        text("{"),
+        nest(1, concat(HARDLINE, body)),
+        HARDLINE,
+        text("}"),
+    )
+
+
 def _format_whitesmith_block(stmts_doc: Doc, open_brace_comment: Doc = EMPTY) -> Doc:
     """Wrap statements in Whitesmith-style braces.
 
@@ -519,45 +533,50 @@ def _format_whitesmith_block(stmts_doc: Doc, open_brace_comment: Doc = EMPTY) ->
     ))
 
 
-def _format_curly_stmt_list(node: Node, script: Script, start_idx: int) -> tuple[Doc, int]:
-    """Format '{' stmt_list '}' starting at start_idx in node.nonerr_children.
+def _parse_curly_block(kids: list[Node], start_idx: int, script: Script
+                       ) -> tuple[Doc, Doc, Doc, int]:
+    """Parse '{' stmt_list '}' from kids starting at start_idx.
 
-    Returns (doc, next_idx).
+    Extracts open-brace comments, statement body, and pre-close comments.
+    Returns (open_brace_comment, stmts_doc, pre_close, next_idx).
     """
-    kids = node.nonerr_children
     idx = start_idx
 
-    # Expect '{'
     open_brace = kids[idx]
     assert _tok(open_brace) == "{"
     open_brace_comment = _format_next_cst(open_brace, script)
-    open_brace.next_cst_siblings = []  # consumed
+    open_brace.next_cst_siblings = []
     idx += 1
 
-    # stmt_list (optional)
     stmts_doc = EMPTY
     if idx < len(kids) and _name(kids[idx]) == "stmt_list":
-        # Include any CST siblings (comments between { and first stmt)
         pre_stmts = _format_prev_cst(kids[idx], script)
-        kids[idx].prev_cst_siblings = []  # consumed
+        kids[idx].prev_cst_siblings = []
         stmts_doc = concat(pre_stmts, _format_stmt_list(kids[idx], script))
         idx += 1
 
-    # '}'
     assert _tok(kids[idx]) == "}"
-
-    # Check for comments before '}'
     close_brace = kids[idx]
     pre_close = _format_prev_cst(close_brace, script)
-    close_brace.prev_cst_siblings = []  # consumed
-
+    close_brace.prev_cst_siblings = []
     idx += 1
 
-    if stmts_doc == EMPTY and pre_close == EMPTY and open_brace_comment == EMPTY:
+    return open_brace_comment, stmts_doc, pre_close, idx
+
+
+def _format_curly_stmt_list(node: Node, script: Script, start_idx: int) -> tuple[Doc, int]:
+    """Format '{' stmt_list '}' as Whitesmith block starting at start_idx.
+
+    Returns (doc, next_idx).
+    """
+    obc, stmts_doc, pre_close, idx = _parse_curly_block(
+        node.nonerr_children, start_idx, script)
+
+    if stmts_doc == EMPTY and pre_close == EMPTY and obc == EMPTY:
         return text("{ }"), idx
 
     body = concat(stmts_doc, pre_close) if pre_close != EMPTY else stmts_doc
-    return _format_whitesmith_block(body, open_brace_comment), idx
+    return _format_whitesmith_block(body, obc), idx
 
 
 # ---------------------------------------------------------------------------
@@ -618,10 +637,7 @@ def _format_export_decl(node: Node, script: Script) -> Doc:
     return concat(
         text("export"),
         SPACE,
-        text("{"),
-        nest(1, concat(HARDLINE, _strip_trailing_hardline(body))),
-        HARDLINE,
-        text("}"),
+        _format_same_line_brace_block(_strip_trailing_hardline(body)),
         HARDLINE,
     )
 
@@ -793,15 +809,7 @@ def _format_type_record(node: Node, script: Script) -> Doc:
 
     body = concat(*body_parts)
 
-    # Same-line brace: { on same line as record, } at base indent
-    return concat(
-        text("record"),
-        SPACE,
-        text("{"),
-        nest(1, concat(HARDLINE, body)),
-        HARDLINE,
-        text("}"),
-    )
+    return concat(text("record"), SPACE, _format_same_line_brace_block(body))
 
 
 def _format_type_enum(node: Node, script: Script) -> Doc:
@@ -819,14 +827,8 @@ def _format_type_enum(node: Node, script: Script) -> Doc:
         pre_body = _format_prev_cst(enum_body, script)
         enum_body.prev_cst_siblings = []
         body_doc = _format_enum_body_multiline(enum_body, script)
-        return concat(
-            text("enum"),
-            SPACE,
-            text("{"),
-            nest(1, concat(HARDLINE, pre_body, body_doc)),
-            HARDLINE,
-            text("}"),
-        )
+        body = concat(pre_body, body_doc)
+        return concat(text("enum"), SPACE, _format_same_line_brace_block(body))
     else:
         body_doc = _format_enum_body_inline(enum_body, script)
         return group(concat(
@@ -1070,36 +1072,14 @@ def _format_formal_arg(node: Node, script: Script) -> Doc:
 def _format_func_body(node: Node, script: Script) -> Doc:
     # Whitesmith: newline, then { stmts }
     kids = node.nonerr_children
+    obc, stmts_doc, pre_close, _ = _parse_curly_block(kids, 0, script)
 
-    # Trailing comment on '{'
-    open_brace_comment = EMPTY
-    for child in kids:
-        if _tok(child) == "{":
-            open_brace_comment = _format_next_cst(child, script)
-            child.next_cst_siblings = []
-            break
-
-    # Find the '{' stmt_list '}' sequence
-    stmts_doc = EMPTY
-    for child in kids:
-        if _name(child) == "stmt_list":
-            pre_stmts = _format_prev_cst(child, script)
-            child.prev_cst_siblings = []
-            stmts_doc = concat(pre_stmts, _format_stmt_list(child, script))
-
-    # Handle comments before '}'
-    close_brace = kids[-1] if kids else None
-    pre_close = EMPTY
-    if close_brace:
-        pre_close = _format_prev_cst(close_brace, script)
-        close_brace.prev_cst_siblings = []
-
-    if stmts_doc == EMPTY and pre_close == EMPTY and open_brace_comment == EMPTY:
+    if stmts_doc == EMPTY and pre_close == EMPTY and obc == EMPTY:
         # Empty body still uses Whitesmith layout: newline + indented { }
         return nest(1, concat(HARDLINE, text("{ }")))
 
     body = concat(stmts_doc, pre_close) if pre_close != EMPTY else stmts_doc
-    return _format_whitesmith_block(body, open_brace_comment)
+    return _format_whitesmith_block(body, obc)
 
 
 def _format_type_spec(node: Node, script: Script) -> Doc:
@@ -1139,8 +1119,7 @@ def _format_redef_enum_decl(node: Node, script: Script) -> Doc:
     parts.append(text("+="))  # '+='
     idx += 1
     parts.append(SPACE)
-    parts.append(text("{"))  # '{'
-    idx += 1
+    idx += 1  # skip '{'
 
     # enum_body
     if idx < len(kids) and _name(kids[idx]) == "enum_body":
@@ -1152,17 +1131,18 @@ def _format_redef_enum_decl(node: Node, script: Script) -> Doc:
             pre_body = _format_prev_cst(enum_body, script)
             enum_body.prev_cst_siblings = []
             body_doc = _format_enum_body_multiline(enum_body, script)
-            parts.append(nest(1, concat(HARDLINE, pre_body, body_doc)))
-            parts.append(HARDLINE)
+            parts.append(_format_same_line_brace_block(concat(pre_body, body_doc)))
         else:
             body_doc = _format_enum_body_inline(enum_body, script)
-            parts.append(SPACE)
-            parts.append(body_doc)
-            parts.append(SPACE)
+            parts.append(group(concat(
+                text("{"), SPACE, body_doc, SPACE, text("}"),
+            )))
         idx += 1
+    else:
+        parts.append(text("{"))
+        parts.append(text("}"))
 
-    parts.append(text("}"))
-    idx += 1
+    idx += 1  # skip '}'
     parts.append(_format_semi(kids, script))
     parts.append(HARDLINE)
     return concat(*parts)
@@ -1191,8 +1171,7 @@ def _format_redef_record_decl(node: Node, script: Script) -> Doc:
                 parts.append(SPACE)
             idx += 1
     else:
-        parts.append(text("{"))  # '{'
-        idx += 1
+        idx += 1  # skip '{'
         # type_specs (don't end with HARDLINE, need separators)
         type_spec_docs: list[Doc] = []
         while idx < len(kids) and _name(kids[idx]) == "type_spec":
@@ -1200,10 +1179,10 @@ def _format_redef_record_decl(node: Node, script: Script) -> Doc:
             idx += 1
         if type_spec_docs:
             body = join(HARDLINE, type_spec_docs)
-            parts.append(nest(1, concat(HARDLINE, body)))
-            parts.append(HARDLINE)
-        parts.append(text("}"))  # '}'
-        idx += 1
+            parts.append(_format_same_line_brace_block(body))
+        else:
+            parts.append(text("{ }"))
+        idx += 1  # skip '}'
         if idx < len(kids) and _name(kids[idx]) == "attr_list":
             parts.append(SPACE)
             parts.append(format_child(kids[idx], script))
@@ -1272,31 +1251,14 @@ def _format_stmt_block(node: Node, script: Script) -> Doc:
     indent level. Control-flow bodies use _format_indented_body which calls
     _format_curly_stmt_list for the Whitesmith style.
     """
-    kids = node.nonerr_children
-    idx = 0
-    open_brace = kids[idx]
-    assert _tok(open_brace) == "{"
-    open_brace_comment = _format_next_cst(open_brace, script)
-    open_brace.next_cst_siblings = []
-    idx += 1
+    obc, stmts_doc, pre_close, _ = _parse_curly_block(
+        node.nonerr_children, 0, script)
 
-    stmts_doc = EMPTY
-    if idx < len(kids) and _name(kids[idx]) == "stmt_list":
-        pre_stmts = _format_prev_cst(kids[idx], script)
-        kids[idx].prev_cst_siblings = []
-        stmts_doc = concat(pre_stmts, _format_stmt_list(kids[idx], script))
-        idx += 1
-
-    assert _tok(kids[idx]) == "}"
-    close_brace = kids[idx]
-    pre_close = _format_prev_cst(close_brace, script)
-    close_brace.prev_cst_siblings = []
-
-    if stmts_doc == EMPTY and pre_close == EMPTY and open_brace_comment == EMPTY:
+    if stmts_doc == EMPTY and pre_close == EMPTY and obc == EMPTY:
         return concat(text("{ }"), HARDLINE)
 
     body = concat(stmts_doc, pre_close) if pre_close != EMPTY else stmts_doc
-    return concat(text("{"), open_brace_comment, HARDLINE, body, text("}"), HARDLINE)
+    return concat(text("{"), obc, HARDLINE, body, text("}"), HARDLINE)
 
 
 def _format_stmt_print_or_event(node: Node, script: Script) -> Doc:
@@ -1646,29 +1608,14 @@ def _format_when_clause(kids: list[Node], start_idx: int, script: Script) -> Doc
 
 
 def _format_curly_stmt_list_from_kids(kids: list[Node], start_idx: int, script: Script) -> tuple[Doc, int]:
-    """Format '{' stmt_list '}' from a flat list of child nodes."""
-    idx = start_idx
-    assert _tok(kids[idx]) == "{"
-    idx += 1
-
-    stmts_doc = EMPTY
-    if idx < len(kids) and _name(kids[idx]) == "stmt_list":
-        pre_stmts = _format_prev_cst(kids[idx], script)
-        kids[idx].prev_cst_siblings = []
-        stmts_doc = concat(pre_stmts, _format_stmt_list(kids[idx], script))
-        idx += 1
-
-    assert idx < len(kids) and _tok(kids[idx]) == "}"
-    close_brace = kids[idx]
-    pre_close = _format_prev_cst(close_brace, script)
-    close_brace.prev_cst_siblings = []
-    idx += 1
+    """Format '{' stmt_list '}' as Whitesmith block from a flat kids list."""
+    obc, stmts_doc, pre_close, idx = _parse_curly_block(kids, start_idx, script)
 
     if stmts_doc == EMPTY and pre_close == EMPTY:
         return text("{ }"), idx
 
     body = concat(stmts_doc, pre_close) if pre_close != EMPTY else stmts_doc
-    return _format_whitesmith_block(body), idx
+    return _format_whitesmith_block(body, obc), idx
 
 
 def _format_stmt_index_assign(node: Node, script: Script) -> Doc:
@@ -2227,10 +2174,6 @@ def _format_expr_schedule(node: Node, script: Script) -> Doc:
 # Expression list formatters
 # ---------------------------------------------------------------------------
 
-def _format_expr_list(node: Node, script: Script) -> Doc:
-    """Default expr_list formatter: comma-separated, wrappable."""
-    return _format_expr_list_inline(node, script)
-
 
 def _format_expr_list_with_record(node: Node, script: Script,
                                    call_prefix_w: int = 0) -> Doc:
@@ -2394,23 +2337,16 @@ def _is_brace_init_table(node: Node) -> bool:
     return False
 
 
-def _format_constructor_call(node: Node, script: Script,
-                             constructor: str) -> Doc:
-    """Format set(...), vector(...), table(...) with dedent multiline layout.
+def _format_constructor_layout(constructor: str, expr_list: Node,
+                               has_comments: bool, script: Script) -> Doc:
+    """Layout for set(...), vector(...), table(...) constructors.
 
     Multiline: items indented one tab past the enclosing block, ')' at
     the enclosing block's indent level (uses dedent_spaces to escape
     align() but preserve tab nesting).
     Inline: aligned after '('.
     """
-    kids = node.nonerr_children
-    # kids: constructor '(' [expr_list] ')' [attr_list]
-    has_content = any(_name(c) == "expr_list" for c in kids)
-    if not has_content:
-        return text(constructor + "()")
-
-    expr_list = next(c for c in kids if _name(c) == "expr_list")
-    do_linebreak = _has_comments(node) or _compact_length(expr_list) > 80
+    do_linebreak = has_comments or _compact_length(expr_list) > 80
 
     if do_linebreak:
         body = _format_expr_list_multiline(expr_list, script)
@@ -2428,6 +2364,19 @@ def _format_constructor_call(node: Node, script: Script,
             text(constructor + "("),
             align(concat(body, text(")"))),
         ))
+
+
+def _format_constructor_call(node: Node, script: Script,
+                             constructor: str) -> Doc:
+    """Format set(...), vector(...), table(...) already in constructor form."""
+    kids = node.nonerr_children
+    has_content = any(_name(c) == "expr_list" for c in kids)
+    if not has_content:
+        return text(constructor + "()")
+
+    expr_list = next(c for c in kids if _name(c) == "expr_list")
+    return _format_constructor_layout(constructor, expr_list,
+                                      _has_comments(node), script)
 
 
 def _format_expr_with_brace_transform(node: Node, script: Script,
@@ -2456,29 +2405,11 @@ def _format_expr_with_brace_transform(node: Node, script: Script,
 
     # Get the content between { and }
     has_content = len(kids) > 2 and _name(kids[1]) == "expr_list"
-
     if not has_content:
         return text(constructor + "()")
 
-    expr_list = kids[1]
-    do_linebreak = _has_comments(node) or _compact_length(expr_list) > 80
-
-    if do_linebreak:
-        body = _format_expr_list_multiline(expr_list, script)
-        return concat(
-            text(constructor + "("),
-            dedent_spaces(concat(
-                nest(1, concat(HARDLINE, body)),
-                HARDLINE,
-                text(")"),
-            )),
-        )
-    else:
-        body = _format_expr_list_inline(expr_list, script)
-        return group(concat(
-            text(constructor + "("),
-            align(concat(body, text(")"))),
-        ))
+    return _format_constructor_layout(constructor, kids[1],
+                                      _has_comments(node), script)
 
 
 def _format_index_slice(node: Node, script: Script) -> Doc:
@@ -2760,7 +2691,7 @@ _FORMATTERS: dict[str, callable] = {
     "stmt": _format_stmt,
     "stmt_list": _format_stmt_list,
     "expr": _format_expr,
-    "expr_list": _format_expr_list,
+    "expr_list": _format_expr_list_inline,
     "index_slice": _format_index_slice,
     "capture_list": _format_capture_list,
     "case_list": _format_case_list,
