@@ -1002,6 +1002,22 @@ print 1;
         self.assertEqual(attr_col, set_col + 1,
                          f"Expected attr at col {set_col+1}, got {attr_col}")
 
+    def test_multiple_attrs_wrap_and_align(self):
+        """Multiple attrs wrap one-per-line, all aligned to same column."""
+        code = (
+            b"global some_tracking_var: table[count, string] of TrackingRec\n"
+            b"\t&default_insert = TrackingRec() &create_expire = 10 sec;\n"
+        )
+        result = self._format(code).decode()
+        lines = result.rstrip().split("\n")
+        for line in lines:
+            self.assertLessEqual(len(line), 80, repr(line))
+        attr_lines = [l for l in lines if "&" in l]
+        self.assertEqual(len(attr_lines), 2, "Expected two attr lines")
+        col0 = attr_lines[0].index("&")
+        col1 = attr_lines[1].index("&")
+        self.assertEqual(col0, col1, "Attrs should align to same column")
+
     def test_bracket_expr_flows_elements_across_lines(self):
         """Long [...] expression flows elements with line-breaking, not one-per-line."""
         code = (

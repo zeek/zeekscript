@@ -735,9 +735,11 @@ def _format_typed_initializer(kids: list[Node], start_idx: int, script: Script) 
             # group() independently checks whether attr fits on the
             # current line; if not, SOFTLINE breaks to align indent
             # and text(" ") gives 1-space offset past the type keyword.
+            # The inner align() around attr_doc ensures that when attrs
+            # wrap among themselves, they all align to the same column.
             parts.append(align(concat(
                 type_doc, init_doc,
-                group(concat(SOFTLINE, text(" "), attr_doc)),
+                group(concat(SOFTLINE, text(" "), align(attr_doc))),
             )))
         else:
             # Constructor initializer or no attr: attr follows the
@@ -2638,7 +2640,11 @@ def _format_attr_list(node: Node, script: Script) -> Doc:
         if _name(child) == "attr":
             attrs.append(_format_attr(child, script, use_spaces))
 
-    return join(SPACE, attrs)
+    if len(attrs) <= 1:
+        return attrs[0] if attrs else EMPTY
+    # Wrap in a group so attrs break independently when they overflow,
+    # without being forced to break by an enclosing group's break mode.
+    return group(join(LINE, attrs))
 
 
 def _attr_has_embedded_blanks(node: Node) -> bool:
