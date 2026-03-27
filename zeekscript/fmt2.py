@@ -2005,12 +2005,22 @@ def _format_record_constructor(node: Node, script: Script, do_linebreak: bool) -
     for f in fields:
         field_docs.append(format_child(f, script))
 
-    sep = concat(text(","), LINE)
-
     # Use fill() with LINE separators so fields can wrap when the
     # enclosing context (e.g., a function call) needs line breaks.
     # fill() packs as many fields per line as fit.
-    items = fill(*intersperse(sep, field_docs))
+    # After a field that will definitely span multiple lines (flat
+    # width exceeds MAX_WIDTH and has break points), use HARDLINE
+    # so the next field starts on a fresh line.
+    fill_parts: list[Doc] = [field_docs[0]]
+    for i in range(1, len(field_docs)):
+        prev = field_docs[i - 1]
+        prev_fw = _flat_width(prev, MAX_WIDTH)
+        if prev_fw is None and _can_break(prev):
+            fill_parts.append(concat(text(","), HARDLINE))
+        else:
+            fill_parts.append(concat(text(","), LINE))
+        fill_parts.append(field_docs[i])
+    items = fill(*fill_parts)
     return concat(
         text("["),
         align(concat(items, text("]"))),
