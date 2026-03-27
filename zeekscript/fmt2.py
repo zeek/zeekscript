@@ -1408,8 +1408,9 @@ def _format_stmt_if(node: Node, script: Script) -> Doc:
 
     # else clause
     if idx < len(kids) and _tok(kids[idx]) == "else":
-        # Body always ends with HARDLINE (both brace-block and non-block)
-        parts.append(text("else"))
+        # Body always ends with HARDLINE (both brace-block and non-block).
+        # Use format_child so CST siblings (comments before else) are emitted.
+        parts.append(format_child(kids[idx], script))
         idx += 1
         if idx < len(kids):
             else_body = kids[idx]

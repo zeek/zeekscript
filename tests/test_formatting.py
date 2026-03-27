@@ -1520,6 +1520,29 @@ print 1;
         self.assertTrue(call_line.rstrip().endswith("some_long_handler,"),
                         f"Expected break after some_long_handler, got: {repr(call_line)}")
 
+    def test_comment_before_else_preserved(self):
+        """Comments before else clause are preserved."""
+        code = (
+            b"function some_func(val: string)\n"
+            b"\t{\n"
+            b'\tif ( some_pattern == val )\n'
+            b'\t\tresult = "found";\n'
+            b"\n"
+            b"\t# This handles the fallback case.\n"
+            b"\t# Check secondary pattern too.\n"
+            b"\telse if ( other_pattern == val )\n"
+            b'\t\tresult = val[idx + 1 :];\n'
+            b"\t}\n"
+        )
+        result = self._format(code).decode()
+        self.assertIn("# This handles the fallback case.", result)
+        self.assertIn("# Check secondary pattern too.", result)
+        # Verify blank line before comments is preserved
+        lines = result.split("\n")
+        comment_idx = next(i for i, l in enumerate(lines) if "fallback" in l)
+        self.assertEqual(lines[comment_idx - 1].strip(), "",
+                         "Expected blank line before comment block")
+
     def test_annotation_on_close_paren_preserved(self):
         """#@ annotation on closing ) of func params is preserved."""
         code = (
