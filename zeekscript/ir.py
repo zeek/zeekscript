@@ -373,7 +373,7 @@ def resolve(doc: Doc, max_width: int = MAX_WIDTH) -> bytes:
 
         elif isinstance(d, AlignCapped):
             if col >= d.cap:
-                ni = _Indent(indent.tabs, FALLBACK_INDENT)
+                ni = _Indent(indent.tabs, 0)
             else:
                 sp = max(0, col - indent.tabs * TAB_SIZE)
                 ni = _Indent(indent.tabs, sp)

@@ -1440,14 +1440,35 @@ print 1;
         result = self._format(code).decode()
         self.assertNotIn("MISINDENTATION", result)
         lines = result.splitlines()
-        # Find the assignment line and its continuation
+        # RHS wraps at '= ' alignment column (inline, not break at '=')
         assign_line = [l for l in lines if '= si$' in l][0]
         cont_line = lines[lines.index(assign_line) + 1]
-        # Continuation should align to column after '= '
         eq_pos = assign_line.expandtabs(8).index('= ') + 2
         cont_col = len(cont_line.expandtabs(8)) - len(cont_line.expandtabs(8).lstrip())
         self.assertEqual(cont_col, eq_pos)
 
+
+    def test_assignment_breaks_at_equals_when_rhs_call_is_deep(self):
+        """Assignment breaks at '=' when RHS function call would cause MISINDENTATION."""
+        code = (
+            b"function foo()\n"
+            b"\t{\n"
+            b"\tfor ( x in xs )\n"
+            b"\t\tfor ( y in ys )\n"
+            b"\t\t\tsome_long_table[some_key] =\n"
+            b"\t\t\t\t\tSomeFunc($field_a=val_a, $field_b=val_b);\n"
+            b"\t}\n"
+        )
+        result = self._format(code).decode()
+        self.assertNotIn("MISINDENTATION", result)
+        lines = result.splitlines()
+        # Should break after '=' with RHS on next line
+        eq_line = [l for l in lines if 'some_key] =' in l][0]
+        self.assertTrue(eq_line.rstrip().endswith('='))
+        # RHS should be on the next line, flat
+        rhs_line = lines[lines.index(eq_line) + 1]
+        self.assertIn('SomeFunc(', rhs_line)
+        self.assertIn('$field_b=val_b)', rhs_line)
 
     def test_initializer_continuation_aligns_after_equals(self):
         """Initializer RHS continuation aligns to column after '= '."""

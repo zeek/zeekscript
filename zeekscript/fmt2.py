@@ -2147,10 +2147,10 @@ def _format_expr_call(node: Node, script: Script) -> Doc:
             comment_doc = _format_next_cst(open_paren, script)
             open_paren.next_cst_siblings = []
             parts.append(text("("))
-            parts.append(align_capped(concat(comment_doc, HARDLINE, args_doc, close), MAX_ALIGN_COL))
+            parts.append(align(concat(comment_doc, HARDLINE, args_doc, close)))
         else:
             parts.append(format_child(open_paren, script))
-            parts.append(align_capped(concat(args_doc, close), MAX_ALIGN_COL))
+            parts.append(align(concat(args_doc, close)))
         idx += 1
         idx += 1  # skip ')'
     else:
@@ -2245,6 +2245,25 @@ def _format_expr_ternary(node: Node, script: Script) -> Doc:
         ))
 
 
+def _rhs_align_depth(node: Node, script: Script) -> int:
+    """Estimate how many chars into a RHS expr the first align() point is.
+
+    For function calls like AzureEPData(...), returns len("AzureEPData(")
+    since align() activates after the '('.  For other expressions, returns 0.
+    """
+    kids = node.nonerr_children
+    if not kids:
+        return 0
+    # Unwrap single-child expr wrappers
+    while len(kids) == 1 and _name(kids[0]) == "expr":
+        kids = kids[0].nonerr_children
+    # Function call: name + '('
+    if len(kids) >= 2 and _tok(kids[1]) == "(":
+        name_w = _flat_width(format_node(kids[0], script), MAX_WIDTH) or 0
+        return name_w + 1  # name + '('
+    return 0
+
+
 def _format_expr_assignment(node: Node, script: Script) -> Doc:
     # <expr> = <expr>  or  <expr> += <expr>  etc.
     kids = node.nonerr_children
@@ -2252,10 +2271,26 @@ def _format_expr_assignment(node: Node, script: Script) -> Doc:
     lhs = format_child(kids[0], script)
     rhs = format_child(kids[2], script)
     if _can_break(rhs):
-        # RHS has internal break points — let them handle wrapping.
-        # align() sets continuation column to after '= '.
+        # RHS has internal break points.  If the RHS fits flat at a
+        # nested indent, allow breaking at '=' when the combined
+        # LHS + RHS alignment depth would risk MISINDENTATION.
+        # This is estimated by eq_offset (LHS + ' = ') plus the
+        # RHS's additional alignment depth (e.g. a function call
+        # name adds its width before '(' creates an align).
+        rhs_fw = _flat_width(rhs, MAX_WIDTH)
+        if rhs_fw is not None and rhs_fw + TAB_SIZE < MAX_WIDTH:
+            lhs_fw = _flat_width(lhs, MAX_WIDTH) or MAX_WIDTH
+            eq_offset = lhs_fw + len(op) + 2
+            # Estimate how deep the RHS's first alignment goes —
+            # for function calls, it's the function name + '('.
+            rhs_node = kids[2]
+            rhs_align_depth = _rhs_align_depth(rhs_node, script)
+            if eq_offset + rhs_align_depth >= MAX_ALIGN_COL - TAB_SIZE * 3:
+                return group(concat(lhs, SPACE, text(op),
+                                    nest(1, dedent_spaces(concat(LINE, rhs)))))
+        # Align after '= ' — internal groups handle wrapping.
         return concat(lhs, SPACE, text(op), SPACE, align(rhs))
-    # Atomic RHS (e.g. single-arg call) — allow breaking at '='.
+    # Atomic RHS — allow breaking at '='.
     return group(concat(lhs, SPACE, text(op),
                         nest(1, dedent_spaces(concat(LINE, rhs)))))
 
