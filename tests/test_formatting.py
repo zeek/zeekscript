@@ -2138,6 +2138,25 @@ print 1;
         cc_idx = next(i for i, l in enumerate(lines) if "cc:" in l)
         self.assertEqual(cc_idx, bb_idx + 2)
 
+    def test_type_spec_attrs_wrap_when_comment_overflows(self):
+        """Record field attrs wrap to continuation when trailing comment causes overflow."""
+        code = (
+            b"export {\n"
+            b"\ttype SomeInfo: record {\n"
+            b"\t\tsome_field_name: set[string] &log\n"
+            b"\t\t                              &optional; # A trailing comment here\n"
+            b"\t};\n"
+            b"}\n"
+        )
+        result = self._format(code).decode()
+        lines = result.splitlines()
+        for line in lines:
+            self.assertLessEqual(len(line.expandtabs(8)), 80,
+                                 f"Line too long: {line!r}")
+        # Attrs should be on a separate line from the type
+        type_line = [l for l in lines if "set[string]" in l][0]
+        self.assertNotIn("&log", type_line)
+
     def test_record_zeekygen_comments_no_extra_blank_lines(self):
         """Record with zeekygen comments before fields should not gain extra blank lines."""
         code = (

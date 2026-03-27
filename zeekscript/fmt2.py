@@ -1181,13 +1181,22 @@ def _format_type_spec(node: Node, script: Script) -> Doc:
     parts.append(text(":"))  # ':'
     idx += 1
     parts.append(SPACE)
-    parts.append(format_child(kids[idx], script))  # <type>
+    type_doc = format_child(kids[idx], script)  # <type>
     idx += 1
     if idx < len(kids) and _name(kids[idx]) == "attr_list":
-        parts.append(SPACE)
-        parts.append(format_child(kids[idx], script))
+        attr_doc = format_child(kids[idx], script)
         idx += 1
-    parts.append(_format_semi(kids, script))
+        semi_doc = _format_semi(kids, script)
+        # align() captures column at type keyword; group allows
+        # attrs+semi to break to continuation when line overflows
+        # (e.g. trailing comment pushes past 80 columns).
+        parts.append(align(concat(
+            type_doc,
+            group(concat(SOFTLINE, text(" "), align(concat(attr_doc, semi_doc)))),
+        )))
+    else:
+        parts.append(type_doc)
+        parts.append(_format_semi(kids, script))
     return concat(*parts)
 
 
