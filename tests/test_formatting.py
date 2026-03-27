@@ -1311,6 +1311,23 @@ print 1;
         self.assertEqual(field_c_line.index("$field_c"),
                          field_a_line.index("$field_a"))
 
+    def test_record_field_after_moderately_wide_multiline_value(self):
+        """Record field that's under 80 chars flat but overflows at alignment still triggers line break."""
+        code = (
+            b"function some_func()\n"
+            b"\t{\n"
+            b"\tSOME_CALL([$field_a=Some_Enum_Val,\n"
+            b"\t           $field_b=fmt(\"total items: %d, associated ids: %s\",\n"
+            b"\t                        total_items, conn_ids),\n"
+            b"\t           $field_c=src_host, $field_d=cat(src_host, bucket)]);\n"
+            b"\t}\n"
+        )
+        result = self._format(code).decode()
+        lines = result.splitlines()
+        # $field_c should NOT be on the same line as conn_ids's closing paren
+        conn_ids_line = [l for l in lines if "conn_ids" in l][0]
+        self.assertNotIn("$field_c", conn_ids_line)
+
     def test_export_trailing_comments_indented(self):
         """Comments at end of export block should be indented like declarations."""
         code = b'export {\n\tglobal some_evt: event(rec: Info);\n\n\t## Some trailing comment\n\t## Another trailing comment\n}\n'
