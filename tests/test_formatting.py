@@ -1859,6 +1859,54 @@ print 1;
         result = self._format(code).decode()
         self.assertIn(") # keep going", result)
 
+    def test_blank_line_before_trailing_comment_preserved(self):
+        code = (
+            b"#@ BEGIN-SKIP-TESTING\n"
+            b"\n"
+            b"function some_func(val: string)\n"
+            b"\t{\n"
+            b"\tsome_call(val);\n"
+            b"\t}\n"
+            b"\n"
+            b"#@ END-SKIP-TESTING\n"
+        )
+        result = self._format(code).decode()
+        lines = result.strip().split("\n")
+        # Find the } and #@ END-SKIP-TESTING lines
+        for i, line in enumerate(lines):
+            if line.strip() == "}":
+                # Blank line then comment
+                self.assertEqual(lines[i + 1].strip(), "")
+                self.assertIn("#@ END-SKIP-TESTING", lines[i + 2])
+                break
+        else:
+            self.fail("} not found in output")
+
+    def test_no_blank_line_before_comment_after_block(self):
+        code = (
+            b"function some_func(a: count, b: string, rec: SomeRec)\n"
+            b"\t{\n"
+            b"\t#@ BEGIN-SKIP-TESTING\n"
+            b"\tif ( rec in did_check )\n"
+            b"\t\treturn;\n"
+            b"\t#@ END-SKIP-TESTING\n"
+            b"\n"
+            b"\tnext_thing();\n"
+            b"\t}\n"
+        )
+        result = self._format(code).decode()
+        lines = result.strip().split("\n")
+        # Find the return; and #@ END-SKIP-TESTING lines
+        for i, line in enumerate(lines):
+            if "return;" in line:
+                # Next line should be #@ END-SKIP-TESTING with no blank line
+                self.assertIn("#@ END-SKIP-TESTING", lines[i + 1])
+                break
+        else:
+            self.fail("return; not found in output")
+        # The blank line after #@ END-SKIP-TESTING should be preserved
+        self.assertIn("", lines)  # at least one blank line exists
+
     def test_event_attr_wraps_when_header_overflows(self):
         code = (
             b'event ssl_extension(c: connection, is_client: bool,'

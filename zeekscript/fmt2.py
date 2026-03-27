@@ -166,6 +166,7 @@ def _format_next_cst(node: Node, script: Script) -> Doc:
     """Format next_cst_siblings (trailing comments after an AST node)."""
     parts: list[Doc] = []
     zeekygen_prev_parts: list[Doc] = []
+    nl_count = 0
 
     for sib in node.next_cst_siblings:
         if sib.no_format is not None:
@@ -175,9 +176,13 @@ def _format_next_cst(node: Node, script: Script) -> Doc:
             if zeekygen_prev_parts:
                 zeekygen_prev_parts.append(HARDLINE)
             zeekygen_prev_parts.append(text(_source_str(sib, script)))
+            nl_count = 0
             continue
         if _is_nl(sib) and zeekygen_prev_parts:
             # Skip NLs between consecutive ##< comments
+            continue
+        if _is_nl(sib):
+            nl_count += 1
             continue
         # Flush any collected ##< comments before processing other nodes
         if zeekygen_prev_parts:
@@ -190,12 +195,15 @@ def _format_next_cst(node: Node, script: Script) -> Doc:
                 parts.append(SPACE)
                 parts.append(text(_source_str(sib, script)))
             else:
-                # Own-line comment: no HARDLINE needed because the
-                # preceding node's doc already ends with HARDLINE.
+                # Own-line comment: preserve blank line before it
+                if nl_count >= 2:
+                    parts.append(HARDLINE)
                 parts.append(text(_source_str(sib, script)))
         elif _is_comment(sib):
+            if nl_count >= 2:
+                parts.append(HARDLINE)
             parts.append(text(_source_str(sib, script)))
-        # Skip newlines - they're handled by the structure
+        nl_count = 0
 
     # Flush trailing ##< comments
     if zeekygen_prev_parts:
@@ -244,20 +252,27 @@ def _blank_line_in_source(prev_node: Node, curr_node: Node,
     return b"\n\n" in gap or b"\r\n\r\n" in gap
 
 
-def _prev_cst_detects_leading_blank(node: Node) -> bool:
-    """True if _format_prev_cst would emit a blank line before the first comment.
+def _prev_cst_has_blank_line(node: Node) -> bool:
+    """True if _format_prev_cst would emit any blank line for this node.
 
+    Checks both blank lines before the first comment (2+ NLs leading up to it)
+    and blank lines after the last comment (2+ trailing NLs when comments exist).
     Used to avoid double blank lines when _blank_line_in_source also detects one.
     """
     nl_count = 0
+    has_comments = False
     for sib in node.prev_cst_siblings:
         if _is_nl(sib):
             nl_count += 1
         elif _is_comment(sib):
-            return nl_count >= 2
+            if nl_count >= 2:
+                return True
+            has_comments = True
+            nl_count = 0
         else:
             nl_count = 0
-    return False
+    # Trailing NLs after last comment (line 160 of _format_prev_cst)
+    return has_comments and nl_count >= 2
 
 
 def _has_lambda(node: Node) -> bool:
@@ -471,7 +486,7 @@ def _format_body_items(nodes: list[Node], script: Script,
         if not blank_before and i > 0:
             prev = items[i - 1][0]
             if (_blank_line_in_source(prev, node, script.source)
-                    and not _prev_cst_detects_leading_blank(node)):
+                    and not _prev_cst_has_blank_line(node)):
                 blank_before = True
         if blank_before:
             parts.append(HARDLINE)
