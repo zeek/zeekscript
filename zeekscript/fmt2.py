@@ -316,6 +316,11 @@ def format_child(node: Node, script: Script) -> Doc:
 
     parts: list[Doc] = []
 
+    # Leading error siblings (error nodes before this node)
+    for err in node.prev_error_siblings:
+        parts.append(_format_error(err, script))
+        parts.append(SPACE)
+
     # Leading CST (comments before this node)
     prev = _format_prev_cst(node, script)
     if prev != EMPTY:
@@ -328,6 +333,11 @@ def format_child(node: Node, script: Script) -> Doc:
     nxt = _format_next_cst(node, script)
     if nxt != EMPTY:
         parts.append(nxt)
+
+    # Trailing error siblings (error nodes after this node)
+    for err in node.next_error_siblings:
+        parts.append(SPACE)
+        parts.append(_format_error(err, script))
 
     return concat(*parts)
 
@@ -587,15 +597,20 @@ def _format_source_file(node: Node, script: Script) -> Doc:
     """Top-level source_file: sequence of decls/stmts with blank line preservation."""
     items = [c for c in node.nonerr_children if _name(c) in ("decl", "stmt")]
     if not items:
-        # Comment-only file: comments live as prev_cst on a nullnode child.
+        # Comment/error-only file: comments live as prev_cst on a nullnode
+        # child; error nodes live as prev_error_siblings.
         parts: list[Doc] = []
         for child in node.nonerr_children:
+            for err in child.prev_error_siblings:
+                parts.append(_format_error(err, script))
             cst = _format_prev_cst(child, script)
             if cst != EMPTY:
                 parts.append(cst)
             cst = _format_next_cst(child, script)
             if cst != EMPTY:
                 parts.append(cst)
+            for err in child.next_error_siblings:
+                parts.append(_format_error(err, script))
         return concat(*parts) if parts else EMPTY
     return _format_body_items(items, script, top_level=True)
 

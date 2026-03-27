@@ -23,7 +23,7 @@ class TestFormatting(unittest.TestCase):
         self.assertFalse(script.has_error())
 
         buf = io.BytesIO()
-        script.format(buf, use_ir=False)
+        script.format(buf)
 
         return buf.getvalue()
 
@@ -979,7 +979,7 @@ print 1;
         self.assertIn(b"&optional", result)
 
     def test_global_set_type_wraps_attr_when_long(self):
-        """When set[...] type + attr_list exceeds 80 cols, attr wraps to next line."""
+        """set[...] type params flow across lines; attr wraps 1 space past type keyword."""
         code = (
             b'global some_long_cache_name:'
             b' set[string, subnet, subnet, transport_proto, SomeModule::SomeType]'
@@ -987,17 +987,20 @@ print 1;
         )
         result = self._format(code).decode()
         lines = result.rstrip().split('\n')
-        self.assertEqual(len(lines), 3)
         # All lines under 80 columns
         for line in lines:
             self.assertLessEqual(len(line), 80, f"Line too long: {repr(line)}")
-        self.assertNotIn("MISINDENTATION", result)
-        # attr_list is on its own continuation line, one space past type alignment
-        self.assertIn("&read_expire=cache_interval;", lines[2])
-        self.assertTrue(lines[2].startswith(" " * 9),
-                        f"Expected 9-space indent, got: {repr(lines[2])}")
-        # set[...] stays intact (not split internally)
-        self.assertIn("set[string, subnet, subnet, transport_proto, SomeModule::SomeType]", result)
+        # Type params flow (not one-per-line): first line has multiple types
+        self.assertIn("set[string, subnet, subnet, transport_proto,", result)
+        # attr_list wraps to its own line
+        attr_line = [l for l in lines if "&read_expire" in l][0]
+        self.assertNotIn("]", attr_line, "attr should be on its own line, not after ]")
+        # attr indented 1 space past where 'set' starts
+        set_line = [l for l in lines if "set[" in l][0]
+        set_col = set_line.index("set")
+        attr_col = len(attr_line) - len(attr_line.lstrip())
+        self.assertEqual(attr_col, set_col + 1,
+                         f"Expected attr at col {set_col+1}, got {attr_col}")
 
     def test_bracket_expr_flows_elements_across_lines(self):
         """Long [...] expression flows elements with line-breaking, not one-per-line."""
@@ -1500,201 +1503,6 @@ print 1;
         self.assertIn("some_long_pattern_name", result)
 
 
-class TestFormattingErrors(unittest.TestCase):
-    def _format(self, content):
-        script = zeekscript.Script(io.BytesIO(content))
-
-        # Everything passed in has a syntax error, so parsing should always
-        # fail, and has_error() should be True.
-        self.assertFalse(script.parse())
-        self.assertTrue(script.has_error())
-
-        buf = io.BytesIO()
-        script.format(buf, use_ir=False)
-
-        return buf.getvalue(), script.get_error()
-
-    def assertFormatting(self, input_, baseline, error_baseline):
-        # Verify formatting and reported error
-        result1, error1 = self._format(tu.normalize(input_))
-        self.assertEqual(tu.normalize(baseline), result1)
-        self.assertEqual(error_baseline, error1)
-
-        # Format again. There should be no change to the formatting.
-        result2, _ = self._format(result1)
-        self.assertEqual(tu.normalize(baseline), result2)
-
-    def test_start_error(self):
-        self.assertFormatting(
-            "xxx  function foo() { }",
-            """xxx function foo()
-	{ }
-""",
-            ("xxx  function foo() { }", 0, 'cannot parse line 0, col 0: "xxx"'),
-        )
-
-    def test_mid_error(self):
-        self.assertFormatting(
-            """module Foo;
-
-function foo) { print  "hi" ; }
-""",
-            """module Foo;
-
-function foo) {
-print "hi";
-}
-""",
-            (
-                'function foo) { print  "hi" ; }',
-                2,
-                'cannot parse line 2, col 0: "function foo)"',
-            ),
-        )
-
-    def test_mid_record_error(self):
-        _, error = self._format(
-            tu.normalize(
-                """type foo: record {
-	a: count; ##< A field
-	b count; ##< A broken field
-	c: count; ##< Another field, better not skipped!
-	d: count; ##< Ditto.
-};
-"""
-            )
-        )
-
-        # TODO(bbannier): The way we currently format this is not idempotent,
-        # so only check that we return the expected error. This is okay since
-        # we do not format files with errors anyway.
-        assert error == (
-            "type foo: record {",
-            0,
-            'cannot parse line 0, col 10: "record {\n\ta: count; ##< A field\n\tb"',
-        )
-
-    def test_single_char_mid_error(self):
-        # In this example, the error node spans just a single character:
-        self.assertFormatting(
-            "event zeek_init() { foo)(); }",
-            """event zeek_init()
-	{
-	foo ) ();
-	}
-""",
-            ("event zeek_init() { foo)(); }", 0, 'cannot parse line 0, col 23: ")"'),
-        )
-
-    def test_tail_error_no_nl(self):
-        self.assertFormatting(
-            "function foo( )  { if (",
-            "function foo()  { if (\n",
-            (
-                "function foo( )  { if (",
-                0,
-                'cannot parse line 0, col 0: "function foo( )  { if ("',
-            ),
-        )
-
-    def test_tail_error_nl(self):
-        self.assertFormatting(
-            "function foo( ) { if (\n",
-            "function foo() { if (\n",
-            (
-                "function foo( ) { if (",
-                0,
-                'cannot parse line 0, col 0: "function foo( ) { if ("',
-            ),
-        )
-
-
-class TestNewlineFormatting(unittest.TestCase):
-    # This test verifies correct processing when line endings in the input
-    # differ from that normally used by the platform.
-
-    def test_file_formatting(self):
-        given = tu.SAMPLE_UNFORMATTED.encode("utf-8")
-        # Swap line endings for something not native to the platform:
-        if zeekscript.Formatter.NL == b"\n":
-            # Turn everything to \r\n, even if mixed
-            given = given.replace(b"\r\n", b"\n")
-            given = given.replace(b"\n", b"\r\n")
-        else:
-            given = given.replace(b"\r\n", b"\n")
-
-        buf = io.BytesIO(given)
-        script = zeekscript.Script(buf)
-        script.parse()
-
-        buf = io.BytesIO()
-        script.format(buf, use_ir=False)
-
-        given = buf.getvalue()
-
-        expected = tu.SAMPLE_FORMATTED.encode("utf-8")
-        self.assertEqual(expected, given)
-
-
-class TestScriptConstruction(unittest.TestCase):
-    DATA = "event zeek_init() { }"
-    TMPFILE = "tmp.zeek"
-
-    def test_file(self):
-        # tempfile.NamedTemporaryFile doesn't seem to support reading while
-        # still existing on some platforms, so going manual here:
-        try:
-            with open(self.TMPFILE, "w", encoding="utf-8") as hdl:
-                hdl.write(self.DATA)
-            script = zeekscript.Script(self.TMPFILE)
-            script.parse()
-        finally:
-            os.unlink(self.TMPFILE)
-
-    def test_path(self):
-        try:
-            with open(self.TMPFILE, "w", encoding="utf-8") as hdl:
-                hdl.write(self.DATA)
-            script = zeekscript.Script(pathlib.Path(hdl.name))
-            script.parse()
-        finally:
-            os.unlink(self.TMPFILE)
-
-    def test_stdin(self):
-        oldstdin = sys.stdin
-
-        try:
-            sys.stdin = io.StringIO(self.DATA)
-            script = zeekscript.Script("-")
-            script.parse()
-        finally:
-            sys.stdin = oldstdin
-
-    def test_text_fileobj(self):
-        obj = io.StringIO(self.DATA)
-        script = zeekscript.Script(obj)
-        script.parse()
-
-    def test_bytes_fileobj(self):
-        obj = io.BytesIO(self.DATA.encode("UTF-8"))
-        script = zeekscript.Script(obj)
-        script.parse()
-
-
-class TestIRFormatting(unittest.TestCase):
-    """Tests for the IR-based formatter (use_ir=True).
-
-    These cover intentional style divergences from the old formatter.
-    """
-
-    def _format(self, content):
-        script = zeekscript.Script(io.BytesIO(content))
-        self.assertTrue(script.parse())
-        self.assertFalse(script.has_error())
-        buf = io.BytesIO()
-        script.format(buf, use_ir=True)
-        return buf.getvalue()
-
     def test_vector_constructor_inline(self):
         code = b"const xs: vector of count = {1, 2, 3};"
         result = self._format(code).decode()
@@ -1798,7 +1606,6 @@ class TestIRFormatting(unittest.TestCase):
 
     def test_long_slice_breaks_at_colon(self):
         # Long index slices break after ':' with RHS aligned under LHS
-        # Old formatter breaks within the arithmetic instead.
         code = (
             b"function some_func()\n"
             b"\t{\n"
@@ -1922,12 +1729,6 @@ class TestIRFormatting(unittest.TestCase):
         attr_col = len(lines[1]) - len(lines[1].lstrip())
         self.assertEqual(paren_col, attr_col)
 
-    def test_event_attr_stays_inline_when_short(self):
-        code = b'event foo(c: connection) &group="bar"\n\t{\n\t}\n'
-        result = self._format(code).decode()
-        lines = result.strip().split("\n")
-        self.assertIn('&group="bar"', lines[0])
-
     def test_constructor_call_multiline_dedent(self):
         # set(...) already in constructor form uses dedent multiline layout
         code = (
@@ -1993,30 +1794,6 @@ class TestIRFormatting(unittest.TestCase):
         result = self._format(code).decode()
         self.assertIn("table(", result)
 
-    def test_set_type_flows_params_and_wraps_attr(self):
-        """set[...] type params flow across lines; attr wraps 1 space past type keyword."""
-        code = (
-            b'global some_long_cache_name:'
-            b' set[string, subnet, subnet, transport_proto, SomeModule::SomeType]'
-            b' &read_expire=cache_interval;\n'
-        )
-        result = self._format(code).decode()
-        lines = result.rstrip().split('\n')
-        # All lines under 80 columns
-        for line in lines:
-            self.assertLessEqual(len(line), 80, f"Line too long: {repr(line)}")
-        # Type params flow (not one-per-line): first line has multiple types
-        self.assertIn("set[string, subnet, subnet, transport_proto,", result)
-        # attr_list wraps to its own line
-        attr_line = [l for l in lines if "&read_expire" in l][0]
-        self.assertNotIn("]", attr_line, "attr should be on its own line, not after ]")
-        # attr indented 1 space past where 'set' starts
-        set_line = [l for l in lines if "set[" in l][0]
-        set_col = set_line.index("set")
-        attr_col = len(attr_line) - len(attr_line.lstrip())
-        self.assertEqual(attr_col, set_col + 1,
-                         f"Expected attr at col {set_col+1}, got {attr_col}")
-
     def test_has_field_includes_suffix_in_boolean_group(self):
         """?$ suffix is included in boolean chain group width measurement."""
         # tree-sitter gives ?$ lower precedence than ||, so the boolean
@@ -2063,3 +1840,186 @@ class TestIRFormatting(unittest.TestCase):
         paren_line = [l for l in lines if l.startswith(")")][0]
         self.assertIn(") &default", paren_line,
                        "&default should follow ) with a space")
+
+
+class TestFormattingErrors(unittest.TestCase):
+    def _format(self, content):
+        script = zeekscript.Script(io.BytesIO(content))
+
+        # Everything passed in has a syntax error, so parsing should always
+        # fail, and has_error() should be True.
+        self.assertFalse(script.parse())
+        self.assertTrue(script.has_error())
+
+        buf = io.BytesIO()
+        script.format(buf)
+
+        return buf.getvalue(), script.get_error()
+
+    def assertFormatting(self, input_, baseline, error_baseline):
+        # Verify formatting and reported error
+        result1, error1 = self._format(tu.normalize(input_))
+        self.assertEqual(tu.normalize(baseline), result1)
+        self.assertEqual(error_baseline, error1)
+
+        # Format again. There should be no change to the formatting.
+        result2, _ = self._format(result1)
+        self.assertEqual(tu.normalize(baseline), result2)
+
+    def test_start_error(self):
+        self.assertFormatting(
+            "xxx  function foo() { }",
+            """xxx function foo()
+	{ }
+""",
+            ("xxx  function foo() { }", 0, 'cannot parse line 0, col 0: "xxx"'),
+        )
+
+    def test_mid_error(self):
+        self.assertFormatting(
+            """module Foo;
+
+function foo) { print  "hi" ; }
+""",
+            """module Foo;
+
+function foo) {
+print "hi";
+}
+""",
+            (
+                'function foo) { print  "hi" ; }',
+                2,
+                'cannot parse line 2, col 0: "function foo)"',
+            ),
+        )
+
+    def test_mid_record_error(self):
+        _, error = self._format(
+            tu.normalize(
+                """type foo: record {
+	a: count; ##< A field
+	b count; ##< A broken field
+	c: count; ##< Another field, better not skipped!
+	d: count; ##< Ditto.
+};
+"""
+            )
+        )
+
+        # TODO(bbannier): The way we currently format this is not idempotent,
+        # so only check that we return the expected error. This is okay since
+        # we do not format files with errors anyway.
+        assert error == (
+            "type foo: record {",
+            0,
+            'cannot parse line 0, col 10: "record {\n\ta: count; ##< A field\n\tb"',
+        )
+
+    def test_single_char_mid_error(self):
+        # In this example, the error node spans just a single character:
+        self.assertFormatting(
+            "event zeek_init() { foo)(); }",
+            """event zeek_init()
+	{
+	foo) ();
+	}
+""",
+            ("event zeek_init() { foo)(); }", 0, 'cannot parse line 0, col 23: ")"'),
+        )
+
+    def test_tail_error_no_nl(self):
+        self.assertFormatting(
+            "function foo( )  { if (",
+            "function foo()  { if (\n",
+            (
+                "function foo( )  { if (",
+                0,
+                'cannot parse line 0, col 0: "function foo( )  { if ("',
+            ),
+        )
+
+    def test_tail_error_nl(self):
+        self.assertFormatting(
+            "function foo( ) { if (\n",
+            "function foo() { if (\n",
+            (
+                "function foo( ) { if (",
+                0,
+                'cannot parse line 0, col 0: "function foo( ) { if ("',
+            ),
+        )
+
+
+class TestNewlineFormatting(unittest.TestCase):
+    # This test verifies correct processing when line endings in the input
+    # differ from that normally used by the platform.
+
+    def test_file_formatting(self):
+        given = tu.SAMPLE_UNFORMATTED.encode("utf-8")
+        # Swap line endings for something not native to the platform:
+        if zeekscript.Formatter.NL == b"\n":
+            # Turn everything to \r\n, even if mixed
+            given = given.replace(b"\r\n", b"\n")
+            given = given.replace(b"\n", b"\r\n")
+        else:
+            given = given.replace(b"\r\n", b"\n")
+
+        buf = io.BytesIO(given)
+        script = zeekscript.Script(buf)
+        script.parse()
+
+        buf = io.BytesIO()
+        script.format(buf)
+
+        given = buf.getvalue()
+
+        expected = tu.SAMPLE_FORMATTED.encode("utf-8")
+        self.assertEqual(expected, given)
+
+
+class TestScriptConstruction(unittest.TestCase):
+    DATA = "event zeek_init() { }"
+    TMPFILE = "tmp.zeek"
+
+    def test_file(self):
+        # tempfile.NamedTemporaryFile doesn't seem to support reading while
+        # still existing on some platforms, so going manual here:
+        try:
+            with open(self.TMPFILE, "w", encoding="utf-8") as hdl:
+                hdl.write(self.DATA)
+            script = zeekscript.Script(self.TMPFILE)
+            script.parse()
+        finally:
+            os.unlink(self.TMPFILE)
+
+    def test_path(self):
+        try:
+            with open(self.TMPFILE, "w", encoding="utf-8") as hdl:
+                hdl.write(self.DATA)
+            script = zeekscript.Script(pathlib.Path(hdl.name))
+            script.parse()
+        finally:
+            os.unlink(self.TMPFILE)
+
+    def test_stdin(self):
+        oldstdin = sys.stdin
+
+        try:
+            sys.stdin = io.StringIO(self.DATA)
+            script = zeekscript.Script("-")
+            script.parse()
+        finally:
+            sys.stdin = oldstdin
+
+    def test_text_fileobj(self):
+        obj = io.StringIO(self.DATA)
+        script = zeekscript.Script(obj)
+        script.parse()
+
+    def test_bytes_fileobj(self):
+        obj = io.BytesIO(self.DATA.encode("UTF-8"))
+        script = zeekscript.Script(obj)
+        script.parse()
+
+

@@ -30,7 +30,7 @@ def snapshot(snapshot: SnapshotAssertion):
 def _format(script: zeekscript.Script):
     """Formats a given `Script`"""
     buf = io.BytesIO()
-    script.format(buf, use_ir=False)
+    script.format(buf)
     return buf.getvalue()
 
 
@@ -56,5 +56,8 @@ def test_samples(sample: Path, snapshot: SnapshotAssertion):
     output = _format(input_)
     assert output == snapshot(), f"formatted {sample} inconsistent with snapshot"
 
-    output2 = _format(input_)
+    # Idempotency: re-parse the formatted output and format again.
+    round2 = zeekscript.Script(io.BytesIO(output))
+    assert round2.parse(), f"failed to parse formatted output for {sample}"
+    output2 = _format(round2)
     assert output2 == output, f"idempotency violation for {sample}"

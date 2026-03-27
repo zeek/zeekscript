@@ -2,7 +2,7 @@
 print table[int] of vector of count;
 
 # Large curly braced init should span multiple lines
-const machine_types: table[count] of string = {
+const machine_types: table[count] of string = table(
 	[0x00] = "UNKNOWN",
 	[0x1d3] = "AM33",
 	[0x8664] = "AMD64",
@@ -25,10 +25,10 @@ const machine_types: table[count] of string = {
 	[0x1a8] = "SH5",
 	[0x1c2] = "THUMB",
 	[0x169] = "WCEMIPSV2"
-} &default = function(i: count): string
+) &default = function(i: count): string
 	{
 	return fmt("unknown-%d", i);
 	};
 
 # Single element curly braced init can go on one line
-const thing: table[count] of string = {[123] = "onetwothree"};
+const thing: table[count] of string = table([123] = "onetwothree");
