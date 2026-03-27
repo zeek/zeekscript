@@ -167,6 +167,9 @@ def _format_next_cst(node: Node, script: Script) -> Doc:
     parts: list[Doc] = []
     zeekygen_prev_parts: list[Doc] = []
     nl_count = 0
+    # Preproc decls don't end with HARDLINE, so own-line comments in
+    # their next_cst need an explicit line break.
+    needs_nl = _is_preproc_item(node)
 
     for sib in node.next_cst_siblings:
         if sib.no_format is not None:
@@ -198,9 +201,13 @@ def _format_next_cst(node: Node, script: Script) -> Doc:
                 # Own-line comment: preserve blank line before it
                 if nl_count >= 2:
                     parts.append(HARDLINE)
+                if needs_nl and nl_count >= 1:
+                    parts.append(HARDLINE)
                 parts.append(text(_source_str(sib, script)))
         elif _is_comment(sib):
             if nl_count >= 2:
+                parts.append(HARDLINE)
+            if needs_nl and nl_count >= 1:
                 parts.append(HARDLINE)
             parts.append(text(_source_str(sib, script)))
         nl_count = 0

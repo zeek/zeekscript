@@ -2077,6 +2077,25 @@ print 1;
                        "&default should follow ) with a space")
 
 
+    def test_comment_after_preproc_not_merged(self):
+        """Comment on its own line after @endif stays on its own line."""
+        code = (
+            b"# Some comment.\n"
+            b"#@ BEGIN-SKIP-TESTING\n"
+            b'@if ( some_func("/some/path") > 0 )\n'
+            b"    @load /some/path\n"
+            b"@else\n"
+            b"    @load packages/some-pkg\n"
+            b"@endif\n"
+            b"#@ END-SKIP-TESTING\n"
+        )
+        result = self._format(code).decode()
+        lines = result.strip().split("\n")
+        endif_idx = next(i for i, l in enumerate(lines) if "@endif" in l)
+        self.assertEqual(lines[endif_idx].strip(), "@endif")
+        self.assertEqual(lines[endif_idx + 1].strip(), "#@ END-SKIP-TESTING")
+
+
 class TestFormattingErrors(unittest.TestCase):
     def _format(self, content):
         script = zeekscript.Script(io.BytesIO(content))
