@@ -1875,10 +1875,10 @@ def _format_expr_index(node: Node, script: Script) -> Doc:
     return concat(
         format_child(kids[0], script),  # <expr>
         text("["),
-        align(concat(
+        align_capped(concat(
             format_child(kids[2], script),  # <expr_list>
             text("]"),
-        )),
+        ), MAX_ALIGN_COL),
     )
 
 
@@ -2140,28 +2140,17 @@ def _format_expr_call(node: Node, script: Script) -> Doc:
             args_doc = _format_expr_list_with_record(
                 expr_list, script, call_prefix_w=call_prefix_w)
         else:
-            args_doc = _format_expr_list_inline(expr_list, script)
+            args_doc = _format_expr_list_inline(expr_list, script, shrink_overflow=True)
         close = text(")")
-        # Compute dynamic cap: align args to after '(' when the column
-        # is shallow enough that even the widest single arg fits within
-        # MAX_WIDTH.  At deeper columns, fall back to tab-only nesting.
-        widest_arg = 0
-        half = MAX_WIDTH // 2
-        for c in expr_list.nonerr_children:
-            if _name(c) == "expr":
-                w = _flat_width(format_node(c, script), MAX_WIDTH)
-                if w is not None and w <= half and w > widest_arg:
-                    widest_arg = w
-        cap = MAX_WIDTH - widest_arg - 2 if widest_arg > 0 else MAX_ALIGN_COL
         if has_open_comment:
             # Comment after '(' forces args to next line, aligned after '('
             comment_doc = _format_next_cst(open_paren, script)
             open_paren.next_cst_siblings = []
             parts.append(text("("))
-            parts.append(align_capped(concat(comment_doc, HARDLINE, args_doc, close), cap))
+            parts.append(align_capped(concat(comment_doc, HARDLINE, args_doc, close), MAX_ALIGN_COL))
         else:
             parts.append(format_child(open_paren, script))
-            parts.append(align_capped(concat(args_doc, close), cap))
+            parts.append(align_capped(concat(args_doc, close), MAX_ALIGN_COL))
         idx += 1
         idx += 1  # skip ')'
     else:
@@ -2412,7 +2401,7 @@ def _format_expr_list_with_record(node: Node, script: Script,
     return fill(*fill_parts)
 
 
-def _format_expr_list_inline(node: Node, script: Script) -> Doc:
+def _format_expr_list_inline(node: Node, script: Script, shrink_overflow: bool = False) -> Doc:
     """Format expr_list as comma-separated items that wrap with fill."""
     kids = node.nonerr_children
     items: list[Doc] = []
@@ -2443,7 +2432,7 @@ def _format_expr_list_inline(node: Node, script: Script) -> Doc:
             fill_parts.append(concat(comma_doc, LINE))
             if comma_idx < len(items):
                 fill_parts.append(items[comma_idx])
-    return fill(*fill_parts)
+    return fill(*fill_parts, shrink_overflow=shrink_overflow)
 
 
 def _format_expr_list_multiline(node: Node, script: Script) -> Doc:
