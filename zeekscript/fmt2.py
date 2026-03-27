@@ -885,7 +885,7 @@ def _format_type_record(node: Node, script: Script) -> Doc:
     for i, ts in enumerate(type_specs):
         if i > 0:
             blank = _wants_blank_before(ts)
-            if not blank:
+            if not blank and not _prev_cst_has_blank_line(ts):
                 blank = _blank_line_in_source(
                     type_specs[i - 1], ts, script.source)
             body_parts.append(HARDLINE)
@@ -1271,9 +1271,10 @@ def _format_redef_record_decl(node: Node, script: Script) -> Doc:
             body_parts: list[Doc] = [format_child(type_specs[0], script)]
             for i in range(1, len(type_specs)):
                 blank = (_wants_blank_before(type_specs[i])
-                         or _blank_line_in_source(type_specs[i - 1],
-                                                  type_specs[i],
-                                                  script.source))
+                         or (not _prev_cst_has_blank_line(type_specs[i])
+                             and _blank_line_in_source(type_specs[i - 1],
+                                                       type_specs[i],
+                                                       script.source)))
                 if blank:
                     body_parts.append(HARDLINE)
                 body_parts.append(HARDLINE)

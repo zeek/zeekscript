@@ -2135,6 +2135,29 @@ print 1;
         cc_idx = next(i for i, l in enumerate(lines) if "cc:" in l)
         self.assertEqual(cc_idx, bb_idx + 2)
 
+    def test_record_zeekygen_comments_no_extra_blank_lines(self):
+        """Record with zeekygen comments before fields should not gain extra blank lines."""
+        code = (
+            b"type SomeInfo: record {\n"
+            b"\t## A timestamp field.\n"
+            b"\tts: time &log;\n"
+            b"\n"
+            b"\t## A unique identifier.\n"
+            b"\tuid: string &log;\n"
+            b"\n"
+            b"\t## A network address.\n"
+            b"\taddr_field: addr &log;\n"
+            b"};\n"
+        )
+        result = self._format(code).decode()
+        # No double blank lines anywhere
+        self.assertNotIn("\n\n\n", result)
+        # Each field should be preceded by exactly one blank line + comment
+        lines = result.strip().split("\n")
+        uid_idx = next(i for i, l in enumerate(lines) if "uid:" in l)
+        self.assertEqual(lines[uid_idx - 1].strip(), "## A unique identifier.")
+        self.assertEqual(lines[uid_idx - 2].strip(), "")
+
     def test_comment_after_preproc_not_merged(self):
         """Comment on its own line after @endif stays on its own line."""
         code = (
