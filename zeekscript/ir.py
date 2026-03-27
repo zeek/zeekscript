@@ -86,8 +86,11 @@ class Fill:
 
     docs alternates: item, sep, item, sep, ..., item.
     Each sep is rendered flat if the following item fits, broken otherwise.
+    If shrink_overflow is True, items that would overflow at the alignment
+    column get their space indentation reduced to fit within max_width.
     """
     docs: tuple[Doc, ...]
+    shrink_overflow: bool = False
 
 @dataclass(frozen=True, slots=True)
 class Dedent:
@@ -116,6 +119,7 @@ class _FillPair:
     doc: Doc  # Concat((sep, item))
     remaining_flat_width: int  # flat width of all subsequent pairs
     balance: bool  # whether to apply the 2/3 balance heuristic
+    shrink_overflow: bool = False  # whether to reduce indent for overflowing items
 
 
 # --- Singletons and common tokens ---
@@ -167,8 +171,8 @@ def if_break(broken: Doc, flat: Doc) -> IfBreak:
     return IfBreak(broken, flat)
 
 
-def fill(*docs: Doc) -> Fill:
-    return Fill(tuple(docs))
+def fill(*docs: Doc, shrink_overflow: bool = False) -> Fill:
+    return Fill(tuple(docs), shrink_overflow=shrink_overflow)
 
 
 def dedent(doc: Doc) -> Dedent:
@@ -414,7 +418,7 @@ def resolve(doc: Doc, max_width: int = MAX_WIDTH) -> bytes:
                 for j, pair in enumerate(pair_docs):
                     to_push.append((indent, mode,
                                     _FillPair(pair, remaining[j + 1],
-                                              apply_balance)))
+                                              apply_balance, d.shrink_overflow)))
                 for entry in reversed(to_push):
                     stack.append(entry)
 
@@ -436,7 +440,22 @@ def resolve(doc: Doc, max_width: int = MAX_WIDTH) -> bytes:
                     else:
                         stack.append((indent, _FLAT, d.doc))
                 else:
-                    stack.append((indent, _BREAK, d.doc))
+                    # When breaking, check if the item would overflow at
+                    # the current alignment column.  If so, reduce spaces
+                    # just enough for the item to fit within max_width.
+                    # Only for "atomic" items (no internal hard breaks) —
+                    # complex items with internal structure handle overflow
+                    # by wrapping, so changing their indent breaks nesting.
+                    pair_indent = indent
+                    if (d.shrink_overflow and indent.spaces > 0
+                            and isinstance(d.doc, Concat) and len(d.doc.docs) >= 2):
+                        item_doc = d.doc.docs[-1]
+                        iw = _flat_width(item_doc, max_width * 3)
+                        if (iw is not None and iw < max_width
+                                and indent.width() + iw >= max_width):
+                            need = max(0, max_width - 1 - iw - indent.tabs * TAB_SIZE)
+                            pair_indent = _Indent(indent.tabs, need)
+                    stack.append((pair_indent, _BREAK, d.doc))
 
     # Post-process: strip trailing whitespace from each line, ensure
     # the output ends with exactly one newline.

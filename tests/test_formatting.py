@@ -1923,6 +1923,30 @@ print 1;
         # The blank line after #@ END-SKIP-TESTING should be preserved
         self.assertIn("", lines)  # at least one blank line exists
 
+    def test_func_params_overflow_shifted_left(self):
+        """Wide param shifts left to stay within 80; other params stay aligned."""
+        code = (
+            b"event SomeModule::Geneve::some_filtered_option("
+            b"inner_c: connection,\n"
+            b"\tinner_hdr: pkt_hdr, vni: count,\n"
+            b"\tflags: count,\n"
+            b"\topt: SomeModule::Geneve::some_geneve_hdr_option)\n"
+            b"\t{\n\t}\n"
+        )
+        result = self._format(code).decode()
+        lines = result.rstrip().split("\n")
+        for line in lines:
+            self.assertLessEqual(len(line), 80, repr(line))
+        # Most params paren-align at the same column
+        normal_lines = [l for l in lines if "inner_hdr:" in l or "flags:" in l]
+        cols = [len(l) - len(l.lstrip()) for l in normal_lines]
+        self.assertEqual(cols[0], cols[1], "Normal params should share alignment")
+        # The wide param is shifted left but still space-aligned
+        wide_line = [l for l in lines if "some_geneve_hdr_option" in l][0]
+        wide_col = len(wide_line) - len(wide_line.lstrip())
+        self.assertLess(wide_col, cols[0], "Wide param should be less indented")
+        self.assertGreater(wide_col, 0, "Wide param should still be indented")
+
     def test_event_attr_wraps_when_header_overflows(self):
         code = (
             b'event ssl_extension(c: connection, is_client: bool,'

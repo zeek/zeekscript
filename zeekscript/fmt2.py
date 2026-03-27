@@ -1004,12 +1004,11 @@ def _format_func_hdr_variant(node: Node, script: Script) -> Doc:
     parts.append(format_child(kids[idx], script))  # <id>
     idx += 1
     # Check for attr_list to pass into func_params for aligned wrapping.
-    # Compute paren column to decide if attr fits at paren alignment.
     attr_suffix = EMPTY
     attr_suffix_outside = EMPTY
     if (idx + 1 < len(kids) and _name(kids[idx + 1]) == "attr_list"):
         attr_doc = format_child(kids[idx + 1], script)
-        # Estimate paren column: sum of keyword/id flat widths + spaces + '('
+        # Compute paren column to decide if attr fits at paren alignment.
         prefix_w = sum(_flat_width(p, MAX_WIDTH) or 0 for p in parts) + 1  # +1 for '('
         attr_w = _flat_width(attr_doc, MAX_WIDTH) or MAX_WIDTH
         if prefix_w + attr_w < MAX_WIDTH:
@@ -1098,7 +1097,7 @@ def _format_formal_args(node: Node, script: Script,
     if items and trailing != EMPTY:
         items[-1] = concat(items[-1], trailing)
     sep = concat(text(","), LINE)
-    return fill(*intersperse(sep, items))
+    return fill(*intersperse(sep, items), shrink_overflow=True)
 
 
 def _format_formal_arg(node: Node, script: Script) -> Doc:
