@@ -1503,6 +1503,23 @@ print 1;
         self.assertIn("some_long_pattern_name", result)
 
 
+    def test_call_args_balanced_break(self):
+        """Call args break at a balanced point, not greedily at the last fit."""
+        code = (
+            b"function some_func(val: string)\n"
+            b"\t{\n"
+            b"\tif ( SomeModule::check_ready() )\n"
+            b"\t\tSomeModule::send_msg(pt, some_long_handler,\n"
+            b"\t\t                     to_addr(rec$some_field), p);\n"
+            b"\t}\n"
+        )
+        result = self._format(code).decode()
+        lines = result.strip().split("\n")
+        # Break should be after some_long_handler, not before p
+        call_line = [l for l in lines if "send_msg" in l][0]
+        self.assertTrue(call_line.rstrip().endswith("some_long_handler,"),
+                        f"Expected break after some_long_handler, got: {repr(call_line)}")
+
     def test_annotation_on_close_paren_preserved(self):
         """#@ annotation on closing ) of func params is preserved."""
         code = (

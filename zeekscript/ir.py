@@ -109,6 +109,15 @@ class AlignCapped:
 Doc = Union[Text, Line, SoftLine, HardLine, Column0Line, Concat, Nest, Align, Group, IfBreak, Fill, Dedent, DedentSpaces, AlignCapped]
 
 
+# Internal resolver type — not part of the public Doc algebra.
+@dataclass(frozen=True, slots=True)
+class _FillPair:
+    """A fill sep+item pair with remaining-width hint for balance decisions."""
+    doc: Doc  # Concat((sep, item))
+    remaining_flat_width: int  # flat width of all subsequent pairs
+    balance: bool  # whether to apply the 2/3 balance heuristic
+
+
 # --- Singletons and common tokens ---
 
 LINE = Line()
@@ -372,19 +381,62 @@ def resolve(doc: Doc, max_width: int = MAX_WIDTH) -> bytes:
                 stack.append((indent, mode, d.broken))
 
         elif isinstance(d, Fill):
-            # Pack items, breaking separators only when the next item
-            # won't fit.  docs alternates: item, sep, item, sep, ..., item.
-            # Convert to: first_item, Group(sep+item), Group(sep+item), ...
-            # Each Group independently decides flat vs break.
+            # Pack items with balance-aware breaking.
+            # docs alternates: item, sep, item, sep, ..., item.
+            # Each sep+item pair is wrapped in _FillPair with a hint
+            # of how much content remains, so the resolver can avoid
+            # greedy packing that leaves a very short last line.
             if d.docs:
-                to_push: list[tuple[_Indent, int, Doc]] = []
-                to_push.append((indent, mode, d.docs[0]))
-                for i in range(1, len(d.docs), 2):
-                    sep = d.docs[i]
-                    item = d.docs[i + 1] if i + 1 < len(d.docs) else EMPTY
-                    to_push.append((indent, mode, Group(Concat((sep, item)))))
+                docs = d.docs
+                # Pre-compute flat widths of each sep+item pair
+                pair_fws: list[int] = []
+                pair_docs: list[Doc] = []
+                for i in range(1, len(docs), 2):
+                    sep = docs[i]
+                    item = docs[i + 1] if i + 1 < len(docs) else EMPTY
+                    pair = Concat((sep, item))
+                    pair_docs.append(pair)
+                    fw = _flat_width(pair, max_width * 3)
+                    pair_fws.append(fw if fw is not None else max_width)
+
+                # Suffix sums of remaining flat widths
+                remaining = [0] * (len(pair_fws) + 1)
+                for j in range(len(pair_fws) - 1, -1, -1):
+                    remaining[j] = remaining[j + 1] + pair_fws[j]
+
+                # Only apply balance when fill content exceeds line width
+                first_fw = _flat_width(docs[0], max_width * 3)
+                total_fw = (first_fw if first_fw is not None else max_width) + remaining[0]
+                apply_balance = col + total_fw >= max_width
+
+                to_push: list[tuple[_Indent, int, Doc | _FillPair]] = []
+                to_push.append((indent, mode, docs[0]))
+                for j, pair in enumerate(pair_docs):
+                    to_push.append((indent, mode,
+                                    _FillPair(pair, remaining[j + 1],
+                                              apply_balance)))
                 for entry in reversed(to_push):
                     stack.append(entry)
+
+        elif isinstance(d, _FillPair):
+            # Balance-aware flat/break decision for a fill pair.
+            if mode == _FLAT:
+                stack.append((indent, _FLAT, d.doc))
+            else:
+                fw = _flat_width(d.doc, max_width - col)
+                if fw is not None and col + fw < max_width:
+                    # Fits flat — optionally check balance
+                    after_col = col + fw
+                    line2_len = indent.width() + d.remaining_flat_width
+                    if (d.balance
+                            and d.remaining_flat_width > 0
+                            and line2_len < after_col * 2 // 3):
+                        # Unbalanced: break to get more content on line 2
+                        stack.append((indent, _BREAK, d.doc))
+                    else:
+                        stack.append((indent, _FLAT, d.doc))
+                else:
+                    stack.append((indent, _BREAK, d.doc))
 
     # Post-process: strip trailing whitespace from each line, ensure
     # the output ends with exactly one newline.
