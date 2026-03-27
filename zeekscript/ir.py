@@ -295,9 +295,10 @@ def resolve(doc: Doc, max_width: int = MAX_WIDTH) -> bytes:
 
         elif isinstance(d, HardLine):
             parts.append(nl)
-            if misindent:
-                parts.append(MISINDENT_MARKER)
-                misindent = False
+            # Clear misindent without emitting the marker — HardLine is
+            # a structural break (end of statement), not a continuation
+            # where the marker would be meaningful.
+            misindent = False
             ind = indent.render()
             parts.append(ind)
             col = indent.width()

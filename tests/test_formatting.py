@@ -2016,3 +2016,30 @@ class TestIRFormatting(unittest.TestCase):
         attr_col = len(attr_line) - len(attr_line.lstrip())
         self.assertEqual(attr_col, set_col + 1,
                          f"Expected attr at col {set_col+1}, got {attr_col}")
+
+    def test_has_field_includes_suffix_in_boolean_group(self):
+        """?$ suffix is included in boolean chain group width measurement."""
+        # tree-sitter gives ?$ lower precedence than ||, so the boolean
+        # chain's group must account for trailing ?$field to break correctly.
+        code = (
+            b"function some_func(c: connection): SomeInfo\n"
+            b"\t{\n"
+            b"\tlocal rec = c$some_rec;\n"
+            b"\tif ( ! rec?$some_field || |rec$some_field| == 0 ||\n"
+            b"\t     ! rec$some_field[0]?$some_val )\n"
+            b"\t\treturn ci;\n"
+            b"\t}\n"
+        )
+        result = self._format(code).decode()
+        lines = result.strip().split("\n")
+        # The condition should break: continuation aligns with first arg
+        if_line = [l for l in lines if "if (" in l][0]
+        cont_line = [l for l in lines if "some_val" in l][0]
+        self.assertNotEqual(if_line, cont_line, "Condition should wrap")
+        # Continuation aligns to after '( '
+        paren_col = if_line.index("(") + 2
+        cont_col = len(cont_line) - len(cont_line.lstrip())
+        self.assertEqual(paren_col, cont_col)
+        # Each line should fit in 80 columns
+        for line in lines:
+            self.assertLessEqual(len(line), 80, f"Line too long: {repr(line)}")

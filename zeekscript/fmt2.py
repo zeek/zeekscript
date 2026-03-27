@@ -1715,9 +1715,10 @@ def _format_expr(node: Node, script: Script) -> Doc:
     # copy(expr)
     if tok0 == "copy":
         return _format_expr_copy(node, script)
-    # Has-field: expr?$field — never breaks
+    # Has-field: expr?$field — never breaks, but must be grouped
+    # with its child so the child's group accounts for trailing ?$id
     if tok1 == "?$":
-        return _format_no_space(node, script)
+        return _format_expr_has_field(node, script)
     # Anonymous function: function <begin_lambda> <func_body>
     if tok0 == "function":
         return _format_expr_anon_func(node, script)
@@ -1783,6 +1784,22 @@ def _format_expr_negation(node: Node, script: Script) -> Doc:
     kids = node.nonerr_children
     return concat(text("!"), SPACE, format_child(kids[1], script))
 
+
+def _format_expr_has_field(node: Node, script: Script) -> Doc:
+    # <expr> ?$ <id> — never breaks internally, but wraps the result
+    # in a group so that if the child expr contains a group (e.g. a
+    # boolean chain due to tree-sitter precedence), the child group's
+    # flat-width measurement includes the trailing ?$id.
+    kids = node.nonerr_children
+    child_doc = format_child(kids[0], script)
+    suffix = concat(*[format_child(c, script) for c in kids[1:]])
+
+    # If the child is Group(inner), extend the inner doc with our suffix
+    # so the group's flat/break decision accounts for the full width.
+    if isinstance(child_doc, Group):
+        return Group(concat(child_doc.doc, suffix))
+
+    return concat(child_doc, suffix)
 
 
 def _format_expr_initializer(node: Node, script: Script) -> Doc:
