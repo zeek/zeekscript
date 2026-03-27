@@ -1029,12 +1029,16 @@ def _format_func_params(node: Node, script: Script,
     idx += 1
 
     # Build the trailing content after args: ) [: <type>]
-    trailing_parts: list[Doc] = [text(")")]
     args_idx = idx
     has_args = idx < len(kids) and _name(kids[idx]) == "formal_args"
     if has_args:
         idx += 1  # formal_args
+        close_paren = kids[idx]
         idx += 1  # ')'
+    else:
+        close_paren = kids[idx]
+        idx += 1  # ')'
+    trailing_parts: list[Doc] = [format_child(close_paren, script)]
 
     if idx < len(kids) and _tok(kids[idx]) == ":":
         trailing_parts.append(text(":"))

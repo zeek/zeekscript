@@ -1503,6 +1503,18 @@ print 1;
         self.assertIn("some_long_pattern_name", result)
 
 
+    def test_annotation_on_close_paren_preserved(self):
+        """#@ annotation on closing ) of func params is preserved."""
+        code = (
+            b"event some_handler(c: connection, is_orig: bool,\n"
+            b"                   payload: string) #@ NOT-TESTED\n"
+            b"\t{\n"
+            b'\tadd c$app["test"];\n'
+            b"\t}\n"
+        )
+        result = self._format(code).decode()
+        self.assertIn(") #@ NOT-TESTED", result)
+
     def test_preproc_after_blank_line_no_extra_blank(self):
         """Preproc directive after a blank line shouldn't gain an extra blank."""
         code = b"module SomeMod;\n\n@load ./const\n"
