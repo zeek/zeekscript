@@ -2102,17 +2102,50 @@ def _format_expr_call(node: Node, script: Script) -> Doc:
     return group(concat(*parts))
 
 
-def _format_expr_boolean(node: Node, script: Script) -> Doc:
-    # <expr> && <expr> or <expr> || <expr>
+_BOOLEAN_OPS = frozenset({"&&", "||"})
+
+
+def _collect_boolean_chain(node: Node, script: Script) -> list[tuple[Doc, str | None]]:
+    """Collect a left-recursive chain of boolean operators (&&, ||).
+
+    Returns [(operand_doc, op_after), ...] where the last has op_after=None.
+    Only chains same-precedence operators: stops flattening when op changes.
+    """
     kids = node.nonerr_children
     op = _source_str(kids[1], script)
-    return group(align(concat(
-        format_child(kids[0], script),
-        SPACE,
-        text(op),
-        LINE,
-        format_child(kids[2], script),
-    )))
+    lhs = kids[0]
+    rhs = kids[2]
+
+    lhs_kids = lhs.nonerr_children if lhs.nonerr_children else []
+    if (len(lhs_kids) == 3
+            and _name(lhs) == "expr"
+            and _source_str(lhs_kids[1], script) == op):
+        chain = _collect_boolean_chain(lhs, script)
+    else:
+        chain = [(format_child(lhs, script), None)]
+
+    last_doc, _ = chain[-1]
+    chain[-1] = (last_doc, op)
+    chain.append((format_child(rhs, script), None))
+    return chain
+
+
+def _format_expr_boolean(node: Node, script: Script) -> Doc:
+    # <expr> && <expr> or <expr> || <expr>
+    # Flatten chains of same operator into fill() for greedy packing.
+    kids = node.nonerr_children
+    op = _source_str(kids[1], script)
+
+    chain = _collect_boolean_chain(node, script)
+    fill_items: list[Doc] = []
+    for i, (operand, chain_op) in enumerate(chain):
+        if i > 0:
+            fill_items.append(LINE)
+        if chain_op is not None:
+            fill_items.append(concat(operand, SPACE, text(chain_op)))
+        else:
+            fill_items.append(operand)
+    return group(align(fill(*fill_items)))
 
 
 def _format_expr_ternary(node: Node, script: Script) -> Doc:

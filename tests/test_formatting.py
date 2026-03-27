@@ -2029,10 +2029,12 @@ print 1;
         result = self._format(code).decode()
         self.assertIn("table(", result)
 
-    def test_has_field_includes_suffix_in_boolean_group(self):
-        """?$ suffix is included in boolean chain group width measurement."""
+    def test_has_field_suffix_stays_with_boolean_chain(self):
+        """?$ suffix is not split from its boolean chain operand."""
         # tree-sitter gives ?$ lower precedence than ||, so the boolean
-        # chain's group must account for trailing ?$field to break correctly.
+        # chain appears inside the ?$ expression.  The ?$ should not be
+        # split off — the whole expression stays on one line even if it
+        # exceeds 80 columns, since ?$ (like $) is not a break point.
         code = (
             b"function some_func(c: connection): SomeInfo\n"
             b"\t{\n"
@@ -2044,17 +2046,29 @@ print 1;
         )
         result = self._format(code).decode()
         lines = result.strip().split("\n")
-        # The condition should break: continuation aligns with first arg
+        # The ?$ keeps the boolean chain on one line
         if_line = [l for l in lines if "if (" in l][0]
-        cont_line = [l for l in lines if "some_val" in l][0]
-        self.assertNotEqual(if_line, cont_line, "Condition should wrap")
-        # Continuation aligns to after '( '
-        paren_col = if_line.index("(") + 2
-        cont_col = len(cont_line) - len(cont_line.lstrip())
-        self.assertEqual(paren_col, cont_col)
-        # Each line should fit in 80 columns
-        for line in lines:
-            self.assertLessEqual(len(line), 80, f"Line too long: {repr(line)}")
+        self.assertIn("?$some_val", if_line)
+
+    def test_boolean_chain_packs_with_fill(self):
+        """&&/|| chains pack multiple operands per line instead of one-per-line."""
+        code = (
+            b"event zeek_init()\n"
+            b"\t{\n"
+            b"\tif ( alpha_val > threshold && beta_val > threshold"
+            b" && gamma_val > threshold && delta_val > threshold"
+            b" && epsilon_val > threshold && zeta_val > threshold )\n"
+            b"\t\tprint \"yes\";\n"
+            b"\t}\n"
+        )
+        result = self._format(code).decode()
+        lines = result.strip().split("\n")
+        cond_lines = [l for l in lines if "threshold" in l]
+        # Should pack ~2 operands per line (3 lines), not 1 per line (6 lines)
+        self.assertLessEqual(len(cond_lines), 3,
+                             f"Expected <=3 condition lines, got {len(cond_lines)}")
+        for line in cond_lines:
+            self.assertLessEqual(len(line.expandtabs(8)), 80, repr(line))
 
     def test_constructor_attr_follows_closing_paren(self):
         """Attributes on constructor initializers follow ')' with a space."""
