@@ -1520,6 +1520,61 @@ print 1;
         self.assertTrue(call_line.rstrip().endswith("some_long_handler,"),
                         f"Expected break after some_long_handler, got: {repr(call_line)}")
 
+    def test_blank_line_before_else_preserved(self):
+        """Blank line before else clause is preserved when present in source."""
+        code = (
+            b"function some_func(val: string)\n"
+            b"\t{\n"
+            b"\tif ( some_pattern == val )\n"
+            b'\t\tresult = "found";\n'
+            b"\n"
+            b"\telse\n"
+            b'\t\tresult = "default";\n'
+            b"\t}\n"
+        )
+        result = self._format(code).decode()
+        lines = result.split("\n")
+        else_idx = next(i for i, l in enumerate(lines) if "else" in l)
+        self.assertEqual(lines[else_idx - 1].strip(), "",
+                         "Expected blank line before else")
+
+    def test_blank_line_before_else_if_with_annotation(self):
+        """Blank line before else if preserved when body has trailing annotation."""
+        code = (
+            b"function some_func(c: connection, name: string,\n"
+            b"                   value: string, prefix: string)\n"
+            b"\t{\n"
+            b'\tif ( name == "some-type" )\n'
+            b'\t\tsome_handler(c, value, prefix + "-sfx"); #@ NOT-TESTED\n'
+            b"\n"
+            b'\telse if ( name == "other-type" )\n'
+            b'\t\tother_handler(c, value, prefix + "-sfx");\n'
+            b"\t}\n"
+        )
+        result = self._format(code).decode()
+        lines = result.split("\n")
+        else_idx = next(i for i, l in enumerate(lines) if "else" in l)
+        self.assertEqual(lines[else_idx - 1].strip(), "",
+                         "Expected blank line before else if")
+        self.assertIn("#@ NOT-TESTED", result)
+
+    def test_no_blank_line_before_else_when_absent(self):
+        """No blank line before else when source doesn't have one."""
+        code = (
+            b"function some_func(val: string)\n"
+            b"\t{\n"
+            b"\tif ( some_pattern == val )\n"
+            b'\t\tresult = "found";\n'
+            b"\telse\n"
+            b'\t\tresult = "default";\n'
+            b"\t}\n"
+        )
+        result = self._format(code).decode()
+        lines = result.split("\n")
+        else_idx = next(i for i, l in enumerate(lines) if "else" in l)
+        self.assertNotEqual(lines[else_idx - 1].strip(), "",
+                            "Should not have blank line before else")
+
     def test_comment_before_else_preserved(self):
         """Comments before else clause are preserved."""
         code = (

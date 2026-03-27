@@ -1410,7 +1410,19 @@ def _format_stmt_if(node: Node, script: Script) -> Doc:
     if idx < len(kids) and _tok(kids[idx]) == "else":
         # Body always ends with HARDLINE (both brace-block and non-block).
         # Use format_child so CST siblings (comments before else) are emitted.
-        parts.append(format_child(kids[idx], script))
+        # Preserve blank line before else when present in source.
+        # The blank line's newlines may be split across the body stmt's
+        # next_cst_siblings and the else's prev_cst_siblings, so check
+        # the raw source between the body's AST end and the else keyword.
+        # Skip this when else has comment CST siblings — _format_prev_cst
+        # handles blank lines around comments itself.
+        else_node = kids[idx]
+        has_else_comment = any(_is_comment(s) for s in else_node.prev_cst_siblings)
+        if not has_else_comment:
+            gap = script.source[body_child.end_byte:else_node.start_byte]
+            if gap.count(b"\n") >= 2:
+                parts.append(HARDLINE)
+        parts.append(format_child(else_node, script))
         idx += 1
         if idx < len(kids):
             else_body = kids[idx]
