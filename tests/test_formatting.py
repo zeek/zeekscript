@@ -2091,6 +2091,25 @@ print 1;
                        "&default should follow ) with a space")
 
 
+    def test_record_blank_line_after_trailing_comment(self):
+        """Blank line between record fields preserved when prev field has comment."""
+        code = (
+            b"type Foo: record {\n"
+            b"    aa: string &default=\"\";\n"
+            b"    bb: count &default=0; # a comment\n"
+            b"\n"
+            b"    cc: bool;\n"
+            b"    dd: bool &default=F;\n"
+            b"};\n"
+        )
+        result = self._format(code).decode()
+        lines = result.strip().split("\n")
+        bb_idx = next(i for i, l in enumerate(lines) if "bb:" in l)
+        # Blank line after bb's trailing comment, before cc
+        self.assertEqual(lines[bb_idx + 1].strip(), "")
+        cc_idx = next(i for i, l in enumerate(lines) if "cc:" in l)
+        self.assertEqual(cc_idx, bb_idx + 2)
+
     def test_comment_after_preproc_not_merged(self):
         """Comment on its own line after @endif stays on its own line."""
         code = (

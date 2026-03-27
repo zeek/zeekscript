@@ -855,8 +855,12 @@ def _format_type_record(node: Node, script: Script) -> Doc:
     body_parts: list[Doc] = []
     for i, ts in enumerate(type_specs):
         if i > 0:
+            blank = _wants_blank_before(ts)
+            if not blank:
+                blank = _blank_line_in_source(
+                    type_specs[i - 1], ts, script.source)
             body_parts.append(HARDLINE)
-            if _wants_blank_before(ts):
+            if blank:
                 body_parts.append(HARDLINE)
         body_parts.append(format_child(ts, script))
 
@@ -1229,12 +1233,23 @@ def _format_redef_record_decl(node: Node, script: Script) -> Doc:
     else:
         idx += 1  # skip '{'
         # type_specs (don't end with HARDLINE, need separators)
-        type_spec_docs: list[Doc] = []
+        # Preserve blank lines between fields when present in source.
+        type_specs: list[Node] = []
         while idx < len(kids) and _name(kids[idx]) == "type_spec":
-            type_spec_docs.append(format_child(kids[idx], script))
+            type_specs.append(kids[idx])
             idx += 1
-        if type_spec_docs:
-            body = join(HARDLINE, type_spec_docs)
+        if type_specs:
+            body_parts: list[Doc] = [format_child(type_specs[0], script)]
+            for i in range(1, len(type_specs)):
+                blank = (_wants_blank_before(type_specs[i])
+                         or _blank_line_in_source(type_specs[i - 1],
+                                                  type_specs[i],
+                                                  script.source))
+                if blank:
+                    body_parts.append(HARDLINE)
+                body_parts.append(HARDLINE)
+                body_parts.append(format_child(type_specs[i], script))
+            body = concat(*body_parts)
             parts.append(_format_same_line_brace_block(body))
         else:
             parts.append(text("{ }"))
