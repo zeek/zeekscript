@@ -12,7 +12,8 @@ from typing import TYPE_CHECKING
 
 from .ir import (
     COLUMN0LINE, EMPTY, HARDLINE, LINE, SOFTLINE, SPACE,
-    Concat, Doc, Group, HardLine,
+    Align, AlignCapped, Concat, Dedent, DedentSpaces, Doc, Fill, Group,
+    HardLine, IfBreak, Line, Nest, SoftLine, Text,
     MAX_ALIGN_COL, MAX_WIDTH, TAB_SIZE, _flat_width,
     align, align_capped, concat, dedent, dedent_spaces, fill, group, if_break,
     intersperse, join, nest, resolve, text,
@@ -21,6 +22,34 @@ from .node import Node
 
 if TYPE_CHECKING:
     from .script import Script
+
+
+# ---------------------------------------------------------------------------
+# Helpers for inspecting Doc trees
+# ---------------------------------------------------------------------------
+
+def _can_break(doc: Doc) -> bool:
+    """True if doc contains any break points (Line, SoftLine, Fill, IfBreak).
+
+    A doc that cannot break is "atomic" — it renders identically in flat
+    and break modes.  Used to decide whether an enclosing construct needs
+    its own break point (e.g. assignment breaking at '=').
+    """
+    stack: list[Doc] = [doc]
+    while stack:
+        d = stack.pop()
+        if isinstance(d, (Line, SoftLine, HardLine, IfBreak)):
+            return True
+        if isinstance(d, Fill) and len(d.docs) > 1:
+            return True
+        if isinstance(d, Fill):
+            stack.extend(d.docs)
+            continue
+        elif isinstance(d, Concat):
+            stack.extend(d.docs)
+        elif isinstance(d, (Group, Nest, Align, Dedent, DedentSpaces, AlignCapped)):
+            stack.append(d.doc)
+    return False
 
 
 # ---------------------------------------------------------------------------
@@ -2200,17 +2229,15 @@ def _format_expr_assignment(node: Node, script: Script) -> Doc:
     # <expr> = <expr>  or  <expr> += <expr>  etc.
     kids = node.nonerr_children
     op = _source_str(kids[1], script)
+    lhs = format_child(kids[0], script)
     rhs = format_child(kids[2], script)
-    # No outer group: lhs = rhs stays together. The RHS's own internal
-    # groups handle line breaking. align() sets continuation column to
-    # after '= ' so binary operators etc. wrap there.
-    return concat(
-        format_child(kids[0], script),
-        SPACE,
-        text(op),
-        SPACE,
-        align(rhs),
-    )
+    if _can_break(rhs):
+        # RHS has internal break points — let them handle wrapping.
+        # align() sets continuation column to after '= '.
+        return concat(lhs, SPACE, text(op), SPACE, align(rhs))
+    # Atomic RHS (e.g. single-arg call) — allow breaking at '='.
+    return group(concat(lhs, SPACE, text(op),
+                        nest(1, dedent_spaces(concat(LINE, rhs)))))
 
 
 # Operators that form chains and should be flattened into a single group.
@@ -2432,7 +2459,14 @@ def _format_initializer_node(node: Node, script: Script,
                     text(op),
                     nest(1, dedent_spaces(concat(LINE, expr_doc))),
                 ))
-        # Constructor or normal-width expression: keep "= expr" together
+            # Atomic RHS (no internal break points) — allow breaking
+            # at '=' so the expression can move to the next line.
+            if not _can_break(expr_doc):
+                return group(concat(
+                    text(op),
+                    nest(1, dedent_spaces(concat(LINE, expr_doc))),
+                ))
+        # Constructor or breakable expression: keep "= expr" together
         return concat(text(op), SPACE, expr_doc)
     else:
         expr_doc = format_child(expr, script)

@@ -93,7 +93,7 @@ function a_function(a: int, b: count, another_argument_for_linewrapping: string)
 @endif
 		}
 
-	# This shouldn't break the 0 index number onto a new line
+	# Atomic RHS breaks after the assignment operator
 	another_very_long_access_to_some_member +=
 	    yetanotherveryveryveryverylongthing[0];
 
@@ -132,9 +132,8 @@ function a_function(a: int, b: count, another_argument_for_linewrapping: string)
 function b_function(a: int, b: count,
     another_argument_for_longer_linewrapping: string): string
 	{
-	# This should stay on one line:
+	# Record constructors that fit on one line:
 	local r1 = SomeRecord($foo=some_foo(), $bar=some$long_bar());
-	# This should not:
 	local t2 = SomeRecord($foo=some_foo(), $bar=some$long_bar());
 
 	call( # with an interrupting comment

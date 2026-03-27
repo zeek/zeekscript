@@ -136,12 +136,14 @@ class TestFormatting(unittest.TestCase):
         self.assertIn("age_d = interval_to_double(network_time() -", result)
 
     def test_assignment_break_when_rhs_fits(self):
-        """Assignment can break at = when RHS fits on continuation line."""
-        # += should get proper indentation, not MISINDENTATION
+        """Atomic RHS breaks after += with tab-indented continuation."""
         code = b"another_very_long_access_to_some_member += yetanotherveryveryveryverylongthing[0];"
         result = self._format(code).decode()
-        # Should not have MISINDENTATION marker
         self.assertNotIn("MISINDENTATION", result)
+        lines = result.strip().split("\n")
+        self.assertEqual(len(lines), 2, "should break into two lines")
+        self.assertIn("+=", lines[0])
+        self.assertTrue(lines[1].startswith("\t"))
 
     def test_event_handler_parameter_wrapping(self):
         """Event handler parameters should wrap at commas when line is too long."""
@@ -2127,6 +2129,49 @@ print 1;
         endif_idx = next(i for i, l in enumerate(lines) if "@endif" in l)
         self.assertEqual(lines[endif_idx].strip(), "@endif")
         self.assertEqual(lines[endif_idx + 1].strip(), "#@ END-SKIP-TESTING")
+
+
+    def test_assignment_breaks_at_equals_for_atomic_rhs(self):
+        """When RHS is atomic (no internal breaks) and overflows, break at '='."""
+        # local decl with single-arg call that overflows at deep nesting
+        code = (
+            b"event some_event(some_arg: string)\n"
+            b"\t{\n"
+            b"\tif ( T )\n"
+            b"\t\t{\n"
+            b"\t\tif ( T )\n"
+            b"\t\t\t{\n"
+            b"\t\t\tlocal some_long_name = SomeModule::some_function(some_really_long_argument);\n"
+            b"\t\t\t}\n"
+            b"\t\t}\n"
+            b"\t}\n"
+        )
+        result = self._format(code).decode()
+        lines = result.strip().split("\n")
+        assign_lines = [l for l in lines if "some_long_name" in l or "some_function" in l]
+        self.assertEqual(len(assign_lines), 2, "should break into two lines")
+        self.assertIn("=", assign_lines[0])
+        self.assertIn("some_function", assign_lines[1])
+        # Continuation uses tab indent, not alignment spaces
+        self.assertTrue(assign_lines[1].startswith("\t\t\t\t"))
+
+    def test_assignment_atomic_rhs_stays_flat_when_fits(self):
+        """Atomic RHS should stay on same line when it fits."""
+        code = b"local x = some_func(arg);\n"
+        result = self._format(code).decode()
+        self.assertIn("local x = some_func(arg);", result)
+
+    def test_assignment_breakable_rhs_unchanged(self):
+        """RHS with internal breaks should still use align(), not the atomic path."""
+        code = (
+            b"event some_event(some_arg: string)\n"
+            b"\t{\n"
+            b"\tlocal some_name = some_func(arg_one, arg_two, arg_three);\n"
+            b"\t}\n"
+        )
+        result = self._format(code).decode()
+        # Multi-arg call has break points — should stay on one line when fits
+        self.assertIn("some_func(arg_one, arg_two, arg_three)", result)
 
 
 class TestFormattingErrors(unittest.TestCase):
