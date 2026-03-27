@@ -1897,15 +1897,21 @@ def _format_expr_negation(node: Node, script: Script) -> Doc:
 
 
 def _format_expr_has_field(node: Node, script: Script) -> Doc:
-    # <expr> ?$ <id> — never breaks internally, but wraps the result
-    # in a group so that if the child expr contains a group (e.g. a
-    # boolean chain due to tree-sitter precedence), the child group's
-    # flat-width measurement includes the trailing ?$id.
+    # <expr> ?$ <id> — never breaks internally, but the suffix must be
+    # accounted for in any fill() width decisions inside the child expr
+    # (e.g. boolean chains where tree-sitter gives ?$ lower precedence
+    # than ||).  Inject the suffix into the innermost fill so the fill's
+    # last item includes ?$id in its flat-width check.
     kids = node.nonerr_children
     child_doc = format_child(kids[0], script)
     suffix = concat(*[format_child(c, script) for c in kids[1:]])
 
-    # If the child is Group(inner), extend the inner doc with our suffix
+    # Try to inject suffix into innermost fill for width accounting.
+    merged, ok = _inject_trailing_into_fill(child_doc, suffix)
+    if ok:
+        return merged
+
+    # Fallback: if the child is Group(inner), extend the inner doc
     # so the group's flat/break decision accounts for the full width.
     if isinstance(child_doc, Group):
         return Group(concat(child_doc.doc, suffix))

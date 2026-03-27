@@ -2054,12 +2054,12 @@ print 1;
         result = self._format(code).decode()
         self.assertIn("table(", result)
 
-    def test_has_field_suffix_stays_with_boolean_chain(self):
-        """?$ suffix is not split from its boolean chain operand."""
+    def test_has_field_suffix_stays_with_operand(self):
+        """?$ suffix stays with its operand, not split onto its own line."""
         # tree-sitter gives ?$ lower precedence than ||, so the boolean
-        # chain appears inside the ?$ expression.  The ?$ should not be
-        # split off — the whole expression stays on one line even if it
-        # exceeds 80 columns, since ?$ (like $) is not a break point.
+        # chain appears inside the ?$ expression.  The ?$ suffix must be
+        # injected into the fill's last item so the fill accounts for
+        # its width when deciding where to break.
         code = (
             b"function some_func(c: connection): SomeInfo\n"
             b"\t{\n"
@@ -2071,9 +2071,12 @@ print 1;
         )
         result = self._format(code).decode()
         lines = result.strip().split("\n")
-        # The ?$ keeps the boolean chain on one line
-        if_line = [l for l in lines if "if (" in l][0]
-        self.assertIn("?$some_val", if_line)
+        # ?$some_val stays on the same line as its operand
+        val_line = [l for l in lines if "?$some_val" in l][0]
+        self.assertIn("rec$some_field[0]?$some_val", val_line)
+        # The boolean chain should wrap (not overflow on one line)
+        for line in lines:
+            self.assertLessEqual(len(line.expandtabs(8)), 80)
 
     def test_boolean_chain_packs_with_fill(self):
         """&&/|| chains pack multiple operands per line instead of one-per-line."""
