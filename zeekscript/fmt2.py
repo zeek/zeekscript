@@ -1376,6 +1376,22 @@ def _has_adjacent_compact_if(node: Node, script: Script) -> bool:
     return False
 
 
+def _format_paren_expr(
+    kids: list[Node], idx: int, script: Script, use_align: bool = True,
+) -> tuple[Doc, int]:
+    """Format ( SPACE expr SPACE ) with format_child on ')' for CST siblings.
+
+    idx should point at the '(' child. Returns (doc, new_idx).
+    """
+    idx += 1  # skip '('
+    expr_doc = format_child(kids[idx], script)
+    idx += 1
+    close_doc = format_child(kids[idx], script)  # ')' — preserves trailing comments
+    idx += 1
+    inner = align(expr_doc) if use_align else expr_doc
+    return concat(text("("), SPACE, inner, SPACE, close_doc), idx
+
+
 def _format_stmt_if(node: Node, script: Script) -> Doc:
     kids = node.nonerr_children
     parts: list[Doc] = []
@@ -1384,16 +1400,8 @@ def _format_stmt_if(node: Node, script: Script) -> Doc:
     parts.append(text("if"))  # 'if'
     idx += 1
     parts.append(SPACE)
-    parts.append(text("("))  # '('
-    idx += 1
-    parts.append(SPACE)
-    # Align condition to after '( '
-    cond_doc = format_child(kids[idx], script)  # <expr>
-    idx += 1
-    parts.append(align(cond_doc))
-    parts.append(SPACE)
-    parts.append(text(")"))  # ')'
-    idx += 1
+    paren_doc, idx = _format_paren_expr(kids, idx, script)
+    parts.append(paren_doc)
 
     # Body
     body_child = kids[idx]
@@ -1515,7 +1523,7 @@ def _format_stmt_for(node: Node, script: Script) -> Doc:
         idx += 1
 
     parts.append(SPACE)
-    parts.append(text(")"))  # ')'
+    parts.append(format_child(kids[idx], script))  # ')' — use format_child for trailing comments
     idx += 1
 
     # Body
@@ -1527,16 +1535,11 @@ def _format_stmt_for(node: Node, script: Script) -> Doc:
 
 def _format_stmt_while(node: Node, script: Script) -> Doc:
     kids = node.nonerr_children
-    parts = [text("while"), SPACE, text("("), SPACE]
-    idx = 2  # skip 'while' and '('
+    parts = [text("while"), SPACE]
+    idx = 1  # skip 'while'
 
-    # Condition
-    cond_doc = format_child(kids[idx], script)
-    parts.append(align(cond_doc))
-    idx += 1
-    parts.append(SPACE)
-    parts.append(text(")"))  # ')'
-    idx += 1
+    paren_doc, idx = _format_paren_expr(kids, idx, script)
+    parts.append(paren_doc)
 
     # Body
     if idx < len(kids):
@@ -1622,14 +1625,8 @@ def _format_when_clause(kids: list[Node], start_idx: int, script: Script) -> Doc
         parts.append(SPACE)
         idx += 1
 
-    parts.append(text("("))  # '('
-    idx += 1
-    parts.append(SPACE)
-    parts.append(format_child(kids[idx], script))  # <expr>
-    idx += 1
-    parts.append(SPACE)
-    parts.append(text(")"))  # ')'
-    idx += 1
+    paren_doc, idx = _format_paren_expr(kids, idx, script, use_align=False)
+    parts.append(paren_doc)
 
     # Body
     if idx < len(kids):

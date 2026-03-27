@@ -1826,6 +1826,39 @@ print 1;
         result = self._format(code).decode()
         self.assertIn("{ # Start tracking.", result)
 
+    def test_trailing_comment_on_if_close_paren(self):
+        code = (
+            b"function some_func(a: count, b: string, rec: SomeRec)\n"
+            b"\t{\n"
+            b"\tif ( rec in did_check ) #@ BEGIN-SKIP-TESTING\n"
+            b"\t\treturn;\n"
+            b"\t}\n"
+        )
+        result = self._format(code).decode()
+        self.assertIn(") #@ BEGIN-SKIP-TESTING", result)
+
+    def test_trailing_comment_on_for_close_paren(self):
+        code = (
+            b"event some_evt()\n"
+            b"\t{\n"
+            b"\tfor ( idx in some_list ) # iterate items\n"
+            b"\t\tprint idx;\n"
+            b"\t}\n"
+        )
+        result = self._format(code).decode()
+        self.assertIn(") # iterate items", result)
+
+    def test_trailing_comment_on_while_close_paren(self):
+        code = (
+            b"event some_evt()\n"
+            b"\t{\n"
+            b"\twhile ( some_flag ) # keep going\n"
+            b"\t\tprint 1;\n"
+            b"\t}\n"
+        )
+        result = self._format(code).decode()
+        self.assertIn(") # keep going", result)
+
     def test_event_attr_wraps_when_header_overflows(self):
         code = (
             b'event ssl_extension(c: connection, is_client: bool,'
