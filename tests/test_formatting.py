@@ -1503,6 +1503,13 @@ print 1;
         self.assertIn("some_long_pattern_name", result)
 
 
+    def test_preproc_after_blank_line_no_extra_blank(self):
+        """Preproc directive after a blank line shouldn't gain an extra blank."""
+        code = b"module SomeMod;\n\n@load ./const\n"
+        result = self._format(code).decode()
+        # Should have exactly one blank line between module and @load
+        self.assertEqual(result, "module SomeMod;\n\n@load ./const\n")
+
     def test_vector_constructor_inline(self):
         code = b"const xs: vector of count = {1, 2, 3};"
         result = self._format(code).decode()

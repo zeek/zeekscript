@@ -475,7 +475,7 @@ def _format_body_items(nodes: list[Node], script: Script,
                 blank_before = True
         if blank_before:
             parts.append(HARDLINE)
-        if is_preproc:
+        if is_preproc and not blank_before:
             parts.append(COLUMN0LINE)
             if effective_depth > 0:
                 parts.append(text("\t" * effective_depth))
