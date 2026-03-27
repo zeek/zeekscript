@@ -672,6 +672,7 @@ def _format_typed_initializer(kids: list[Node], start_idx: int, script: Script) 
         idx += 1
 
     init_doc = EMPTY
+    is_constructor_init = False
     if idx < len(kids) and _name(kids[idx]) == "initializer":
         # Transform { } to constructor() form when type is known,
         # or auto-detect set/table when no explicit type
@@ -679,6 +680,14 @@ def _format_typed_initializer(kids: list[Node], start_idx: int, script: Script) 
             constructor = ""  # sentinel: auto-detect from content
         else:
             constructor = type_name  # None if type isn't vector/table/set
+        # Detect if the initializer is a constructor form (brace or
+        # set/vector/table call) — attr_list placement differs.
+        if constructor is not None:
+            init_kids = kids[idx].nonerr_children
+            if len(init_kids) >= 2:
+                expr_kids = init_kids[1].nonerr_children
+                if expr_kids and _tok(expr_kids[0]) in ("{", "set", "vector", "table"):
+                    is_constructor_init = True
         init_doc = concat(SPACE, _format_initializer_node(
             kids[idx], script, constructor=constructor))
         idx += 1
@@ -691,7 +700,7 @@ def _format_typed_initializer(kids: list[Node], start_idx: int, script: Script) 
     if has_explicit_type:
         parts.append(text(":"))
         parts.append(SPACE)
-        if attr_doc != EMPTY:
+        if attr_doc != EMPTY and not is_constructor_init:
             # align() captures column at the type keyword.  The inner
             # group() independently checks whether attr fits on the
             # current line; if not, SOFTLINE breaks to align indent
@@ -701,8 +710,13 @@ def _format_typed_initializer(kids: list[Node], start_idx: int, script: Script) 
                 group(concat(SOFTLINE, text(" "), attr_doc)),
             )))
         else:
+            # Constructor initializer or no attr: attr follows the
+            # closing ')' directly with a space (no type-column align).
             parts.append(type_doc)
             parts.append(init_doc)
+            if attr_doc != EMPTY:
+                parts.append(SPACE)
+                parts.append(attr_doc)
     else:
         parts.append(init_doc)
         if attr_doc != EMPTY:

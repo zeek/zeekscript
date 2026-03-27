@@ -2043,3 +2043,23 @@ class TestIRFormatting(unittest.TestCase):
         # Each line should fit in 80 columns
         for line in lines:
             self.assertLessEqual(len(line), 80, f"Line too long: {repr(line)}")
+
+    def test_constructor_attr_follows_closing_paren(self):
+        """Attributes on constructor initializers follow ')' with a space."""
+        code = (
+            b'const some_lookup: table[string] of string = {\n'
+            b'    ["some-key-aa"] = "val-aa",\n'
+            b'    ["some-key-bb"] = "val-bb",\n'
+            b'    ["some-key-cc"] = "val-cc",\n'
+            b'    ["some-key-dd"] = "val-dd",\n'
+            b'} &default = function(n: string): string\n'
+            b'    {\n'
+            b'    return fmt("fixme-%s", n);\n'
+            b'    };\n'
+        )
+        result = self._format(code).decode()
+        lines = result.strip().split("\n")
+        # The ')' line should have &default on the same line
+        paren_line = [l for l in lines if l.startswith(")")][0]
+        self.assertIn(") &default", paren_line,
+                       "&default should follow ) with a space")
