@@ -2309,6 +2309,25 @@ print 1;
         self.assertIn("some_func(arg_one, arg_two, arg_three)", result)
 
 
+    def test_fill_balance_three_lines(self):
+        """Fill should produce 3 balanced lines, not pack line 2 much longer than line 3."""
+        code = (
+            b"event some_event()\n"
+            b"\t{\n"
+            b"\tif ( some_condition )\n"
+            b"\t\tSomeModule::some_long_call(some_first_arg,\n"
+            b"\t\t                           some_func(aa$xx, aa$yy),\n"
+            b"\t\t                           some_other_arg, bb, cc);\n"
+            b"\t}\n"
+        )
+        result = self._format(code).decode()
+        lines = result.strip().split("\n")
+        # The call args should break into 3 lines, not pack
+        # some_func(...) and some_other_arg onto the same line
+        call_lines = [l for l in lines if "some_func" in l or "some_other_arg" in l]
+        self.assertEqual(len(call_lines), 2,
+                         f"Expected some_func and some_other_arg on separate lines:\n{result}")
+
 class TestFormattingErrors(unittest.TestCase):
     def _format(self, content):
         script = zeekscript.Script(io.BytesIO(content))
