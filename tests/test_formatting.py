@@ -2363,6 +2363,18 @@ print 1;
         self.assertEqual(len(arg_lines), 3,
                          f"Expected 3 lines of formal args:\n{result}")
 
+    def test_record_constructor_preserves_annotation_on_comma(self):
+        """#@ annotation comments on record field commas must be preserved."""
+        code = (
+            b"event some_event()\n"
+            b"\t{\n"
+            b"\tsome_func([$aa=BB, $cc=dd, #@ SOME-TAG\n"
+            b"\t           $ee=ff]);\n"
+            b"\t}\n"
+        )
+        result = self._format(code).decode()
+        self.assertIn("#@ SOME-TAG", result)
+
 class TestFormattingErrors(unittest.TestCase):
     def _format(self, content):
         script = zeekscript.Script(io.BytesIO(content))

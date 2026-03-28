@@ -2021,6 +2021,10 @@ def _format_record_constructor(node: Node, script: Script, do_linebreak: bool) -
     for f in fields:
         field_docs.append(format_child(f, script))
 
+    # Collect comma nodes from the expr_list so format_child can
+    # pick up CST siblings (e.g. #@ annotation comments).
+    comma_nodes = [c for c in expr_list.nonerr_children if _tok(c) == ","]
+
     # Use fill() with LINE separators so fields can wrap when the
     # enclosing context (e.g., a function call) needs line breaks.
     # fill() packs as many fields per line as fit.
@@ -2036,10 +2040,11 @@ def _format_record_constructor(node: Node, script: Script, do_linebreak: bool) -
     for i in range(1, len(field_docs)):
         prev = field_docs[i - 1]
         prev_fw = _flat_width(prev, MAX_WIDTH)
+        comma_doc = format_child(comma_nodes[i - 1], script) if i - 1 < len(comma_nodes) else text(",")
         if _can_break(prev) and (prev_fw is None or prev_fw + min_col >= MAX_WIDTH):
-            fill_parts.append(concat(text(","), HARDLINE))
+            fill_parts.append(concat(comma_doc, HARDLINE))
         else:
-            fill_parts.append(concat(text(","), LINE))
+            fill_parts.append(concat(comma_doc, LINE))
         fill_parts.append(field_docs[i])
     items = fill(*fill_parts)
     return concat(
