@@ -755,14 +755,37 @@ def _format_typed_initializer(kids: list[Node], start_idx: int, script: Script,
                 expr_kids = init_kids[1].nonerr_children
                 if expr_kids and _tok(expr_kids[0]) in ("{", "set", "vector", "table"):
                     is_constructor_init = True
+
+        # Look ahead for attr_list.  For non-constructor initializers
+        # without an explicit type, include attrs in the initializer's
+        # trailing so its group accounts for them when deciding whether
+        # to break at '='.
+        attr_idx = idx + 1
+        attr_doc = EMPTY
+        if attr_idx < len(kids) and _name(kids[attr_idx]) == "attr_list":
+            attr_doc = format_child(kids[attr_idx], script)
+        init_trailing = trailing
+        attr_in_trailing = False
+        if (attr_doc != EMPTY and not is_constructor_init
+                and not has_explicit_type):
+            init_trailing = concat(SPACE, attr_doc, trailing)
+            attr_in_trailing = True
+
         init_doc = concat(SPACE, _format_initializer_node(
-            kids[idx], script, constructor=constructor, trailing=trailing))
+            kids[idx], script, constructor=constructor, trailing=init_trailing))
         idx += 1
 
-    attr_doc = EMPTY
-    if idx < len(kids) and _name(kids[idx]) == "attr_list":
-        attr_doc = format_child(kids[idx], script)
-        idx += 1
+        if attr_doc == EMPTY and idx < len(kids) and _name(kids[idx]) == "attr_list":
+            attr_doc = format_child(kids[idx], script)
+            idx += 1
+        elif attr_doc != EMPTY:
+            idx += 1  # skip attr_list node already processed
+    else:
+        attr_doc = EMPTY
+        if idx < len(kids) and _name(kids[idx]) == "attr_list":
+            attr_doc = format_child(kids[idx], script)
+            idx += 1
+        attr_in_trailing = False
 
     if has_explicit_type:
         parts.append(text(":"))
@@ -788,7 +811,7 @@ def _format_typed_initializer(kids: list[Node], start_idx: int, script: Script,
                 parts.append(attr_doc)
     else:
         parts.append(init_doc)
-        if attr_doc != EMPTY:
+        if attr_doc != EMPTY and not attr_in_trailing:
             parts.append(SPACE)
             parts.append(attr_doc)
 

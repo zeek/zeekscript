@@ -512,6 +512,23 @@ class TestFormatting(unittest.TestCase):
         # Args should stay on one line (not broken across lines)
         self.assertIn(', 4); # HASH', call_line)
 
+    def test_const_with_attr_breaks_at_equals(self):
+        """Const with &redef attr that would overflow should break at '='."""
+        code = (
+            b'export {\n'
+            b'    const cert_hygiene_server_wl_source =\n'
+            b'           "cert-hygiene-server-wl.txt" &redef;\n'
+            b'}\n'
+        )
+        result = self._format(code).decode()
+        lines = result.splitlines()
+        eq_line = [l for l in lines if 'cert_hygiene_server_wl_source' in l][0]
+        self.assertTrue(eq_line.rstrip().endswith('='),
+            f"Expected '=' at end of line, got: {eq_line!r}")
+        val_line = [l for l in lines if 'cert-hygiene-server-wl' in l][0]
+        self.assertIn('&redef;', val_line,
+            "Attr should be on same line as value after '=' break")
+
     def test_ternary_as_function_argument_alignment(self):
         """Ternary expressions as function arguments should preserve outer alignment."""
         code = b'function f() { if ( ! some_function_name(some_argument, new_file, extra_vals, some_uids, some_ids, info$source ? info$source : "", info$mime ? info$mime : "", info$md5 ? info$md5 : "") ) print "failed"; }'
