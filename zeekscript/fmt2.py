@@ -766,8 +766,7 @@ def _format_typed_initializer(kids: list[Node], start_idx: int, script: Script,
             attr_doc = format_child(kids[attr_idx], script)
         init_trailing = trailing
         attr_in_trailing = False
-        if (attr_doc != EMPTY and not is_constructor_init
-                and not has_explicit_type):
+        if attr_doc != EMPTY and not is_constructor_init:
             init_trailing = concat(SPACE, attr_doc, trailing)
             attr_in_trailing = True
 
@@ -790,7 +789,7 @@ def _format_typed_initializer(kids: list[Node], start_idx: int, script: Script,
     if has_explicit_type:
         parts.append(text(":"))
         parts.append(SPACE)
-        if attr_doc != EMPTY and not is_constructor_init:
+        if attr_doc != EMPTY and not is_constructor_init and not attr_in_trailing:
             # align() captures column at the type keyword.  The inner
             # group() independently checks whether attr fits on the
             # current line; if not, SOFTLINE breaks to align indent
@@ -806,7 +805,7 @@ def _format_typed_initializer(kids: list[Node], start_idx: int, script: Script,
             # closing ')' directly with a space (no type-column align).
             parts.append(type_doc)
             parts.append(init_doc)
-            if attr_doc != EMPTY:
+            if attr_doc != EMPTY and not attr_in_trailing:
                 parts.append(SPACE)
                 parts.append(attr_doc)
     else:
@@ -2581,6 +2580,14 @@ def _format_initializer_node(node: Node, script: Script,
         # to break LINE after '='. Keep '= function(...)' together instead.
         if _has_lambda(expr):
             return concat(text(op), SPACE, expr_doc, trailing)
+        # When trailing content is present (attrs, semi+comment),
+        # use tab-based indent — align-based continuation is often
+        # too deep when the type prefix consumes most of the line.
+        if trailing != EMPTY:
+            return group(concat(
+                text(op),
+                nest(1, dedent_spaces(concat(LINE, expr_doc, trailing))),
+            ))
         # Align continuation to column after '= '. When the group
         # breaks, if_break inserts a newline aligned to after '= '.
         return group(concat(
@@ -2589,7 +2596,6 @@ def _format_initializer_node(node: Node, script: Script,
             align(concat(
                 if_break(broken=LINE, flat=EMPTY),
                 expr_doc,
-                trailing,
             )),
         ))
 

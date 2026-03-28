@@ -529,6 +529,23 @@ class TestFormatting(unittest.TestCase):
         self.assertIn('&redef;', val_line,
             "Attr should be on same line as value after '=' break")
 
+    def test_typed_const_with_attr_breaks_at_equals(self):
+        """Typed const with &redef attr that would overflow should break at '='."""
+        code = (
+            b'export {\n'
+            b'    const default_analyzer: PacketAnalyzer::Tag ='
+            b' PacketAnalyzer::ANALYZER_IP &redef;\n'
+            b'}\n'
+        )
+        result = self._format(code).decode()
+        lines = result.splitlines()
+        eq_line = [l for l in lines if 'default_analyzer' in l][0]
+        self.assertTrue(eq_line.rstrip().endswith('='),
+            f"Expected '=' at end of line, got: {eq_line!r}")
+        val_line = [l for l in lines if 'ANALYZER_IP' in l][0]
+        self.assertIn('&redef;', val_line,
+            "Attr should be on same line as value after '=' break")
+
     def test_ternary_as_function_argument_alignment(self):
         """Ternary expressions as function arguments should preserve outer alignment."""
         code = b'function f() { if ( ! some_function_name(some_argument, new_file, extra_vals, some_uids, some_ids, info$source ? info$source : "", info$mime ? info$mime : "", info$md5 ? info$md5 : "") ) print "failed"; }'
