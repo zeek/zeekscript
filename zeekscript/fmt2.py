@@ -314,8 +314,14 @@ def _prev_cst_has_blank_line(node: Node) -> bool:
 def _has_deep_arg(node: Node) -> bool:
     """True if node is a call whose args contain a nested call or index expression.
 
-    These create compounding alignment that overflows when preceded by a
-    long variable name in an initializer.
+    Used in _format_initializer_node to decide whether to allow breaking at '='.
+    Nested calls (f(g(...))) and index expressions (f(data[...])) create
+    compounding alignment: the outer call aligns after '(', and the inner
+    call/index aligns again, pushing continuation lines past MAX_WIDTH.
+
+    A simple flat-width threshold was tried first but was too aggressive —
+    it caught simple calls with flat args (e.g. f(a, "b")) that break
+    cleanly internally without overflow.
     """
     kids = node.nonerr_children or []
     if len(kids) < 3:
@@ -2571,9 +2577,28 @@ def _format_initializer_node(node: Node, script: Script,
                              constructor: str | None = None,
                              trailing: Doc = EMPTY) -> Doc:
     # <init_class> <expr>  where init_class contains '=' or '+=' etc.
-    # constructor: None = no transform, "" = auto-detect, "vector"/"table"/"set" = use that name
-    # trailing: extra doc (e.g. "; # comment") to include in the initializer's
-    #   group so its width is factored into the flat/break decision.
+    #
+    # constructor: None = no transform (explicit type with non-constructor name),
+    #   "" = auto-detect from content, "vector"/"table"/"set" = use that name.
+    # trailing: extra doc (e.g. "; # comment", attrs) to include in the
+    #   initializer's group so its width is factored into the flat/break decision.
+    #
+    # Decision tree for "= expr" layout (constructor is not None path):
+    #   Non-constructor expression (first_tok not in { [ set vector table):
+    #     - Very wide (>3*MAX_WIDTH): break at = with nest
+    #     - Atomic (no internal breaks): break at = with nest
+    #     - Has trailing content: break at = with nest (accounts for trailing width)
+    #     - Has deep arg (nested call or index_slice): break at = with nest
+    #       (prevents compounding alignment overflow)
+    #     - Otherwise: keep "= expr" together, let expr break internally
+    #   Constructor expression:
+    #     - Fits on continuation (expr_w + TAB < MAX): break at =/+= with nest
+    #     - Wide constructor: keep together, break internally
+    #
+    # Decision tree (constructor is None path — explicit type, non-constructor):
+    #   - Lambda RHS: keep "= function(...)" together
+    #   - Has trailing: break at = with nest (align too deep after long type prefix)
+    #   - Otherwise: align continuation to column after "= "
     kids = node.nonerr_children
     init_class = kids[0]  # contains the operator token
     op = _source_str(init_class, script)
