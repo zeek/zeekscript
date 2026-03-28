@@ -1051,15 +1051,8 @@ def _format_enum_body_inline(node: Node, script: Script) -> Doc:
                 parts.append(SPACE)
             parts.append(format_child(child, script))
         elif _tok(child) == ",":
-            parts.append(text(","))
+            parts.append(format_child(child, script))
     return concat(*parts)
-
-
-def _format_enum_body(node: Node, script: Script) -> Doc:
-    """Dispatch for enum_body - used when it appears standalone."""
-    # Context determines whether to use multiline or inline
-    # By default, use inline and let the group decide
-    return _format_enum_body_inline(node, script)
 
 
 # ---------------------------------------------------------------------------
@@ -1288,7 +1281,7 @@ def _format_redef_enum_decl(node: Node, script: Script) -> Doc:
     if idx < len(kids) and _name(kids[idx]) == "enum_body":
         enum_body = kids[idx]
         if not do_linebreak:
-            do_linebreak = _compact_length(enum_body) > 60  # generous threshold
+            do_linebreak = _compact_length(enum_body) > 60  # stricter: redef prefix is longer
 
         if do_linebreak:
             pre_body = _format_prev_cst(enum_body, script)
@@ -2612,31 +2605,15 @@ def _format_initializer_node(node: Node, script: Script,
         first_tok = _tok(expr_kids[0]) if expr_kids else None
         if first_tok not in ("{", "[", "set", "vector", "table"):
             expr_w = _flat_width(expr_doc, 500)
-            if expr_w is not None and expr_w > 3 * MAX_WIDTH:
-                return group(concat(
-                    text(op),
-                    nest(1, dedent_spaces(concat(LINE, expr_doc, trailing))),
-                ))
-            # Atomic RHS (no internal break points) — allow breaking
-            # at '=' so the expression can move to the next line.
-            if not _can_break(expr_doc):
-                return group(concat(
-                    text(op),
-                    nest(1, dedent_spaces(concat(LINE, expr_doc, trailing))),
-                ))
-            # Breakable with trailing content that could cause overflow:
-            # include trailing in a group so the flat width check accounts
-            # for it.  When it doesn't fit, breaks at '=' instead of
-            # forcing the expression's internal fill to break.
-            if trailing != EMPTY:
-                return group(concat(
-                    text(op),
-                    nest(1, dedent_spaces(concat(LINE, expr_doc, trailing))),
-                ))
-            # Nested calls (e.g. f(g(...))): internal alignment compounds,
-            # so allow breaking at '=' to give the expression a shallower
-            # starting column.
-            if _has_deep_arg(expr):
+            # Break at '=' when any of these hold:
+            #  - Very wide (>3*MAX_WIDTH)
+            #  - Atomic (no internal breaks, so nowhere else to break)
+            #  - Has trailing content (semi+comment, attrs) that adds width
+            #  - Has deep args (nested calls compound alignment overflow)
+            if ((expr_w is not None and expr_w > 3 * MAX_WIDTH)
+                    or not _can_break(expr_doc)
+                    or trailing != EMPTY
+                    or _has_deep_arg(expr)):
                 return group(concat(
                     text(op),
                     nest(1, dedent_spaces(concat(LINE, expr_doc, trailing))),
@@ -3056,7 +3033,7 @@ _FORMATTERS: dict[str, callable] = {
     "formal_args": _format_formal_args,
     "formal_arg": _format_formal_arg,
     "func_body": _format_func_body,
-    "enum_body": _format_enum_body,
+    "enum_body": _format_enum_body_inline,
     "redef_enum_decl": _format_redef_enum_decl,
     "redef_record_decl": _format_redef_record_decl,
     "stmt": _format_stmt,
