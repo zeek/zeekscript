@@ -452,6 +452,7 @@ def resolve(doc: Doc, max_width: int = MAX_WIDTH) -> bytes:
                     line2_len = indent.width() + d.remaining_flat_width
                     if (d.balance
                             and d.remaining_flat_width > 0
+                            and after_col >= max_width * 3 // 4
                             and line2_len <= after_col * 3 // 4):
                         # Check that breaking actually improves balance.
                         # If we keep flat: line1=after_col, line2=line2_len.

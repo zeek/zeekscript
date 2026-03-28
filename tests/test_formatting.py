@@ -2346,6 +2346,23 @@ print 1;
         self.assertEqual(len(or_lines), 1,
                          f"Expected both || on the same line:\n{result}")
 
+    def test_fill_balance_no_split_on_short_line(self):
+        """Balance should not split a short line that packs fine under max_width."""
+        code = (
+            b"event some_handler(aa: connection, bb: bool, cc: count, dd: string,\n"
+            b"                   ee: string, ff: string, gg: string,\n"
+            b"                   hh: string, ii: string, jj: bool)\n"
+            b"\t{\n"
+            b"\t}\n"
+        )
+        result = self._format(code).decode()
+        lines = result.strip().split("\n")
+        # All formal args should fit on 3 lines; balance should not
+        # split the 3rd line into two when it's well under 80 cols.
+        arg_lines = [l for l in lines if ": " in l]
+        self.assertEqual(len(arg_lines), 3,
+                         f"Expected 3 lines of formal args:\n{result}")
+
 class TestFormattingErrors(unittest.TestCase):
     def _format(self, content):
         script = zeekscript.Script(io.BytesIO(content))
