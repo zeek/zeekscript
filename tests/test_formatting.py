@@ -2328,6 +2328,24 @@ print 1;
         self.assertEqual(len(call_lines), 2,
                          f"Expected some_func and some_other_arg on separate lines:\n{result}")
 
+    def test_fill_balance_no_break_when_worse(self):
+        """Balance heuristic should not break when breaking makes lines less even."""
+        code = (
+            b"function some_func()\n"
+            b"\t{\n"
+            b"\tif ( ! aa?$bb_chain || |aa$bb_chain| == 0 ||\n"
+            b"\t     ! aa$bb_chain[0]?$cc )\n"
+            b"\t\treturn dd;\n"
+            b"\t}\n"
+        )
+        result = self._format(code).decode()
+        # The || chain should break after the second ||, not the first.
+        # Breaking at the first would leave line 1 short and line 2 long.
+        lines = result.strip().split("\n")
+        or_lines = [l for l in lines if "||" in l]
+        self.assertEqual(len(or_lines), 1,
+                         f"Expected both || on the same line:\n{result}")
+
 class TestFormattingErrors(unittest.TestCase):
     def _format(self, content):
         script = zeekscript.Script(io.BytesIO(content))

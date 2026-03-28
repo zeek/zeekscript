@@ -453,8 +453,16 @@ def resolve(doc: Doc, max_width: int = MAX_WIDTH) -> bytes:
                     if (d.balance
                             and d.remaining_flat_width > 0
                             and line2_len <= after_col * 3 // 4):
-                        # Unbalanced: break to get more content on line 2
-                        stack.append((indent, _BREAK, d.doc))
+                        # Check that breaking actually improves balance.
+                        # If we keep flat: line1=after_col, line2=line2_len.
+                        # If we break: line1=col, line2=indent+fw+remaining.
+                        break_line2 = indent.width() + fw + d.remaining_flat_width
+                        flat_diff = after_col - line2_len
+                        break_diff = abs(break_line2 - col)
+                        if break_diff < flat_diff:
+                            stack.append((indent, _BREAK, d.doc))
+                        else:
+                            stack.append((indent, _FLAT, d.doc))
                     else:
                         stack.append((indent, _FLAT, d.doc))
                 else:
