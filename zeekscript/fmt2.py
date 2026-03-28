@@ -566,11 +566,27 @@ def _format_body_items(nodes: list[Node], script: Script,
         blank_before = (i > 0
                         and _has_blank_between(items[i - 1][0], node,
                                                script.source))
+
+        # Comments before @endif/@else belong at the inner depth (before
+        # the decrement), not at the directive's own depth.  Extract them
+        # and emit with proper indentation before the directive itself.
+        pre_comment_doc = EMPTY
+        if (is_preproc and top_level
+                and _preproc_token(node) in ("@endif", "@else")):
+            inner_depth = depth + 1
+            pre_cst = _format_prev_cst(node, script)
+            if pre_cst != EMPTY:
+                # Prevent format_child from re-emitting these comments
+                node.prev_cst_siblings = []
+                pre_comment_doc = nest(inner_depth, pre_cst)
+
         if blank_before:
             # For non-preproc items at depth > 0, the blank line goes
             # inside the nest so the following content gets indented.
             if is_preproc or effective_depth == 0:
                 parts.append(HARDLINE)
+        if pre_comment_doc != EMPTY:
+            parts.append(pre_comment_doc)
         if is_preproc and not blank_before:
             parts.append(COLUMN0LINE)
             if effective_depth > 0:

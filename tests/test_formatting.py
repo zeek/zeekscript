@@ -1034,6 +1034,50 @@ print 1;
         self.assertEqual(lines[1], "\t@load foo")
         self.assertEqual(lines[3], "\t@load bar")
 
+    def test_comment_before_endif_indented(self):
+        """Comments before @endif should be indented at the inner preproc depth."""
+        code = (
+            b'@ifdef ( SOME_FEATURE )\n'
+            b'\n'
+            b'    event zeek_init()\n'
+            b'        {\n'
+            b'        print some_var;\n'
+            b'        }\n'
+            b'\n'
+            b'    # Note: This comment belongs inside the ifdef block.\n'
+            b'    # It should be tab-indented.\n'
+            b'@endif\n'
+        )
+        result = self._format(code).decode()
+        self.assertIn('\t# Note: This comment belongs', result)
+        self.assertIn('\t# It should be tab-indented.', result)
+        # @endif itself should be at column 0
+        self.assertIn('\n@endif\n', result)
+
+    def test_comment_before_else_indented_in_preproc(self):
+        """Comments before @else should be indented at the inner preproc depth."""
+        code = (
+            b'@ifdef ( SOME_FEATURE )\n'
+            b'\n'
+            b'    event zeek_init()\n'
+            b'        {\n'
+            b'        print some_var;\n'
+            b'        }\n'
+            b'\n'
+            b'    # Fallback path below.\n'
+            b'@else\n'
+            b'\n'
+            b'    event zeek_init()\n'
+            b'        {\n'
+            b'        print "other";\n'
+            b'        }\n'
+            b'\n'
+            b'@endif\n'
+        )
+        result = self._format(code).decode()
+        self.assertIn('\t# Fallback path below.', result)
+        self.assertIn('\n@else\n', result)
+
     def test_record_field_attr_list_no_misindent(self):
         """Record field attr_list should not produce MISINDENTATION on line break."""
         # This line is long enough to require breaking when deeply indented
