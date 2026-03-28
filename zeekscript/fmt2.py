@@ -311,6 +311,32 @@ def _prev_cst_has_blank_line(node: Node) -> bool:
     return has_comments and nl_count >= 2
 
 
+def _has_deep_arg(node: Node) -> bool:
+    """True if node is a call whose args contain a nested call or index expression.
+
+    These create compounding alignment that overflows when preceded by a
+    long variable name in an initializer.
+    """
+    kids = node.nonerr_children or []
+    if len(kids) < 3:
+        return False
+    # kids[0]=func, kids[1]='(', kids[2]=expr_list or ')'
+    expr_list = kids[2] if len(kids) > 2 and _name(kids[2]) == "expr_list" else None
+    if expr_list is None:
+        return False
+    for arg in (expr_list.nonerr_children or []):
+        if _name(arg) == "expr":
+            arg_kids = arg.nonerr_children or []
+            for c in arg_kids:
+                # Nested call: expr '(' ...
+                if _tok(c) == "(":
+                    return True
+                # Index/slice: expr [ ... ]
+                if _name(c) == "index_slice":
+                    return True
+    return False
+
+
 def _has_lambda(node: Node) -> bool:
     """True if node contains a begin_lambda child (anonymous function)."""
     for child in (node.nonerr_children or []):
@@ -2582,11 +2608,10 @@ def _format_initializer_node(node: Node, script: Script,
                     text(op),
                     nest(1, dedent_spaces(concat(LINE, expr_doc, trailing))),
                 ))
-            # Breakable non-constructor: allow breaking at '=' when
-            # the expression is wide enough that internal alignment
-            # could overflow (e.g. nested calls with long variable names).
-            expr_w2 = _flat_width(expr_doc, MAX_WIDTH)
-            if expr_w2 is not None and expr_w2 > MAX_WIDTH * 3 // 4:
+            # Nested calls (e.g. f(g(...))): internal alignment compounds,
+            # so allow breaking at '=' to give the expression a shallower
+            # starting column.
+            if _has_deep_arg(expr):
                 return group(concat(
                     text(op),
                     nest(1, dedent_spaces(concat(LINE, expr_doc, trailing))),

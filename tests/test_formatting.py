@@ -2525,8 +2525,8 @@ print 1;
         self.assertTrue(lines[0].rstrip().endswith("+="),
                         f"First line should end with +=:\n{result}")
 
-    def test_wide_expr_breaks_at_equals(self):
-        """Wide non-constructor expression should break at = to avoid deep internal alignment."""
+    def test_nested_call_breaks_at_equals(self):
+        """Nested call (call-in-call) should break at = to avoid deep internal alignment."""
         code = (
             b"function foo()\n"
             b"\t{\n"
@@ -2536,6 +2536,24 @@ print 1;
         result = self._format(code).decode()
         self.assertIn("multiplier =\n", result,
                       f"Expected break after =:\n{result}")
+        for line in result.split("\n"):
+            self.assertLessEqual(len(line.expandtabs(8)), 80,
+                                 f"Line too wide:\n{result}")
+
+    def test_simple_call_no_break_at_equals(self):
+        """Simple call (no nested call/index) should NOT break at =."""
+        code = (
+            b"function foo()\n"
+            b"\t{\n"
+            b"\tif ( Cluster::is_enabled() )\n"
+            b"\t\t{\n"
+            b'\t\tlocal pt = Cluster::rr_topic(Cluster::proxy_pool, "application-identification");\n'
+            b"\t\t}\n"
+            b"\t}\n"
+        )
+        result = self._format(code).decode()
+        self.assertNotIn("pt =\n", result,
+                         f"Should not break at =:\n{result}")
         for line in result.split("\n"):
             self.assertLessEqual(len(line.expandtabs(8)), 80,
                                  f"Line too wide:\n{result}")
