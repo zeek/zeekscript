@@ -2283,7 +2283,7 @@ def _format_expr_assignment(node: Node, script: Script) -> Doc:
         # RHS's additional alignment depth (e.g. a function call
         # name adds its width before '(' creates an align).
         rhs_fw = _flat_width(rhs, MAX_WIDTH)
-        if rhs_fw is not None and rhs_fw + TAB_SIZE < MAX_WIDTH:
+        if rhs_fw is not None and rhs_fw + TAB_SIZE <= MAX_WIDTH:
             lhs_fw = _flat_width(lhs, MAX_WIDTH) or MAX_WIDTH
             eq_offset = lhs_fw + len(op) + 2
             # Estimate how deep the RHS's first alignment goes —

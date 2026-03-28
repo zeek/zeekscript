@@ -2375,6 +2375,22 @@ print 1;
         result = self._format(code).decode()
         self.assertIn("#@ SOME-TAG", result)
 
+    def test_assignment_breaks_at_equals_when_rhs_barely_fits_nested(self):
+        """Break at '=' when RHS flat width + TAB_SIZE == MAX_WIDTH exactly."""
+        code = (
+            b"function some_func(): SomeModule::SomeType\n"
+            b"\t{\n"
+            b"\tif ( some_condition && some_other_condition )\n"
+            b"\t\tsome_long_variable_name[some_id] =\n"
+            b"\t\t\tSomeModule::SomeType($aa=result$aa,\n"
+            b"\t\t\t                     $bb_string=result$bb_string);\n"
+            b"\t}\n"
+        )
+        result = self._format(code).decode()
+        self.assertNotIn("MISINDENTATION", result)
+        # Should break at '=' with RHS on next line at nested indent
+        self.assertIn("=\n", result)
+
 class TestFormattingErrors(unittest.TestCase):
     def _format(self, content):
         script = zeekscript.Script(io.BytesIO(content))
