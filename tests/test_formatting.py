@@ -2513,6 +2513,33 @@ print 1;
         self.assertEqual(len(and_lines), 2,
                          f"Expected 2 lines with &&:\n{result}")
 
+    def test_redef_constructor_breaks_at_equals(self):
+        """Constructor that would overflow should break at += instead of one long line."""
+        code = (
+            b"redef SomeModule::some_generic_packet_thresholds += set(skip_conn_packet_threshold);\n"
+        )
+        result = self._format(code).decode()
+        self.assertIn("\n", result.strip(),
+                      f"Expected line break but got single line:\n{result}")
+        lines = result.strip().split("\n")
+        self.assertTrue(lines[0].rstrip().endswith("+="),
+                        f"First line should end with +=:\n{result}")
+
+    def test_wide_expr_breaks_at_equals(self):
+        """Wide non-constructor expression should break at = to avoid deep internal alignment."""
+        code = (
+            b"function foo()\n"
+            b"\t{\n"
+            b"\tlocal next_orig_multiplier = double_to_count(floor(c$orig$size / size_threshold_in_bytes));\n"
+            b"\t}\n"
+        )
+        result = self._format(code).decode()
+        self.assertIn("multiplier =\n", result,
+                      f"Expected break after =:\n{result}")
+        for line in result.split("\n"):
+            self.assertLessEqual(len(line.expandtabs(8)), 80,
+                                 f"Line too wide:\n{result}")
+
 class TestFormattingErrors(unittest.TestCase):
     def _format(self, content):
         script = zeekscript.Script(io.BytesIO(content))

@@ -2582,8 +2582,28 @@ def _format_initializer_node(node: Node, script: Script,
                     text(op),
                     nest(1, dedent_spaces(concat(LINE, expr_doc, trailing))),
                 ))
-        # Constructor or breakable expression: keep "= expr" together
-        return concat(text(op), SPACE, expr_doc, trailing)
+            # Breakable non-constructor: allow breaking at '=' when
+            # the expression is wide enough that internal alignment
+            # could overflow (e.g. nested calls with long variable names).
+            expr_w2 = _flat_width(expr_doc, MAX_WIDTH)
+            if expr_w2 is not None and expr_w2 > MAX_WIDTH * 3 // 4:
+                return group(concat(
+                    text(op),
+                    nest(1, dedent_spaces(concat(LINE, expr_doc, trailing))),
+                ))
+            # Narrower non-constructor: keep "= expr" together
+            return concat(text(op), SPACE, expr_doc, trailing)
+        else:
+            # Constructor that fits on a continuation line: allow breaking
+            # at '=' when the line would otherwise overflow.
+            expr_w = _flat_width(expr_doc, MAX_WIDTH)
+            if expr_w is not None and expr_w + TAB_SIZE < MAX_WIDTH:
+                return group(concat(
+                    text(op),
+                    nest(1, dedent_spaces(concat(LINE, expr_doc, trailing))),
+                ))
+            # Wide constructor: keep "= expr" together, let it break internally
+            return concat(text(op), SPACE, expr_doc, trailing)
     else:
         expr_doc = format_child(expr, script)
         # Lambda RHS: func_body has HARDLINE which would force the group
