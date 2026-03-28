@@ -719,7 +719,8 @@ def _type_constructor_name(type_node: Node) -> str | None:
     return None
 
 
-def _format_typed_initializer(kids: list[Node], start_idx: int, script: Script) -> tuple[Doc, int]:
+def _format_typed_initializer(kids: list[Node], start_idx: int, script: Script,
+                              trailing: Doc = EMPTY) -> tuple[Doc, int]:
     """Format [: <type>] [<initializer>] [<attr_list>] sequence.
 
     Returns (doc, next_idx).
@@ -755,7 +756,7 @@ def _format_typed_initializer(kids: list[Node], start_idx: int, script: Script) 
                 if expr_kids and _tok(expr_kids[0]) in ("{", "set", "vector", "table"):
                     is_constructor_init = True
         init_doc = concat(SPACE, _format_initializer_node(
-            kids[idx], script, constructor=constructor))
+            kids[idx], script, constructor=constructor, trailing=trailing))
         idx += 1
 
     attr_doc = EMPTY
@@ -1674,14 +1675,27 @@ def _format_stmt_local(node: Node, script: Script) -> Doc:
     keyword = _source_str(kids[0], script)
     id_doc = format_child(kids[1], script)
 
-    typed_init, idx = _format_typed_initializer(kids, 2, script)
-    semi = format_child(kids[idx], script) if idx < len(kids) and _tok(kids[idx]) == ";" else EMPTY
+    # Check if the semicolon has a trailing comment (not an annotation).
+    # When it does, pass it to the initializer so its width is factored
+    # into the flat/break decision at '=', avoiding overflow.
+    semi_node = _find_semi(kids)
+    has_trailing_comment = semi_node is not None and any(
+        _is_comment(sib) and not _source_str(sib, script).startswith("#@")
+        for sib in (semi_node.next_cst_siblings or [])
+    )
+    semi = format_child(semi_node, script) if semi_node is not None else EMPTY
+    trailing = semi if has_trailing_comment else EMPTY
 
-    inner = concat(id_doc, typed_init) if typed_init != EMPTY else id_doc
+    typed_init, idx = _format_typed_initializer(kids, 2, script, trailing=trailing)
+    if has_trailing_comment:
+        inner = concat(id_doc, typed_init) if typed_init != EMPTY else concat(id_doc, semi)
+    else:
+        inner = concat(id_doc, typed_init) if typed_init != EMPTY else id_doc
+        inner = concat(inner, semi)
     return concat(
         text(keyword),
         SPACE,
-        group(align(concat(inner, semi))),
+        group(align(inner)),
         HARDLINE,
     )
 
@@ -2498,9 +2512,12 @@ def _format_initializer(node: Node, script: Script) -> Doc:
 
 
 def _format_initializer_node(node: Node, script: Script,
-                             constructor: str | None = None) -> Doc:
+                             constructor: str | None = None,
+                             trailing: Doc = EMPTY) -> Doc:
     # <init_class> <expr>  where init_class contains '=' or '+=' etc.
     # constructor: None = no transform, "" = auto-detect, "vector"/"table"/"set" = use that name
+    # trailing: extra doc (e.g. "; # comment") to include in the initializer's
+    #   group so its width is factored into the flat/break decision.
     kids = node.nonerr_children
     init_class = kids[0]  # contains the operator token
     op = _source_str(init_class, script)
@@ -2517,23 +2534,32 @@ def _format_initializer_node(node: Node, script: Script,
             if expr_w is not None and expr_w > 3 * MAX_WIDTH:
                 return group(concat(
                     text(op),
-                    nest(1, dedent_spaces(concat(LINE, expr_doc))),
+                    nest(1, dedent_spaces(concat(LINE, expr_doc, trailing))),
                 ))
             # Atomic RHS (no internal break points) — allow breaking
             # at '=' so the expression can move to the next line.
             if not _can_break(expr_doc):
                 return group(concat(
                     text(op),
-                    nest(1, dedent_spaces(concat(LINE, expr_doc))),
+                    nest(1, dedent_spaces(concat(LINE, expr_doc, trailing))),
+                ))
+            # Breakable with trailing content that could cause overflow:
+            # include trailing in a group so the flat width check accounts
+            # for it.  When it doesn't fit, breaks at '=' instead of
+            # forcing the expression's internal fill to break.
+            if trailing != EMPTY:
+                return group(concat(
+                    text(op),
+                    nest(1, dedent_spaces(concat(LINE, expr_doc, trailing))),
                 ))
         # Constructor or breakable expression: keep "= expr" together
-        return concat(text(op), SPACE, expr_doc)
+        return concat(text(op), SPACE, expr_doc, trailing)
     else:
         expr_doc = format_child(expr, script)
         # Lambda RHS: func_body has HARDLINE which would force the group
         # to break LINE after '='. Keep '= function(...)' together instead.
         if _has_lambda(expr):
-            return concat(text(op), SPACE, expr_doc)
+            return concat(text(op), SPACE, expr_doc, trailing)
         # Align continuation to column after '= '. When the group
         # breaks, if_break inserts a newline aligned to after '= '.
         return group(concat(
@@ -2542,6 +2568,7 @@ def _format_initializer_node(node: Node, script: Script,
             align(concat(
                 if_break(broken=LINE, flat=EMPTY),
                 expr_doc,
+                trailing,
             )),
         ))
 

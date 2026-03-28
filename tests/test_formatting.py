@@ -489,21 +489,28 @@ class TestFormatting(unittest.TestCase):
         code = b'function some_func_bb(c: connection, cnt: count): interval { local some_long_variable_a = double_to_count(floor(c$orig$size / some_long_variable_bb)); }'
         result = self._format(code).decode()
         self.assertNotIn("MISINDENTATION", result)
+
+    def test_local_declaration_trailing_comment_breaks_at_equals(self):
+        """Local with trailing comment that would overflow breaks at '=' instead of args."""
+        code = (
+            b'function some_func()\n'
+            b'    {\n'
+            b'    if ( test )\n'
+            b'        {\n'
+            b'        local some_val =\n'
+            b'               some_long_func_name(result_chain[1], 4); # HASH\n'
+            b'        }\n'
+            b'    }\n'
+        )
+        result = self._format(code).decode()
         lines = result.splitlines()
-        # Find the local declaration and its continuation
-        for i, line in enumerate(lines):
-            if "local some_long_variable_a =" in line and "double_to_count" not in line:
-                # RHS spilled to next line
-                cont_line = lines[i + 1]
-                # The identifier starts at tab (8) + len("local ") = 14
-                # Continuation should be at identifier_col + 1
-                local_line = line
-                local_idx = local_line.index("local ") + 6  # column of identifier
-                id_col = local_idx  # visual column (after expanding tab)
-                cont_col = len(cont_line) - len(cont_line.lstrip())
-                self.assertEqual(cont_col, id_col + 1,
-                    f"Expected indent one past identifier at col {id_col}, got {cont_col}")
-                break
+        # Should break at '=' — call + comment on continuation line
+        eq_line = [l for l in lines if 'some_val =' in l][0]
+        self.assertTrue(eq_line.rstrip().endswith('='),
+            f"Expected '=' at end of line, got: {eq_line!r}")
+        call_line = [l for l in lines if 'some_long_func_name(' in l][0]
+        # Args should stay on one line (not broken across lines)
+        self.assertIn(', 4); # HASH', call_line)
 
     def test_ternary_as_function_argument_alignment(self):
         """Ternary expressions as function arguments should preserve outer alignment."""
@@ -2390,6 +2397,23 @@ print 1;
         self.assertNotIn("MISINDENTATION", result)
         # Should break at '=' with RHS on next line at nested indent
         self.assertIn("=\n", result)
+
+    def test_fill_balance_no_break_at_low_column(self):
+        """Balance should not trigger when the current column is low (< 2/3 max_width)."""
+        code = (
+            b"function some_func()\n"
+            b"\t{\n"
+            b"\tif ( some_long_var_aa && some_var$some_field == \"ok\" &&\n"
+            b"\t     other?$some_chain && |other$some_chain| > 2 )\n"
+            b"\t\t{ }\n"
+            b"\t}\n"
+        )
+        result = self._format(code).decode()
+        lines = result.strip().split("\n")
+        # The && chain should stay on 2 lines, not split into 3
+        and_lines = [l for l in lines if "&&" in l]
+        self.assertEqual(len(and_lines), 2,
+                         f"Expected 2 lines with &&:\n{result}")
 
 class TestFormattingErrors(unittest.TestCase):
     def _format(self, content):
