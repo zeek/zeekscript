@@ -2370,6 +2370,25 @@ print 1;
         self.assertEqual(len(arg_lines), 3,
                          f"Expected 3 lines of formal args:\n{result}")
 
+    def test_record_constructor_newline_after_multiline_field(self):
+        """After a multiline record field, next field should start on a new line."""
+        code = (
+            b'event some_evt()\n'
+            b'    {\n'
+            b'    some_func([$aa=BB,\n'
+            b'              $cc=fmt("Host uses a weak certificate with %d bits",\n'
+            b'                      key_len),\n'
+            b'              $dd=e, $ff=SSL::some_suppression_interval,\n'
+            b'              $gg=cat(resp_h, c$id$resp_p, hash, key_len)]);\n'
+            b'    }\n'
+        )
+        result = self._format(code).decode()
+        lines = result.splitlines()
+        # $dd=e should be on its own line (not after key_len's closing paren)
+        paren_line = [l for l in lines if 'key_len),' in l][0]
+        self.assertNotIn('$dd=', paren_line,
+            f"Next field should not be on same line as multiline field's close paren: {paren_line!r}")
+
     def test_record_constructor_preserves_annotation_on_comma(self):
         """#@ annotation comments on record field commas must be preserved."""
         code = (

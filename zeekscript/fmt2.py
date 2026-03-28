@@ -2045,11 +2045,9 @@ def _format_record_constructor(node: Node, script: Script, do_linebreak: bool) -
     # After a field that will definitely span multiple lines (flat
     # width would overflow at any realistic alignment column and has
     # break points), use HARDLINE so the next field starts on a fresh
-    # line.  Record constructors always sit inside "[" plus at least
-    # one tab of nesting, so we use TAB_SIZE + 1 as a minimum column
-    # estimate to catch fields that are under MAX_WIDTH in isolation
-    # but overflow once alignment is applied.
-    min_col = TAB_SIZE + 1
+    # line.  Record constructors sit inside "[" and typically inside
+    # a function call, so alignment columns are at least 2 tabs deep.
+    min_col = TAB_SIZE * 2
     fill_parts: list[Doc] = [field_docs[0]]
     for i in range(1, len(field_docs)):
         prev = field_docs[i - 1]
