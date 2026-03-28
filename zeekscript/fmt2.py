@@ -2935,9 +2935,17 @@ def _format_pragma(node: Node, script: Script) -> Doc:
 
 
 def _format_begin_lambda(node: Node, script: Script) -> Doc:
-    # begin_lambda contains a single func_params child
+    # begin_lambda contains [capture_list] func_params
     kids = node.nonerr_children
-    return _format_func_params(kids[0], script)
+    parts: list[Doc] = []
+    for child in kids:
+        if _name(child) == "capture_list":
+            parts.append(format_child(child, script))
+        elif _name(child) == "func_params":
+            parts.append(_format_func_params(child, script))
+        else:
+            parts.append(format_child(child, script))
+    return concat(*parts)
 
 
 def _format_assert_msg(node: Node, script: Script) -> Doc:

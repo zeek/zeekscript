@@ -1557,6 +1557,24 @@ print 1;
         self.assertEqual(cont_col, eq_pos)
 
 
+    def test_lambda_with_capture_list(self):
+        """Lambda with capture list [var] should preserve the capture list."""
+        code = (
+            b'function foo()\n'
+            b'    {\n'
+            b'    some_handler(opt_id,\n'
+            b'        function[evt_grp](id: string, val: bool): bool\n'
+            b'            {\n'
+            b'            return val;\n'
+            b'            });\n'
+            b'    }\n'
+        )
+        result = self._format(code).decode()
+        self.assertIn('[evt_grp]', result,
+            "Capture list should be preserved in lambda")
+        self.assertIn('function[evt_grp](', result,
+            "Capture list should appear between 'function' and '('")
+
     def test_lambda_arg_starts_on_own_line(self):
         """Lambda args (not first) start on their own continuation line."""
         code = (
