@@ -973,6 +973,33 @@ print 1;
         # Should be indented with one tab
         self.assertTrue(print_line.startswith("\t"), f"Expected tab indent, got: {repr(print_line)}")
 
+    def test_preproc_ifdef_indents_multiple_items(self):
+        """Multiple items inside @ifdef at top level should all be indented."""
+        code = (
+            b'@ifdef ( SomeFeature )\n'
+            b'\n'
+            b'    module SomeMod;\n'
+            b'\n'
+            b'    const some_var = "some-value";\n'
+            b'\n'
+            b'    event zeek_init()\n'
+            b'        {\n'
+            b'        print some_var;\n'
+            b'        }\n'
+            b'@endif\n'
+        )
+        result = self._format(code).decode()
+        lines = result.splitlines()
+        # All non-preproc, non-blank lines should be indented
+        for line in lines:
+            if line and not line.startswith('@') and line.strip():
+                self.assertTrue(line.startswith('\t'),
+                    f"Expected tab indent, got: {line!r}")
+        # Should have exactly one blank line between items (not doubled)
+        text = result.strip()
+        self.assertNotIn('\n\n\n', text,
+            "Should not have double blank lines")
+
     def test_preproc_if_no_extra_indent_in_function(self):
         """Content inside @if blocks within functions should not get extra indent."""
         code = b'''function foo()

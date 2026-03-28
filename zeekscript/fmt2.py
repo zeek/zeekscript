@@ -525,7 +525,10 @@ def _format_body_items(nodes: list[Node], script: Script,
                     and not _prev_cst_has_blank_line(node)):
                 blank_before = True
         if blank_before:
-            parts.append(HARDLINE)
+            # For non-preproc items at depth > 0, the blank line goes
+            # inside the nest so the following content gets indented.
+            if is_preproc or effective_depth == 0:
+                parts.append(HARDLINE)
         if is_preproc and not blank_before:
             parts.append(COLUMN0LINE)
             if effective_depth > 0:
@@ -534,10 +537,17 @@ def _format_body_items(nodes: list[Node], script: Script,
         else:
             doc = format_child(node, script)
             if effective_depth > 0:
-                if prev_was_preproc:
-                    parts.append(nest(effective_depth, concat(HARDLINE, doc)))
-                else:
-                    parts.append(nest(effective_depth, doc))
+                # Always include a leading HARDLINE inside nest so the
+                # content starts at the correct indent column.
+                # When blank_before and prev was preproc, we need an
+                # extra HARDLINE (preproc has no trailing HARDLINE in
+                # a nest).  When prev was also nested non-preproc, its
+                # trailing HARDLINE + our content HARDLINE suffice.
+                leading: list[Doc] = []
+                if blank_before and prev_was_preproc:
+                    leading.append(HARDLINE)  # blank line
+                leading.append(HARDLINE)  # content line
+                parts.append(nest(effective_depth, concat(*leading, doc)))
             else:
                 if prev_was_preproc:
                     parts.append(HARDLINE)
