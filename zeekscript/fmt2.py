@@ -311,6 +311,21 @@ def _prev_cst_has_blank_line(node: Node) -> bool:
     return has_comments and nl_count >= 2
 
 
+def _has_blank_between(prev: Node, curr: Node, source: bytes) -> bool:
+    """True if there should be a blank line between prev and curr.
+
+    Checks _wants_blank_before first, then falls back to source-level
+    blank line detection (for cases where a trailing comment on prev
+    consumed the NL that would otherwise appear in curr's prev_cst).
+    Avoids double blank lines when _format_prev_cst already handles one.
+    """
+    if _wants_blank_before(curr):
+        return True
+    if not _prev_cst_has_blank_line(curr):
+        return _blank_line_in_source(prev, curr, source)
+    return False
+
+
 def _has_deep_arg(node: Node) -> bool:
     """True if node is a call whose args contain a nested call or index expression.
 
@@ -548,14 +563,9 @@ def _format_body_items(nodes: list[Node], script: Script,
         # Only apply preproc indent at top level (matching old formatter)
         effective_depth = depth if top_level else 0
 
-        blank_before = i > 0 and _wants_blank_before(node)
-        # Fallback: check source for blank lines missed by _wants_blank_before
-        # (e.g. when previous stmt has trailing comment consuming a NL)
-        if not blank_before and i > 0:
-            prev = items[i - 1][0]
-            if (_blank_line_in_source(prev, node, script.source)
-                    and not _prev_cst_has_blank_line(node)):
-                blank_before = True
+        blank_before = (i > 0
+                        and _has_blank_between(items[i - 1][0], node,
+                                               script.source))
         if blank_before:
             # For non-preproc items at depth > 0, the blank line goes
             # inside the nest so the following content gets indented.
@@ -667,13 +677,13 @@ def _parse_curly_block(kids: list[Node], start_idx: int, script: Script
     return open_brace_comment, stmts_doc, pre_close, idx
 
 
-def _format_curly_stmt_list(node: Node, script: Script, start_idx: int) -> tuple[Doc, int]:
+def _format_curly_stmt_list(kids: list[Node], start_idx: int, script: Script) -> tuple[Doc, int]:
     """Format '{' stmt_list '}' as Whitesmith block starting at start_idx.
 
     Returns (doc, next_idx).
     """
     obc, stmts_doc, pre_close, idx = _parse_curly_block(
-        node.nonerr_children, start_idx, script)
+        kids, start_idx, script)
 
     if stmts_doc == EMPTY and pre_close == EMPTY and obc == EMPTY:
         return text("{ }"), idx
@@ -949,12 +959,8 @@ def _format_type_record(node: Node, script: Script) -> Doc:
     body_parts: list[Doc] = []
     for i, ts in enumerate(type_specs):
         if i > 0:
-            blank = _wants_blank_before(ts)
-            if not blank and not _prev_cst_has_blank_line(ts):
-                blank = _blank_line_in_source(
-                    type_specs[i - 1], ts, script.source)
             body_parts.append(HARDLINE)
-            if blank:
+            if _has_blank_between(type_specs[i - 1], ts, script.source):
                 body_parts.append(HARDLINE)
         body_parts.append(format_child(ts, script))
 
@@ -1337,12 +1343,8 @@ def _format_redef_record_decl(node: Node, script: Script) -> Doc:
         if type_specs:
             body_parts: list[Doc] = [format_child(type_specs[0], script)]
             for i in range(1, len(type_specs)):
-                blank = (_wants_blank_before(type_specs[i])
-                         or (not _prev_cst_has_blank_line(type_specs[i])
-                             and _blank_line_in_source(type_specs[i - 1],
-                                                       type_specs[i],
-                                                       script.source)))
-                if blank:
+                if _has_blank_between(type_specs[i - 1], type_specs[i],
+                                      script.source):
                     body_parts.append(HARDLINE)
                 body_parts.append(HARDLINE)
                 body_parts.append(format_child(type_specs[i], script))
@@ -1464,7 +1466,7 @@ def _format_indented_body(child: Node, script: Script) -> Doc:
         # Use Whitesmith style directly — it includes its own nest(1).
         # Don't go through format_child/stmt dispatcher (which uses the
         # standalone block formatter).
-        doc, _ = _format_curly_stmt_list(child, script, 0)
+        doc, _ = _format_curly_stmt_list(child.nonerr_children, 0, script)
         # Add trailing HARDLINE so the stmt consistently ends with a newline
         # (Whitesmith blocks end with '}', not HARDLINE).
         return concat(doc, HARDLINE)
@@ -1791,22 +1793,12 @@ def _format_when_clause(kids: list[Node], start_idx: int, script: Script) -> Doc
         idx += 1
         # { stmt_list }
         if idx < len(kids):
-            block_doc, idx = _format_curly_stmt_list_from_kids(kids, idx, script)
+            block_doc, idx = _format_curly_stmt_list(kids, idx, script)
             parts.append(block_doc)
 
     parts.append(HARDLINE)
     return concat(*parts)
 
-
-def _format_curly_stmt_list_from_kids(kids: list[Node], start_idx: int, script: Script) -> tuple[Doc, int]:
-    """Format '{' stmt_list '}' as Whitesmith block from a flat kids list."""
-    obc, stmts_doc, pre_close, idx = _parse_curly_block(kids, start_idx, script)
-
-    if stmts_doc == EMPTY and pre_close == EMPTY:
-        return text("{ }"), idx
-
-    body = concat(stmts_doc, pre_close) if pre_close != EMPTY else stmts_doc
-    return _format_whitesmith_block(body, obc), idx
 
 
 def _format_stmt_index_assign(node: Node, script: Script) -> Doc:
@@ -2566,6 +2558,14 @@ def _format_initializer(node: Node, script: Script) -> Doc:
     return _format_initializer_node(node, script)
 
 
+def _equals_break(op: str, expr_doc: Doc, trailing: Doc) -> Doc:
+    """Format '= expr' with a group that breaks at '=' onto a tab-indented line."""
+    return group(concat(
+        text(op),
+        nest(1, dedent_spaces(concat(LINE, expr_doc, trailing))),
+    ))
+
+
 def _format_initializer_node(node: Node, script: Script,
                              constructor: str | None = None,
                              trailing: Doc = EMPTY) -> Doc:
@@ -2614,10 +2614,7 @@ def _format_initializer_node(node: Node, script: Script,
                     or not _can_break(expr_doc)
                     or trailing != EMPTY
                     or _has_deep_arg(expr)):
-                return group(concat(
-                    text(op),
-                    nest(1, dedent_spaces(concat(LINE, expr_doc, trailing))),
-                ))
+                return _equals_break(op, expr_doc, trailing)
             # Narrower non-constructor: keep "= expr" together
             return concat(text(op), SPACE, expr_doc, trailing)
         else:
@@ -2625,10 +2622,7 @@ def _format_initializer_node(node: Node, script: Script,
             # at '=' when the line would otherwise overflow.
             expr_w = _flat_width(expr_doc, MAX_WIDTH)
             if expr_w is not None and expr_w + TAB_SIZE < MAX_WIDTH:
-                return group(concat(
-                    text(op),
-                    nest(1, dedent_spaces(concat(LINE, expr_doc, trailing))),
-                ))
+                return _equals_break(op, expr_doc, trailing)
             # Wide constructor: keep "= expr" together, let it break internally
             return concat(text(op), SPACE, expr_doc, trailing)
     else:
@@ -2641,10 +2635,7 @@ def _format_initializer_node(node: Node, script: Script,
         # use tab-based indent — align-based continuation is often
         # too deep when the type prefix consumes most of the line.
         if trailing != EMPTY:
-            return group(concat(
-                text(op),
-                nest(1, dedent_spaces(concat(LINE, expr_doc, trailing))),
-            ))
+            return _equals_break(op, expr_doc, trailing)
         # Align continuation to column after '= '. When the group
         # breaks, if_break inserts a newline aligned to after '= '.
         return group(concat(
