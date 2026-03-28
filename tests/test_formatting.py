@@ -360,16 +360,33 @@ class TestFormatting(unittest.TestCase):
         code = b'global some_event_decl: event(o: string, label: string, conf: score, sources: set[string], caller: string);'
         result = self._format(code).decode()
         lines = result.splitlines()
-        # Should wrap and align continuation to after 'event('
+        # Should wrap — line is too long for 80 columns
         self.assertGreater(len(lines), 1)
-        # Find the column where 'o:' starts on line 1
-        line1 = lines[0]
-        o_col = line1.index('o:')
-        # Continuation should align to same column
-        line2 = lines[1]
-        # Find first non-space char in line2
-        first_char_col = len(line2) - len(line2.lstrip())
-        self.assertEqual(first_char_col, o_col)
+        # Find the line containing 'event(' — may be line 0 or later (colon-break)
+        event_line_idx = next(i for i, l in enumerate(lines) if '(' in l)
+        expanded_event = lines[event_line_idx].replace('\t', '        ')
+        paren_col = expanded_event.index('(') + 1
+        for line in lines[event_line_idx + 1:]:
+            if line.strip() and not line.strip().startswith(')'):
+                expanded = line.replace('\t', '        ')
+                first_char_col = len(expanded) - len(expanded.lstrip())
+                self.assertEqual(first_char_col, paren_col,
+                    f"Expected col {paren_col}, got {first_char_col}: {line!r}")
+
+    def test_event_type_breaks_when_deep(self):
+        """Event type in a global decl should break when line exceeds 80 cols."""
+        code = (
+            b'export {\n'
+            b'\tglobal SomeModule::some_long_handler: event(anomaly_data: SomePredictions);\n'
+            b'}\n'
+        )
+        result = self._format(code).decode()
+        # Line should break — the full line would be > 80
+        lines = result.splitlines()
+        event_line = [l for l in lines if 'event(' in l][0]
+        expanded = event_line.replace('\t', '        ')
+        self.assertLessEqual(len(expanded), 80,
+            f"Event type line too long ({len(expanded)}): {event_line!r}")
 
     def test_event_statement_argument_alignment(self):
         """Event statement arguments should align to after the opening paren."""
@@ -1093,7 +1110,7 @@ print 1;
         self.assertIn(b"&optional", result)
 
     def test_global_set_type_wraps_attr_when_long(self):
-        """set[...] type params flow across lines; attr wraps 1 space past type keyword."""
+        """set[...] type params flow across lines; attr wraps after colon-break."""
         code = (
             b'global some_long_cache_name:'
             b' set[string, subnet, subnet, transport_proto, SomeModule::SomeType]'
@@ -1104,32 +1121,33 @@ print 1;
         # All lines under 80 columns
         for line in lines:
             self.assertLessEqual(len(line), 80, f"Line too long: {repr(line)}")
-        # Type params flow (not one-per-line): first line has multiple types
+        # Type params flow (not one-per-line): type line has multiple types
         self.assertIn("set[string, subnet, subnet, transport_proto,", result)
         # attr_list wraps to its own line
         attr_line = [l for l in lines if "&read_expire" in l][0]
         self.assertNotIn("]", attr_line, "attr should be on its own line, not after ]")
-        # attr indented 1 space past where 'set' starts
+        # After colon-break, type and attr align at same tab indent
         set_line = [l for l in lines if "set[" in l][0]
-        set_col = set_line.index("set")
-        attr_col = len(attr_line) - len(attr_line.lstrip())
-        self.assertEqual(attr_col, set_col + 1,
-                         f"Expected attr at col {set_col+1}, got {attr_col}")
+        set_col = len(set_line.replace('\t', '        ')) - len(set_line.replace('\t', '        ').lstrip())
+        attr_col = len(attr_line.replace('\t', '        ')) - len(attr_line.replace('\t', '        ').lstrip())
+        self.assertEqual(attr_col, set_col,
+                         f"Expected attr at col {set_col}, got {attr_col}")
 
     def test_multiple_attrs_wrap_and_align(self):
         """Multiple attrs wrap one-per-line, all aligned to same column."""
         code = (
             b"global some_tracking_var: table[count, string] of TrackingRec\n"
-            b"\t&default_insert = TrackingRec() &create_expire = 10 sec;\n"
+            b"\t&default_insert = TrackingRec($field=val)"
+            b" &create_expire = 10 sec &redef;\n"
         )
         result = self._format(code).decode()
         lines = result.rstrip().split("\n")
         for line in lines:
             self.assertLessEqual(len(line), 80, repr(line))
         attr_lines = [l for l in lines if "&" in l]
-        self.assertEqual(len(attr_lines), 2, "Expected two attr lines")
-        col0 = attr_lines[0].index("&")
-        col1 = attr_lines[1].index("&")
+        self.assertGreaterEqual(len(attr_lines), 2, "Expected attrs to wrap")
+        col0 = attr_lines[0].replace('\t', '        ').index("&")
+        col1 = attr_lines[1].replace('\t', '        ').index("&")
         self.assertEqual(col0, col1, "Attrs should align to same column")
 
     def test_bracket_expr_flows_elements_across_lines(self):

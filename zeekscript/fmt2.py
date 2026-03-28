@@ -856,26 +856,19 @@ def _format_typed_initializer(kids: list[Node], start_idx: int, script: Script,
 
     if has_explicit_type:
         parts.append(text(":"))
-        parts.append(SPACE)
+        # The type doc may need to break after ':' when the type itself
+        # (e.g. event(long_params...)) pushes past 80 cols.  Use a
+        # separate group so this break is independent of the initializer.
+        type_with_break = group(nest(1, dedent_spaces(concat(
+            LINE, type_doc))))
+        parts.append(type_with_break)
+        parts.append(init_doc)
         if attr_doc != EMPTY and not is_constructor_init and not attr_in_trailing:
-            # align() captures column at the type keyword.  The inner
-            # group() independently checks whether attr fits on the
-            # current line; if not, SOFTLINE breaks to align indent
-            # and text(" ") gives 1-space offset past the type keyword.
-            # The inner align() around attr_doc ensures that when attrs
-            # wrap among themselves, they all align to the same column.
-            parts.append(align(concat(
-                type_doc, init_doc,
-                group(concat(SOFTLINE, text(" "), align(attr_doc))),
-            )))
-        else:
-            # Constructor initializer or no attr: attr follows the
-            # closing ')' directly with a space (no type-column align).
-            parts.append(type_doc)
-            parts.append(init_doc)
-            if attr_doc != EMPTY and not attr_in_trailing:
-                parts.append(SPACE)
-                parts.append(attr_doc)
+            parts.append(
+                group(concat(SOFTLINE, text(" "), align(attr_doc))))
+        elif attr_doc != EMPTY and not attr_in_trailing:
+            parts.append(SPACE)
+            parts.append(attr_doc)
     else:
         parts.append(init_doc)
         if attr_doc != EMPTY and not attr_in_trailing:
@@ -955,7 +948,8 @@ def _format_type(node: Node, script: Script) -> Doc:
                 inner_parts.append(format_child(kids[idx], script))
                 idx += 1
             if inner_parts:
-                parts.append(align(concat(*inner_parts, text(")"))))
+                args_doc = concat(*inner_parts)
+                parts.append(align(concat(args_doc, text(")"))))
             else:
                 parts.append(text(")"))
         return concat(*parts)
