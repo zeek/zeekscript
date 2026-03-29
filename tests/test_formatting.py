@@ -777,23 +777,35 @@ class TestFormatting(unittest.TestCase):
         self.assertEqual(len(question_only_lines), 0,
                         "Should not break after ? when : break suffices")
 
-    def test_type_declaration_keeps_colon(self):
-        """Type declarations should NOT break after the colon.
-
-        The colon in 'var: type' is different from ternary ':' and should
-        not be treated as a line break point.
-        """
+    def test_type_declaration_colon_break(self):
+        """Type declarations break after colon when type+attrs overflow."""
         code = b'''global some_table_name_a: table[count, string] of TrackingRec
         &default_insert = TrackingRec() &create_expire = 10 sec;'''
         result = self._format(code).decode()
         lines = result.splitlines()
-        # First line should contain "some_table_name_a:" followed by table type
-        first_line = lines[0]
-        self.assertIn("some_table_name_a:", first_line)
-        self.assertIn("table[", first_line)
-        # Should NOT have a line that's just "some_table_name_a:" followed by newline
-        bad_break = any(line.rstrip().endswith("some_table_name_a:") for line in lines)
-        self.assertFalse(bad_break, "Type declaration should not break after colon")
+        # Colon-break: identifier on line 0, type on indented continuation
+        self.assertTrue(lines[0].rstrip().endswith(":"))
+        self.assertIn("table[", result)
+        # All lines under 80 columns
+        for line in lines:
+            expanded = line.replace('\t', '        ')
+            self.assertLessEqual(len(expanded), 80, f"Line too long: {line!r}")
+
+    def test_type_attrs_together_on_indented_line(self):
+        """Type + attrs stay together on one indented line after colon-break."""
+        code = (
+            b'global ftp_connections_cache:'
+            b' set[string, string, string]'
+            b' &read_expire=cache_interval;\n'
+        )
+        result = self._format(code).decode()
+        lines = result.splitlines()
+        # Colon-break: identifier on line 0
+        self.assertTrue(lines[0].rstrip().endswith(":"))
+        # Type and attr together on the indented continuation line
+        type_attr_line = [l for l in lines if "set[" in l][0]
+        self.assertIn("&read_expire", type_attr_line,
+                       "Type and attr should be on the same line")
 
     def test_nested_function_call_alignment(self):
         """Nested function calls should align correctly when outer call wraps."""
@@ -2329,7 +2341,7 @@ print 1;
         result = self._format(code).decode()
         lines = result.strip().split("\n")
         # The ')' line should have &default on the same line
-        paren_line = [l for l in lines if l.startswith(")")][0]
+        paren_line = [l for l in lines if l.strip().startswith(")")][0]
         self.assertIn(") &default", paren_line,
                        "&default should follow ) with a space")
 

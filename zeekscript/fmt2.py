@@ -854,21 +854,44 @@ def _format_typed_initializer(kids: list[Node], start_idx: int, script: Script,
             idx += 1
         attr_in_trailing = False
 
+    has_initializer = init_doc != EMPTY
+
     if has_explicit_type:
         parts.append(text(":"))
-        # The type doc may need to break after ':' when the type itself
-        # (e.g. event(long_params...)) pushes past 80 cols.  Use a
-        # separate group so this break is independent of the initializer.
-        type_with_break = group(nest(1, dedent_spaces(concat(
-            LINE, type_doc))))
-        parts.append(type_with_break)
-        parts.append(init_doc)
-        if attr_doc != EMPTY and not is_constructor_init and not attr_in_trailing:
-            parts.append(
-                group(concat(SOFTLINE, text(" "), align(attr_doc))))
-        elif attr_doc != EMPTY and not attr_in_trailing:
-            parts.append(SPACE)
-            parts.append(attr_doc)
+        # The colon-break group wraps type_doc (and sometimes attrs) so
+        # the resolver can move them to an indented continuation line
+        # when they don't fit after the identifier.
+        #
+        # init_doc is kept OUTSIDE the group because multiline
+        # constructors contain HARDLINEs that would force the group to
+        # break unconditionally.
+        #
+        # Non-constructor attrs without an initializer are included IN
+        # the group so the flat-width check accounts for type+attr
+        # together — this way "global name: type &attr;" colon-breaks
+        # when type+attr overflow, keeping them on one indented line.
+        include_attrs = (attr_doc != EMPTY and not attr_in_trailing
+                         and not is_constructor_init and not has_initializer)
+        if include_attrs:
+            # Inner group: if type+attr fit on the indented line, LINE
+            # stays flat (space).  If not, LINE breaks and attr goes to
+            # its own line at the same indent.
+            type_with_break = group(nest(1, dedent_spaces(concat(
+                LINE, type_doc, group(concat(LINE, attr_doc))))))
+            parts.append(type_with_break)
+        else:
+            type_with_break = group(nest(1, dedent_spaces(concat(
+                LINE, type_doc))))
+            parts.append(type_with_break)
+            parts.append(init_doc)
+            if attr_doc != EMPTY and not attr_in_trailing:
+                if is_constructor_init:
+                    # Constructor attrs follow ')' directly with a space.
+                    parts.append(SPACE)
+                    parts.append(attr_doc)
+                else:
+                    parts.append(
+                        group(concat(SOFTLINE, text(" "), align(attr_doc))))
     else:
         parts.append(init_doc)
         if attr_doc != EMPTY and not attr_in_trailing:
