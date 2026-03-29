@@ -14,15 +14,14 @@ static void PrintQuoted(const std::string& s)
 
 	for ( char c : s )
 		{
-		switch ( c )
-			{
-			case '"': printf("\\\""); break;
-			case '\\': printf("\\\\"); break;
-			case '\n': printf("\\n"); break;
-			case '\t': printf("\\t"); break;
-			case '\r': printf("\\r"); break;
-			default: putchar(c); break;
-			}
+		switch ( c ) {
+		case '"': printf("\\\""); break;
+		case '\\': printf("\\\\"); break;
+		case '\n': printf("\\n"); break;
+		case '\t': printf("\\t"); break;
+		case '\r': printf("\\r"); break;
+		default: putchar(c); break;
+		}
 		}
 
 	putchar('"');
@@ -30,7 +29,7 @@ static void PrintQuoted(const std::string& s)
 
 void Node::Dump(int indent) const
 	{
-	for ( int i = 0; i < indent; i++ )
+	for ( int i = 0; i < indent; ++i )
 		printf("  ");
 
 	printf("%s", tag.c_str());
@@ -50,7 +49,7 @@ void Node::Dump(int indent) const
 	if ( children.empty() )
 		{
 		printf(" {\n");
-		for ( int i = 0; i < indent; i++ )
+		for ( int i = 0; i < indent; ++i )
 			printf("  ");
 		printf("}\n");
 		return;
@@ -61,7 +60,7 @@ void Node::Dump(int indent) const
 	for ( const auto& child : children )
 		child->Dump(indent + 1);
 
-	for ( int i = 0; i < indent; i++ )
+	for ( int i = 0; i < indent; ++i )
 		printf("  ");
 	printf("}\n");
 	}

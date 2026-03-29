@@ -59,7 +59,7 @@ std::unique_ptr<Node> Parser::ParseNode()
 	// Optionally parse a { children } block.
 	if ( ! AtEnd() && Peek() == '{' )
 		{
-		node->has_block = true;
+		node->SetHasBlock();
 		Advance();  // consume '{'
 		SkipWhitespace();
 
@@ -127,8 +127,7 @@ std::string Parser::ParseQuotedString()
 				}
 
 			char c = Peek();
-			switch ( c )
-				{
+			switch ( c ) {
 			case '"': result += '"'; break;
 			case '\\': result += '\\'; break;
 			case 'n': result += '\n'; break;
@@ -140,7 +139,7 @@ std::string Parser::ParseQuotedString()
 				result += '\\';
 				result += c;
 				break;
-				}
+			}
 
 			Advance();
 			}
@@ -181,11 +180,11 @@ char Parser::Advance()
 
 	if ( c == '\n' )
 		{
-		line++;
+		++line;
 		col = 1;
 		}
 	else
-		col++;
+		++col;
 
 	return c;
 	}
