@@ -1,0 +1,39 @@
+FUNC-DECL "function" "f" {
+  BODY {
+    IF {
+      COND {
+        IDENTIFIER "x"
+      }
+      BODY {
+        EXPR-STMT {
+          CALL {
+            IDENTIFIER "Input::add_event"
+            ARGS {
+              INDEX-LITERAL {
+                FIELD-ASSIGN "source" {
+                  IDENTIFIER "some_config_source_setting"
+                }
+                FIELD-ASSIGN "name" {
+                  IDENTIFIER "some_config_name_setting"
+                }
+                FIELD-ASSIGN "fields" {
+                  IDENTIFIER "SomeConfigRecord"
+                }
+                FIELD-ASSIGN "mode" {
+                  IDENTIFIER "Input::REREAD"
+                }
+                FIELD-ASSIGN "want_record" {
+                  CONSTANT "F"
+                }
+                FIELD-ASSIGN "ev" {
+                  IDENTIFIER "some_config_event_added"
+                }
+              }
+            }
+          }
+          SEMI
+        }
+      }
+    }
+  }
+}

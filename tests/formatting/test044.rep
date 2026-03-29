@@ -1,0 +1,57 @@
+FUNC-DECL "function" "foo" {
+  BODY {
+    IF {
+      COND {
+        CALL {
+          IDENTIFIER "some_condition"
+        }
+      }
+      BODY {
+        BLOCK {
+          BLANK
+          LOCAL-DECL "local" "published" {
+            INIT "=" {
+              CALL {
+                IDENTIFIER "Some::long_func_name"
+                ARGS {
+                  IDENTIFIER "proxy_pool"
+                  CALL {
+                    IDENTIFIER "cat"
+                    ARGS {
+                      FIELD-ACCESS {
+                        FIELD-ACCESS {
+                          IDENTIFIER "c"
+                          IDENTIFIER "id"
+                        }
+                        IDENTIFIER "orig_h"
+                      }
+                      IDENTIFIER "fqdn"
+                    }
+                  }
+                  IDENTIFIER "SomeModule::some_handler"
+                  FIELD-ACCESS {
+                    FIELD-ACCESS {
+                      IDENTIFIER "c"
+                      IDENTIFIER "id"
+                    }
+                    IDENTIFIER "orig_h"
+                  }
+                  FIELD-ACCESS {
+                    IDENTIFIER "c"
+                    IDENTIFIER "uid"
+                  }
+                  IDENTIFIER "fqdn"
+                  FIELD-ACCESS {
+                    IDENTIFIER "conn"
+                    IDENTIFIER "orig_bytes"
+                  }
+                }
+              }
+            }
+            SEMI
+          }
+        }
+      }
+    }
+  }
+}

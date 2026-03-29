@@ -1,0 +1,5 @@
+TYPE-DECL "val" {
+  TYPE-ATOM "count"
+  SEMI
+}
+COMMENT-TRAILING "# a counter"

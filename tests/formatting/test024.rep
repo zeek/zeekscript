@@ -1,0 +1,45 @@
+FUNC-DECL "event" "some_handler" {
+  PARAMS {
+    PARAM "rec" {
+      TYPE-ATOM "SomeModule::Info"
+    }
+  }
+  BODY {
+    IF {
+      COND {
+        BINARY-OP "in" {
+          INDEX-LITERAL {
+            IDENTIFIER "aaa"
+            IDENTIFIER "bbb"
+            IDENTIFIER "ccc"
+            FIELD-ACCESS {
+              IDENTIFIER "rec"
+              IDENTIFIER "source_field"
+            }
+            FIELD-ACCESS {
+              IDENTIFIER "rec"
+              IDENTIFIER "type_field"
+            }
+            FIELD-ACCESS {
+              IDENTIFIER "rec"
+              IDENTIFIER "name_field"
+            }
+            FIELD-ACCESS {
+              IDENTIFIER "rec"
+              IDENTIFIER "orig_flag"
+            }
+            FIELD-ACCESS {
+              IDENTIFIER "rec"
+              IDENTIFIER "byte_count"
+            }
+          }
+          IDENTIFIER "some_long_cache_name"
+        }
+      }
+      BODY {
+        RETURN
+        SEMI
+      }
+    }
+  }
+}

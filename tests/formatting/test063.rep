@@ -1,0 +1,7 @@
+GLOBAL-DECL "global" "x" {
+  INIT "=" {
+    CONSTANT "42"
+  }
+  SEMI
+}
+COMMENT-TRAILING "# Inline."

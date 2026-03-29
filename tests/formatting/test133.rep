@@ -1,0 +1,49 @@
+FUNC-DECL "event" "some_evt" {
+  BODY {
+    EXPR-STMT {
+      CALL {
+        IDENTIFIER "some_func"
+        ARGS {
+          INDEX-LITERAL {
+            FIELD-ASSIGN "aa" {
+              IDENTIFIER "BB"
+            }
+            FIELD-ASSIGN "cc" {
+              CALL {
+                IDENTIFIER "fmt"
+                ARGS {
+                  CONSTANT "\"Host uses a weak certificate with %d bits\""
+                  IDENTIFIER "key_len"
+                }
+              }
+            }
+            FIELD-ASSIGN "dd" {
+              IDENTIFIER "e"
+            }
+            FIELD-ASSIGN "ff" {
+              IDENTIFIER "SSL::some_suppression_interval"
+            }
+            FIELD-ASSIGN "gg" {
+              CALL {
+                IDENTIFIER "cat"
+                ARGS {
+                  IDENTIFIER "resp_h"
+                  FIELD-ACCESS {
+                    FIELD-ACCESS {
+                      IDENTIFIER "c"
+                      IDENTIFIER "id"
+                    }
+                    IDENTIFIER "resp_p"
+                  }
+                  IDENTIFIER "hash"
+                  IDENTIFIER "key_len"
+                }
+              }
+            }
+          }
+        }
+      }
+      SEMI
+    }
+  }
+}

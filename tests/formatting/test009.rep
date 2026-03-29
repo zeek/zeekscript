@@ -1,0 +1,40 @@
+FUNC-DECL "event" "some_event" {
+  PARAMS {
+    PARAM "some_arg" {
+      TYPE-ATOM "string"
+    }
+  }
+  BODY {
+    IF {
+      COND {
+        CONSTANT "T"
+      }
+      BODY {
+        BLOCK {
+          BLANK
+          IF {
+            COND {
+              CONSTANT "T"
+            }
+            BODY {
+              BLOCK {
+                BLANK
+                LOCAL-DECL "local" "some_long_name" {
+                  INIT "=" {
+                    CALL {
+                      IDENTIFIER "SomeModule::some_function"
+                      ARGS {
+                        IDENTIFIER "some_really_long_argument"
+                      }
+                    }
+                  }
+                  SEMI
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,24 @@
+EXPR-STMT {
+  BINARY-OP "=" {
+    IDENTIFIER "age_d"
+    BINARY-OP "/" {
+      CALL {
+        IDENTIFIER "interval_to_double"
+        ARGS {
+          BINARY-OP "-" {
+            CALL {
+              IDENTIFIER "network_time"
+            }
+            FIELD-ACCESS {
+              IDENTIFIER "cert"
+              IDENTIFIER "not_valid_before"
+            }
+          }
+        }
+      }
+      CONSTANT "86400.0"
+    }
+  }
+  SEMI
+}
+COMMENT-PREV "#@ annotation"

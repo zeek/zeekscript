@@ -1,0 +1,48 @@
+FUNC-DECL "event" "zeek_init" {
+  BODY {
+    IF {
+      COND {
+        BINARY-OP "&&" {
+          BINARY-OP "&&" {
+            BINARY-OP "&&" {
+              BINARY-OP "&&" {
+                BINARY-OP "&&" {
+                  BINARY-OP ">" {
+                    IDENTIFIER "alpha_val"
+                    IDENTIFIER "threshold"
+                  }
+                  BINARY-OP ">" {
+                    IDENTIFIER "beta_val"
+                    IDENTIFIER "threshold"
+                  }
+                }
+                BINARY-OP ">" {
+                  IDENTIFIER "gamma_val"
+                  IDENTIFIER "threshold"
+                }
+              }
+              BINARY-OP ">" {
+                IDENTIFIER "delta_val"
+                IDENTIFIER "threshold"
+              }
+            }
+            BINARY-OP ">" {
+              IDENTIFIER "epsilon_val"
+              IDENTIFIER "threshold"
+            }
+          }
+          BINARY-OP ">" {
+            IDENTIFIER "zeta_val"
+            IDENTIFIER "threshold"
+          }
+        }
+      }
+      BODY {
+        PRINT {
+          CONSTANT "\"yes\""
+          SEMI
+        }
+      }
+    }
+  }
+}

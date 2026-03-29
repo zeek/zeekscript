@@ -1,0 +1,11 @@
+FUNC-DECL "event" "some_evt" {
+  BODY {
+    LOCAL-DECL "local" "x" {
+      INIT "=" {
+        CONSTANT "1"
+      }
+      SEMI
+    }
+    COMMENT-TRAILING "# init"
+  }
+}

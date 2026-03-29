@@ -1,0 +1,26 @@
+GLOBAL-DECL "global" "some_event_decl" {
+  TYPE {
+    TYPE-FUNC "event" {
+      PARAMS {
+        PARAM "o" {
+          TYPE-ATOM "string"
+        }
+        PARAM "label" {
+          TYPE-ATOM "string"
+        }
+        PARAM "conf" {
+          TYPE-ATOM "score"
+        }
+        PARAM "sources" {
+          TYPE-PARAMETERIZED "set" {
+            TYPE-ATOM "string"
+          }
+        }
+        PARAM "caller" {
+          TYPE-ATOM "string"
+        }
+      }
+    }
+  }
+  SEMI
+}

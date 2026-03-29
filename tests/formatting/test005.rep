@@ -1,0 +1,24 @@
+EXPR-STMT {
+  CALL {
+    IDENTIFIER "NOTICE"
+    ARGS {
+      INDEX-LITERAL {
+        FIELD-ASSIGN "msg" {
+          CALL {
+            IDENTIFIER "fmt"
+            ARGS {
+              CONSTANT "\"Value %s was more than %dMB for item %s\""
+              IDENTIFIER "some_var"
+              BINARY-OP "/" {
+                IDENTIFIER "some_long_variable_name"
+                CONSTANT "1000 / 1000"
+              }
+              IDENTIFIER "bucket"
+            }
+          }
+        }
+      }
+    }
+  }
+  SEMI
+}

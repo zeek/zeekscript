@@ -1,0 +1,21 @@
+FUNC-DECL "function" "f" {
+  BODY {
+    SWITCH {
+      EXPR {
+        IDENTIFIER "tag_type"
+      }
+      CASE {
+        VALUES {
+          CONSTANT "\"some_analyzer_udp\""
+          CONSTANT "\"some_analyzer_udp_hmac_md5\""
+          CONSTANT "\"some_analyzer_udp_hmac_sha1\""
+          CONSTANT "\"some_analyzer_udp_hmac_sha256\""
+        }
+        BODY {
+          BREAK
+          SEMI
+        }
+      }
+    }
+  }
+}

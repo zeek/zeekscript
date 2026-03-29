@@ -1,0 +1,18 @@
+FUNC-DECL "event" "ssl_extension" {
+  PARAMS {
+    PARAM "c" {
+      TYPE-ATOM "connection"
+    }
+    PARAM "is_client" {
+      TYPE-ATOM "bool"
+    }
+    PARAM "code" {
+      TYPE-ATOM "count"
+    }
+    PARAM "val" {
+      TYPE-ATOM "string"
+    }
+  }
+  BODY {
+  }
+}

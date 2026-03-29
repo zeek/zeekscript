@@ -1,0 +1,16 @@
+FUNC-DECL "event" "some_generic_packet_threshold_crossed" {
+  PARAMS {
+    PARAM "c" {
+      TYPE-ATOM "connection"
+    }
+    PARAM "threshold" {
+      TYPE-ATOM "count"
+    }
+  }
+  BODY {
+    PRINT {
+      IDENTIFIER "c"
+      SEMI
+    }
+  }
+}

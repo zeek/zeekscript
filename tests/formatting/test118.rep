@@ -1,0 +1,18 @@
+FUNC-DECL "function" "some_func" {
+  BODY {
+    IF {
+      COND {
+        BINARY-OP "!in" {
+          IDENTIFIER "x"
+          IDENTIFIER "y"
+        }
+      }
+      BODY {
+        PRINT {
+          CONSTANT "\"hi\""
+          SEMI
+        }
+      }
+    }
+  }
+}

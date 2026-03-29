@@ -1,0 +1,31 @@
+LOCAL-DECL "local" "filter" {
+  INIT "=" {
+    CALL {
+      IDENTIFIER "Log::Filter"
+      ARGS {
+        FIELD-ASSIGN "name" {
+          CONSTANT "\"log-name\""
+        }
+        FIELD-ASSIGN "path" {
+          CONSTANT "\"log_path\""
+        }
+        FIELD-ASSIGN "include" {
+          CALL {
+            IDENTIFIER "set"
+            ARGS {
+              CONSTANT "\"id.orig_h\""
+              CONSTANT "\"id.orig_p\""
+              CONSTANT "\"id.resp_h\""
+              CONSTANT "\"id.resp_p\""
+              CONSTANT "\"app\""
+            }
+          }
+        }
+        FIELD-ASSIGN "policy" {
+          IDENTIFIER "some_policy_fn"
+        }
+      }
+    }
+  }
+  SEMI
+}

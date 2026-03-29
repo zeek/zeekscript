@@ -1,0 +1,3 @@
+MODULE "SomeMod"
+BLANK
+PREPROC "@load" "./const"

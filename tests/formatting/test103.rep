@@ -1,0 +1,46 @@
+FUNC-DECL "function" "some_func" {
+  BODY {
+    LOCAL-DECL "local" "val" {
+      INIT "=" {
+        CALL {
+          IDENTIFIER "some_long_func_name"
+          ARGS {
+            SLICE {
+              IDENTIFIER "data"
+              BINARY-OP "+" {
+                BINARY-OP "-" {
+                  FIELD-ACCESS {
+                    IDENTIFIER "some"
+                    IDENTIFIER "off"
+                  }
+                  CONSTANT "1"
+                }
+                CONSTANT "8"
+              }
+              BINARY-OP "-" {
+                BINARY-OP "+" {
+                  BINARY-OP "+" {
+                    BINARY-OP "-" {
+                      FIELD-ACCESS {
+                        IDENTIFIER "some"
+                        IDENTIFIER "off"
+                      }
+                      CONSTANT "1"
+                    }
+                    CONSTANT "10"
+                  }
+                  BINARY-OP "/" {
+                    CONSTANT "23"
+                    CONSTANT "15"
+                  }
+                }
+                CONSTANT "3"
+              }
+            }
+          }
+        }
+      }
+      SEMI
+    }
+  }
+}

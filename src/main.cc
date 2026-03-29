@@ -1,8 +1,10 @@
+#include "formatter.h"
 #include "node.h"
 #include "parser.h"
 
 #include <cstdio>
 #include <cstdlib>
+#include <cstring>
 #include <fstream>
 #include <iostream>
 #include <sstream>
@@ -32,10 +34,23 @@ static std::string ReadStdin()
 
 int main(int argc, char** argv)
 	{
+	bool dump_mode = false;
+	const char* file = nullptr;
+
+	for ( int i = 1; i < argc; ++i )
+		{
+		if ( strcmp(argv[i], "--dump") == 0 )
+			dump_mode = true;
+		else if ( strcmp(argv[i], "-") == 0 )
+			file = nullptr;
+		else
+			file = argv[i];
+		}
+
 	std::string input;
 
-	if ( argc > 1 && std::string(argv[1]) != "-" )
-		input = ReadFile(argv[1]);
+	if ( file )
+		input = ReadFile(file);
 	else
 		input = ReadStdin();
 
@@ -47,9 +62,16 @@ int main(int argc, char** argv)
 		return 1;
 		}
 
-	// For now, dump the tree to verify round-tripping.
-	for ( const auto& node : nodes )
-		node->Dump();
+	if ( dump_mode )
+		{
+		for ( const auto& node : nodes )
+			node->Dump();
+		}
+	else
+		{
+		std::string out = Format(nodes);
+		printf("%s", out.c_str());
+		}
 
 	return 0;
 	}

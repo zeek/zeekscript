@@ -1,0 +1,21 @@
+FUNC-DECL "event" "SomeModule::Geneve::some_filtered_option" {
+  PARAMS {
+    PARAM "inner_c" {
+      TYPE-ATOM "connection"
+    }
+    PARAM "inner_hdr" {
+      TYPE-ATOM "pkt_hdr"
+    }
+    PARAM "vni" {
+      TYPE-ATOM "count"
+    }
+    PARAM "flags" {
+      TYPE-ATOM "count"
+    }
+    PARAM "opt" {
+      TYPE-ATOM "SomeModule::Geneve::some_geneve_hdr_option"
+    }
+  }
+  BODY {
+  }
+}

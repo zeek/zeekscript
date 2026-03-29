@@ -1,0 +1,16 @@
+GLOBAL-DECL "global" "some_table" {
+  TYPE {
+    TYPE-PARAMETERIZED "table" {
+      TYPE-ATOM "string"
+      OF
+      TYPE-ATOM "count"
+    }
+  }
+  ATTR-LIST {
+    ATTR "&default" {
+      IDENTIFIER "some_long_default_expression_here"
+    }
+    ATTR "&redef"
+  }
+  SEMI
+}

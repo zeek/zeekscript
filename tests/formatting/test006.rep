@@ -1,0 +1,11 @@
+LOCAL-DECL "local" "x" {
+  INIT "=" {
+    CALL {
+      IDENTIFIER "some_func"
+      ARGS {
+        IDENTIFIER "arg"
+      }
+    }
+  }
+  SEMI
+}

@@ -1,0 +1,20 @@
+FUNC-DECL "function" "f" {
+  BODY {
+    LOCAL-DECL "local" "info" {
+      INIT "=" {
+        CALL {
+          IDENTIFIER "SomeModule::SomeRecord"
+          ARGS {
+            FIELD-ASSIGN "field1" {
+              IDENTIFIER "some_very_long_value"
+            }
+            FIELD-ASSIGN "field2" {
+              IDENTIFIER "another_long_value"
+            }
+          }
+        }
+      }
+      SEMI
+    }
+  }
+}

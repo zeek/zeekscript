@@ -1,0 +1,21 @@
+FUNC-DECL "event" "zeek_init" {
+  BODY {
+    EXPR-STMT {
+      CALL {
+        IDENTIFIER "SomeModule::some_register_fn"
+        ARGS {
+          IDENTIFIER "SomeModule::SOME_ANALYZER"
+          INDEX-LITERAL {
+            FIELD-ASSIGN "get_handle" {
+              IDENTIFIER "SomeModule::get_handle"
+            }
+            FIELD-ASSIGN "describe" {
+              IDENTIFIER "SomeModule::describe_it"
+            }
+          }
+        }
+      }
+      SEMI
+    }
+  }
+}

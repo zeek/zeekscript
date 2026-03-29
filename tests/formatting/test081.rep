@@ -1,0 +1,5 @@
+EXPR-STMT {
+  INDEX-LITERAL {
+  }
+  SEMI
+}

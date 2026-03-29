@@ -2,7 +2,7 @@ CXX ?= c++
 CXXFLAGS ?= -std=c++17 -Wall -Wextra -O2
 TARGET = zeek-format
 
-SRCS = main.cc node.cc parser.cc tag.cc
+SRCS = main.cc node.cc parser.cc tag.cc formatter.cc
 OBJS = $(SRCS:.cc=.o)
 
 all: $(TARGET)
@@ -14,17 +14,18 @@ $(TARGET): $(OBJS)
 	$(CXX) $(CXXFLAGS) -c -o $@ $<
 
 # Header dependencies
-main.o: node.h parser.h tag.h
+main.o: node.h parser.h tag.h formatter.h
 node.o: node.h tag.h
 parser.o: parser.h node.h tag.h
 tag.o: tag.h
+formatter.o: formatter.h node.h tag.h
 
 SHELL = /bin/bash
 
 test: $(TARGET)
 	@pass=0; fail=0; \
 	for f in ../tests/formatting/test*.rep; do \
-		if diff -q <(./$(TARGET) "$$f") "$$f" \
+		if diff -q <(./$(TARGET) --dump "$$f") "$$f" \
 		    >/dev/null 2>&1; then \
 			pass=$$((pass + 1)); \
 		else \

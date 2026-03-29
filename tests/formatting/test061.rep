@@ -1,0 +1,36 @@
+FUNC-DECL "event" "some_event" {
+  BODY {
+    IF {
+      COND {
+        IDENTIFIER "some_condition"
+      }
+      BODY {
+        EXPR-STMT {
+          CALL {
+            IDENTIFIER "SomeModule::some_long_call"
+            ARGS {
+              IDENTIFIER "some_first_arg"
+              CALL {
+                IDENTIFIER "some_func"
+                ARGS {
+                  FIELD-ACCESS {
+                    IDENTIFIER "aa"
+                    IDENTIFIER "xx"
+                  }
+                  FIELD-ACCESS {
+                    IDENTIFIER "aa"
+                    IDENTIFIER "yy"
+                  }
+                }
+              }
+              IDENTIFIER "some_other_arg"
+              IDENTIFIER "bb"
+              IDENTIFIER "cc"
+            }
+          }
+          SEMI
+        }
+      }
+    }
+  }
+}

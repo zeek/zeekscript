@@ -1,0 +1,5 @@
+FUNC-DECL "event" "zeek_init" {
+  BODY {
+  }
+}
+COMMENT-LEADING "# Comment on next line."

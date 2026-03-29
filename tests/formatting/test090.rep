@@ -1,0 +1,4 @@
+EXPR-STMT {
+  INTERVAL "1" "sec"
+  SEMI
+}

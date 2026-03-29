@@ -1,0 +1,33 @@
+FUNC-DECL "function" "foo" {
+  BODY {
+    EXPR-STMT {
+      CALL {
+        IDENTIFIER "some_handler"
+        ARGS {
+          IDENTIFIER "opt_id"
+          LAMBDA {
+            PARAMS {
+              PARAM "id" {
+                TYPE-ATOM "string"
+              }
+              PARAM "val" {
+                TYPE-ATOM "bool"
+              }
+            }
+            RETURNS {
+              TYPE-ATOM "bool"
+            }
+            BODY {
+              BLANK
+              RETURN {
+                IDENTIFIER "val"
+              }
+              SEMI
+            }
+          }
+        }
+      }
+      SEMI
+    }
+  }
+}

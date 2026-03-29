@@ -1,0 +1,34 @@
+FUNC-DECL "function" "some_fn" {
+  PARAMS {
+    PARAM "h" {
+      TYPE-ATOM "addr"
+    }
+  }
+  RETURNS {
+    TYPE-ATOM "string"
+  }
+  BODY {
+    RETURN {
+      TERNARY {
+        CALL {
+          IDENTIFIER "some_call"
+          ARGS {
+            IDENTIFIER "h"
+          }
+        }
+        CALL {
+          IDENTIFIER "other_call"
+          ARGS {
+            BINARY-OP "/" {
+              IDENTIFIER "h"
+              IDENTIFIER "some_mask"
+            }
+          }
+        }
+        CONSTANT "\"fallback\""
+      }
+    }
+    SEMI
+    COMMENT-PREV "#@ NO-FORMAT"
+  }
+}

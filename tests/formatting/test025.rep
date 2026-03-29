@@ -1,0 +1,38 @@
+FUNC-DECL "function" "some_func" {
+  PARAMS {
+    PARAM "val" {
+      TYPE-ATOM "string"
+    }
+  }
+  BODY {
+    IF {
+      COND {
+        CALL {
+          IDENTIFIER "SomeModule::check_ready"
+        }
+      }
+      BODY {
+        EXPR-STMT {
+          CALL {
+            IDENTIFIER "SomeModule::send_msg"
+            ARGS {
+              IDENTIFIER "pt"
+              IDENTIFIER "some_long_handler"
+              CALL {
+                IDENTIFIER "to_addr"
+                ARGS {
+                  FIELD-ACCESS {
+                    IDENTIFIER "rec"
+                    IDENTIFIER "some_field"
+                  }
+                }
+              }
+              IDENTIFIER "p"
+            }
+          }
+          SEMI
+        }
+      }
+    }
+  }
+}

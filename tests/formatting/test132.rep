@@ -1,0 +1,42 @@
+FUNC-DECL "event" "some_evt" {
+  PARAMS {
+    PARAM "c" {
+      TYPE-ATOM "connection"
+    }
+  }
+  BODY {
+    EXPR-STMT {
+      CALL {
+        IDENTIFIER "NOTICE"
+        ARGS {
+          INDEX-LITERAL {
+            FIELD-ASSIGN "note" {
+              IDENTIFIER "Some_Notice"
+            }
+            FIELD-ASSIGN "conn" {
+              IDENTIFIER "c"
+            }
+            FIELD-ASSIGN "identifier" {
+              CALL {
+                IDENTIFIER "cat"
+                ARGS {
+                  FIELD-ACCESS {
+                    IDENTIFIER "id"
+                    IDENTIFIER "orig_h"
+                  }
+                  FIELD-ACCESS {
+                    IDENTIFIER "id"
+                    IDENTIFIER "resp_h"
+                  }
+                }
+              }
+            }
+            COMMENT-LEADING "# This is a comment about the next field."
+            COMMENT-LEADING "# Another comment line."
+          }
+        }
+      }
+      SEMI
+    }
+  }
+}

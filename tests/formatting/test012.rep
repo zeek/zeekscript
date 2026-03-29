@@ -1,0 +1,23 @@
+FUNC-DECL "event" "some_evt" {
+  BODY {
+    EXPR-STMT {
+      BINARY-OP "=" {
+        FIELD-ACCESS {
+          IDENTIFIER "si"
+          IDENTIFIER "successful_entities"
+        }
+        BINARY-OP "|" {
+          FIELD-ACCESS {
+            IDENTIFIER "si"
+            IDENTIFIER "successful_entities"
+          }
+          FIELD-ACCESS {
+            IDENTIFIER "worker_si"
+            IDENTIFIER "successful_entities"
+          }
+        }
+      }
+      SEMI
+    }
+  }
+}

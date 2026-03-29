@@ -1,0 +1,14 @@
+EXPORT {
+  GLOBAL-DECL "global" "SomeModule::some_long_handler" {
+    TYPE {
+      TYPE-FUNC "event" {
+        PARAMS {
+          PARAM "anomaly_data" {
+            TYPE-ATOM "SomePredictions"
+          }
+        }
+      }
+    }
+    SEMI
+  }
+}

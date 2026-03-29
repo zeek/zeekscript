@@ -1,0 +1,10 @@
+LOCAL-DECL "local" "x" {
+  INIT "=" {
+    TERNARY {
+      IDENTIFIER "cond"
+      IDENTIFIER "some_very_very_very_long_true_value_expression_here"
+      IDENTIFIER "some_very_very_very_long_false_value_expression_here"
+    }
+  }
+  SEMI
+}

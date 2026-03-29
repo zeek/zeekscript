@@ -1,0 +1,24 @@
+FUNC-DECL "event" "zeek_init" {
+  BODY {
+    EXPR-STMT {
+      CALL {
+        IDENTIFIER "Some::create_stream"
+        ARGS {
+          IDENTIFIER "SOME::LOG"
+          INDEX-LITERAL {
+            FIELD-ASSIGN "columns" {
+              IDENTIFIER "Info"
+            }
+            FIELD-ASSIGN "path" {
+              CONSTANT "\"some_path\""
+            }
+            FIELD-ASSIGN "policy" {
+              IDENTIFIER "log_policy"
+            }
+          }
+        }
+      }
+      SEMI
+    }
+  }
+}

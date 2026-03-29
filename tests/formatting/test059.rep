@@ -1,0 +1,47 @@
+FUNC-DECL "function" "some_func" {
+  BODY {
+    IF {
+      COND {
+        BINARY-OP "?$" {
+          BINARY-OP "||" {
+            BINARY-OP "||" {
+              BINARY-OP "?$" {
+                UNARY-OP "!" {
+                  IDENTIFIER "aa"
+                }
+                IDENTIFIER "bb_chain"
+              }
+              BINARY-OP "==" {
+                UNARY-OP "|...|" {
+                  FIELD-ACCESS {
+                    IDENTIFIER "aa"
+                    IDENTIFIER "bb_chain"
+                  }
+                }
+                CONSTANT "0"
+              }
+            }
+            UNARY-OP "!" {
+              INDEX {
+                FIELD-ACCESS {
+                  IDENTIFIER "aa"
+                  IDENTIFIER "bb_chain"
+                }
+                SUBSCRIPTS {
+                  CONSTANT "0"
+                }
+              }
+            }
+          }
+          IDENTIFIER "cc"
+        }
+      }
+      BODY {
+        RETURN {
+          IDENTIFIER "dd"
+        }
+        SEMI
+      }
+    }
+  }
+}

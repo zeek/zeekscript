@@ -1,0 +1,21 @@
+PREPROC "@ifdef" "SomeFeature"
+BLANK
+MODULE "SomeMod"
+BLANK
+GLOBAL-DECL "const" "some_var" {
+  INIT "=" {
+    CONSTANT "\"some-value\""
+  }
+  SEMI
+}
+BLANK
+FUNC-DECL "event" "zeek_init" {
+  BODY {
+    BLANK
+    PRINT {
+      IDENTIFIER "some_var"
+      SEMI
+    }
+  }
+}
+PREPROC "@endif"

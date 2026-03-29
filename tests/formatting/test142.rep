@@ -1,0 +1,11 @@
+GLOBAL-DECL "redef" "SomeModule::some_generic_packet_thresholds" {
+  INIT "+=" {
+    CALL {
+      IDENTIFIER "set"
+      ARGS {
+        IDENTIFIER "skip_conn_packet_threshold"
+      }
+    }
+  }
+  SEMI
+}

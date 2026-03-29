@@ -1,0 +1,15 @@
+GLOBAL-DECL "global" "ftp_connections_cache" {
+  TYPE {
+    TYPE-PARAMETERIZED "set" {
+      TYPE-ATOM "string"
+      TYPE-ATOM "string"
+      TYPE-ATOM "string"
+    }
+  }
+  ATTR-LIST {
+    ATTR "&read_expire" {
+      IDENTIFIER "cache_interval"
+    }
+  }
+  SEMI
+}

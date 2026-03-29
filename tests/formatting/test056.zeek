@@ -1,0 +1,1 @@
+global some_event_decl: event(o: string, label: string, conf: score, sources: set[string], caller: string);

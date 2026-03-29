@@ -1,0 +1,33 @@
+TYPE-DECL "Foo" {
+  TYPE-RECORD {
+    FIELD "aa" {
+      TYPE-ATOM "string"
+      ATTR-LIST {
+        ATTR "&default" {
+          CONSTANT "\"\""
+        }
+      }
+    }
+    FIELD "bb" {
+      TYPE-ATOM "count"
+      ATTR-LIST {
+        ATTR "&default" {
+          CONSTANT "0"
+        }
+      }
+    }
+    FIELD "cc" {
+      TYPE-ATOM "bool"
+    }
+    FIELD "dd" {
+      TYPE-ATOM "bool"
+      ATTR-LIST {
+        ATTR "&default" {
+          CONSTANT "F"
+        }
+      }
+    }
+    COMMENT-TRAILING "# a comment"
+  }
+  SEMI
+}

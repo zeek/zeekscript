@@ -1,0 +1,30 @@
+FUNC-DECL "event" "zeek_init" {
+  BODY {
+    EXPR-STMT {
+      CALL {
+        IDENTIFIER "register_handler"
+        ARGS {
+          LAMBDA {
+            PARAMS {
+              PARAM "h" {
+                TYPE-ATOM "addr"
+              }
+              PARAM "si" {
+                TYPE-ATOM "SomeInfo"
+              }
+            }
+            BODY {
+              BLANK
+              PRINT {
+                IDENTIFIER "h"
+                SEMI
+              }
+            }
+          }
+          CONSTANT "6.0"
+        }
+      }
+      SEMI
+    }
+  }
+}

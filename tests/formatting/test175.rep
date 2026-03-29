@@ -1,0 +1,14 @@
+EXPORT {
+  GLOBAL-DECL "const" "default_analyzer" {
+    TYPE {
+      TYPE-ATOM "PacketAnalyzer::Tag"
+    }
+    INIT "=" {
+      IDENTIFIER "PacketAnalyzer::ANALYZER_IP"
+    }
+    ATTR-LIST {
+      ATTR "&redef"
+    }
+    SEMI
+  }
+}

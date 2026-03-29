@@ -1,0 +1,19 @@
+RETURN {
+  BINARY-OP "&&" {
+    BINARY-OP "&&" {
+      BINARY-OP "in" {
+        IDENTIFIER "a_long_var_name"
+        IDENTIFIER "subj"
+      }
+      BINARY-OP "!in" {
+        IDENTIFIER "b_long_var_name"
+        IDENTIFIER "subj"
+      }
+    }
+    BINARY-OP "!in" {
+      IDENTIFIER "c_long_var_name"
+      IDENTIFIER "subj"
+    }
+  }
+}
+SEMI

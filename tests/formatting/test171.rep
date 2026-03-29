@@ -1,0 +1,15 @@
+FUNC-DECL "event" "some_evt" {
+  BODY {
+    WHILE {
+      COND {
+        IDENTIFIER "some_flag"
+      }
+      BODY {
+        PRINT {
+          CONSTANT "1"
+          SEMI
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,44 @@
+FUNC-DECL "hook" "SomeModule::some_log_policy" {
+  BODY {
+    EXPR-STMT {
+      CALL {
+        IDENTIFIER "some_code"
+      }
+      SEMI
+    }
+    BLANK
+    LOCAL-DECL "local" "o_s" {
+      INIT "=" {
+        BINARY-OP "/" {
+          FIELD-ACCESS {
+            IDENTIFIER "rec_id"
+            IDENTIFIER "orig_h"
+          }
+          IDENTIFIER "subnet_mask"
+        }
+      }
+      SEMI
+    }
+    COMMENT-PREV "#@ NO-FORMAT"
+    LOCAL-DECL "local" "r_s" {
+      INIT "=" {
+        BINARY-OP "/" {
+          FIELD-ACCESS {
+            IDENTIFIER "rec_id"
+            IDENTIFIER "resp_h"
+          }
+          IDENTIFIER "subnet_mask"
+        }
+      }
+      SEMI
+    }
+    COMMENT-PREV "#@ NO-FORMAT"
+    BLANK
+    EXPR-STMT {
+      CALL {
+        IDENTIFIER "more_code"
+      }
+      SEMI
+    }
+  }
+}

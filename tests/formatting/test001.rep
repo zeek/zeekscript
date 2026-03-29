@@ -1,0 +1,19 @@
+EXPR-STMT {
+  CALL {
+    IDENTIFIER "other_function_abc"
+    ARGS {
+      CALL {
+        IDENTIFIER "fmt"
+        ARGS {
+          CONSTANT "\"tracking %s %s\""
+          IDENTIFIER "host"
+          IDENTIFIER "some_uid"
+          IDENTIFIER "some_dest"
+          IDENTIFIER "extra_data"
+          COMMENT-PREV "#@ NOT-TESTED"
+        }
+      }
+    }
+  }
+  SEMI
+}

@@ -1,0 +1,36 @@
+FUNC-DECL "event" "some_handler" {
+  PARAMS {
+    PARAM "aa" {
+      TYPE-ATOM "connection"
+    }
+    PARAM "bb" {
+      TYPE-ATOM "bool"
+    }
+    PARAM "cc" {
+      TYPE-ATOM "count"
+    }
+    PARAM "dd" {
+      TYPE-ATOM "string"
+    }
+    PARAM "ee" {
+      TYPE-ATOM "string"
+    }
+    PARAM "ff" {
+      TYPE-ATOM "string"
+    }
+    PARAM "gg" {
+      TYPE-ATOM "string"
+    }
+    PARAM "hh" {
+      TYPE-ATOM "string"
+    }
+    PARAM "ii" {
+      TYPE-ATOM "string"
+    }
+    PARAM "jj" {
+      TYPE-ATOM "bool"
+    }
+  }
+  BODY {
+  }
+}

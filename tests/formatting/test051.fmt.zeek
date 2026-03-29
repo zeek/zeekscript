@@ -1,0 +1,5 @@
+event some_generic_packet_threshold_crossed(c: connection, threshold: count)
+                                      &group=MyPkg_SomeUnknownprotos_EvtGroup
+	{
+	print c;
+	}

@@ -1,0 +1,28 @@
+FUNC-DECL "function" "some_func" {
+  PARAMS {
+    PARAM "a" {
+      TYPE-ATOM "count"
+    }
+    PARAM "b" {
+      TYPE-ATOM "string"
+    }
+    PARAM "rec" {
+      TYPE-ATOM "SomeRec"
+    }
+  }
+  BODY {
+    IF {
+      COND {
+        BINARY-OP "in" {
+          IDENTIFIER "rec"
+          IDENTIFIER "did_check"
+        }
+      }
+      BODY {
+        RETURN
+        SEMI
+      }
+      COMMENT-PREV "#@ BEGIN-SKIP-TESTING"
+    }
+  }
+}

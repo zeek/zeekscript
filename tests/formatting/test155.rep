@@ -1,0 +1,15 @@
+GLOBAL-DECL "const" "tbl" {
+  INIT "=" {
+    BRACE-INIT {
+      BINARY-OP "=" {
+        CONSTANT "[1]"
+        CONSTANT "\"a\""
+      }
+      BINARY-OP "=" {
+        CONSTANT "[2]"
+        CONSTANT "\"b\""
+      }
+    }
+  }
+  SEMI
+}

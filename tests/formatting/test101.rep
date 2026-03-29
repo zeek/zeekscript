@@ -1,0 +1,31 @@
+FUNC-DECL "function" "some_func" {
+  BODY {
+    IF {
+      COND {
+        IDENTIFIER "test"
+      }
+      BODY {
+        BLOCK {
+          BLANK
+          LOCAL-DECL "local" "some_val" {
+            INIT "=" {
+              CALL {
+                IDENTIFIER "some_long_func_name"
+                ARGS {
+                  INDEX {
+                    IDENTIFIER "result_chain"
+                    SUBSCRIPTS {
+                      CONSTANT "1"
+                    }
+                  }
+                  CONSTANT "4"
+                }
+              }
+            }
+            SEMI
+          }
+        }
+      }
+    }
+  }
+}

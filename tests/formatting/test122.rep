@@ -1,0 +1,10 @@
+FUNC-DECL "function" "foo" {
+  BODY {
+    PREPROC "@if" "FOO"
+    PRINT {
+      CONSTANT "1"
+      SEMI
+    }
+    PREPROC "@endif"
+  }
+}

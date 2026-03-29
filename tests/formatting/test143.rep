@@ -1,0 +1,9 @@
+FUNC-DECL "function" "f" {
+  BODY {
+    EXPR-STMT {
+      BRACE-INIT {
+      }
+      SEMI
+    }
+  }
+}

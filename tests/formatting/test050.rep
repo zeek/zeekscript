@@ -1,0 +1,13 @@
+FUNC-DECL "event" "foo" {
+  PARAMS {
+    PARAM "c" {
+      TYPE-ATOM "connection"
+    }
+  }
+  BODY {
+    PRINT {
+      IDENTIFIER "c"
+      SEMI
+    }
+  }
+}

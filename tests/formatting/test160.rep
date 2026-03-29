@@ -1,0 +1,24 @@
+FUNC-DECL "event" "some_evt" {
+  BODY {
+    ADD {
+      INDEX {
+        IDENTIFIER "some_set"
+        SUBSCRIPTS {
+          IDENTIFIER "val"
+        }
+      }
+      SEMI
+    }
+    COMMENT-TRAILING "# track it"
+    DELETE {
+      INDEX {
+        IDENTIFIER "some_set"
+        SUBSCRIPTS {
+          IDENTIFIER "val"
+        }
+      }
+      SEMI
+    }
+    COMMENT-TRAILING "# remove it"
+  }
+}

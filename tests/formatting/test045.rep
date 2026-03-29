@@ -1,0 +1,45 @@
+FUNC-DECL "function" "some_handler" {
+  PARAMS {
+    PARAM "c" {
+      TYPE-ATOM "connection"
+    }
+  }
+  BODY {
+    IF {
+      COND {
+        IDENTIFIER "foo"
+      }
+      BODY {
+        BLOCK {
+          BLANK
+          IF {
+            COND {
+              IDENTIFIER "bar"
+            }
+            BODY {
+              BLOCK {
+                BLANK
+                IF {
+                  COND {
+                    IDENTIFIER "bletch"
+                  }
+                  BODY {
+                    EXPR-STMT {
+                      CALL {
+                        IDENTIFIER "other_function_abc"
+                        ARGS {
+                          CONSTANT "\"Some kind of status message\""
+                        }
+                      }
+                      SEMI
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

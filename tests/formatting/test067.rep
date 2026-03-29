@@ -1,0 +1,64 @@
+FUNC-DECL "function" "some_func" {
+  PARAMS {
+    PARAM "c" {
+      TYPE-ATOM "connection"
+    }
+  }
+  RETURNS {
+    TYPE-ATOM "SomeInfo"
+  }
+  BODY {
+    LOCAL-DECL "local" "rec" {
+      INIT "=" {
+        FIELD-ACCESS {
+          IDENTIFIER "c"
+          IDENTIFIER "some_rec"
+        }
+      }
+      SEMI
+    }
+    IF {
+      COND {
+        BINARY-OP "?$" {
+          BINARY-OP "||" {
+            BINARY-OP "||" {
+              BINARY-OP "?$" {
+                UNARY-OP "!" {
+                  IDENTIFIER "rec"
+                }
+                IDENTIFIER "some_field"
+              }
+              BINARY-OP "==" {
+                UNARY-OP "|...|" {
+                  FIELD-ACCESS {
+                    IDENTIFIER "rec"
+                    IDENTIFIER "some_field"
+                  }
+                }
+                CONSTANT "0"
+              }
+            }
+            UNARY-OP "!" {
+              INDEX {
+                FIELD-ACCESS {
+                  IDENTIFIER "rec"
+                  IDENTIFIER "some_field"
+                }
+                SUBSCRIPTS {
+                  CONSTANT "0"
+                }
+              }
+            }
+          }
+          IDENTIFIER "some_val"
+        }
+      }
+      BODY {
+        RETURN {
+          IDENTIFIER "ci"
+        }
+        SEMI
+      }
+    }
+  }
+}

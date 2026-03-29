@@ -1,0 +1,16 @@
+EXPORT {
+  GLOBAL-DECL "global" "some_evt" {
+    TYPE {
+      TYPE-FUNC "event" {
+        PARAMS {
+          PARAM "rec" {
+            TYPE-ATOM "Info"
+          }
+        }
+      }
+    }
+    SEMI
+  }
+  COMMENT-LEADING "## Some trailing comment"
+  COMMENT-LEADING "## Another trailing comment"
+}

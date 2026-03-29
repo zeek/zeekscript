@@ -1,0 +1,21 @@
+GLOBAL-DECL "global" "some_table_name_a" {
+  TYPE {
+    TYPE-PARAMETERIZED "table" {
+      TYPE-ATOM "count"
+      TYPE-ATOM "string"
+      OF
+      TYPE-ATOM "TrackingRec"
+    }
+  }
+  ATTR-LIST {
+    ATTR "&default_insert" {
+      CALL {
+        IDENTIFIER "TrackingRec"
+      }
+    }
+    ATTR "&create_expire" {
+      INTERVAL "10" "sec"
+    }
+  }
+  SEMI
+}

@@ -1,0 +1,13 @@
+GLOBAL-DECL "global" "x" {
+  INIT "=" {
+    BRACE-INIT {
+      BINARY-OP "=" {
+        INDEX-LITERAL {
+          CONSTANT "1"
+        }
+        CONSTANT "\"one\""
+      }
+    }
+  }
+  SEMI
+}

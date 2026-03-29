@@ -1,0 +1,34 @@
+FUNC-DECL "function" "some_func" {
+  PARAMS {
+    PARAM "a" {
+      TYPE-ATOM "int"
+    }
+  }
+  BODY {
+    IF {
+      COND {
+        BINARY-OP "!in" {
+          INDEX {
+            IDENTIFIER "some_very_long_access_to_a_member"
+            SUBSCRIPTS {
+              IDENTIFIER "foo"
+            }
+          }
+          FIELD-ACCESS {
+            IDENTIFIER "SomeModule::other"
+            IDENTIFIER "nested_field"
+          }
+        }
+      }
+      BODY {
+        BLOCK {
+          BLANK
+          PRINT {
+            CONSTANT "\"hi\""
+            SEMI
+          }
+        }
+      }
+    }
+  }
+}

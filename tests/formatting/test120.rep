@@ -1,0 +1,5 @@
+PREPROC "@if" "FOO"
+PREPROC "@load" "foo"
+PREPROC "@else"
+PREPROC "@load" "bar"
+PREPROC "@endif"

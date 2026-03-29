@@ -1,0 +1,14 @@
+FUNC-DECL "function" "foo" {
+  BODY {
+    PRINT {
+      BINARY-OP "+" {
+        BINARY-OP "+" {
+          CONSTANT "\"Lovely patio around the fountain. \""
+          CONSTANT "\"Spent a lovely lunch on the patio. \""
+        }
+        CONSTANT "\"The menu was inviting and lots of things I wanted to order.\""
+      }
+      SEMI
+    }
+  }
+}

@@ -1,0 +1,42 @@
+FUNC-DECL "event" "some_evt" {
+  PARAMS {
+    PARAM "si" {
+      TYPE-ATOM "SomeInfo"
+    }
+  }
+  BODY {
+    IF {
+      COND {
+        BINARY-OP "&&" {
+          BINARY-OP "&&" {
+            BINARY-OP ">" {
+              IDENTIFIER "coal_max_entries"
+              CONSTANT "0"
+            }
+            BINARY-OP ">=" {
+              UNARY-OP "|...|" {
+                IDENTIFIER "coalesced_state"
+              }
+              IDENTIFIER "coal_max_entries"
+            }
+          }
+          BINARY-OP "!in" {
+            INDEX-LITERAL {
+              IDENTIFIER "server_name"
+              IDENTIFIER "server_subj"
+              IDENTIFIER "server_issuer"
+              IDENTIFIER "client_subj"
+              IDENTIFIER "client_issuer"
+              IDENTIFIER "ja3"
+            }
+            IDENTIFIER "coalesced_state"
+          }
+        }
+      }
+      BODY {
+        RETURN
+        SEMI
+      }
+    }
+  }
+}

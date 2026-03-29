@@ -1,0 +1,18 @@
+FUNC-DECL "function" "f" {
+  BODY {
+    SWITCH {
+      EXPR {
+        IDENTIFIER "val"
+      }
+      CASE {
+        VALUES {
+          CONSTANT "0"
+        }
+        BODY {
+          BREAK
+          SEMI
+        }
+      }
+    }
+  }
+}

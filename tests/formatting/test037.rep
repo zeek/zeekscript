@@ -1,0 +1,11 @@
+EXPORT {
+  GLOBAL-DECL "const" "cert_hygiene_server_wl_source" {
+    INIT "=" {
+      CONSTANT "\"cert-hygiene-server-wl.txt\""
+    }
+    ATTR-LIST {
+      ATTR "&redef"
+    }
+    SEMI
+  }
+}

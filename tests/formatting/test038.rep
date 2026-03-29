@@ -1,0 +1,65 @@
+GLOBAL-DECL "const" "some_lookup" {
+  TYPE {
+    TYPE-PARAMETERIZED "table" {
+      TYPE-ATOM "string"
+      OF
+      TYPE-ATOM "string"
+    }
+  }
+  INIT "=" {
+    CONSTRUCTOR "table" {
+      BINARY-OP "=" {
+        INDEX-LITERAL {
+          CONSTANT "\"some-key-aa\""
+        }
+        CONSTANT "\"val-aa\""
+      }
+      BINARY-OP "=" {
+        INDEX-LITERAL {
+          CONSTANT "\"some-key-bb\""
+        }
+        CONSTANT "\"val-bb\""
+      }
+      BINARY-OP "=" {
+        INDEX-LITERAL {
+          CONSTANT "\"some-key-cc\""
+        }
+        CONSTANT "\"val-cc\""
+      }
+      BINARY-OP "=" {
+        INDEX-LITERAL {
+          CONSTANT "\"some-key-dd\""
+        }
+        CONSTANT "\"val-dd\""
+      }
+    }
+  }
+  ATTR-LIST {
+    ATTR "&default" {
+      LAMBDA {
+        PARAMS {
+          PARAM "n" {
+            TYPE-ATOM "string"
+          }
+        }
+        RETURNS {
+          TYPE-ATOM "string"
+        }
+        BODY {
+          BLANK
+          RETURN {
+            CALL {
+              IDENTIFIER "fmt"
+              ARGS {
+                CONSTANT "\"fixme-%s\""
+                IDENTIFIER "n"
+              }
+            }
+          }
+          SEMI
+        }
+      }
+    }
+  }
+  SEMI
+}

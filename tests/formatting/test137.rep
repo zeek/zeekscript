@@ -1,0 +1,39 @@
+FUNC-DECL "function" "some_func" {
+  BODY {
+    EXPR-STMT {
+      CALL {
+        IDENTIFIER "SOME_CALL"
+        ARGS {
+          INDEX-LITERAL {
+            FIELD-ASSIGN "field_a" {
+              IDENTIFIER "Some_Enum_Val"
+            }
+            FIELD-ASSIGN "field_b" {
+              CALL {
+                IDENTIFIER "fmt"
+                ARGS {
+                  CONSTANT "\"total items: %d, associated ids: %s\""
+                  IDENTIFIER "total_items"
+                  IDENTIFIER "conn_ids"
+                }
+              }
+            }
+            FIELD-ASSIGN "field_c" {
+              IDENTIFIER "src_host"
+            }
+            FIELD-ASSIGN "field_d" {
+              CALL {
+                IDENTIFIER "cat"
+                ARGS {
+                  IDENTIFIER "src_host"
+                  IDENTIFIER "bucket"
+                }
+              }
+            }
+          }
+        }
+      }
+      SEMI
+    }
+  }
+}

@@ -1,0 +1,31 @@
+IF {
+  COND {
+    BINARY-OP "&&" {
+      BINARY-OP "&&" {
+        BINARY-OP "&&" {
+          IDENTIFIER "first_condition"
+          IDENTIFIER "second_condition"
+        }
+        IDENTIFIER "third_condition"
+      }
+      BINARY-OP ">" {
+        FIELD-ACCESS {
+          IDENTIFIER "some_object"
+          IDENTIFIER "long_field"
+        }
+        FIELD-ACCESS {
+          IDENTIFIER "another_object"
+          IDENTIFIER "other_field"
+        }
+      }
+    }
+  }
+  BODY {
+    EXPR-STMT {
+      CALL {
+        IDENTIFIER "do_something"
+      }
+      SEMI
+    }
+  }
+}

@@ -1,0 +1,7 @@
+LOCAL-DECL "local" "x" {
+  INIT "=" {
+    BRACE-INIT {
+    }
+  }
+  SEMI
+}

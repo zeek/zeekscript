@@ -1,0 +1,12 @@
+FUNC-DECL "function" "some_func" {
+  RETURNS {
+    TYPE-ATOM "count"
+  }
+  BODY {
+    RETURN {
+      CONSTANT "42"
+    }
+    SEMI
+    COMMENT-TRAILING "# the answer"
+  }
+}

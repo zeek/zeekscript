@@ -1,0 +1,18 @@
+FUNC-DECL "event" "some_evt" {
+  BODY {
+    FOR {
+      VARS {
+        IDENTIFIER "idx"
+      }
+      ITERABLE {
+        IDENTIFIER "some_list"
+      }
+      BODY {
+        PRINT {
+          IDENTIFIER "idx"
+          SEMI
+        }
+      }
+    }
+  }
+}

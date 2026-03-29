@@ -1,0 +1,26 @@
+PREPROC "@ifdef" "SOME_FEATURE"
+FUNC-DECL "event" "SomeModule::some_esp_message" {
+  PARAMS {
+    PARAM "c" {
+      TYPE-ATOM "connection"
+    }
+    PARAM "is_orig" {
+      TYPE-ATOM "bool"
+    }
+    PARAM "msg" {
+      TYPE-ATOM "SomeModule::SomeEspMsg"
+    }
+  }
+  BODY {
+    EXPR-STMT {
+      CALL {
+        IDENTIFIER "shuntit"
+        ARGS {
+          IDENTIFIER "c"
+        }
+      }
+      SEMI
+    }
+  }
+}
+PREPROC "@endif"

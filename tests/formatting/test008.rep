@@ -1,0 +1,22 @@
+FUNC-DECL "event" "some_event" {
+  PARAMS {
+    PARAM "some_arg" {
+      TYPE-ATOM "string"
+    }
+  }
+  BODY {
+    LOCAL-DECL "local" "some_name" {
+      INIT "=" {
+        CALL {
+          IDENTIFIER "some_func"
+          ARGS {
+            IDENTIFIER "arg_one"
+            IDENTIFIER "arg_two"
+            IDENTIFIER "arg_three"
+          }
+        }
+      }
+      SEMI
+    }
+  }
+}

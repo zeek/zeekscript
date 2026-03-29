@@ -1,0 +1,21 @@
+FUNC-DECL "event" "some_encrypted_data" {
+  PARAMS {
+    PARAM "c" {
+      TYPE-ATOM "connection"
+    }
+    PARAM "is_orig" {
+      TYPE-ATOM "bool"
+    }
+    PARAM "some_record_vers" {
+      TYPE-ATOM "count"
+    }
+    PARAM "some_content_t" {
+      TYPE-ATOM "count"
+    }
+    PARAM "length" {
+      TYPE-ATOM "count"
+    }
+  }
+  BODY {
+  }
+}

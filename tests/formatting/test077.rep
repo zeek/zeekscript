@@ -1,0 +1,6 @@
+EXPR-STMT {
+  SLICE {
+    IDENTIFIER "data"
+  }
+  SEMI
+}

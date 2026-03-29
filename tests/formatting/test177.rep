@@ -1,0 +1,16 @@
+GLOBAL-DECL "const" "xs" {
+  TYPE {
+    TYPE-PARAMETERIZED "vector" {
+      OF
+      TYPE-ATOM "count"
+    }
+  }
+  INIT "=" {
+    CONSTRUCTOR "vector" {
+      CONSTANT "1"
+      CONSTANT "2"
+      CONSTANT "3"
+    }
+  }
+  SEMI
+}

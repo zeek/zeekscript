@@ -1,0 +1,46 @@
+FUNC-DECL "function" "some_func_bb" {
+  PARAMS {
+    PARAM "c" {
+      TYPE-ATOM "connection"
+    }
+    PARAM "cnt" {
+      TYPE-ATOM "count"
+    }
+  }
+  RETURNS {
+    TYPE-ATOM "interval"
+  }
+  BODY {
+    IF {
+      COND {
+        BINARY-OP ">" {
+          IDENTIFIER "some_long_variable_a"
+          CONSTANT "0"
+        }
+      }
+      BODY {
+        BLOCK {
+          EXPR-STMT {
+            CALL {
+              IDENTIFIER "SomeModule::some_long_function_name"
+              ARGS {
+                IDENTIFIER "c"
+                BINARY-OP "*" {
+                  PAREN {
+                    BINARY-OP "+" {
+                      IDENTIFIER "some_long_variable_a"
+                      CONSTANT "3"
+                    }
+                  }
+                  IDENTIFIER "some_long_variable_bb"
+                }
+                CONSTANT "F"
+              }
+            }
+            SEMI
+          }
+        }
+      }
+    }
+  }
+}

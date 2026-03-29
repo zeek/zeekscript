@@ -1,0 +1,15 @@
+FUNC-DECL "function" "foo" {
+  BODY {
+    EXPR-STMT {
+      CALL {
+        IDENTIFIER "call"
+        ARGS {
+          IDENTIFIER "arg1"
+          IDENTIFIER "arg2"
+        }
+        COMMENT-TRAILING "# with a comment"
+      }
+      SEMI
+    }
+  }
+}

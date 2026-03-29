@@ -1,0 +1,69 @@
+FUNC-DECL "function" "some_func" {
+  PARAMS {
+    PARAM "c" {
+      TYPE-ATOM "connection"
+    }
+    PARAM "name" {
+      TYPE-ATOM "string"
+    }
+    PARAM "value" {
+      TYPE-ATOM "string"
+    }
+    PARAM "prefix" {
+      TYPE-ATOM "string"
+    }
+  }
+  BODY {
+    IF {
+      COND {
+        BINARY-OP "==" {
+          IDENTIFIER "name"
+          CONSTANT "\"some-type\""
+        }
+      }
+      BODY {
+        EXPR-STMT {
+          CALL {
+            IDENTIFIER "some_handler"
+            ARGS {
+              IDENTIFIER "c"
+              IDENTIFIER "value"
+              BINARY-OP "+" {
+                IDENTIFIER "prefix"
+                CONSTANT "\"-sfx\""
+              }
+            }
+          }
+          SEMI
+        }
+      }
+      ELSE {
+        IF {
+          COND {
+            BINARY-OP "==" {
+              IDENTIFIER "name"
+              CONSTANT "\"other-type\""
+            }
+          }
+          BODY {
+            EXPR-STMT {
+              CALL {
+                IDENTIFIER "other_handler"
+                ARGS {
+                  IDENTIFIER "c"
+                  IDENTIFIER "value"
+                  BINARY-OP "+" {
+                    IDENTIFIER "prefix"
+                    CONSTANT "\"-sfx\""
+                  }
+                }
+              }
+              SEMI
+            }
+          }
+        }
+      }
+      COMMENT-PREV "#@ NOT-TESTED"
+    }
+  }
+}

@@ -1,0 +1,29 @@
+FUNC-DECL "function" "foo" {
+  BODY {
+    LOCAL-DECL "local" "next_orig_multiplier" {
+      INIT "=" {
+        CALL {
+          IDENTIFIER "double_to_count"
+          ARGS {
+            CALL {
+              IDENTIFIER "floor"
+              ARGS {
+                BINARY-OP "/" {
+                  FIELD-ACCESS {
+                    FIELD-ACCESS {
+                      IDENTIFIER "c"
+                      IDENTIFIER "orig"
+                    }
+                    IDENTIFIER "size"
+                  }
+                  IDENTIFIER "size_threshold_in_bytes"
+                }
+              }
+            }
+          }
+        }
+      }
+      SEMI
+    }
+  }
+}

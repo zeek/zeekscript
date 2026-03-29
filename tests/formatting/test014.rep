@@ -1,0 +1,28 @@
+EXPR-STMT {
+  BINARY-OP "=" {
+    INDEX {
+      IDENTIFIER "some_table_variable_name"
+      SUBSCRIPTS {
+        IDENTIFIER "some_key"
+      }
+    }
+    CALL {
+      IDENTIFIER "X509::Result"
+      ARGS {
+        FIELD-ASSIGN "result" {
+          FIELD-ACCESS {
+            IDENTIFIER "result"
+            IDENTIFIER "result"
+          }
+        }
+        FIELD-ASSIGN "result_string" {
+          FIELD-ACCESS {
+            IDENTIFIER "result"
+            IDENTIFIER "result_string"
+          }
+        }
+      }
+    }
+  }
+  SEMI
+}

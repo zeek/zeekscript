@@ -1,0 +1,8 @@
+function f()
+	{
+	switch tag_type {
+	case "some_analyzer_udp", "some_analyzer_udp_hmac_md5",
+	     "some_analyzer_udp_hmac_sha1", "some_analyzer_udp_hmac_sha256":
+		break;
+	}
+	}

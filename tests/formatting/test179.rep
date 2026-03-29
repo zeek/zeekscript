@@ -1,0 +1,17 @@
+GLOBAL-DECL "const" "xs" {
+  TYPE {
+    TYPE-PARAMETERIZED "vector" {
+      OF
+      TYPE-ATOM "double"
+    }
+  }
+  INIT "=" {
+    CONSTRUCTOR "vector" {
+      CONSTANT "0.01"
+      CONSTANT "0.02"
+      CONSTANT "0.03"
+      COMMENT-TRAILING "# note"
+    }
+  }
+  SEMI
+}

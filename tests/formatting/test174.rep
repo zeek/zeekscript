@@ -1,0 +1,17 @@
+EXPORT {
+  TYPE-DECL "SomeInfo" {
+    TYPE-RECORD {
+      FIELD "some_field_name" {
+        TYPE-PARAMETERIZED "set" {
+          TYPE-ATOM "string"
+        }
+        ATTR-LIST {
+          ATTR "&log"
+          ATTR "&optional"
+        }
+      }
+      COMMENT-TRAILING "# A trailing comment here"
+    }
+    SEMI
+  }
+}

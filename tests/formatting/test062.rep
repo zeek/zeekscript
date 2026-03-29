@@ -1,0 +1,36 @@
+FUNC-DECL "function" "f" {
+  BODY {
+    FOR {
+      VARS {
+        IDENTIFIER "idx"
+      }
+      ITERABLE {
+        FIELD-ACCESS {
+          IDENTIFIER "result"
+          IDENTIFIER "matches"
+        }
+      }
+      BODY {
+        FOR {
+          VARS {
+            IDENTIFIER "conn_idx"
+          }
+          ITERABLE {
+            FIELD-ACCESS {
+              IDENTIFIER "result"
+              IDENTIFIER "some_uids_with_a_very_long_field_name_that_forces_wrapping"
+            }
+          }
+          BODY {
+            LOCAL-DECL "local" "x" {
+              INIT "=" {
+                CONSTANT "1"
+              }
+              SEMI
+            }
+          }
+        }
+      }
+    }
+  }
+}

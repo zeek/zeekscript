@@ -1,0 +1,24 @@
+FUNC-DECL "event" "some_evt" {
+  BODY {
+    EXPR-STMT {
+      CALL {
+        IDENTIFIER "SomeModule::setup_stream"
+        ARGS {
+          IDENTIFIER "SOME_STREAM_LOG"
+          INDEX-LITERAL {
+            FIELD-ASSIGN "columns" {
+              IDENTIFIER "SomeStreamInfo"
+            }
+            FIELD-ASSIGN "path" {
+              CONSTANT "\"some_long_module_stream_path\""
+            }
+            FIELD-ASSIGN "policy" {
+              IDENTIFIER "some_stream_log_policy"
+            }
+          }
+        }
+      }
+      SEMI
+    }
+  }
+}

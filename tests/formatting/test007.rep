@@ -1,0 +1,12 @@
+EXPR-STMT {
+  BINARY-OP "+=" {
+    IDENTIFIER "another_very_long_access_to_some_member"
+    INDEX {
+      IDENTIFIER "yetanotherveryveryveryverylongthing"
+      SUBSCRIPTS {
+        CONSTANT "0"
+      }
+    }
+  }
+  SEMI
+}

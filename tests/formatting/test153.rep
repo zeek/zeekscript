@@ -1,0 +1,18 @@
+GLOBAL-DECL "const" "tbl" {
+  TYPE {
+    TYPE-PARAMETERIZED "table" {
+      TYPE-ATOM "count"
+      OF
+      TYPE-ATOM "string"
+    }
+  }
+  INIT "=" {
+    CONSTRUCTOR "table" {
+      BINARY-OP "=" {
+        CONSTANT "[1]"
+        CONSTANT "\"a\""
+      }
+    }
+  }
+  SEMI
+}

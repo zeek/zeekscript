@@ -1,0 +1,1 @@
+const tbl: table[count] of string = {[1] = "a"};

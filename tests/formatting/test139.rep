@@ -1,0 +1,17 @@
+EXPORT {
+  TYPE-DECL "SomeAttrs" {
+    TYPE-RECORD {
+      FIELD "some_strings" {
+        TYPE-PARAMETERIZED "set" {
+          TYPE-ATOM "string"
+        }
+        ATTR-LIST {
+          ATTR "&log"
+          ATTR "&optional"
+        }
+      }
+      COMMENT-TRAILING "# A set of associated strings"
+    }
+    SEMI
+  }
+}

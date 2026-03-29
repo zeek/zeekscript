@@ -1,0 +1,10 @@
+EXPR-STMT {
+  SLICE {
+    IDENTIFIER "data"
+    BINARY-OP "-" {
+      CONSTANT "1"
+      CONSTANT "1"
+    }
+  }
+  SEMI
+}

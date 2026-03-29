@@ -1,0 +1,27 @@
+FUNC-DECL "function" "f" {
+  BODY {
+    FOR {
+      VARS {
+        IDENTIFIER "a"
+        IDENTIFIER "b"
+      }
+      ITERABLE {
+        IDENTIFIER "tbl"
+      }
+      BODY {
+        PRINT {
+          IDENTIFIER "file_handle"
+          IDENTIFIER "some_variable"
+          INDEX {
+            IDENTIFIER "another_table"
+            SUBSCRIPTS {
+              IDENTIFIER "some_index"
+            }
+          }
+          IDENTIFIER "final_value"
+          SEMI
+        }
+      }
+    }
+  }
+}

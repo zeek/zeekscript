@@ -1,0 +1,45 @@
+FUNC-DECL "function" "some_func" {
+  RETURNS {
+    TYPE-ATOM "SomeModule::SomeType"
+  }
+  BODY {
+    IF {
+      COND {
+        BINARY-OP "&&" {
+          IDENTIFIER "some_condition"
+          IDENTIFIER "some_other_condition"
+        }
+      }
+      BODY {
+        EXPR-STMT {
+          BINARY-OP "=" {
+            INDEX {
+              IDENTIFIER "some_long_variable_name"
+              SUBSCRIPTS {
+                IDENTIFIER "some_id"
+              }
+            }
+            CALL {
+              IDENTIFIER "SomeModule::SomeType"
+              ARGS {
+                FIELD-ASSIGN "aa" {
+                  FIELD-ACCESS {
+                    IDENTIFIER "result"
+                    IDENTIFIER "aa"
+                  }
+                }
+                FIELD-ASSIGN "bb_string" {
+                  FIELD-ACCESS {
+                    IDENTIFIER "result"
+                    IDENTIFIER "bb_string"
+                  }
+                }
+              }
+            }
+          }
+          SEMI
+        }
+      }
+    }
+  }
+}

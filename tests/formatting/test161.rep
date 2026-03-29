@@ -1,0 +1,12 @@
+FUNC-DECL "event" "some_evt" {
+  BODY {
+    EXPR-STMT {
+      BINARY-OP "==" {
+        CONSTANT "1"
+        CONSTANT "1"
+      }
+      SEMI
+    }
+    COMMENT-TRAILING "# sanity"
+  }
+}

@@ -1,0 +1,13 @@
+RETURN {
+  BINARY-OP "&&" {
+    BINARY-OP "in" {
+      IDENTIFIER "some_very_long_variable_name"
+      IDENTIFIER "some_other_very_long_variable_name"
+    }
+    BINARY-OP "in" {
+      IDENTIFIER "another_thing"
+      IDENTIFIER "yet_another_thing"
+    }
+  }
+}
+SEMI

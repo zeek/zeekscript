@@ -1,0 +1,53 @@
+FUNC-DECL "function" "some_func" {
+  PARAMS {
+    PARAM "val" {
+      TYPE-ATOM "string"
+    }
+  }
+  BODY {
+    IF {
+      COND {
+        BINARY-OP "==" {
+          IDENTIFIER "some_pattern"
+          IDENTIFIER "val"
+        }
+      }
+      BODY {
+        EXPR-STMT {
+          BINARY-OP "=" {
+            IDENTIFIER "result"
+            CONSTANT "\"found\""
+          }
+          SEMI
+        }
+      }
+      ELSE {
+        IF {
+          COND {
+            BINARY-OP "==" {
+              IDENTIFIER "other_pattern"
+              IDENTIFIER "val"
+            }
+          }
+          BODY {
+            EXPR-STMT {
+              BINARY-OP "=" {
+                IDENTIFIER "result"
+                SLICE {
+                  IDENTIFIER "val"
+                  BINARY-OP "+" {
+                    IDENTIFIER "idx"
+                    CONSTANT "1"
+                  }
+                }
+              }
+              SEMI
+            }
+          }
+        }
+      }
+      COMMENT-LEADING "# This handles the fallback case."
+      COMMENT-LEADING "# Check secondary pattern too."
+    }
+  }
+}

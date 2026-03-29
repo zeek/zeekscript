@@ -1,0 +1,17 @@
+GLOBAL-DECL "global" "some_state" {
+  TYPE {
+    TYPE-PARAMETERIZED "table" {
+      TYPE-ATOM "SomeModule::CertInfo"
+      TYPE-ATOM "SomeModule::AltNameInfo"
+      TYPE-ATOM "SomeModule::ConstraintInfo"
+      OF
+      TYPE-ATOM "count"
+    }
+  }
+  ATTR-LIST {
+    ATTR "&default" {
+      CONSTANT "0"
+    }
+  }
+  SEMI
+}

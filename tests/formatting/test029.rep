@@ -1,0 +1,42 @@
+FUNC-DECL "event" "foo" {
+  BODY {
+    EXPR-STMT {
+      CALL {
+        IDENTIFIER "SomeModule::seen"
+        ARGS {
+          INDEX-LITERAL {
+            FIELD-ASSIGN "some_field" {
+              CALL {
+                IDENTIFIER "SomeModule::build_value"
+                ARGS {
+                  INDEX {
+                    FIELD-ACCESS {
+                      FIELD-ACCESS {
+                        IDENTIFIER "c"
+                        IDENTIFIER "some_data"
+                      }
+                      IDENTIFIER "items"
+                    }
+                    SUBSCRIPTS {
+                      IDENTIFIER "stream"
+                    }
+                  }
+                }
+              }
+            }
+            FIELD-ASSIGN "some_type" {
+              IDENTIFIER "SomeModule::URL"
+            }
+            FIELD-ASSIGN "conn" {
+              IDENTIFIER "c"
+            }
+            FIELD-ASSIGN "where" {
+              IDENTIFIER "SomeModule::IN_URL"
+            }
+          }
+        }
+      }
+      SEMI
+    }
+  }
+}

@@ -1,0 +1,24 @@
+FUNC-DECL "event" "some_event" {
+  BODY {
+    EXPR-STMT {
+      CALL {
+        IDENTIFIER "some_func"
+        ARGS {
+          INDEX-LITERAL {
+            FIELD-ASSIGN "aa" {
+              IDENTIFIER "BB"
+            }
+            FIELD-ASSIGN "cc" {
+              IDENTIFIER "dd"
+            }
+            FIELD-ASSIGN "ee" {
+              IDENTIFIER "ff"
+            }
+            COMMENT-PREV "#@ SOME-TAG"
+          }
+        }
+      }
+      SEMI
+    }
+  }
+}

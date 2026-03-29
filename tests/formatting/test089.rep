@@ -1,0 +1,19 @@
+FUNC-DECL "event" "some_evt" {
+  BODY {
+    LOCAL-DECL "local" "some_services" {
+      INIT "=" {
+        BINARY-OP "|" {
+          FIELD-ACCESS {
+            IDENTIFIER "worker_si"
+            IDENTIFIER "some_entities"
+          }
+          FIELD-ACCESS {
+            IDENTIFIER "worker_si"
+            IDENTIFIER "other_entities"
+          }
+        }
+      }
+      SEMI
+    }
+  }
+}

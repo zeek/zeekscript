@@ -1,0 +1,28 @@
+FUNC-DECL "function" "foo" {
+  BODY {
+    IF {
+      COND {
+        CALL {
+          IDENTIFIER "Cluster::is_enabled"
+        }
+      }
+      BODY {
+        BLOCK {
+          BLANK
+          LOCAL-DECL "local" "pt" {
+            INIT "=" {
+              CALL {
+                IDENTIFIER "Cluster::rr_topic"
+                ARGS {
+                  IDENTIFIER "Cluster::proxy_pool"
+                  CONSTANT "\"application-identification\""
+                }
+              }
+            }
+            SEMI
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,15 @@
+PREPROC "@ifdef" "SOME_FEATURE"
+BLANK
+FUNC-DECL "event" "zeek_init" {
+  BODY {
+    BLANK
+    PRINT {
+      IDENTIFIER "some_var"
+      SEMI
+    }
+  }
+}
+BLANK
+COMMENT-LEADING "# Note: This comment belongs inside the ifdef block."
+COMMENT-LEADING "# It should be tab-indented."
+PREPROC "@endif"

@@ -1,0 +1,13 @@
+GLOBAL-DECL "redef" "some_hosts" {
+  INIT "+=" {
+    CALL {
+      IDENTIFIER "set"
+      ARGS {
+        CONSTANT "\"some.host.example.com\""
+        CONSTANT "\"another.longer.hostname.example.org\""
+        CONSTANT "\"yet.another.host.example.net\""
+      }
+    }
+  }
+  SEMI
+}

@@ -1,0 +1,17 @@
+FUNC-DECL "event" "some_evt" {
+  BODY {
+    FOR {
+      VARS {
+        IDENTIFIER "val"
+      }
+      ITERABLE {
+        IDENTIFIER "some_set"
+      }
+      BODY {
+        NEXT
+        SEMI
+      }
+    }
+    COMMENT-TRAILING "# skip it"
+  }
+}

@@ -1,0 +1,51 @@
+FUNC-DECL "function" "some_fn" {
+  BODY {
+    LOCAL-DECL "local" "info" {
+      INIT "=" {
+        CALL {
+          IDENTIFIER "SomeModule::SomeFn"
+          ARGS {
+            FIELD-ASSIGN "note" {
+              IDENTIFIER "Found"
+            }
+            FIELD-ASSIGN "uid" {
+              IDENTIFIER "uid"
+            }
+            FIELD-ASSIGN "msg" {
+              CALL {
+                IDENTIFIER "fmt"
+                ARGS {
+                  CONSTANT "\"%s found on %s entity using %s item.\""
+                  IDENTIFIER "usecase_desc"
+                  IDENTIFIER "orig_entity"
+                  IDENTIFIER "item"
+                }
+              }
+            }
+            FIELD-ASSIGN "sub" {
+              CALL {
+                IDENTIFIER "fmt"
+                ARGS {
+                  CONSTANT "\"Score: %s. Days: %s\""
+                  IDENTIFIER "item_score"
+                  IDENTIFIER "history_days"
+                }
+              }
+            }
+            FIELD-ASSIGN "identifier" {
+              CALL {
+                IDENTIFIER "cat"
+                ARGS {
+                  IDENTIFIER "orig_entity"
+                  IDENTIFIER "usecase"
+                  IDENTIFIER "item"
+                }
+              }
+            }
+          }
+        }
+      }
+      SEMI
+    }
+  }
+}

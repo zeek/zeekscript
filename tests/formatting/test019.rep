@@ -1,0 +1,35 @@
+FUNC-DECL "function" "some_func" {
+  PARAMS {
+    PARAM "val" {
+      TYPE-ATOM "string"
+    }
+  }
+  BODY {
+    IF {
+      COND {
+        BINARY-OP "==" {
+          IDENTIFIER "some_pattern"
+          IDENTIFIER "val"
+        }
+      }
+      BODY {
+        EXPR-STMT {
+          BINARY-OP "=" {
+            IDENTIFIER "result"
+            CONSTANT "\"found\""
+          }
+          SEMI
+        }
+      }
+      ELSE {
+        EXPR-STMT {
+          BINARY-OP "=" {
+            IDENTIFIER "result"
+            CONSTANT "\"default\""
+          }
+          SEMI
+        }
+      }
+    }
+  }
+}

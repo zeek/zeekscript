@@ -1,0 +1,8 @@
+COMMENT-LEADING "# Some comment."
+COMMENT-PREV "#@ BEGIN-SKIP-TESTING"
+PREPROC "@if" "some_func(\"/some/path\") > 0"
+PREPROC "@load" "/some/path"
+PREPROC "@else"
+PREPROC "@load" "packages/some-pkg"
+PREPROC "@endif"
+COMMENT-PREV "#@ END-SKIP-TESTING"

@@ -1,0 +1,23 @@
+COMMENT-PREV "#@ BEGIN-SKIP-TESTING"
+BLANK
+FUNC-DECL "function" "some_func" {
+  PARAMS {
+    PARAM "val" {
+      TYPE-ATOM "string"
+    }
+  }
+  BODY {
+    BLANK
+    EXPR-STMT {
+      CALL {
+        IDENTIFIER "some_call"
+        ARGS {
+          IDENTIFIER "val"
+        }
+      }
+      SEMI
+    }
+  }
+}
+BLANK
+COMMENT-PREV "#@ END-SKIP-TESTING"

@@ -1,0 +1,15 @@
+LOCAL-DECL "local" "x" {
+  INIT "=" {
+    CALL {
+      IDENTIFIER "set"
+      ARGS {
+        CONSTANT "\"a\""
+        CONSTANT "\"b\""
+        CONSTANT "\"c\""
+        CONSTANT "\"d\""
+        CONSTANT "\"e\""
+      }
+    }
+  }
+  SEMI
+}

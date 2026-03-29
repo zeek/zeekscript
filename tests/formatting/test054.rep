@@ -1,0 +1,14 @@
+FUNC-DECL "function" "some_func_a" {
+  BODY {
+    IF {
+      COND {
+        IDENTIFIER "foo"
+      }
+      BODY {
+        EVENT-STMT "" {
+          SEMI
+        }
+      }
+    }
+  }
+}

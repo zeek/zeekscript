@@ -1,0 +1,62 @@
+FUNC-DECL "function" "some_fn" {
+  BODY {
+    IF {
+      COND {
+        IDENTIFIER "some_condition"
+      }
+      BODY {
+        BLOCK {
+          BLANK
+          LOCAL-DECL "local" "info" {
+            INIT "=" {
+              CALL {
+                IDENTIFIER "SomeLongModule::SomeFn"
+                ARGS {
+                  FIELD-ASSIGN "ts" {
+                    IDENTIFIER "ts"
+                  }
+                  FIELD-ASSIGN "uid" {
+                    IDENTIFIER "uid"
+                  }
+                  FIELD-ASSIGN "use_case" {
+                    IDENTIFIER "usecase"
+                  }
+                  FIELD-ASSIGN "use_case_description" {
+                    IDENTIFIER "usecase_desc"
+                  }
+                  FIELD-ASSIGN "entity_training_items" {
+                    IDENTIFIER "entity_training_items"
+                  }
+                  FIELD-ASSIGN "entity" {
+                    IDENTIFIER "entity"
+                  }
+                  FIELD-ASSIGN "original_entity" {
+                    IDENTIFIER "original_entity"
+                  }
+                  FIELD-ASSIGN "item" {
+                    IDENTIFIER "item"
+                  }
+                  FIELD-ASSIGN "first_seen_type" {
+                    INDEX {
+                      IDENTIFIER "some_enum_map"
+                      SUBSCRIPTS {
+                        IDENTIFIER "some_type"
+                      }
+                    }
+                  }
+                  FIELD-ASSIGN "history_days" {
+                    IDENTIFIER "history_days"
+                  }
+                  FIELD-ASSIGN "history" {
+                    IDENTIFIER "history"
+                  }
+                }
+              }
+            }
+            SEMI
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,4 @@
+EXPR-STMT {
+  INTERVAL "3.5" "hrs"
+  SEMI
+}

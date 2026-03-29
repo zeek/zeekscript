@@ -1,0 +1,42 @@
+FUNC-DECL "event" "some_evt" {
+  BODY {
+    EXPR-STMT {
+      CALL {
+        IDENTIFIER "SOME_CALL"
+        ARGS {
+          INDEX-LITERAL {
+            FIELD-ASSIGN "field_a" {
+              IDENTIFIER "Some_Enum_Val"
+            }
+            FIELD-ASSIGN "field_b" {
+              CALL {
+                IDENTIFIER "fmt"
+                ARGS {
+                  CONSTANT "\"some format string with several placeholders %d items across %d groups within %s window\""
+                  IDENTIFIER "val_one"
+                  IDENTIFIER "val_two"
+                  IDENTIFIER "val_three"
+                }
+              }
+            }
+            FIELD-ASSIGN "field_c" {
+              IDENTIFIER "endpoints"
+            }
+            FIELD-ASSIGN "field_d" {
+              IDENTIFIER "src_host"
+            }
+            FIELD-ASSIGN "field_e" {
+              CALL {
+                IDENTIFIER "cat"
+                ARGS {
+                  IDENTIFIER "src_host"
+                }
+              }
+            }
+          }
+        }
+      }
+      SEMI
+    }
+  }
+}

@@ -1,0 +1,5 @@
+PRINT {
+  CONSTANT "\"hello\""
+  SEMI
+}
+COMMENT-TRAILING "# a note"

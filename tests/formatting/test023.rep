@@ -1,0 +1,62 @@
+FUNC-DECL "function" "some_function_name_aa" {
+  PARAMS {
+    PARAM "c" {
+      TYPE-ATOM "connection"
+    }
+  }
+  RETURNS {
+    TYPE-ATOM "string"
+  }
+  BODY {
+    IF {
+      COND {
+        BINARY-OP "&&" {
+          BINARY-OP "&&" {
+            BINARY-OP "?$" {
+              IDENTIFIER "c"
+              IDENTIFIER "tunnel"
+            }
+            BINARY-OP ">=" {
+              UNARY-OP "|...|" {
+                FIELD-ACCESS {
+                  IDENTIFIER "c"
+                  IDENTIFIER "tunnel"
+                }
+              }
+              CONSTANT "2"
+            }
+          }
+          BINARY-OP "==" {
+            FIELD-ACCESS {
+              INDEX {
+                FIELD-ACCESS {
+                  IDENTIFIER "c"
+                  IDENTIFIER "tunnel"
+                }
+                SUBSCRIPTS {
+                  BINARY-OP "-" {
+                    UNARY-OP "|...|" {
+                      FIELD-ACCESS {
+                        IDENTIFIER "c"
+                        IDENTIFIER "tunnel"
+                      }
+                    }
+                    CONSTANT "1"
+                  }
+                }
+              }
+              IDENTIFIER "tunnel_type"
+            }
+            IDENTIFIER "Tunnel::VXLAN"
+          }
+        }
+      }
+      BODY {
+        PRINT {
+          CONSTANT "\"yep\""
+          SEMI
+        }
+      }
+    }
+  }
+}

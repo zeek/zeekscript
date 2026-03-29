@@ -1,0 +1,20 @@
+FUNC-DECL "function" "f" {
+  BODY {
+    SWITCH {
+      EXPR {
+        PAREN {
+          IDENTIFIER "val"
+        }
+      }
+      CASE {
+        VALUES {
+          CONSTANT "0"
+        }
+        BODY {
+          BREAK
+          SEMI
+        }
+      }
+    }
+  }
+}

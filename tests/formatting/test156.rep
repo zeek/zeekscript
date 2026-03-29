@@ -1,0 +1,59 @@
+FUNC-DECL "function" "f" {
+  BODY {
+    IF {
+      COND {
+        UNARY-OP "!" {
+          CALL {
+            IDENTIFIER "some_function_name"
+            ARGS {
+              IDENTIFIER "some_argument"
+              IDENTIFIER "new_file"
+              IDENTIFIER "extra_vals"
+              IDENTIFIER "some_uids"
+              IDENTIFIER "some_ids"
+              TERNARY {
+                FIELD-ACCESS {
+                  IDENTIFIER "info"
+                  IDENTIFIER "source"
+                }
+                FIELD-ACCESS {
+                  IDENTIFIER "info"
+                  IDENTIFIER "source"
+                }
+                CONSTANT "\"\""
+              }
+              TERNARY {
+                FIELD-ACCESS {
+                  IDENTIFIER "info"
+                  IDENTIFIER "mime"
+                }
+                FIELD-ACCESS {
+                  IDENTIFIER "info"
+                  IDENTIFIER "mime"
+                }
+                CONSTANT "\"\""
+              }
+              TERNARY {
+                FIELD-ACCESS {
+                  IDENTIFIER "info"
+                  IDENTIFIER "md5"
+                }
+                FIELD-ACCESS {
+                  IDENTIFIER "info"
+                  IDENTIFIER "md5"
+                }
+                CONSTANT "\"\""
+              }
+            }
+          }
+        }
+      }
+      BODY {
+        PRINT {
+          CONSTANT "\"failed\""
+          SEMI
+        }
+      }
+    }
+  }
+}

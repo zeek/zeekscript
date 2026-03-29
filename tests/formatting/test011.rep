@@ -1,0 +1,46 @@
+FUNC-DECL "function" "foo" {
+  BODY {
+    FOR {
+      VARS {
+        IDENTIFIER "x"
+      }
+      ITERABLE {
+        IDENTIFIER "xs"
+      }
+      BODY {
+        FOR {
+          VARS {
+            IDENTIFIER "y"
+          }
+          ITERABLE {
+            IDENTIFIER "ys"
+          }
+          BODY {
+            EXPR-STMT {
+              BINARY-OP "=" {
+                INDEX {
+                  IDENTIFIER "some_long_table"
+                  SUBSCRIPTS {
+                    IDENTIFIER "some_key"
+                  }
+                }
+                CALL {
+                  IDENTIFIER "SomeFunc"
+                  ARGS {
+                    FIELD-ASSIGN "field_a" {
+                      IDENTIFIER "val_a"
+                    }
+                    FIELD-ASSIGN "field_b" {
+                      IDENTIFIER "val_b"
+                    }
+                  }
+                }
+              }
+              SEMI
+            }
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,6 @@
+PREPROC "@if" "FOO"
+PRINT {
+  CONSTANT "1"
+  SEMI
+}
+PREPROC "@endif"

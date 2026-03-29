@@ -1,0 +1,17 @@
+GLOBAL-DECL "global" "some_long_cache_name" {
+  TYPE {
+    TYPE-PARAMETERIZED "set" {
+      TYPE-ATOM "string"
+      TYPE-ATOM "subnet"
+      TYPE-ATOM "subnet"
+      TYPE-ATOM "transport_proto"
+      TYPE-ATOM "SomeModule::SomeType"
+    }
+  }
+  ATTR-LIST {
+    ATTR "&read_expire" {
+      IDENTIFIER "cache_interval"
+    }
+  }
+  SEMI
+}

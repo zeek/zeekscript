@@ -1,0 +1,2 @@
+another_very_long_access_to_some_member +=
+	yetanotherveryveryveryverylongthing[0];
