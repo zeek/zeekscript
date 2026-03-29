@@ -788,7 +788,8 @@ def _type_constructor_name(type_node: Node) -> str | None:
 
 
 def _format_typed_initializer(kids: list[Node], start_idx: int, script: Script,
-                              trailing: Doc = EMPTY) -> tuple[Doc, int]:
+                              trailing: Doc = EMPTY,
+                              prefix_width: int = 0) -> tuple[Doc, int]:
     """Format [: <type>] [<initializer>] [<attr_list>] sequence.
 
     Returns (doc, next_idx).
@@ -858,35 +859,47 @@ def _format_typed_initializer(kids: list[Node], start_idx: int, script: Script,
 
     if has_explicit_type:
         parts.append(text(":"))
-        # The colon-break group wraps type_doc (and sometimes attrs) so
-        # the resolver can move them to an indented continuation line
-        # when they don't fit after the identifier.
+
+        # Three layout strategies for type + attrs after ':':
         #
-        # init_doc is kept OUTSIDE the group because multiline
-        # constructors contain HARDLINEs that would force the group to
-        # break unconditionally.
+        # 1. fits_together: type+attrs fit on one indented continuation
+        #    line.  Colon-break, everything together.
+        #    Example: global name:\n\tset[...] &read_expire=...;
         #
-        # Non-constructor attrs without an initializer are included IN
-        # the group so the flat-width check accounts for type+attr
-        # together — this way "global name: type &attr;" colon-breaks
-        # when type+attr overflow, keeping them on one indented line.
-        include_attrs = (attr_doc != EMPTY and not attr_in_trailing
-                         and not is_constructor_init and not has_initializer)
-        if include_attrs:
-            # Inner group: if type+attr fit on the indented line, LINE
-            # stays flat (space).  If not, LINE breaks and attr goes to
-            # its own line at the same indent.
+        # 2. type_fits_inline: type fits on the current line but attrs
+        #    don't.  Keep type inline, attrs wrap aligned to after ': '.
+        #    Example: global name: table[...] of Rec\n<aligned>&attr...;
+        #
+        # 3. Neither fits: colon-break for type, attrs wrap at tab
+        #    indent.  Example: global name:\n\tset[very long...]\n\t&attr;
+        has_non_ctor_attrs = (attr_doc != EMPTY and not attr_in_trailing
+                              and not is_constructor_init)
+        type_fw = _flat_width(type_doc, MAX_WIDTH) or MAX_WIDTH
+        attr_fw = (_flat_width(attr_doc, MAX_WIDTH) or MAX_WIDTH
+                   if has_non_ctor_attrs else 0)
+        fits_together = (has_non_ctor_attrs and not has_initializer
+                         and TAB_SIZE + type_fw + 1 + attr_fw < MAX_WIDTH)
+        type_fits_inline = prefix_width + type_fw < MAX_WIDTH
+
+        if fits_together:
+            # Strategy 1: colon-break, type+attrs on one indented line.
             type_with_break = group(nest(1, dedent_spaces(concat(
                 LINE, type_doc, group(concat(LINE, attr_doc))))))
             parts.append(type_with_break)
+        elif has_non_ctor_attrs and type_fits_inline:
+            # Strategy 2: type inline, attrs wrap aligned to type column.
+            parts.append(SPACE)
+            parts.append(align(concat(
+                type_doc, init_doc,
+                group(concat(SOFTLINE, text(" "), align(attr_doc))))))
         else:
+            # Strategy 3 (or no non-ctor attrs): colon-break for type.
             type_with_break = group(nest(1, dedent_spaces(concat(
                 LINE, type_doc))))
             parts.append(type_with_break)
             parts.append(init_doc)
             if attr_doc != EMPTY and not attr_in_trailing:
                 if is_constructor_init:
-                    # Constructor attrs follow ')' directly with a space.
                     parts.append(SPACE)
                     parts.append(attr_doc)
                 else:
@@ -906,8 +919,11 @@ def _format_global_decl(node: Node, script: Script) -> Doc:
     kids = node.nonerr_children
     keyword = _source_str(kids[0], script)
     id_doc = format_child(kids[1], script)
+    # prefix_width: "keyword id: " — everything before the type
+    prefix_w = len(keyword) + 1 + len(_source_str(kids[1], script)) + 2
 
-    typed_init, idx = _format_typed_initializer(kids, 2, script)
+    typed_init, idx = _format_typed_initializer(kids, 2, script,
+                                                prefix_width=prefix_w)
     # Semicolon - use format_child to pick up trailing comments
     semi = format_child(kids[idx], script) if idx < len(kids) and _tok(kids[idx]) == ";" else EMPTY
 
@@ -1778,7 +1794,9 @@ def _format_stmt_local(node: Node, script: Script) -> Doc:
     semi = format_child(semi_node, script) if semi_node is not None else EMPTY
     trailing = semi if has_trailing_comment else EMPTY
 
-    typed_init, idx = _format_typed_initializer(kids, 2, script, trailing=trailing)
+    prefix_w = len(keyword) + 1 + len(_source_str(kids[1], script)) + 2
+    typed_init, idx = _format_typed_initializer(kids, 2, script, trailing=trailing,
+                                                prefix_width=prefix_w)
     if has_trailing_comment:
         inner = concat(id_doc, typed_init) if typed_init != EMPTY else concat(id_doc, semi)
     else:

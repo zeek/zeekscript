@@ -777,15 +777,17 @@ class TestFormatting(unittest.TestCase):
         self.assertEqual(len(question_only_lines), 0,
                         "Should not break after ? when : break suffices")
 
-    def test_type_declaration_colon_break(self):
-        """Type declarations break after colon when type+attrs overflow."""
+    def test_type_declaration_attrs_aligned(self):
+        """When type fits inline but attrs don't, attrs wrap aligned."""
         code = b'''global some_table_name_a: table[count, string] of TrackingRec
         &default_insert = TrackingRec() &create_expire = 10 sec;'''
         result = self._format(code).decode()
         lines = result.splitlines()
-        # Colon-break: identifier on line 0, type on indented continuation
-        self.assertTrue(lines[0].rstrip().endswith(":"))
-        self.assertIn("table[", result)
+        # Type stays on line 0 with identifier
+        self.assertIn("table[", lines[0])
+        # Attrs wrap to subsequent lines, aligned
+        attr_lines = [l for l in lines if "&" in l]
+        self.assertGreaterEqual(len(attr_lines), 1)
         # All lines under 80 columns
         for line in lines:
             expanded = line.replace('\t', '        ')
