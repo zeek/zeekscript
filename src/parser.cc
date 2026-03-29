@@ -44,7 +44,7 @@ std::unique_ptr<Node> Parser::ParseNode()
 		return nullptr;
 		}
 
-	auto node = std::make_unique<Node>(std::move(t));
+	auto node = std::make_unique<Node>(TagFromString(t));
 
 	// Parse zero or more quoted-string arguments.
 	SkipWhitespace();

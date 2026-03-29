@@ -32,7 +32,7 @@ void Node::Dump(int indent) const
 	for ( int i = 0; i < indent; ++i )
 		printf("  ");
 
-	printf("%s", tag.c_str());
+	printf("%s", TagToString(tag));
 
 	for ( const auto& a : args )
 		{

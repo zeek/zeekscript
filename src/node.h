@@ -1,15 +1,17 @@
 #pragma once
 
+#include "tag.h"
+
 #include <memory>
 #include <string>
 #include <vector>
 
 // A node in the representation tree.  Each node has:
-//   - tag:      semantic type (e.g. "BINARY-OP", "GLOBAL-DECL")
-//   - args:     zero or more quoted string arguments
-//   - children: zero or more child nodes (from a { } block)
+//   - tag:      semantic type (e.g. Tag::BinaryOp)
+//   - args:     zero or more string arguments
+//   - children: zero or more child nodes (from { } block)
 //
-// Leaf nodes like  IDENTIFIER "x"  have args but no children.
+// Leaf nodes like  IDENTIFIER "x"  have args, no children.
 // Container nodes like  CALL { ... }  have children (and
 // possibly args).
 // Bare markers like  SEMI  or  BLANK  have neither.
@@ -18,9 +20,9 @@ class Node {
 public:
 	using NodeVec = std::vector<std::unique_ptr<Node>>;
 
-	Node(std::string tag) : tag(std::move(tag)) {}
+	Node(Tag tag) : tag(tag) {}
 
-	const std::string& Tag() const { return tag; }
+	Tag GetTag() const { return tag; }
 	const std::vector<std::string>& Args() const
 		{ return args; }
 	const NodeVec& Children() const
@@ -44,7 +46,7 @@ public:
 	void Dump(int indent = 0) const;
 
 private:
-	std::string tag;
+	Tag tag;
 	std::vector<std::string> args;
 	NodeVec children;
 	bool has_block = false;

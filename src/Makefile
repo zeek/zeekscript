@@ -2,7 +2,7 @@ CXX ?= c++
 CXXFLAGS ?= -std=c++17 -Wall -Wextra -O2
 TARGET = zeek-format
 
-SRCS = main.cc node.cc parser.cc
+SRCS = main.cc node.cc parser.cc tag.cc
 OBJS = $(SRCS:.cc=.o)
 
 all: $(TARGET)
@@ -14,9 +14,10 @@ $(TARGET): $(OBJS)
 	$(CXX) $(CXXFLAGS) -c -o $@ $<
 
 # Header dependencies
-main.o: node.h parser.h
-node.o: node.h
-parser.o: parser.h node.h
+main.o: node.h parser.h tag.h
+node.o: node.h tag.h
+parser.o: parser.h node.h tag.h
+tag.o: tag.h
 
 SHELL = /bin/bash
 
