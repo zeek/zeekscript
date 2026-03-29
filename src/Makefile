@@ -1,0 +1,40 @@
+CXX ?= c++
+CXXFLAGS ?= -std=c++17 -Wall -Wextra -O2
+TARGET = zeek-format
+
+SRCS = main.cc node.cc parser.cc
+OBJS = $(SRCS:.cc=.o)
+
+all: $(TARGET)
+
+$(TARGET): $(OBJS)
+	$(CXX) $(CXXFLAGS) -o $@ $(OBJS)
+
+%.o: %.cc
+	$(CXX) $(CXXFLAGS) -c -o $@ $<
+
+# Header dependencies
+main.o: node.h parser.h
+node.o: node.h
+parser.o: parser.h node.h
+
+SHELL = /bin/bash
+
+test: $(TARGET)
+	@pass=0; fail=0; \
+	for f in ../tests/formatting/test*.rep; do \
+		if diff -q <(./$(TARGET) "$$f") "$$f" \
+		    >/dev/null 2>&1; then \
+			pass=$$((pass + 1)); \
+		else \
+			echo "FAIL: $$f"; \
+			fail=$$((fail + 1)); \
+		fi; \
+	done; \
+	echo "$$pass pass, $$fail fail"; \
+	[ $$fail -eq 0 ]
+
+clean:
+	rm -f $(OBJS) $(TARGET)
+
+.PHONY: all clean test
