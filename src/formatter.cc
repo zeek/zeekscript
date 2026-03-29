@@ -26,11 +26,11 @@ std::string LinePrefix(int indent, int col)
 
 bool Candidate::BetterThan(const Candidate& o) const
 	{
-	if ( overflow != o.overflow )
-		return overflow < o.overflow;
-	if ( lines != o.lines )
-		return lines < o.lines;
-	return width < o.width;
+	if ( Ovf() != o.Ovf() )
+		return Ovf() < o.Ovf();
+	if ( Lines() != o.Lines() )
+		return Lines() < o.Lines();
+	return Width() < o.Width();
 	}
 
 const Candidate& Best(const Candidates& cs)
@@ -124,11 +124,11 @@ static Candidates FormatFieldAccess(const Node& node,
 	const auto& lhs = Best(lhs_cs);
 
 	auto rhs_cs = FormatExpr(*kids[1],
-	                         ctx.After(lhs.width + 1));
+	                  ctx.After(lhs.Width() + 1));
 	const auto& rhs = Best(rhs_cs);
 
-	std::string text = lhs.text + "$" + rhs.text;
-	int w = lhs.width + 1 + rhs.width;
+	std::string text = lhs.Text() + "$" + rhs.Text();
+	int w = lhs.Width() + 1 + rhs.Width();
 	return {{text, w}};
 	}
 
@@ -150,8 +150,8 @@ static Candidates FormatFieldAssign(const Node& node,
 	                         ctx.After(pw));
 	const auto& val = Best(val_cs);
 
-	std::string text = prefix + val.text;
-	int w = pw + val.width;
+	std::string text = prefix + val.Text();
+	int w = pw + val.Width();
 	return {{text, w}};
 	}
 
@@ -177,8 +177,8 @@ static Candidate FormatArgsFlat(
 
 		auto cs = FormatExpr(*args[i], ctx.After(w));
 		const auto& best = Best(cs);
-		text += best.text;
-		w += best.width;
+		text += best.Text();
+		w += best.Width();
 		}
 
 	return {text, w};
@@ -199,8 +199,8 @@ static Candidate FormatArgsSplit(
 	int lines = 1;
 	int total_overflow = 0;
 
-	// First line starts at first_line_ctx.col.
-	cur_col = first_line_ctx.col;
+	// First line starts at first_line_ctx.Col().
+	cur_col = first_line_ctx.Col();
 
 	for ( size_t i = 0; i < args.size(); ++i )
 		{
@@ -225,16 +225,16 @@ static Candidate FormatArgsSplit(
 		FmtContext sub(indent, cur_col);
 		auto cs = FormatExpr(*args[i], sub);
 		const auto& best = Best(cs);
-		text += best.text;
+		text += best.Text();
 
-		if ( best.lines > 1 )
+		if ( best.Lines() > 1 )
 			{
-			lines += best.lines - 1;
+			lines += best.Lines() - 1;
 			int last_len = LastLineLen(text);
 			cur_col = last_len;
 			}
 		else
-			cur_col += best.width;
+			cur_col += best.Width();
 		}
 
 	int end = cur_col;
@@ -267,8 +267,8 @@ static Candidates FormatCall(const Node& node,
 
 	if ( ! args_node )
 		{
-		std::string text = func.text + "()";
-		int w = func.width + 2;
+		std::string text = func.Text() + "()";
+		int w = func.Width() + 2;
 		return {{text, w}};
 		}
 
@@ -285,51 +285,53 @@ static Candidates FormatCall(const Node& node,
 
 	if ( args.empty() )
 		{
-		std::string text = func.text + "()";
-		int w = func.width + 2;
+		std::string text = func.Text() + "()";
+		int w = func.Width() + 2;
 		return {{text, w}};
 		}
 
 	// Column right after "(" — alignment point for
 	// continuation lines.
-	int open_col = ctx.col + func.width + 1;
+	int open_col = ctx.Col() + func.Width() + 1;
 
 	// Context for args: starts after "(", must leave
 	// room for ")".
-	FmtContext args_ctx(ctx.indent, open_col,
-	                    ctx.reserved + 1);
+	FmtContext args_ctx(ctx.Indent(), open_col,
+	                    ctx.Reserved() + 1);
 
 	// Try flat.
 	auto flat = FormatArgsFlat(args, args_ctx);
 
-	std::string flat_text = func.text + "(" +
-	                        flat.text + ")";
-	int flat_w = func.width + 1 + flat.width + 1;
-	int flat_end = ctx.col + flat_w;
+	std::string flat_text = func.Text() + "(" +
+	                        flat.Text() + ")";
+	int flat_w = func.Width() + 1 +
+	             flat.Width() + 1;
+	int flat_end = ctx.Col() + flat_w;
 	int flat_ovf = Overflow(flat_end);
 
 	Candidates result;
-	result.push_back({flat_text, flat_w, flat.lines,
-	                  flat_ovf});
+	result.push_back({flat_text, flat_w,
+	                  flat.Lines(), flat_ovf});
 
-	// If flat doesn't fit, try splitting at each position.
+	// If flat doesn't fit, try splitting at each
+	// position.
 	if ( flat_ovf > 0 && args.size() > 1 )
 		{
 		for ( size_t split = 1;
 		      split < args.size(); ++split )
 			{
 			auto sc = FormatArgsSplit(
-				args, open_col, ctx.indent,
+				args, open_col, ctx.Indent(),
 				args_ctx, split);
 
-			std::string stext = func.text + "(" +
-			    sc.text + ")";
-			int last_w = sc.width + 1;  // ")"
-			int sovf = sc.overflow +
+			std::string stext = func.Text() + "(" +
+			    sc.Text() + ")";
+			int last_w = sc.Width() + 1;  // ")"
+			int sovf = sc.Ovf() +
 			    Overflow(last_w);
 
 			result.push_back({stext, last_w,
-			                  sc.lines, sovf});
+			                  sc.Lines(), sovf});
 			}
 		}
 
@@ -354,21 +356,25 @@ static Candidates FormatIndex(const Node& node,
 	                                  Tag::Subscripts);
 	if ( ! subs_node || subs_node->Children().empty() )
 		{
-		std::string text = base.text + "[]";
-		int w = base.width + 2;
+		std::string text = base.Text() + "[]";
+		int w = base.Width() + 2;
 		return {{text, w}};
 		}
 
 	// "[" + subscript + "]"
-	FmtContext sub_ctx = ctx.After(base.width + 1);
-	sub_ctx.reserved += 1;  // for "]"
+	FmtContext sub_ctx = ctx.After(base.Width() + 1);
+	// TODO: sub_ctx needs +1 reserved for "]" but
+	// reserved is private.  Use a new context instead.
+	FmtContext bracket_ctx(sub_ctx.Indent(),
+	                       sub_ctx.Col(),
+	                       sub_ctx.Reserved() + 1);
 	auto sub_cs = FormatExpr(
-		*subs_node->Children()[0], sub_ctx);
+		*subs_node->Children()[0], bracket_ctx);
 	const auto& sub = Best(sub_cs);
 
-	std::string text = base.text + "[" +
-	                   sub.text + "]";
-	int w = base.width + 1 + sub.width + 1;
+	std::string text = base.Text() + "[" +
+	                   sub.Text() + "]";
+	int w = base.Width() + 1 + sub.Width() + 1;
 	return {{text, w}};
 	}
 
@@ -386,20 +392,20 @@ static Candidates FormatIndexLiteral(const Node& node,
 	if ( fields.empty() )
 		return {{"[]", 2}};
 
-	int open_col = ctx.col + 1;  // after "["
+	int open_col = ctx.Col() + 1;  // after "["
 
-	FmtContext inner_ctx(ctx.indent, open_col,
-	                     ctx.reserved + 1);
+	FmtContext inner_ctx(ctx.Indent(), open_col,
+	                     ctx.Reserved() + 1);
 
 	auto flat = FormatArgsFlat(fields, inner_ctx);
-	std::string flat_text = "[" + flat.text + "]";
-	int flat_w = 1 + flat.width + 1;
-	int flat_end = ctx.col + flat_w;
+	std::string flat_text = "[" + flat.Text() + "]";
+	int flat_w = 1 + flat.Width() + 1;
+	int flat_end = ctx.Col() + flat_w;
 	int flat_ovf = Overflow(flat_end);
 
 	Candidates result;
-	result.push_back({flat_text, flat_w, flat.lines,
-	                  flat_ovf});
+	result.push_back({flat_text, flat_w,
+	                  flat.Lines(), flat_ovf});
 
 	if ( flat_ovf > 0 && fields.size() > 1 )
 		{
@@ -407,14 +413,14 @@ static Candidates FormatIndexLiteral(const Node& node,
 		      split < fields.size(); ++split )
 			{
 			auto sc = FormatArgsSplit(
-				fields, open_col, ctx.indent,
+				fields, open_col, ctx.Indent(),
 				inner_ctx, split);
-			std::string st = "[" + sc.text + "]";
-			int last_w = sc.width + 1;
-			int sovf = sc.overflow +
+			std::string st = "[" + sc.Text() + "]";
+			int last_w = sc.Width() + 1;
+			int sovf = sc.Ovf() +
 			    Overflow(last_w);
-			result.push_back({st, last_w, sc.lines,
-			                  sovf});
+			result.push_back({st, last_w,
+			                  sc.Lines(), sovf});
 			}
 		}
 
@@ -440,9 +446,9 @@ static Candidates FormatSlice(const Node& node,
 	if ( kids.size() == 3 )
 		{
 		auto lo_cs = FormatExpr(*kids[1], ctx);
-		lo = Best(lo_cs).text;
+		lo = Best(lo_cs).Text();
 		auto hi_cs = FormatExpr(*kids[2], ctx);
-		hi = Best(hi_cs).text;
+		hi = Best(hi_cs).Text();
 		}
 	else if ( kids.size() == 2 )
 		{
@@ -450,12 +456,12 @@ static Candidates FormatSlice(const Node& node,
 		const auto& c = Best(c_cs);
 
 		if ( node.Arg() == "lo" )
-			lo = c.text;
+			lo = c.Text();
 		else
-			hi = c.text;
+			hi = c.Text();
 		}
 
-	std::string text = base.text + "[" + lo + ":" +
+	std::string text = base.Text() + "[" + lo + ":" +
 	                   hi + "]";
 	int w = static_cast<int>(text.size());
 	return {{text, w}};
@@ -475,8 +481,8 @@ static Candidates FormatParen(const Node& node,
 	                           ctx.After(2));
 	const auto& inner = Best(inner_cs);
 
-	std::string text = "( " + inner.text + " )";
-	int w = inner.width + 4;
+	std::string text = "( " + inner.Text() + " )";
+	int w = inner.Width() + 4;
 	return {{text, w}};
 	}
 
@@ -503,8 +509,8 @@ static Candidates FormatUnary(const Node& node,
 	                             ctx.After(pw));
 	const auto& operand = Best(operand_cs);
 
-	std::string text = prefix + operand.text;
-	int w = pw + operand.width;
+	std::string text = prefix + operand.Text();
+	int w = pw + operand.Width();
 	return {{text, w}};
 	}
 
@@ -528,19 +534,19 @@ static Candidates FormatBinary(const Node& node,
 	int op_w = static_cast<int>(op.size()) + 2;
 
 	auto rhs_cs = FormatExpr(
-		*kids[1], ctx.After(lhs.width + op_w));
+		*kids[1], ctx.After(lhs.Width() + op_w));
 	const auto& rhs = Best(rhs_cs);
 
 	// Candidate 1: flat — lhs op rhs
-	std::string flat = lhs.text + " " + op + " " +
-	                   rhs.text;
-	int flat_w = lhs.width + op_w + rhs.width;
-	int flat_end = ctx.col + flat_w;
+	std::string flat = lhs.Text() + " " + op + " " +
+	                   rhs.Text();
+	int flat_w = lhs.Width() + op_w + rhs.Width();
+	int flat_end = ctx.Col() + flat_w;
 	int flat_ovf = Overflow(flat_end);
 
 	Candidates result;
 
-	if ( rhs.lines > 1 )
+	if ( rhs.Lines() > 1 )
 		{
 		int last_w = LastLineLen(flat);
 		result.push_back({flat, last_w,
@@ -559,50 +565,50 @@ static Candidates FormatBinary(const Node& node,
 		const auto& rhs2 = Best(rhs2_cs);
 
 		std::string cont_prefix = LinePrefix(
-			cont_ctx.indent, cont_ctx.col);
+			cont_ctx.Indent(), cont_ctx.Col());
 
-		std::string split = lhs.text + " " + op +
-		    "\n" + cont_prefix + rhs2.text;
-		int line1_end = ctx.col + lhs.width + 1 +
+		std::string split = lhs.Text() + " " + op +
+		    "\n" + cont_prefix + rhs2.Text();
+		int line1_end = ctx.Col() + lhs.Width() + 1 +
 		    static_cast<int>(op.size());
-		int line2_end = cont_ctx.col + rhs2.width;
+		int line2_end = cont_ctx.Col() + rhs2.Width();
 		int split_ovf = Overflow(line1_end) +
 		    Overflow(line2_end);
 
-		int split_lines = 1 + rhs2.lines;
-		int last_w = rhs2.lines > 1 ?
+		int split_lines = 1 + rhs2.Lines();
+		int last_w = rhs2.Lines() > 1 ?
 			LastLineLen(split) :
-			rhs2.width;
+			rhs2.Width();
 
 		result.push_back({split, last_w,
 		                  split_lines, split_ovf});
 		}
 
 	// Candidate 3: split after operator, continuation
-	// aligned to start of this expression (ctx.col).
+	// aligned to start of this expression (ctx.Col()).
 	if ( flat_ovf > 0 &&
-	     ctx.col > ctx.IndentCol() )
+	     ctx.Col() > ctx.IndentCol() )
 		{
-		FmtContext cont_ctx = ctx.AtCol(ctx.col);
+		FmtContext cont_ctx = ctx.AtCol(ctx.Col());
 
 		auto rhs3_cs = FormatExpr(*kids[1], cont_ctx);
 		const auto& rhs3 = Best(rhs3_cs);
 
 		std::string cont_prefix = LinePrefix(
-			ctx.indent, ctx.col);
+			ctx.Indent(), ctx.Col());
 
-		std::string split = lhs.text + " " + op +
-		    "\n" + cont_prefix + rhs3.text;
-		int line1_end = ctx.col + lhs.width + 1 +
+		std::string split = lhs.Text() + " " + op +
+		    "\n" + cont_prefix + rhs3.Text();
+		int line1_end = ctx.Col() + lhs.Width() + 1 +
 		    static_cast<int>(op.size());
-		int line2_end = ctx.col + rhs3.width;
+		int line2_end = ctx.Col() + rhs3.Width();
 		int split_ovf = Overflow(line1_end) +
 		    Overflow(line2_end);
 
-		int split_lines = 1 + rhs3.lines;
-		int last_w = rhs3.lines > 1 ?
+		int split_lines = 1 + rhs3.Lines();
+		int last_w = rhs3.Lines() > 1 ?
 			LastLineLen(split) :
-			rhs3.width;
+			rhs3.Width();
 
 		result.push_back({split, last_w,
 		                  split_lines, split_ovf});
@@ -685,15 +691,15 @@ static Candidates FormatExprStmt(const Node& node,
 
 	int semi_cost = has_semi ? 1 : 0;
 
-	FmtContext expr_ctx(ctx.indent, ctx.col,
-	                    ctx.reserved + semi_cost);
+	FmtContext expr_ctx(ctx.Indent(), ctx.Col(),
+	                    ctx.Reserved() + semi_cost);
 	auto expr_cs = FormatExpr(*expr, expr_ctx);
 
 	Candidates result;
 	for ( const auto& ec : expr_cs )
 		{
-		std::string text = ec.text;
-		int w = ec.width;
+		std::string text = ec.Text();
+		int w = ec.Width();
 
 		if ( has_semi )
 			{
@@ -701,11 +707,11 @@ static Candidates FormatExprStmt(const Node& node,
 			w += 1;
 			}
 
-		int ovf = ec.overflow;
-		if ( ec.lines == 1 )
-			ovf = Overflow(ctx.col + w);
+		int ovf = ec.Ovf();
+		if ( ec.Lines() == 1 )
+			ovf = Overflow(ctx.Col() + w);
 
-		result.push_back({text, w, ec.lines, ovf});
+		result.push_back({text, w, ec.Lines(), ovf});
 		}
 
 	return result;
@@ -777,7 +783,7 @@ std::string Format(const Node::NodeVec& nodes)
 			break;
 		}
 
-		result += Best(cs).text + "\n";
+		result += Best(cs).Text() + "\n";
 		}
 
 	return result;

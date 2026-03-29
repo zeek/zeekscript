@@ -17,14 +17,15 @@ static constexpr int INDENT_WIDTH = 8;  // columns per indent level
 //           there's an offset beyond the base indent)
 // reserved: columns reserved for trailing content on the
 //           last line (e.g. ";" or trailing comment)
-struct FmtContext {
-	int indent;
-	int col;
-	int reserved;
-
+class FmtContext {
+public:
 	FmtContext(int indent, int col, int reserved = 0)
 		: indent(indent), col(col),
 		  reserved(reserved) {}
+
+	int Indent() const { return indent; }
+	int Col() const { return col; }
+	int Reserved() const { return reserved; }
 
 	// How many columns are available on this line.
 	int Avail() const
@@ -52,6 +53,11 @@ struct FmtContext {
 	// indent level but a specific absolute column.
 	FmtContext AtCol(int c) const
 		{ return {indent, c, 0}; }
+
+private:
+	int indent;
+	int col;
+	int reserved;
 };
 
 // Emit a line prefix for a given indent level and starting
@@ -61,19 +67,22 @@ std::string LinePrefix(int indent, int col);
 
 // A single formatting candidate: the actual text plus
 // metrics that let a parent choose among alternatives.
-struct Candidate {
-	std::string text;
-	int width;       // width of last (or only) line
-	int lines;       // number of lines (1 = single line)
-	int overflow;    // columns past MAX_WIDTH on worst line
-
+class Candidate {
+public:
 	// Single-line candidate.
 	Candidate(const std::string& t, int w)
 		: text(t), width(w), lines(1), overflow(0) {}
 
 	// Multi-line candidate.
-	Candidate(const std::string& t, int w, int l, int ovf)
-		: text(t), width(w), lines(l), overflow(ovf) {}
+	Candidate(const std::string& t, int w, int l,
+	          int ovf)
+		: text(t), width(w), lines(l),
+		  overflow(ovf) {}
+
+	const std::string& Text() const { return text; }
+	int Width() const { return width; }
+	int Lines() const { return lines; }
+	int Ovf() const { return overflow; }
 
 	// Is this a clean single-line result?
 	bool Fits() const
@@ -82,6 +91,12 @@ struct Candidate {
 	// Comparison: fewer overflows wins, then fewer lines,
 	// then narrower.
 	bool BetterThan(const Candidate& o) const;
+
+private:
+	std::string text;
+	int width;       // width of last (or only) line
+	int lines;       // number of lines (1 = single line)
+	int overflow;    // columns past MAX_WIDTH on worst line
 };
 
 using Candidates = std::vector<Candidate>;
