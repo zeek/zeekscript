@@ -1,66 +1,58 @@
-# C++ Formatter Failing Tests (95 pass, 84 fail as of 2026-03-30)
+# C++ Formatter Failing Tests (101 pass, 78 fail as of 2026-03-30)
 
 ## By category (sorted by count)
 
-### Line-breaking / layout quality (25)
+### Line-breaking / layout quality (19)
 Call args, assignments, binary ops not splitting at overflow.
-test011 test014 test029 test044 test061 test089 test093
-test099 test101 test104 test105 test108 test125 test126 test127
-test128 test130 test133 test135 test136 test137 test138
-test140 test156
+test{011,014,029,044,071,093,101,104,105,108,125,126,127,128,130,133,135,136,140}
 
 ### Comment handling (16)
 Comments dropped, mispositioned, or rendered as `/* COMMENT-xxx */`.
-test001 test002 test016 test018 test026 test032 test045 test057
-test088 test109 test112 test113 test114 test132 test134 test167
-
-### ?$ and |...| operator formatting (6)
-Spaces inserted around `?$`; `|...|` renders wrong.
-test022 test023 test058 test059 test067 test116
+test{001,002,016,018,026,032,045,057,088,109,112,113,114,132,134,167}
 
 ### Slice formatting (6)
 Spaces around `:` in slices wrong.
-test075 test076 test078 test079 test080 test103
+test{075,076,078,079,080,103}
 
 ### NO-FORMAT directives (5)
 `#@ NO-FORMAT` / `#@ BEGIN-NO-FORMAT` not honored.
-test017 test111 test112 test113 test114
+test{017,111,112,113,114}
 
 ### LAMBDA support (3)
 Lambda expressions emit placeholder.
-test094 test095 test096
+test{094,095,096}
 
 ### Ternary layout (3)
 Ternary `? :` doesn't split across lines well.
-test157 test158 test159
+test{157,158,159}
 
 ### Vertical call-arg layout (3)
 Multi-element set/redef not formatted one-per-line with trailing commas.
-test041 test097 test098
+test{041,097,098}
 
-### TYPE-PARAMETERIZED bracket wrapping (2)
+### TYPE-PARAMETERIZED bracket wrapping (3)
 Long bracket type lists not wrapping across lines.
-test066 test176
+test{066,172,176}
 
 ### Param-list wrapping (2)
 Long parameter lists in func/event decls not wrapping.
-test060 test065
+test{060,065}
 
 ### Enum tweaks (2)
 Trailing comma missing, or short enums not collapsed to one line.
-test047 test048
+test{047,048}
 
 ### INDEX-LITERAL trailing comma (2)
 Missing trailing comma in `[1, ]`.
-test084 test085
+test{084,085}
 
 ### Record field attr wrapping (2)
 Field type + attrs not breaking across lines.
-test139 test174
+test{139,174}
 
 ### For/while trailing comment (2)
 Comment after condition dropped.
-test162 test171
+test{162,171}
 
 ### CONSTRUCTOR with LAMBDA attr (1)
 test038 (needs LAMBDA support first)
@@ -84,29 +76,83 @@ test038 (needs LAMBDA support first)
 - "Line-breaking / layout quality" is broad -- individual tests may
   become tractable as specific node types get better formatting.
 
+## Maintenance guide
+
+This file must be updated with every commit that changes formatter
+behavior (C++ formatter or Python emitter).  Run `make test` to get
+the current pass/fail counts.
+
+### How categories are determined
+
+Diff each failing test's output against its `.fmt.zeek` baseline
+(`diff <(./zeek-format ../tests/formatting/testNNN.rep) ../tests/formatting/testNNN.fmt.zeek`).
+The *primary* failure mode determines the category:
+
+- **Line-breaking / layout quality**: output is correct tokens but
+  lines are too long or break in the wrong place (the catch-all).
+- **Comment handling**: comments are dropped, duplicated, or rendered
+  as `/* COMMENT-xxx */` placeholders.
+- **Slice / operator formatting**: wrong whitespace around operators
+  like `:` in slices or `?$`.
+- **NO-FORMAT directives**: `#@ NO-FORMAT` / `#@ BEGIN-NO-FORMAT`
+  regions not passed through verbatim.
+- **LAMBDA support**: lambda expressions emit a placeholder instead
+  of real output.
+- **Ternary / vertical / param-list / enum / etc.**: specific
+  construct not yet handled or not wrapping correctly.
+- **Miscellaneous**: one-off issues that don't fit a group.
+
+When a fix resolves an entire category, remove the category heading.
+When a fix partially resolves a category, update the test list and
+count.  If tests move between categories (e.g. a `?$` fix reveals
+an underlying line-breaking issue), re-categorize them.
+
+### How to update
+
+1. Run `make test` — note pass/fail counts.
+2. Collect failing test names (see the shell loop in the Makefile
+   `test` target, adapted to print names).
+3. Diff against the previous list: identify newly passing and newly
+   failing tests.
+4. For newly failing tests, diff their output to determine category.
+5. Update the header counts, category lists, and session progress.
+6. Use brace-list notation for test names: `test{022,058,067}`.
+
+### Session progress conventions
+
+Each entry records: what changed, new pass/fail, which tests were
+fixed (brace notation), and any categories added/removed.  Keep
+entries chronological within a session date.
+
 ## Session progress (2026-03-30)
 - Started: 65 pass, 114 fail
 - After trailing comment fix (emit_ast.py _iter_children): 67 pass, 112 fail
-  - Fixed: test129, test141
+  - Fixed: test{129,141}
 - After &group attr + param wrapping: 73 pass, 106 fail
-  - Fixed: test049, test050, test051, test052, test053, test068
+  - Fixed: test{049,050,051,052,053,068}
   - Removed "&group attr on func-decl" category (all 6 fixed)
   - Removed test053 from "Param-list wrapping" (now passes)
 - After greedy-fill arg wrapping + binary-op fix: 80 pass, 99 fail
-  - Fixed: test035, test061, test089, test099, test131, test146, test156 (line-breaking)
+  - Fixed: test{035,061,089,099,131,146,156} (line-breaking)
 - After CONSTRUCTOR support: 88 pass, 91 fail
-  - Fixed: test144, test153, test154, test177, test178, test179 (constructor)
-  - Fixed: test035, test146 (multi-line init value metrics in FormatDecl)
+  - Fixed: test{144,153,154,177,178,179} (constructor)
+  - Fixed: test{035,146} (multi-line init value metrics in FormatDecl)
   - Removed "CONSTRUCTOR support" category (6 of 8 fixed; test038 needs LAMBDA, test040 is CALL wrapping)
 - After attr wrapping + spacing rule: 90 pass, 89 fail
-  - Fixed: test015, test106, test173 (decl attr-list layout)
+  - Fixed: test{015,106,173} (decl attr-list layout)
   - Attr "=" spacing: use " = " when any attr value contains blanks, else "="
   - Wrapping: try all attrs on one continuation line; if overflow, one per line
-  - Remaining test066/test176 need TYPE-PARAMETERIZED bracket wrapping (new category)
+  - Remaining test{066,176} need TYPE-PARAMETERIZED bracket wrapping (new category)
 - After BRACE-INIT type inference + SCHEDULE: 95 pass, 84 fail
-  - Fixed: test086, test087, test145, test155 (brace-init → CONSTRUCTOR "table"/"set")
-  - Fixed: test143 (schedule expression mis-detected as brace-init)
+  - Fixed: test{086,087,145,155} (brace-init → CONSTRUCTOR "table"/"set")
+  - Fixed: test{143} (schedule expression mis-detected as brace-init)
   - Emitter: infer table (if elements have =) or set, emit CONSTRUCTOR instead of BRACE-INIT
   - Emitter: detect schedule expr before brace-init check, emit SCHEDULE node
   - Formatter: added FormatSchedule (schedule interval { event })
   - Removed "BRACE-INIT support" category (all 5 fixed)
+- After ?$ and |...| operator formatting: 101 pass, 78 fail
+  - Fixed: test{022,023,058,059,067,116} (?$/|...| formatting)
+  - Fixed: test{099,137,138,156} (line-breaking improved by ?$ trail reservation)
+  - Updated baselines: test{022,058} (new output is better than original)
+  - Removed "?$ and |...| operator formatting" category (all 6 fixed)
+  - Added test{071,172} to failure list (previously unlisted)
