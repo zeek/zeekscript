@@ -1115,27 +1115,22 @@ static std::string FormatSingleStmtBody(const Node* body,
 // Function/event/hook declarations
 // ------------------------------------------------------------------
 
-// Format the parameter list for a function declaration.
-static std::string FormatParams(const Node* params, const FmtContext& ctx)
+// Format individual parameters as strings.
+static std::vector<std::string> FormatParamStrings(const Node* params,
+                                                   const FmtContext& ctx)
 	{
-	if ( ! params )
-		return "()";
+	std::vector<std::string> result;
 
-	std::string text = "(";
-	bool first = true;
+	if ( ! params )
+		return result;
 
 	for ( const auto& p : params->Children() )
 		{
 		if ( is_comment(p->GetTag()) )
 			continue;
 
-		if ( ! first )
-			text += ", ";
-		first = false;
+		std::string text = p->Arg();
 
-		text += p->Arg();
-
-		// Find the type child.
 		for ( const auto& tc : p->Children() )
 			{
 			Tag tt = tc->GetTag();
@@ -1148,11 +1143,11 @@ static std::string FormatParams(const Node* params, const FmtContext& ctx)
 				break;
 				}
 			}
+
+		result.push_back(text);
 		}
 
-	text += ")";
-
-	return text;
+	return result;
 	}
 
 static Candidates FormatFuncDecl(const Node& node, const FmtContext& ctx)
@@ -1165,36 +1160,135 @@ static Candidates FormatFuncDecl(const Node& node, const FmtContext& ctx)
 	const Node* body = FindChild(node, Tag::Body);
 	const Node* attrs = FindChild(node, Tag::AttrList);
 
-	// Build signature.
-	std::string sig = keyword + " " + name;
-	sig += FormatParams(params, ctx);
+	std::string prefix = keyword + " " + name + "(";
+	int align_col = ctx.Col() + static_cast<int>(prefix.size());
 
-	if ( returns )
+	auto param_strs = FormatParamStrings(params, ctx);
+
+	// Build flat param list.
+	std::string flat_params;
+	for ( size_t i = 0; i < param_strs.size(); ++i )
 		{
+		if ( i > 0 )
+			flat_params += ", ";
+		flat_params += param_strs[i];
+		}
+
+	// Return type suffix.
+	std::string ret_str;
+	if ( returns )
 		for ( const auto& c : returns->Children() )
 			if ( is_type_tag(c->GetTag()) )
 				{
-				sig += ": " + Best(FormatExpr(*c, ctx)).Text();
+				ret_str = ": " +
+					Best(FormatExpr(*c, ctx)).Text();
 				break;
 				}
-		}
 
+	// Attribute suffix.
+	std::string attr_str;
 	if ( attrs )
 		{
 		std::string as = FormatAttrList(*attrs, ctx);
 		if ( ! as.empty() )
-			sig += " " + as;
+			attr_str = " " + as;
 		}
 
-	// Collect trailing comments (COMMENT-PREV children on the func decl).
+	// Trailing comments.
+	std::string trail_str;
 	for ( const auto& c : node.Children() )
 		if ( c->GetTag() == Tag::CommentPrev )
-			sig += " " + c->Arg();
+			trail_str += " " + c->Arg();
 
-	// Format body as Whitesmith block.
 	std::string block = FormatWhitesmithBlock(body, ctx);
 
-	return {Candidate(sig + block, ctx)};
+	// --- Candidate 1: flat signature ---
+	std::string sig = prefix + flat_params + ")" + ret_str +
+		attr_str + trail_str;
+	Candidates result;
+	result.push_back(Candidate(sig + block, ctx));
+
+	if ( result[0].Ovf() <= 0 )
+		return result;
+
+	// --- Candidate 2: greedy-fill params + attrs on continuation ---
+	std::string pad = LinePrefix(ctx.Indent(), align_col);
+	int max_col = ctx.MaxCol();
+	std::string wrapped = prefix;
+	int cur_col = ctx.Col() + static_cast<int>(prefix.size());
+
+	for ( size_t i = 0; i < param_strs.size(); ++i )
+		{
+		int pw = static_cast<int>(param_strs[i].size());
+
+		if ( i == 0 )
+			{
+			wrapped += param_strs[i];
+			cur_col += pw;
+			}
+		else
+			{
+			// Would ", param" fit on this line?
+			int need = 2 + pw;	// ", " + param
+			if ( cur_col + need <= max_col )
+				{
+				wrapped += ", " + param_strs[i];
+				cur_col += need;
+				}
+			else
+				{
+				wrapped += ",\n" + pad + param_strs[i];
+				cur_col = align_col + pw;
+				}
+			}
+		}
+
+	wrapped += ")" + ret_str;
+
+	// Put attrs on their own continuation line if present.
+	// Use param alignment column, but shift left if that overflows
+	// so the line ends at column max_col - 1.
+	if ( ! attr_str.empty() )
+		{
+		std::string bare_attr = attr_str.substr(1);
+		int aw = static_cast<int>(bare_attr.size());
+		int attr_col = align_col;
+		if ( attr_col + aw > max_col - 1 )
+			attr_col = max_col - 1 - aw;
+		if ( attr_col < 0 )
+			attr_col = 0;
+		std::string attr_pad = LinePrefix(ctx.Indent(), attr_col);
+		wrapped += "\n" + attr_pad + bare_attr;
+		}
+
+	wrapped += trail_str + block;
+
+	int last_w = LastLineLen(wrapped);
+	int lines = CountLines(wrapped);
+	int ovf = Ovf(last_w, ctx);
+
+	// Also check each line for overflow.
+	{
+	int pos = 0;
+	int line_start_col = ctx.Col();
+	for ( size_t j = 0; j < wrapped.size(); ++j )
+		{
+		if ( wrapped[j] == '\n' )
+			{
+			int line_w = static_cast<int>(j) - pos +
+				line_start_col;
+			if ( line_w > max_col )
+				ovf += line_w - max_col;
+			pos = static_cast<int>(j) + 1;
+			// Next line starts at whatever column pad
+			// brings us to.
+			line_start_col = 0;
+			}
+		}
+	}
+
+	result.push_back({wrapped, last_w, lines, ovf, ctx.Col()});
+	return result;
 	}
 
 // ------------------------------------------------------------------

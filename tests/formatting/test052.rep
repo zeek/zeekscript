@@ -13,6 +13,11 @@ FUNC-DECL "event" "ssl_extension" {
       TYPE-ATOM "string"
     }
   }
+  ATTR-LIST {
+    ATTR "&group" {
+      CONSTANT "\"doh-generic\""
+    }
+  }
   BODY {
   }
 }

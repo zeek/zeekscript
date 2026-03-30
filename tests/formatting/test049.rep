@@ -22,6 +22,11 @@ FUNC-DECL "event" "SomeModule::some_raised_evt" {
       TYPE-ATOM "string"
     }
   }
+  ATTR-LIST {
+    ATTR "&group" {
+      IDENTIFIER "SomeEvtGroup"
+    }
+  }
   BODY {
     PRINT {
       IDENTIFIER "c"

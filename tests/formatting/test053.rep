@@ -16,6 +16,11 @@ FUNC-DECL "event" "some_encrypted_data" {
       TYPE-ATOM "count"
     }
   }
+  ATTR-LIST {
+    ATTR "&group" {
+      CONSTANT "\"some-group\""
+    }
+  }
   BODY {
   }
 }

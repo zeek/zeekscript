@@ -11,6 +11,11 @@ FUNC-DECL "event" "SomeModule::some_esp_message" {
       TYPE-ATOM "SomeModule::SomeEspMsg"
     }
   }
+  ATTR-LIST {
+    ATTR "&group" {
+      IDENTIFIER "MyPkg_SomeEvtGroup"
+    }
+  }
   BODY {
     EXPR-STMT {
       CALL {

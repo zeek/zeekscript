@@ -4,6 +4,11 @@ FUNC-DECL "event" "foo" {
       TYPE-ATOM "connection"
     }
   }
+  ATTR-LIST {
+    ATTR "&group" {
+      IDENTIFIER "bar"
+    }
+  }
   BODY {
     PRINT {
       IDENTIFIER "c"

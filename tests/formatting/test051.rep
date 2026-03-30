@@ -7,6 +7,11 @@ FUNC-DECL "event" "some_generic_packet_threshold_crossed" {
       TYPE-ATOM "count"
     }
   }
+  ATTR-LIST {
+    ATTR "&group" {
+      IDENTIFIER "MyPkg_SomeUnknownprotos_EvtGroup"
+    }
+  }
   BODY {
     PRINT {
       IDENTIFIER "c"

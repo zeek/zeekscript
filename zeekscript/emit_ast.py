@@ -754,9 +754,10 @@ class Emitter:
         self._close()
 
     def _emit_func_params_from(self, node: tree_sitter.Node) -> None:
-        """Extract and emit PARAMS and RETURNS from a begin_lambda or func_hdr child."""
+        """Extract and emit PARAMS, RETURNS, and ATTR-LIST from a begin_lambda or func_hdr child."""
         params = None
         ret = None
+        attrs = None
         for k in node.children:
             if k.is_extra:
                 continue
@@ -766,6 +767,8 @@ class Emitter:
                         params = pk
                     elif pk.type == "type":
                         ret = pk
+            elif k.type == "attr_list":
+                attrs = k
         if params:
             self._open('PARAMS')
             self._emit_formal_args(params)
@@ -774,6 +777,8 @@ class Emitter:
             self._open('RETURNS')
             self._emit_type(ret)
             self._close()
+        if attrs:
+            self._emit_attr_list(attrs)
 
     # ------------------------------------------------------------------
     # Declarations
