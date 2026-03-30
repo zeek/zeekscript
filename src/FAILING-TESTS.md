@@ -1,4 +1,4 @@
-# C++ Formatter Failing Tests (67 pass, 112 fail as of 2026-03-30)
+# C++ Formatter Failing Tests (73 pass, 106 fail as of 2026-03-30)
 
 ## By category (sorted by count)
 
@@ -16,15 +16,11 @@ test088 test109 test112 test113 test114 test132 test134 test167
 
 ### CONSTRUCTOR support (8)
 `table(...)`, `set(...)`, `vector(...)` constructors emit placeholder.
-test038 test144 test153 test154 test177 test178 test179 test040
+test038 test040 test144 test153 test154 test177 test178 test179
 
 ### ?$ and |...| operator formatting (6)
 Spaces inserted around `?$`; `|...|` renders wrong.
 test022 test023 test058 test059 test067 test116
-
-### &group attr on func-decl (6)
-Event/hook `&group=` attribute dropped.
-test049 test050 test051 test052 test053 test068
 
 ### Slice formatting (6)
 Spaces around `:` in slices wrong.
@@ -46,9 +42,9 @@ test094 test095 test096
 Ternary `? :` doesn't split across lines well.
 test157 test158 test159
 
-### Param-list wrapping (3)
+### Param-list wrapping (2)
 Long parameter lists in func/event decls not wrapping.
-test053 test060 test065
+test060 test065
 
 ### Vertical call-arg layout (3)
 Multi-element set/redef not formatted one-per-line with trailing commas.
@@ -75,15 +71,16 @@ Comment after condition dropped.
 test162 test171
 
 ### Miscellaneous (1 each)
-- test124: PRINT with multiple exprs (only first printed)
+- test005: Constant with embedded ops
+- test019: Missing blank line between else-if blocks
+- test021: Layout issue
+- test027: Switch case values not wrapping
 - test054: EVENT-STMT bare event without args
 - test056: TYPE-FUNC params not wrapping
-- test161: ASSERT keyword not supported
-- test027: Switch case values not wrapping
 - test102: Pattern literal emits `/* UNKNOWN-EXPR */`
 - test115: Extra spaces inside PAREN
-- test019: Missing blank line between else-if blocks
-- test005: Constant with embedded ops
+- test124: PRINT with multiple exprs (only first printed)
+- test161: ASSERT keyword not supported
 - test163: `#@` annotation after if condition dropped
 - test176: Type-decl attr layout
 
@@ -91,3 +88,12 @@ test162 test171
 - Some tests appear in multiple categories; listed under primary failure.
 - "Line-breaking / layout quality" is broad -- individual tests may
   become tractable as specific node types get better formatting.
+
+## Session progress (2026-03-30)
+- Started: 65 pass, 114 fail
+- After trailing comment fix (emit_ast.py _iter_children): 67 pass, 112 fail
+  - Fixed: test129, test141
+- After &group attr + param wrapping: 73 pass, 106 fail
+  - Fixed: test049, test050, test051, test052, test053, test068
+  - Removed "&group attr on func-decl" category (all 6 fixed)
+  - Removed test053 from "Param-list wrapping" (now passes)

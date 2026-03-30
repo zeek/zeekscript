@@ -206,11 +206,10 @@ static Candidate FormatArgsFlat(const std::vector<const Node*>& args,
 	return {text, static_cast<int>(text.size()), 1, 0};
 	}
 
-// Format args with line breaks: first N on line 1, rest start at align_col.
-static Candidate FormatArgsSplit(const std::vector<const Node*>& args,
-				int align_col, int indent,
-				const FmtContext& first_line_ctx,
-				size_t split_after)
+// Greedy-fill args: pack as many per line as fit, wrapping to align_col.
+static Candidate FormatArgsFill(const std::vector<const Node*>& args,
+                                int align_col, int indent,
+                                const FmtContext& first_line_ctx)
 	{
 	std::string pad = LinePrefix(indent, align_col);
 	std::string text;
@@ -222,31 +221,56 @@ static Candidate FormatArgsSplit(const std::vector<const Node*>& args,
 
 	for ( size_t i = 0; i < args.size(); ++i )
 		{
-		if ( i > 0 && i == split_after )
-			{
-			text += ",\n" + pad;
-			cur_col = align_col;
-			++lines;
-			}
-
-		else if ( i > 0 )
-			{
-			text += ", ";
-			cur_col += 2;
-			}
-
 		FmtContext sub(indent, cur_col, max_col - cur_col);
 		auto cs = FormatExpr(*args[i], sub);
 		const auto& best = Best(cs);
-		text += best.Text();
+		int aw = best.Width();
+
+		if ( i == 0 )
+			{
+			text += best.Text();
+			cur_col += aw;
+			}
+		else
+			{
+			// Would ", arg" fit on this line?
+			int need = 2 + aw;
+			if ( cur_col + need <= max_col )
+				{
+				text += ", " + best.Text();
+				cur_col += need;
+				}
+			else
+				{
+				text += ",\n" + pad;
+				cur_col = align_col;
+
+				// Re-format in the new context.
+				FmtContext nsub(indent, cur_col,
+				                max_col - cur_col);
+				auto ncs = FormatExpr(*args[i], nsub);
+				const auto& nbest = Best(ncs);
+				text += nbest.Text();
+
+				if ( nbest.Lines() > 1 )
+					{
+					lines += nbest.Lines() - 1;
+					cur_col = LastLineLen(text);
+					}
+				else
+					cur_col += nbest.Width();
+
+				total_overflow += nbest.Ovf();
+				++lines;
+				continue;
+				}
+			}
 
 		if ( best.Lines() > 1 )
 			{
 			lines += best.Lines() - 1;
 			cur_col = LastLineLen(text);
 			}
-		else
-			cur_col += best.Width();
 
 		total_overflow += best.Ovf();
 		}
@@ -306,18 +330,12 @@ static Candidates FormatCall(const Node& node, const FmtContext& ctx)
 	if ( flat_c.Ovf() == 0 || args.size() <= 1 )
 		return result;
 
-	// If flat doesn't fit, try splitting at each position.
-	for ( size_t split = 1; split < args.size(); ++split )
-		{
-		auto sc = FormatArgsSplit(args, open_col, ctx.Indent(),
-					args_ctx, split);
-
-		std::string stext = func.Text() + "(" + sc.Text() + ")";
-		int last_w = sc.Width() + 1;  // ")"
-		int sovf = sc.Ovf();
-
-		result.push_back({stext, last_w, sc.Lines(), sovf, ctx.Col()});
-		}
+	// Greedy-fill: pack as many args per line as fit.
+	auto fill = FormatArgsFill(args, open_col, ctx.Indent(), args_ctx);
+	std::string ftext = func.Text() + "(" + fill.Text() + ")";
+	int flast_w = fill.Width() + 1;
+	result.push_back({ftext, flast_w, fill.Lines(), fill.Ovf(),
+	                  ctx.Col()});
 
 	return result;
 	}
@@ -375,15 +393,11 @@ static Candidates FormatIndexLiteral(const Node& node, const FmtContext& ctx)
 	if ( flat_c.Ovf() == 0 || fields.size() <= 1 )
 		return result;
 
-	for ( size_t split = 1; split < fields.size(); ++split )
-		{
-		auto sc = FormatArgsSplit(fields, open_col, ctx.Indent(),
-					inner_ctx, split);
-		std::string st = "[" + sc.Text() + "]";
-		int last_w = sc.Width() + 1;
-		int sovf = sc.Ovf();
-		result.push_back({st, last_w, sc.Lines(), sovf, ctx.Col()});
-		}
+	// Greedy-fill: pack as many fields per line as fit.
+	auto fill = FormatArgsFill(fields, open_col, ctx.Indent(), inner_ctx);
+	std::string ft = "[" + fill.Text() + "]";
+	int flast_w = fill.Width() + 1;
+	result.push_back({ft, flast_w, fill.Lines(), fill.Ovf(), ctx.Col()});
 
 	return result;
 	}
@@ -475,20 +489,33 @@ static Candidates FormatBinary(const Node& node, const FmtContext& ctx)
 
 	Candidates result;
 
-	if ( rhs.Lines() > 1 )
+	if ( lhs.Lines() > 1 || rhs.Lines() > 1 )
 		{
-		// RHS already split in the tight flat context.
-		// Recompute overflow from the first line (the one
-		// that actually overflows).
-		auto nl = flat.find('\n');
-		int first_w = nl != std::string::npos ?
-				static_cast<int>(nl) : flat_w;
-		flat_ovf = Ovf(first_w, ctx);
-		need_split = true;
-
+		// One side is multi-line.  Compute overflow from the
+		// widest line, not just the last.
 		int last_w = LastLineLen(flat);
-		result.push_back({flat, last_w, CountLines(flat),
-		                  flat_ovf, ctx.Col()});
+		int lines = CountLines(flat);
+		int ovf = 0;
+
+		// Check each line for overflow.
+		int pos = 0;
+		for ( size_t j = 0; j < flat.size(); ++j )
+			if ( flat[j] == '\n' )
+				{
+				int lw = static_cast<int>(j) - pos + ctx.Col();
+				if ( lw > ctx.MaxCol() )
+					ovf += lw - ctx.MaxCol();
+				pos = static_cast<int>(j) + 1;
+				}
+
+		// Check the last line too.
+		int final_lw = static_cast<int>(flat.size()) - pos;
+		ovf += Ovf(final_lw, ctx);
+
+		result.push_back({flat, last_w, lines, ovf, ctx.Col()});
+
+		if ( ovf > 0 )
+			need_split = true;
 		}
 	else
 		result.push_back({flat, flat_w, 1, flat_ovf});
