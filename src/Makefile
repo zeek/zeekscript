@@ -25,6 +25,20 @@ SHELL = /bin/bash
 test: $(TARGET)
 	@pass=0; fail=0; \
 	for f in ../tests/formatting/test*.rep; do \
+		name=$$(basename "$$f" .rep); \
+		expected="../tests/formatting/$${name}.fmt.zeek"; \
+		if diff -q <(./$(TARGET) "$$f") "$$expected" \
+		    >/dev/null 2>&1; then \
+			pass=$$((pass + 1)); \
+		else \
+			fail=$$((fail + 1)); \
+		fi; \
+	done; \
+	echo "$$pass pass, $$fail fail"
+
+roundtrip: $(TARGET)
+	@pass=0; fail=0; \
+	for f in ../tests/formatting/test*.rep; do \
 		if diff -q <(./$(TARGET) --dump "$$f") "$$f" \
 		    >/dev/null 2>&1; then \
 			pass=$$((pass + 1)); \
@@ -39,4 +53,4 @@ test: $(TARGET)
 clean:
 	rm -f $(OBJS) $(TARGET)
 
-.PHONY: all clean test
+.PHONY: all clean test roundtrip
