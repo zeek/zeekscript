@@ -507,8 +507,7 @@ static Candidates FormatBinary(const Node& node, const FmtContext& ctx)
 	auto rhs2_cs = FormatExpr(*kids[1], cont_ctx);
 	const auto& rhs2 = Best(rhs2_cs);
 
-	std::string cont_prefix = LinePrefix(cont_ctx.Indent(),
-						cont_ctx.Col());
+	std::string cont_prefix = LinePrefix(cont_ctx.Indent(), cont_ctx.Col());
 
 	std::string split = lhs.Text() + " " + op + "\n" +
 				cont_prefix + rhs2.Text();
@@ -517,11 +516,9 @@ static Candidates FormatBinary(const Node& node, const FmtContext& ctx)
 	int split_ovf = OvfNoTrail(line1_w, ctx) + line2_ovf;
 
 	int split_lines = 1 + rhs2.Lines();
-	int last_w = rhs2.Lines() > 1 ?
-			LastLineLen(split) : rhs2.Width();
+	int last_w = rhs2.Lines() > 1 ? LastLineLen(split) : rhs2.Width();
 
-	result.push_back({split, last_w, split_lines, split_ovf,
-	                  ctx.Col()});
+	result.push_back({split, last_w, split_lines, split_ovf, ctx.Col()});
 
 	return result;
 	}
@@ -843,8 +840,7 @@ static Candidates FormatTernary(const Node& node, const FmtContext& ctx)
 		ctx.After(cond.Width() + 3 + tv.Width() + 3));
 	const auto& fv = Best(fv_cs);
 
-	std::string flat = cond.Text() + " ? " + tv.Text() +
-				" : " + fv.Text();
+	std::string flat = cond.Text() + " ? " + tv.Text() + " : " + fv.Text();
 	return {Candidate(flat, ctx)};
 	}
 
