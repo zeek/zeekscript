@@ -543,7 +543,24 @@ static Candidates FormatSlice(const Node& node, const FmtContext& ctx)
 	std::string hi = Best(FormatExpr(*kids[2], ctx)).Text();
 
 	std::string sep = (! lo.empty() && ! hi.empty()) ? " : " : ":";
-	return {base.Cat("[" + lo + sep + hi + "]").In(ctx)};
+	Candidate flat = base.Cat("[" + lo + sep + hi + "]").In(ctx);
+
+	if ( flat.Fits() || lo.empty() || hi.empty() )
+		return {flat};
+
+	// Split after ":" — continuation aligns after "[".
+	int bracket_col = ctx.Col() + base.Width() + 1;
+	FmtContext hi_ctx = ctx.AtCol(bracket_col);
+	std::string hi2 = Best(FormatExpr(*kids[2], hi_ctx)).Text();
+
+	std::string prefix = LinePrefix(hi_ctx.Indent(), bracket_col);
+	std::string split = base.Text() + "[" + lo + " :\n" +
+				prefix + hi2 + "]";
+	int last_w = static_cast<int>(hi2.size()) + 1;  // +1 for "]"
+	int split_ovf = Ovf(last_w, hi_ctx);
+	int lines = 1 + CountLines(hi2);
+
+	return {flat, {split, last_w, lines, split_ovf, ctx.Col()}};
 	}
 
 // ------------------------------------------------------------------
