@@ -106,7 +106,7 @@ static Candidates FormatConstant(const Node& node, const FmtContext& ctx)
 	}
 
 // ------------------------------------------------------------------
-// Field access: cert$field
+// Field access: rec$field
 // ------------------------------------------------------------------
 
 static Candidates FormatFieldAccess(const Node& node, const FmtContext& ctx)
