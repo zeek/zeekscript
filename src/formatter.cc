@@ -130,6 +130,8 @@ static const Node* FindChild(const Node& node, Tag tag)
 // Forward declarations for mutual recursion.
 static Candidates FormatExpr(const Node& node, const FmtContext& ctx);
 static Candidates FormatExprStmt(const Node& node, const FmtContext& ctx);
+static Candidates FormatDecl(const Node& node, const FmtContext& ctx);
+static std::string FormatType(const Node& node, const FmtContext& ctx);
 
 // ------------------------------------------------------------------
 // Atoms
@@ -363,7 +365,7 @@ static Candidates FormatIndexLiteral(const Node& node, const FmtContext& ctx)
 		fields.push_back(c.get());
 
 	if ( fields.empty() )
-		throw FormatError("INDEX-LITERAL node needs children");
+		return {Candidate("[]", ctx)};
 
 	int open_col = ctx.Col() + 1;  // after "["
 
@@ -539,6 +541,303 @@ static Candidates FormatBinary(const Node& node, const FmtContext& ctx)
 	}
 
 // ------------------------------------------------------------------
+// Interval: 1 sec, 3.5 hrs
+// ------------------------------------------------------------------
+
+static Candidates FormatInterval(const Node& node, const FmtContext& ctx)
+	{
+	return {Candidate(node.Arg(0) + " " + node.Arg(1), ctx)};
+	}
+
+// ------------------------------------------------------------------
+// Types
+// ------------------------------------------------------------------
+
+// TYPE-ATOM: string, count, addr, etc.
+static Candidates FormatTypeAtom(const Node& node, const FmtContext& ctx)
+	{
+	return {Candidate(node.Arg(), ctx)};
+	}
+
+// TYPE-PARAMETERIZED: table[k] of v, set[t], vector of t
+// Children are type args plus optional OF marker.
+static Candidates FormatTypeParam(const Node& node, const FmtContext& ctx)
+	{
+	const auto& keyword = node.Arg();	// "table", "set", "vector"
+	const auto& kids = node.Children();
+
+	// Collect bracketed type args and "of" type.
+	std::vector<const Node*> bracket_types;
+	const Node* of_type = nullptr;
+	bool past_of = false;
+
+	for ( const auto& c : kids )
+		{
+		if ( c->GetTag() == Tag::Of )
+			past_of = true;
+		else if ( past_of )
+			of_type = c.get();
+		else
+			bracket_types.push_back(c.get());
+		}
+
+	std::string text = keyword;
+
+	if ( ! bracket_types.empty() )
+		{
+		text += "[";
+		for ( size_t i = 0; i < bracket_types.size(); ++i )
+			{
+			if ( i > 0 )
+				text += ", ";
+			text += Best(FormatExpr(*bracket_types[i],
+				ctx)).Text();
+			}
+		text += "]";
+		}
+
+	if ( of_type )
+		text += " of " + Best(FormatExpr(*of_type, ctx)).Text();
+
+	return {Candidate(text, ctx)};
+	}
+
+// TYPE-FUNC: event(params), function(params): rettype
+static Candidates FormatTypeFunc(const Node& node, const FmtContext& ctx)
+	{
+	const auto& keyword = node.Arg();	// "event", "function", "hook"
+	std::string text = keyword + "(";
+
+	const Node* params = FindChild(node, Tag::Params);
+	const Node* returns = FindChild(node, Tag::Returns);
+
+	if ( params )
+		{
+		bool first = true;
+		for ( const auto& p : params->Children() )
+			{
+			if ( p->GetTag() == Tag::CommentLeading ||
+			     p->GetTag() == Tag::CommentTrailing ||
+			     p->GetTag() == Tag::CommentPrev )
+				continue;
+
+			if ( ! first )
+				text += ", ";
+			first = false;
+
+			// PARAM "name" { TYPE-ATOM "t" }
+			text += p->Arg();
+			const Node* ptype = FindChild(*p, Tag::TypeAtom);
+			if ( ! ptype )
+				ptype = FindChild(*p, Tag::TypeParameterized);
+			if ( ! ptype )
+				ptype = FindChild(*p, Tag::TypeFunc);
+
+			if ( ptype )
+				text += ": " + Best(FormatExpr(*ptype,
+					ctx)).Text();
+			}
+		}
+
+	text += ")";
+
+	if ( returns )
+		{
+		for ( const auto& c : returns->Children() )
+			{
+			Tag t = c->GetTag();
+			if ( t == Tag::TypeAtom || t == Tag::TypeParameterized ||
+			     t == Tag::TypeFunc )
+				{
+				text += ": " + Best(FormatExpr(*c,
+					ctx)).Text();
+				break;
+				}
+			}
+		}
+
+	return {Candidate(text, ctx)};
+	}
+
+// TYPE wrapper node: contains a type child.
+static std::string FormatType(const Node& node, const FmtContext& ctx)
+	{
+	for ( const auto& c : node.Children() )
+		{
+		Tag t = c->GetTag();
+		if ( t == Tag::TypeAtom || t == Tag::TypeParameterized ||
+		     t == Tag::TypeFunc )
+			return Best(FormatExpr(*c, ctx)).Text();
+		}
+
+	return "";
+	}
+
+// ------------------------------------------------------------------
+// Attributes: &redef, &default=expr
+// ------------------------------------------------------------------
+
+static std::string FormatAttrList(const Node& node, const FmtContext& ctx)
+	{
+	std::string text;
+
+	for ( const auto& attr : node.Children() )
+		{
+		if ( attr->GetTag() != Tag::Attr )
+			continue;
+
+		if ( ! text.empty() )
+			text += " ";
+
+		text += attr->Arg();	// e.g. "&default", "&redef"
+
+		// If the attr has a value child, append =value.
+		if ( ! attr->Children().empty() )
+			{
+			auto val_cs = FormatExpr(*attr->Children()[0], ctx);
+			text += "=" + Best(val_cs).Text();
+			}
+		}
+
+	return text;
+	}
+
+// ------------------------------------------------------------------
+// Declarations: global/local/const/redef name [: type] [= init] [attrs] ;
+// ------------------------------------------------------------------
+
+// Build the suffix: attrs + optional semicolon.
+static std::string DeclSuffix(const Node* attrs_node, bool has_semi,
+                              const FmtContext& ctx)
+	{
+	std::string suffix;
+
+	if ( attrs_node )
+		{
+		std::string as = FormatAttrList(*attrs_node, ctx);
+		if ( ! as.empty() )
+			suffix += " " + as;
+		}
+
+	if ( has_semi )
+		suffix += ";";
+
+	return suffix;
+	}
+
+static Candidates FormatDecl(const Node& node, const FmtContext& ctx)
+	{
+	const auto& keyword = node.Arg(0);	// "global", "local", etc.
+	const auto& name = node.Arg(1);
+
+	std::string head = keyword + " " + name;
+
+	// Look for optional parts.
+	const Node* type_node = FindChild(node, Tag::Type);
+	const Node* init_node = FindChild(node, Tag::Init);
+	const Node* attrs_node = FindChild(node, Tag::AttrList);
+	bool has_semi = FindChild(node, Tag::Semi) != nullptr;
+
+	// Build type string if present.
+	std::string type_str;
+	if ( type_node )
+		{
+		type_str = FormatType(*type_node, ctx);
+		if ( ! type_str.empty() )
+			type_str = ": " + type_str;
+		}
+
+	std::string suffix = DeclSuffix(attrs_node, has_semi, ctx);
+
+	// --- Candidate 1: flat ---
+	Candidates result;
+
+	if ( init_node )
+		{
+		const auto& op = init_node->Arg();	// "=", "+="
+
+		if ( init_node->Children().empty() )
+			throw FormatError("INIT node needs a value child");
+
+		std::string before_val = head + type_str + " " + op + " ";
+		int before_w = static_cast<int>(before_val.size());
+
+		int suffix_w = static_cast<int>(suffix.size());
+		FmtContext val_ctx = ctx.After(before_w).Reserve(suffix_w);
+		auto val_cs = FormatExpr(*init_node->Children()[0], val_ctx);
+		const auto& val = Best(val_cs);
+
+		std::string flat = before_val + val.Text() + suffix;
+		result.push_back(Candidate(flat, ctx));
+
+		// --- Candidate 2: split after init operator ---
+		if ( result[0].Ovf() > 0 )
+			{
+			FmtContext cont = ctx.Indented().Reserve(suffix_w);
+			auto val2_cs = FormatExpr(*init_node->Children()[0],
+						cont);
+			const auto& val2 = Best(val2_cs);
+
+			std::string line1 = head + type_str + " " + op;
+			std::string pad = LinePrefix(cont.Indent(),
+						cont.Col());
+			std::string split = line1 + "\n" + pad +
+						val2.Text() + suffix;
+			int last_w = LastLineLen(split);
+			int lines = CountLines(split);
+			int ovf = OvfNoTrail(
+				static_cast<int>(line1.size()), ctx) +
+				Ovf(last_w, ctx);
+			result.push_back({split, last_w, lines, ovf,
+			                  ctx.Col()});
+			}
+		}
+	else
+		{
+		std::string flat = head + type_str + suffix;
+		result.push_back(Candidate(flat, ctx));
+		}
+
+	// --- Candidate 3: split after colon (type on next line) ---
+	if ( ! type_str.empty() && result[0].Ovf() > 0 )
+		{
+		FmtContext cont = ctx.Indented();
+		// Type string without leading ": ".
+		std::string bare_type = type_str.substr(2);
+
+		std::string line1 = head + ":";
+		std::string pad = LinePrefix(cont.Indent(), cont.Col());
+
+		std::string split = line1 + "\n" + pad + bare_type;
+
+		if ( init_node )
+			{
+			const auto& op = init_node->Arg();
+			int suffix_w = static_cast<int>(suffix.size());
+			FmtContext val_ctx = cont.After(
+				static_cast<int>(bare_type.size()) +
+				static_cast<int>(op.size()) + 2).Reserve(
+				suffix_w);
+			auto val_cs = FormatExpr(
+				*init_node->Children()[0], val_ctx);
+
+			split += " " + op + " " + Best(val_cs).Text();
+			}
+
+		split += suffix;
+
+		int last_w = LastLineLen(split);
+		int lines = CountLines(split);
+		int ovf = OvfNoTrail(
+			static_cast<int>(line1.size()), ctx) +
+			Ovf(last_w, ctx);
+		result.push_back({split, last_w, lines, ovf, ctx.Col()});
+		}
+
+	return result;
+	}
+
+// ------------------------------------------------------------------
 // Dispatch table
 // ------------------------------------------------------------------
 
@@ -558,6 +857,12 @@ static const std::unordered_map<Tag, FormatFunc>& FormatDispatch()
 		{Tag::IndexLiteral, FormatIndexLiteral},
 		{Tag::Slice, FormatSlice},
 		{Tag::Paren, FormatParen},
+		{Tag::Interval, FormatInterval},
+		{Tag::TypeAtom, FormatTypeAtom},
+		{Tag::TypeParameterized, FormatTypeParam},
+		{Tag::TypeFunc, FormatTypeFunc},
+		{Tag::GlobalDecl, FormatDecl},
+		{Tag::LocalDecl, FormatDecl},
 		{Tag::ExprStmt, FormatExprStmt},
 	};
 
