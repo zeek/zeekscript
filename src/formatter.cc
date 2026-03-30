@@ -1445,6 +1445,141 @@ static Candidates FormatSwitch(const Node& node, const FmtContext& ctx)
 	}
 
 // ------------------------------------------------------------------
+// Type declarations: type name: enum/record/basetype ;
+// ------------------------------------------------------------------
+
+// Format a record field: "name: type attrs"
+static std::string FormatField(const Node& node, const FmtContext& ctx)
+	{
+	std::string text = node.Arg() + ": ";
+
+	// Find type child.
+	for ( const auto& c : node.Children() )
+		if ( is_type_tag(c->GetTag()) )
+			{
+			text += Best(FormatExpr(*c, ctx)).Text();
+			break;
+			}
+
+	// Find attr-list.
+	const Node* attrs = FindChild(node, Tag::AttrList);
+	if ( attrs )
+		{
+		std::string as = FormatAttrList(*attrs, ctx);
+		if ( ! as.empty() )
+			text += " " + as;
+		}
+
+	return text;
+	}
+
+static Candidates FormatTypeDecl(const Node& node, const FmtContext& ctx)
+	{
+	const auto& name = node.Arg();
+	bool has_semi = FindChild(node, Tag::Semi) != nullptr;
+	std::string semi_str = has_semi ? ";" : "";
+
+	// Simple type alias: type name: basetype;
+	for ( const auto& c : node.Children() )
+		if ( is_type_tag(c->GetTag()) )
+			{
+			std::string text = "type " + name + ": " +
+				Best(FormatExpr(*c, ctx)).Text() + semi_str;
+			return {Candidate(text, ctx)};
+			}
+
+	// Enum type.
+	const Node* enum_node = FindChild(node, Tag::TypeEnum);
+	if ( enum_node )
+		{
+		std::string head = "type " + name + ": enum {";
+
+		// Collect enum values.
+		std::vector<std::string> values;
+		for ( const auto& c : enum_node->Children() )
+			if ( c->GetTag() == Tag::EnumValue )
+				values.push_back(c->Arg());
+
+		// One per line.
+		std::string pad = LinePrefix(ctx.Indent() + 1,
+			(ctx.Indent() + 1) * INDENT_WIDTH);
+		std::string body;
+		for ( size_t i = 0; i < values.size(); ++i )
+			{
+			body += pad + values[i];
+			if ( i + 1 < values.size() )
+				body += ",";
+			body += "\n";
+			}
+
+		std::string close_pad = LinePrefix(ctx.Indent(), ctx.Col());
+		std::string text = head + "\n" + body + close_pad + "}" +
+					semi_str;
+		return {Candidate(text, ctx)};
+		}
+
+	// Record type.
+	const Node* rec_node = FindChild(node, Tag::TypeRecord);
+	if ( rec_node )
+		{
+		std::string head = "type " + name + ": record {";
+
+		int field_indent = ctx.Indent() + 1;
+		int field_col = field_indent * INDENT_WIDTH;
+		static constexpr int MAX_WIDTH = 80;
+		FmtContext field_ctx(field_indent, field_col,
+			MAX_WIDTH - field_col);
+		std::string field_pad = LinePrefix(field_indent, field_col);
+
+		// Collect fields, comments, blanks.
+		std::string body;
+		const auto& kids = rec_node->Children();
+		for ( size_t i = 0; i < kids.size(); ++i )
+			{
+			Tag t = kids[i]->GetTag();
+
+			if ( t == Tag::Blank )
+				{
+				body += "\n";
+				continue;
+				}
+
+			if ( is_comment(t) )
+				{
+				body += field_pad + kids[i]->Arg() + "\n";
+				continue;
+				}
+
+			if ( t == Tag::Field )
+				{
+				std::string field_text =
+					FormatField(*kids[i], field_ctx);
+
+				// Check for trailing comment.
+				std::string trailing;
+				if ( i + 1 < kids.size() &&
+				     kids[i + 1]->GetTag() == Tag::CommentTrailing )
+					{
+					trailing = " " + kids[i + 1]->Arg();
+					++i;
+					}
+
+				body += field_pad + field_text + ";" +
+					trailing + "\n";
+				}
+			}
+
+		std::string close_pad = LinePrefix(ctx.Indent(), ctx.Col());
+		std::string text = head + "\n" + body + close_pad + "}" +
+					semi_str;
+		return {Candidate(text, ctx)};
+		}
+
+	// Fallback.
+	return {Candidate("type " + name + semi_str, ctx)};
+	}
+
+// ------------------------------------------------------------------
 // Dispatch table
 // ------------------------------------------------------------------
 
@@ -1484,6 +1619,7 @@ static const std::unordered_map<Tag, FormatFunc>& FormatDispatch()
 		{Tag::For, FormatFor},
 		{Tag::While, FormatWhile},
 		{Tag::ExportDecl, FormatExport},
+		{Tag::TypeDecl, FormatTypeDecl},
 		{Tag::Switch, FormatSwitch},
 	};
 
