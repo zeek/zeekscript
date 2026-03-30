@@ -1,4 +1,4 @@
-# C++ Formatter Failing Tests (106 pass, 73 fail as of 2026-03-30)
+# C++ Formatter Failing Tests (108 pass, 71 fail as of 2026-03-30)
 
 ## By category (sorted by count)
 
@@ -18,9 +18,6 @@ test{017,111,112,113,114}
 Lambda expressions emit placeholder.
 test{094,095,096}
 
-### Ternary layout (3)
-Ternary `? :` doesn't split across lines well.
-test{157,158,159}
 
 ### Vertical call-arg layout (3)
 Multi-element set/redef not formatted one-per-line with trailing commas.
@@ -159,3 +156,7 @@ entries chronological within a session date.
   - Removed "Slice formatting" category (all spacing issues fixed)
 - After slice line-breaking: 106 pass, 73 fail
   - Fixed: test103 (slice split at `:` with alignment after `[`)
+- After ternary line-breaking: 108 pass, 71 fail
+  - Fixed: test{157,158,159} (split after `:` or `?` with alignment)
+  - Updated baseline: test159 (split after `?` instead of after `:`)
+  - Removed "Ternary layout" category (all 3 fixed)

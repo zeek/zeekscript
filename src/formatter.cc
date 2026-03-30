@@ -548,7 +548,7 @@ static Candidates FormatSlice(const Node& node, const FmtContext& ctx)
 	if ( flat.Fits() || lo.empty() || hi.empty() )
 		return {flat};
 
-	// Split after ":" — continuation aligns after "[".
+	// Split after ":" - continuation aligns after "[".
 	int bracket_col = ctx.Col() + base.Width() + 1;
 	FmtContext hi_ctx = ctx.AtCol(bracket_col);
 	std::string hi2 = Best(FormatExpr(*kids[2], hi_ctx)).Text();
@@ -1185,6 +1185,7 @@ static Candidates FormatTernary(const Node& node, const FmtContext& ctx)
 	auto cond_cs = FormatExpr(*kids[0], ctx);
 	const auto& cond = Best(cond_cs);
 
+	int tv_col = ctx.Col() + cond.Width() + 3;  // after "cond ? "
 	auto tv_cs = FormatExpr(*kids[1], ctx.After(cond.Width() + 3));
 	const auto& tv = Best(tv_cs);
 
@@ -1192,8 +1193,48 @@ static Candidates FormatTernary(const Node& node, const FmtContext& ctx)
 		ctx.After(cond.Width() + 3 + tv.Width() + 3));
 	const auto& fv = Best(fv_cs);
 
-	std::string flat = cond.Text() + " ? " + tv.Text() + " : " + fv.Text();
-	return {Candidate(flat, ctx)};
+	std::string flat = cond.Text() + " ? " + tv.Text() +
+				" : " + fv.Text();
+	Candidate flat_c(flat, ctx);
+
+	Candidates result;
+	result.push_back(flat_c);
+
+	if ( flat_c.Fits() )
+		return result;
+
+	// Split after ":" - false-value aligns under true-value.
+	FmtContext fv_ctx = ctx.AtCol(tv_col);
+	auto fv2_cs = FormatExpr(*kids[2], fv_ctx);
+	const auto& fv2 = Best(fv2_cs);
+
+	std::string fv_prefix = LinePrefix(fv_ctx.Indent(), tv_col);
+	std::string split_colon = cond.Text() + " ? " + tv.Text() +
+				" :\n" + fv_prefix + fv2.Text();
+	int last_w = fv2.Width();
+	int lines = 1 + fv2.Lines();
+	int ovf = Ovf(last_w, fv_ctx);
+
+	result.push_back({split_colon, last_w, lines, ovf, ctx.Col()});
+
+	// Split after "?" - true and false on continuation line,
+	// aligned under the start of cond.
+	FmtContext cont_ctx = ctx.AtCol(ctx.Col());
+	auto tv2_cs = FormatExpr(*kids[1], cont_ctx);
+	const auto& tv2 = Best(tv2_cs);
+
+	auto fv3_cs = FormatExpr(*kids[2], cont_ctx.After(tv2.Width() + 3));
+	const auto& fv3 = Best(fv3_cs);
+
+	std::string cont_prefix = LinePrefix(cont_ctx.Indent(), ctx.Col());
+	std::string split_q = cond.Text() + " ?\n" + cont_prefix +
+				tv2.Text() + " : " + fv3.Text();
+	int q_last_w = tv2.Width() + 3 + fv3.Width();
+	int q_ovf = Ovf(q_last_w, cont_ctx);
+
+	result.push_back({split_q, q_last_w, 2, q_ovf, ctx.Col()});
+
+	return result;
 	}
 
 // ------------------------------------------------------------------
