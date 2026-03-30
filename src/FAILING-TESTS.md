@@ -1,18 +1,14 @@
-# C++ Formatter Failing Tests (101 pass, 78 fail as of 2026-03-30)
+# C++ Formatter Failing Tests (105 pass, 74 fail as of 2026-03-30)
 
 ## By category (sorted by count)
 
-### Line-breaking / layout quality (19)
+### Line-breaking / layout quality (20)
 Call args, assignments, binary ops not splitting at overflow.
-test{011,014,029,044,071,093,101,104,105,108,125,126,127,128,130,133,135,136,140}
+test{011,014,029,044,071,093,101,103,104,105,108,125,126,127,128,130,133,135,136,140}
 
 ### Comment handling (16)
 Comments dropped, mispositioned, or rendered as `/* COMMENT-xxx */`.
 test{001,002,016,018,026,032,045,057,088,109,112,113,114,132,134,167}
-
-### Slice formatting (6)
-Spaces around `:` in slices wrong.
-test{075,076,078,079,080,103}
 
 ### NO-FORMAT directives (5)
 `#@ NO-FORMAT` / `#@ BEGIN-NO-FORMAT` not honored.
@@ -156,3 +152,8 @@ entries chronological within a session date.
   - Updated baselines: test{022,058} (new output is better than original)
   - Removed "?$ and |...| operator formatting" category (all 6 fixed)
   - Added test{071,172} to failure list (previously unlisted)
+- After slice `:` spacing: 105 pass, 74 fail
+  - Fixed: test{075,076,078,079,080} (slice spacing)
+  - Updated baselines: test{075,076,080} (no-space style for one-sided slices)
+  - Moved test103 from "Slice formatting" to "Line-breaking" (spacing correct, line too long)
+  - Removed "Slice formatting" category (all spacing issues fixed)

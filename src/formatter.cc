@@ -542,7 +542,8 @@ static Candidates FormatSlice(const Node& node, const FmtContext& ctx)
 	std::string lo = Best(FormatExpr(*kids[1], ctx)).Text();
 	std::string hi = Best(FormatExpr(*kids[2], ctx)).Text();
 
-	return {base.Cat("[" + lo + ":" + hi + "]").In(ctx)};
+	std::string sep = (! lo.empty() && ! hi.empty()) ? " : " : ":";
+	return {base.Cat("[" + lo + sep + hi + "]").In(ctx)};
 	}
 
 // ------------------------------------------------------------------
