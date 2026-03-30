@@ -35,10 +35,8 @@ int Candidate::ComputeSpread(const std::string& t, int first_col)
 		{
 		if ( c == '\n' )
 			{
-			if ( line_w > max_w )
-				max_w = line_w;
-			if ( line_w < min_w )
-				min_w = line_w;
+			max_w = std::max(max_w, line_w);
+			min_w = std::min(min_w, line_w);
 			line_w = 0;
 			}
 		else if ( c == '\t' )
@@ -48,10 +46,8 @@ int Candidate::ComputeSpread(const std::string& t, int first_col)
 		}
 
 	// Last line (after final \n or entire string).
-	if ( line_w > max_w )
-		max_w = line_w;
-	if ( line_w < min_w )
-		min_w = line_w;
+	max_w = std::max(max_w, line_w);
+	min_w = std::min(min_w, line_w);
 
 	return max_w - min_w;
 	}
@@ -85,16 +81,13 @@ const Candidate& Best(const Candidates& cs)
 // accounting for trailing reservation.
 static int Ovf(int candidate_w, const FmtContext& ctx)
 	{
-	int avail = ctx.Width() - ctx.Trail();
-	int excess = candidate_w - avail;
-	return excess > 0 ? excess : 0;
+	return std::max(0, candidate_w - ctx.Width() + ctx.Trail());
 	}
 
 // Overflow ignoring trailing reservation (for intermediate lines).
 static int OvfNoTrail(int candidate_w, const FmtContext& ctx)
 	{
-	int excess = candidate_w - ctx.Width();
-	return excess > 0 ? excess : 0;
+	return std::max(0, candidate_w - ctx.Width());
 	}
 
 // How many lines are needed to represent a string.
@@ -256,7 +249,7 @@ static Candidate FormatArgsSplit(const std::vector<const Node*>& args,
 		total_overflow += best.Ovf();
 		}
 
-	int end_ovf = cur_col > max_col ? cur_col - max_col : 0;
+	int end_ovf = std::max(0, cur_col - max_col);
 	total_overflow += end_ovf;
 
 	return {text, cur_col, lines, total_overflow};
