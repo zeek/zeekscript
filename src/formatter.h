@@ -11,25 +11,20 @@ static constexpr int INDENT_WIDTH = 8;  // columns per indent level
 // The context passed down during formatting.  Everything is
 // in absolute columns — tabs don't exist at this level.
 //
-// indent:   base indentation level (0, 1, 2, ...)
-// col:      absolute column where content starts on the
-//           current line (>= indent * INDENT_WIDTH when
-//           there's an offset beyond the base indent)
-// reserved: columns reserved for trailing content on the
-//           last line (e.g. ";" or trailing comment)
+// indent: base indentation level (0, 1, 2, ...)
+// col:    absolute column where content starts on the
+//         current line (>= indent * INDENT_WIDTH when
+//         there's an offset beyond the base indent)
+// width:  columns available for content on this line
+//         (from col to the right edge)
 class FmtContext {
 public:
-	FmtContext(int indent, int col, int reserved = 0)
-		: indent(indent), col(col),
-		  reserved(reserved) {}
+	FmtContext(int indent, int col, int width)
+		: indent(indent), col(col), width(width) {}
 
 	int Indent() const { return indent; }
 	int Col() const { return col; }
-	int Reserved() const { return reserved; }
-
-	// How many columns are available on this line.
-	int Avail() const
-		{ return MAX_WIDTH - col - reserved; }
+	int Width() const { return width; }
 
 	// Column where a fresh line starts at current indent.
 	int IndentCol() const
@@ -38,26 +33,31 @@ public:
 	// Derive a sub-context after emitting 'used' columns
 	// on the current line.
 	FmtContext After(int used) const
-		{ return {indent, col + used, reserved}; }
+		{ return {indent, col + used, width - used}; }
+
+	// Maximum column (right edge) for this context.
+	int MaxCol() const { return col + width; }
 
 	// Derive a sub-context for a new line at one deeper
-	// indent level, with zero offset beyond the indent.
+	// indent level, full width from that indent.
 	FmtContext Indented() const
 		{
+		int max_col = MaxCol();
 		int new_indent = indent + 1;
-		return {new_indent,
-		        new_indent * INDENT_WIDTH, 0};
+		int new_col = new_indent * INDENT_WIDTH;
+		return {new_indent, new_col,
+		        max_col - new_col};
 		}
 
 	// Derive a sub-context for a new line at the same
 	// indent level but a specific absolute column.
 	FmtContext AtCol(int c) const
-		{ return {indent, c, 0}; }
+		{ return {indent, c, MaxCol() - c}; }
 
 private:
 	int indent;
 	int col;
-	int reserved;
+	int width;
 };
 
 // Emit a line prefix for a given indent level and starting
@@ -96,7 +96,7 @@ private:
 	std::string text;
 	int width;       // width of last (or only) line
 	int lines;       // number of lines (1 = single line)
-	int overflow;    // columns past MAX_WIDTH on worst line
+	int overflow;    // columns past the allowed width
 };
 
 using Candidates = std::vector<Candidate>;
