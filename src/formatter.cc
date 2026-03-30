@@ -845,23 +845,22 @@ static Candidates FormatTernary(const Node& node, const FmtContext& ctx)
 // delete expr, next, break, fallthrough
 // ------------------------------------------------------------------
 
+static const std::unordered_map<Tag, const char*> keyword_for_tag = {
+	{Tag::Return, "return"},
+	{Tag::Print, "print"},
+	{Tag::Add, "add"},
+	{Tag::Delete, "delete"},
+	{Tag::EventStmt, "event"},
+	{Tag::Next, "next"},
+	{Tag::Break, "break"},
+	{Tag::Fallthrough, "fallthrough"},
+};
+
 // Format a keyword statement with an optional expression child.
 // SEMI is handled by the caller (top-level or block).
-static const char* KeywordForTag(Tag t)
-	{
-	switch ( t ) {
-	case Tag::Return: return "return";
-	case Tag::Print: return "print";
-	case Tag::Add: return "add";
-	case Tag::Delete: return "delete";
-	case Tag::EventStmt: return "event";
-	default: return "???";
-	}
-	}
-
 static Candidates FormatKeywordStmt(const Node& node, const FmtContext& ctx)
 	{
-	const char* keyword = KeywordForTag(node.GetTag());
+	const char* keyword = keyword_for_tag.at(node.GetTag());
 
 	// Find expression child and SEMI.
 	const Node* expr = nullptr;
@@ -916,17 +915,7 @@ static Candidates FormatKeywordStmt(const Node& node, const FmtContext& ctx)
 // Bare keyword statements with no expression and no children.
 static Candidates FormatBareKeyword(const Node& node, const FmtContext& ctx)
 	{
-	Tag t = node.GetTag();
-	const char* kw = "???";
-
-	if ( t == Tag::Next )
-		kw = "next";
-	else if ( t == Tag::Break )
-		kw = "break";
-	else if ( t == Tag::Fallthrough )
-		kw = "fallthrough";
-
-	return {Candidate(kw, ctx)};
+	return {Candidate(keyword_for_tag.at(node.GetTag()), ctx)};
 	}
 
 // ------------------------------------------------------------------
