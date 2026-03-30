@@ -572,6 +572,14 @@ static Candidates FormatUnary(const Node& node, const FmtContext& ctx)
 	if ( kids.empty() )
 		throw FormatError("UNARY-OP node needs a child");
 
+	// Cardinality/absolute value: |expr|
+	if ( op == "|...|" )
+		{
+		auto operand_cs = FormatExpr(*kids[0], ctx.After(2));
+		const auto& operand = Best(operand_cs);
+		return {Candidate("|", ctx).Cat(operand).Cat("|").In(ctx)};
+		}
+
 	// Zeek style: space after "!".
 	std::string ps = op;
 	if ( op == "!" )
@@ -595,6 +603,29 @@ static Candidates FormatBinary(const Node& node, const FmtContext& ctx)
 
 	if ( kids.size() < 2 )
 		throw FormatError("BINARY-OP node needs 2 children");
+
+	// ?$ binds without spaces, like field access.
+	// Reserve trail space so the LHS splits to leave room.
+	if ( op == "?$" )
+		{
+		std::string rhs_text =
+			Best(FormatExpr(*kids[1], ctx)).Text();
+		int suffix_w = 2 + static_cast<int>(rhs_text.size());
+
+		auto lhs_cs = FormatExpr(*kids[0], ctx.Reserve(suffix_w));
+		const auto& lhs = Best(lhs_cs);
+
+		std::string text = lhs.Text() + "?$" + rhs_text;
+
+		if ( lhs.Lines() > 1 )
+			{
+			int last_w = lhs.Width() + suffix_w;
+			return {{text, last_w, lhs.Lines(), lhs.Ovf(),
+			         ctx.Col()}};
+			}
+
+		return {Candidate(text, ctx)};
+		}
 
 	auto lhs_cs = FormatExpr(*kids[0], ctx);
 	const auto& lhs = Best(lhs_cs);
