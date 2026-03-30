@@ -932,6 +932,38 @@ static Candidates FormatModuleDecl(const Node& node, const FmtContext& ctx)
 // Block/body formatting: Whitesmith brace style
 // ------------------------------------------------------------------
 
+// Format a PREPROC directive.  Returns the text (always at column 0).
+// Directives with conditions get "( arg )" spacing.
+static std::string FormatPreproc(const Node& node)
+	{
+	const auto& directive = node.Arg(0);
+	const auto& arg = node.Arg(1);
+
+	if ( arg.empty() )
+		return directive;
+
+	// @if, @ifdef, @ifndef get "( arg )" spacing.
+	if ( directive == "@if" || directive == "@ifdef" ||
+	     directive == "@ifndef" )
+		return directive + " ( " + arg + " )";
+
+	// @load, @load-sigs, etc. use space.
+	return directive + " " + arg;
+	}
+
+// Does this preproc directive increase indentation depth?
+static bool preproc_opens(const std::string& directive)
+	{
+	return directive == "@if" || directive == "@ifdef" ||
+		directive == "@ifndef" || directive == "@else";
+	}
+
+// Does this preproc directive decrease indentation depth?
+static bool preproc_closes(const std::string& directive)
+	{
+	return directive == "@else" || directive == "@endif";
+	}
+
 // Format a sequence of statement nodes as a body at the given indent
 // level.  Returns the formatted text without enclosing braces.
 // This is the inner-body equivalent of the top-level Format() loop.
@@ -939,7 +971,10 @@ static std::string FormatStmtList(const Node::NodeVec& nodes,
                                   const FmtContext& ctx,
                                   bool skip_leading_blanks = false)
 	{
-	std::string pad = LinePrefix(ctx.Indent(), ctx.Col());
+	static constexpr int MAX_WIDTH = 80;
+	int preproc_depth = 0;
+	FmtContext cur_ctx = ctx;
+	std::string pad = LinePrefix(cur_ctx.Indent(), cur_ctx.Col());
 
 	std::string result;
 	bool seen_content = false;
@@ -958,6 +993,42 @@ static std::string FormatStmtList(const Node::NodeVec& nodes,
 			}
 
 		seen_content = true;
+
+		// PREPROC directives: flow-control (@if etc.) at column 0,
+		// other directives (@load etc.) at current indentation.
+		if ( t == Tag::Preproc )
+			{
+			const auto& directive = node.Arg(0);
+
+			if ( preproc_closes(directive) )
+				{
+				--preproc_depth;
+				int new_indent = preproc_depth;
+				int new_col = new_indent * INDENT_WIDTH;
+				cur_ctx = FmtContext(new_indent, new_col,
+					MAX_WIDTH - new_col);
+				pad = LinePrefix(new_indent, new_col);
+				}
+
+			// Flow-control directives at column 0; others
+			// use current indentation.
+			if ( preproc_opens(directive) || directive == "@endif" )
+				result += FormatPreproc(node) + "\n";
+			else
+				result += pad + FormatPreproc(node) + "\n";
+
+			if ( preproc_opens(directive) )
+				{
+				++preproc_depth;
+				int new_indent = preproc_depth;
+				int new_col = new_indent * INDENT_WIDTH;
+				cur_ctx = FmtContext(new_indent, new_col,
+					MAX_WIDTH - new_col);
+				pad = LinePrefix(new_indent, new_col);
+				}
+
+			continue;
+			}
 
 		if ( is_comment(t) )
 			{
@@ -996,7 +1067,7 @@ static std::string FormatStmtList(const Node::NodeVec& nodes,
 
 		int trail_w = static_cast<int>(trailing.size()) +
 			static_cast<int>(semi_str.size());
-		FmtContext stmt_ctx = ctx.Reserve(trail_w);
+		FmtContext stmt_ctx = cur_ctx.Reserve(trail_w);
 		auto cs = it->second(node, stmt_ctx);
 		result += pad + Best(cs).Text() + semi_str + trailing + "\n";
 		}
@@ -1485,73 +1556,12 @@ static Candidates FormatExprStmt(const Node& node, const FmtContext& ctx)
 // Top-level formatting
 // ------------------------------------------------------------------
 
-static std::string FormatComment(const Node& node)
-	{
-	return node.Arg();
-	}
-
 std::string Format(const Node::NodeVec& nodes)
 	{
 	static constexpr int MAX_WIDTH = 80;
 	FmtContext ctx(0, 0, MAX_WIDTH);
 
-	std::string result;
-
-	for ( size_t i = 0; i < nodes.size(); ++i )
-		{
-		const auto& node = *nodes[i];
-		Tag t = node.GetTag();
-
-		if ( t == Tag::Blank )
-			{
-			result += "\n";
-			continue;
-			}
-
-		if ( is_comment(t) )
-			{
-			result += FormatComment(node) + "\n";
-			continue;
-			}
-
-		// Consume a following SEMI (sibling of bare statements
-		// like RETURN, NEXT, etc.).
-		bool sibling_semi = false;
-		if ( i + 1 < nodes.size() &&
-		     nodes[i + 1]->GetTag() == Tag::Semi )
-			{
-			sibling_semi = true;
-			++i;
-			}
-
-		// Peek ahead: if the next node is a trailing comment,
-		// we'll append it to the last line of this statement.
-		std::string trailing;
-		if ( i + 1 < nodes.size() &&
-		     nodes[i + 1]->GetTag() == Tag::CommentTrailing )
-			{
-			trailing = " " + FormatComment(*nodes[i + 1]);
-			++i;  // consume the comment node
-			}
-
-		std::string semi_str = sibling_semi ? ";" : "";
-
-		auto it = FormatDispatch().find(t);
-		if ( it == FormatDispatch().end() )
-			{
-			const char* s = TagToString(t);
-			std::string text = std::string("/* TODO: ") + s + " */";
-			result += text + semi_str + trailing + "\n";
-			continue;
-			}
-		int trail_w = static_cast<int>(trailing.size()) +
-			static_cast<int>(semi_str.size());
-		FmtContext stmt_ctx = ctx.Reserve(trail_w);
-		auto cs = it->second(node, stmt_ctx);
-		result += Best(cs).Text() + semi_str + trailing + "\n";
-		}
-
-	return result;
+	return FormatStmtList(nodes, ctx);
 	}
 
 Candidates FormatNode(const Node& node, const FmtContext& ctx)
