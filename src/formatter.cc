@@ -50,8 +50,17 @@ const Candidate& Best(const Candidates& cs)
 // Helpers
 // ------------------------------------------------------------------
 
-// How many columns a candidate overflows past the context width.
+// How many columns a candidate overflows past the available context width,
+// accounting for trailing reservation.
 static int Ovf(int candidate_w, const FmtContext& ctx)
+	{
+	int avail = ctx.Width() - ctx.Trail();
+	int excess = candidate_w - avail;
+	return excess > 0 ? excess : 0;
+	}
+
+// Overflow ignoring trailing reservation (for intermediate lines).
+static int OvfNoTrail(int candidate_w, const FmtContext& ctx)
 	{
 	int excess = candidate_w - ctx.Width();
 	return excess > 0 ? excess : 0;
@@ -461,7 +470,7 @@ static Candidates FormatBinary(const Node& node, const FmtContext& ctx)
 					cont_prefix + rhs2.Text();
 		int line1_w = lhs.Width() + 1 + static_cast<int>(op.size());
 		int line2_ovf = Ovf(rhs2.Width(), cont_ctx);
-		int split_ovf = Ovf(line1_w, ctx) + line2_ovf;
+		int split_ovf = OvfNoTrail(line1_w, ctx) + line2_ovf;
 
 		int split_lines = 1 + rhs2.Lines();
 		int last_w = rhs2.Lines() > 1 ?
@@ -486,7 +495,7 @@ static Candidates FormatBinary(const Node& node, const FmtContext& ctx)
 				rhs3.Text();
 	int line1_w = lhs.Width() + 1 + static_cast<int>(op.size());
 	int line2_ovf = Ovf(rhs3.Width(), cont_ctx);
-	int split_ovf = Ovf(line1_w, ctx) + line2_ovf;
+	int split_ovf = OvfNoTrail(line1_w, ctx) + line2_ovf;
 
 	int split_lines = 1 + rhs3.Lines();
 	int last_w = rhs3.Lines() > 1 ?  LastLineLen(split) : rhs3.Width();
@@ -561,9 +570,9 @@ static Candidates FormatExprStmt(const Node& node, const FmtContext& ctx)
 	if ( ! expr )
 		return {Candidate(";", ctx)};
 
-	// Expression gets the context width minus room for the semicolon.
+	// Reserve trailing space for the semicolon.
 	int semi_cost = has_semi ? 1 : 0;
-	FmtContext expr_ctx(ctx.Indent(), ctx.Col(), ctx.Width() - semi_cost);
+	FmtContext expr_ctx = ctx.Reserve(semi_cost);
 	auto expr_cs = FormatExpr(*expr, expr_ctx);
 
 	Candidates result;
@@ -623,16 +632,20 @@ std::string Format(const Node::NodeVec& nodes)
 
 		if ( t == Tag::CommentTrailing )
 			{
-			// Trailing comment attaches to prev line.
-			if ( ! result.empty() && result.back() == '\n' )
-				{
-				result.pop_back();
-				result += " " + FormatComment(node) + "\n";
-				}
-			else
-				result += FormatComment(node) + "\n";
-
+			// Orphan trailing comment (not preceded by a
+			// statement) - emit on its own line.
+			result += FormatComment(node) + "\n";
 			continue;
+			}
+
+		// Peek ahead: if the next node is a trailing comment,
+		// we'll append it to the last line of this statement.
+		std::string trailing;
+		if ( i + 1 < nodes.size() &&
+		     nodes[i + 1]->GetTag() == Tag::CommentTrailing )
+			{
+			trailing = " " + FormatComment(*nodes[i + 1]);
+			++i;  // consume the comment node
 			}
 
 		auto it = FormatDispatch().find(t);
@@ -640,12 +653,14 @@ std::string Format(const Node::NodeVec& nodes)
 			{
 			const char* s = TagToString(t);
 			std::string text = std::string("/* TODO: ") + s + " */";
-			result += text + "\n";
+			result += text + trailing + "\n";
 			continue;
 			}
 
-		auto cs = it->second(node, ctx);
-		result += Best(cs).Text() + "\n";
+		int trail_w = static_cast<int>(trailing.size());
+		FmtContext stmt_ctx = ctx.Reserve(trail_w);
+		auto cs = it->second(node, stmt_ctx);
+		result += Best(cs).Text() + trailing + "\n";
 		}
 
 	return result;
