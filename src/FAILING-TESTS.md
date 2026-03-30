@@ -1,4 +1,4 @@
-# C++ Formatter Failing Tests (108 pass, 71 fail as of 2026-03-30)
+# C++ Formatter Failing Tests (110 pass, 69 fail as of 2026-03-30)
 
 ## By category (sorted by count)
 
@@ -27,9 +27,6 @@ test{041,097,098}
 Long bracket type lists not wrapping across lines.
 test{066,172,176}
 
-### Param-list wrapping (2)
-Long parameter lists in func/event decls not wrapping.
-test{060,065}
 
 ### Enum tweaks (2)
 Trailing comma missing, or short enums not collapsed to one line.
@@ -160,3 +157,8 @@ entries chronological within a session date.
   - Fixed: test{157,158,159} (split after `:` or `?` with alignment)
   - Updated baseline: test159 (split after `?` instead of after `:`)
   - Removed "Ternary layout" category (all 3 fixed)
+- After param-list FitCol wrapping: 110 pass, 69 fail
+  - Fixed: test{060,065} (func-decl param de-indent to fit col 79)
+  - Added FitCol() helper: prefer align_col, back up to max_col - 1 if needed
+  - Updated baseline: test060 (params pack tighter on continuation line)
+  - Removed "Param-list wrapping" category (both fixed)

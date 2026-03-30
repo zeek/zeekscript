@@ -90,6 +90,16 @@ static int OvfNoTrail(int candidate_w, const FmtContext& ctx)
 	return std::max(0, candidate_w - ctx.Width());
 	}
 
+// Compute the starting column for content of width w so that it
+// ends at max_col - 1 (the last usable column).  Prefers align_col
+// but backs up when needed.
+static int FitCol(int align_col, int w, int max_col)
+	{
+	if ( align_col + w <= max_col - 1 )
+		return align_col;
+	return max_col - 1 - w;
+	}
+
 // How many lines are needed to represent a string.
 static int CountLines(const std::string& s)
 	{
@@ -1634,8 +1644,11 @@ static Candidates FormatFuncDecl(const Node& node, const FmtContext& ctx)
 				}
 			else
 				{
-				wrapped += ",\n" + pad + param_strs[i];
-				cur_col = align_col + pw;
+				int suffix = (i == param_strs.size() - 1) ? 1 : 0;
+				int pcol = FitCol(align_col, pw + suffix, max_col);
+				std::string ppad = LinePrefix(ctx.Indent(), pcol);
+				wrapped += ",\n" + ppad + param_strs[i];
+				cur_col = pcol + pw;
 				}
 			}
 		}
@@ -1649,11 +1662,7 @@ static Candidates FormatFuncDecl(const Node& node, const FmtContext& ctx)
 		{
 		std::string bare_attr = attr_str.substr(1);
 		int aw = static_cast<int>(bare_attr.size());
-		int attr_col = align_col;
-		if ( attr_col + aw > max_col - 1 )
-			attr_col = max_col - 1 - aw;
-		if ( attr_col < 0 )
-			attr_col = 0;
+		int attr_col = FitCol(align_col, aw, max_col);
 		std::string attr_pad = LinePrefix(ctx.Indent(), attr_col);
 		wrapped += "\n" + attr_pad + bare_attr;
 		}
