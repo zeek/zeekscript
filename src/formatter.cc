@@ -477,11 +477,21 @@ static Candidates FormatBinary(const Node& node, const FmtContext& ctx)
 	std::string flat = lhs.Text() + " " + op + " " + rhs.Text();
 	int flat_w = lhs.Width() + op_w + rhs.Width();
 	int flat_ovf = Ovf(flat_w, ctx);
+	bool need_split = flat_ovf > 0;
 
 	Candidates result;
 
 	if ( rhs.Lines() > 1 )
 		{
+		// RHS already split in the tight flat context.
+		// Recompute overflow from the first line (the one
+		// that actually overflows).
+		auto nl = flat.find('\n');
+		int first_w = nl != std::string::npos ?
+				static_cast<int>(nl) : flat_w;
+		flat_ovf = Ovf(first_w, ctx);
+		need_split = true;
+
 		int last_w = LastLineLen(flat);
 		result.push_back({flat, last_w, CountLines(flat),
 		                  flat_ovf, ctx.Col()});
@@ -489,53 +499,36 @@ static Candidates FormatBinary(const Node& node, const FmtContext& ctx)
 	else
 		result.push_back({flat, flat_w, 1, flat_ovf});
 
-	// Candidate 2: split after operator, continuation at next indent level.
-	if ( flat_ovf > 0 )
-		{
-		FmtContext cont_ctx = ctx.Indented();
-
-		auto rhs2_cs = FormatExpr(*kids[1], cont_ctx);
-		const auto& rhs2 = Best(rhs2_cs);
-
-		std::string cont_prefix = LinePrefix(cont_ctx.Indent(),
-							cont_ctx.Col());
-
-		std::string split = lhs.Text() + " " + op + "\n" +
-					cont_prefix + rhs2.Text();
-		int line1_w = lhs.Width() + 1 + static_cast<int>(op.size());
-		int line2_ovf = Ovf(rhs2.Width(), cont_ctx);
-		int split_ovf = OvfNoTrail(line1_w, ctx) + line2_ovf;
-
-		int split_lines = 1 + rhs2.Lines();
-		int last_w = rhs2.Lines() > 1 ?
-				LastLineLen(split) : rhs2.Width();
-
-		result.push_back({split, last_w, split_lines, split_ovf,
-		                  ctx.Col()});
-		}
-
-	// Candidate 3: split after operator, continuation aligned to start
-	// of this expression (ctx.Col()).
-	if ( flat_ovf == 0 || ctx.Col() <= ctx.IndentCol() )
+	if ( ! need_split )
 		return result;
 
-	FmtContext cont_ctx = ctx.AtCol(ctx.Col());
+	// Split after operator.  The continuation column depends on
+	// where the expression starts relative to the indent column:
+	// - At the indent column: indent one more level (the natural
+	//   "next level" continuation).
+	// - Past the indent column: align to the expression start
+	//   (the principled continuation point for a sub-expression).
+	FmtContext cont_ctx = ctx.Col() == ctx.IndentCol() ?
+				ctx.Indented() : ctx.AtCol(ctx.Col());
 
-	auto rhs3_cs = FormatExpr(*kids[1], cont_ctx);
-	const auto& rhs3 = Best(rhs3_cs);
+	auto rhs2_cs = FormatExpr(*kids[1], cont_ctx);
+	const auto& rhs2 = Best(rhs2_cs);
 
-	std::string cont_prefix = LinePrefix(ctx.Indent(), ctx.Col());
+	std::string cont_prefix = LinePrefix(cont_ctx.Indent(),
+						cont_ctx.Col());
 
-	std::string split = lhs.Text() + " " + op + "\n" + cont_prefix +
-				rhs3.Text();
+	std::string split = lhs.Text() + " " + op + "\n" +
+				cont_prefix + rhs2.Text();
 	int line1_w = lhs.Width() + 1 + static_cast<int>(op.size());
-	int line2_ovf = Ovf(rhs3.Width(), cont_ctx);
+	int line2_ovf = Ovf(rhs2.Width(), cont_ctx);
 	int split_ovf = OvfNoTrail(line1_w, ctx) + line2_ovf;
 
-	int split_lines = 1 + rhs3.Lines();
-	int last_w = rhs3.Lines() > 1 ?  LastLineLen(split) : rhs3.Width();
+	int split_lines = 1 + rhs2.Lines();
+	int last_w = rhs2.Lines() > 1 ?
+			LastLineLen(split) : rhs2.Width();
 
-	result.push_back({split, last_w, split_lines, split_ovf, ctx.Col()});
+	result.push_back({split, last_w, split_lines, split_ovf,
+	                  ctx.Col()});
 
 	return result;
 	}
