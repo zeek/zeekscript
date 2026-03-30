@@ -359,33 +359,14 @@ static Candidates FormatIndexLiteral(const Node& node, const FmtContext& ctx)
 static Candidates FormatSlice(const Node& node, const FmtContext& ctx)
 	{
 	const auto& kids = node.Children();
-	if ( kids.empty() )
-		throw FormatError("SLICE node needs children");
+	if ( kids.size() < 3 )
+		throw FormatError("SLICE node needs 3 children");
 
 	auto base_cs = FormatExpr(*kids[0], ctx);
 	const auto& base = Best(base_cs);
 
-	std::string lo, hi;
-
-	if ( kids.size() == 3 )
-		{
-		auto lo_cs = FormatExpr(*kids[1], ctx);
-		lo = Best(lo_cs).Text();
-
-		auto hi_cs = FormatExpr(*kids[2], ctx);
-		hi = Best(hi_cs).Text();
-		}
-
-	else if ( kids.size() == 2 )
-		{
-		auto c_cs = FormatExpr(*kids[1], ctx);
-		const auto& c = Best(c_cs);
-
-		if ( node.Arg() == "lo" )
-			lo = c.Text();
-		else
-			hi = c.Text();
-		}
+	std::string lo = Best(FormatExpr(*kids[1], ctx)).Text();
+	std::string hi = Best(FormatExpr(*kids[2], ctx)).Text();
 
 	return {base.Cat("[" + lo + ":" + hi + "]").In(ctx)};
 	}

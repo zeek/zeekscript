@@ -4,6 +4,7 @@ EXPR-STMT {
     CALL {
       IDENTIFIER "f"
     }
+    CONSTANT ""
   }
   SEMI
 }

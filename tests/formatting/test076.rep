@@ -1,6 +1,7 @@
 EXPR-STMT {
   SLICE {
     IDENTIFIER "data"
+    CONSTANT ""
     BINARY-OP "-" {
       CONSTANT "1"
       CONSTANT "1"

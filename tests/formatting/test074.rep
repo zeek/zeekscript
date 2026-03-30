@@ -1,6 +1,7 @@
 EXPR-STMT {
   SLICE {
     IDENTIFIER "xs"
+    CONSTANT ""
     CONSTANT "1"
   }
   SEMI

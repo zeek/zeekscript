@@ -39,6 +39,7 @@ FUNC-DECL "function" "some_func" {
                     IDENTIFIER "idx"
                     CONSTANT "1"
                   }
+                  CONSTANT ""
                 }
               }
               SEMI

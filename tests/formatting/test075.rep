@@ -5,6 +5,7 @@ EXPR-STMT {
       CONSTANT "1"
       CONSTANT "1"
     }
+    CONSTANT ""
   }
   SEMI
 }

@@ -361,16 +361,32 @@ class Emitter:
             return
 
         # Slice: expr [ expr : expr ]
+        # Always emit both lo and hi; use CONSTANT "" for absent bounds.
         slices = [k for k in kids if k.type == "index_slice"]
         if slices and kids[0].is_named:
             base = kids[0]
             sl = slices[0]
             sl_kids = self._children(sl)
-            exprs = [k for k in sl_kids if k.type == "expr"]
+            # Find the ":" separator to determine lo vs hi.
+            colon_idx = None
+            for i, c in enumerate(sl_kids):
+                if not c.is_named and self._text(c) == ":":
+                    colon_idx = i
+                    break
+            lo_exprs = [c for c in sl_kids[:colon_idx]
+                        if c.type == "expr"]
+            hi_exprs = [c for c in sl_kids[colon_idx + 1:]
+                        if c.type == "expr"]
             self._open('SLICE')
             self._emit_expr_child(base)
-            for e in exprs:
-                self._emit_expr(e)
+            if lo_exprs:
+                self._emit_expr(lo_exprs[0])
+            else:
+                self._w('CONSTANT ""')
+            if hi_exprs:
+                self._emit_expr(hi_exprs[0])
+            else:
+                self._w('CONSTANT ""')
             self._emit_extras_in(node)
             self._close()
             self._mark_content(node)
