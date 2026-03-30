@@ -82,6 +82,14 @@ public:
 	int Lines() const { return lines; }
 	int Ovf() const { return overflow; }
 
+	// Build a new single-line candidate by appending a literal string.
+	Candidate Cat(const std::string& s) const
+		{ return {text + s, width + static_cast<int>(s.size())}; }
+
+	// Build a new single-line candidate by appending another candidate.
+	Candidate Cat(const Candidate& o) const
+		{ return {text + o.text, width + o.width}; }
+
 	// Is this a clean single-line result?
 	bool Fits() const { return lines == 1 && overflow <= 0; }
 

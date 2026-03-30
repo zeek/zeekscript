@@ -125,9 +125,7 @@ static Candidates FormatFieldAccess(const Node& node, const FmtContext& ctx)
 	auto rhs_cs = FormatExpr(*kids[1], ctx.After(lhs.Width() + 1));
 	const auto& rhs = Best(rhs_cs);
 
-	std::string text = lhs.Text() + "$" + rhs.Text();
-	int w = lhs.Width() + 1 + rhs.Width();
-	return {{text, w}};
+	return {lhs.Cat("$").Cat(rhs)};
 	}
 
 // ------------------------------------------------------------------
@@ -136,19 +134,16 @@ static Candidates FormatFieldAccess(const Node& node, const FmtContext& ctx)
 
 static Candidates FormatFieldAssign(const Node& node, const FmtContext& ctx)
 	{
-	const auto& field = node.Arg();
-	std::string prefix = "$" + field + "=";
-	int pw = static_cast<int>(prefix.size());
+	std::string ps = "$" + node.Arg() + "=";
+	Candidate prefix(ps, static_cast<int>(ps.size()));
 
 	if ( node.Children().empty() )
 		throw FormatError("FIELD-ASSIGN node needs a value child");
 
-	auto val_cs = FormatExpr(*node.Children()[0], ctx.After(pw));
+	auto val_cs = FormatExpr(*node.Children()[0], ctx.After(prefix.Width()));
 	const auto& val = Best(val_cs);
 
-	std::string text = prefix + val.Text();
-	int w = pw + val.Width();
-	return {{text, w}};
+	return {prefix.Cat(val)};
 	}
 
 // ------------------------------------------------------------------
@@ -248,11 +243,7 @@ static Candidates FormatCall(const Node& node, const FmtContext& ctx)
 			}
 
 	if ( ! args_node )
-		{
-		std::string text = func.Text() + "()";
-		int w = func.Width() + 2;
-		return {{text, w}};
-		}
+		return {func.Cat("()")};
 
 	std::vector<const Node*> args;
 	for ( const auto& c : args_node->Children() )
@@ -264,11 +255,7 @@ static Candidates FormatCall(const Node& node, const FmtContext& ctx)
 		}
 
 	if ( args.empty() )
-		{
-		std::string text = func.Text() + "()";
-		int w = func.Width() + 2;
-		return {{text, w}};
-		}
+		return {func.Cat("()")};
 
 	// Column right after "(" - alignment point for continuation lines.
 	int open_col = ctx.Col() + func.Width() + 1;
@@ -280,12 +267,11 @@ static Candidates FormatCall(const Node& node, const FmtContext& ctx)
 	// Try flat.
 	auto flat = FormatArgsFlat(args, args_ctx);
 
-	std::string flat_text = func.Text() + "(" + flat.Text() + ")";
-	int flat_w = func.Width() + 1 + flat.Width() + 1;
-	int flat_ovf = Ovf(flat_w, ctx);
+	auto flat_c = func.Cat("(").Cat(flat).Cat(")");
+	int flat_ovf = Ovf(flat_c.Width(), ctx);
 
 	Candidates result;
-	result.push_back({flat_text, flat_w, flat.Lines(), flat_ovf});
+	result.push_back({flat_c.Text(), flat_c.Width(), flat.Lines(), flat_ovf});
 
 	if ( flat_ovf == 0 || args.size() <= 1 )
 		return result;
@@ -321,11 +307,7 @@ static Candidates FormatIndex(const Node& node, const FmtContext& ctx)
 
 	const Node* subs_node = FindChild(node, Tag::Subscripts);
 	if ( ! subs_node || subs_node->Children().empty() )
-		{
-		std::string text = base.Text() + "[]";
-		int w = base.Width() + 2;
-		return {{text, w}};
-		}
+		return {base.Cat("[]")};
 
 	int sub_col = ctx.Col() + base.Width() + 1;
 	FmtContext bracket_ctx(ctx.Indent(), sub_col,
@@ -333,9 +315,7 @@ static Candidates FormatIndex(const Node& node, const FmtContext& ctx)
 	auto sub_cs = FormatExpr(*subs_node->Children()[0], bracket_ctx);
 	const auto& sub = Best(sub_cs);
 
-	std::string text = base.Text() + "[" + sub.Text() + "]";
-	int w = base.Width() + 1 + sub.Width() + 1;
-	return {{text, w}};
+	return {base.Cat("[").Cat(sub).Cat("]")};
 	}
 
 // ------------------------------------------------------------------
@@ -357,12 +337,11 @@ static Candidates FormatIndexLiteral(const Node& node, const FmtContext& ctx)
 	FmtContext inner_ctx(ctx.Indent(), open_col, ctx.Width() - 2);
 
 	auto flat = FormatArgsFlat(fields, inner_ctx);
-	std::string flat_text = "[" + flat.Text() + "]";
-	int flat_w = 1 + flat.Width() + 1;
-	int flat_ovf = Ovf(flat_w, ctx);
+	auto flat_c = Candidate("[", 1).Cat(flat).Cat("]");
+	int flat_ovf = Ovf(flat_c.Width(), ctx);
 
 	Candidates result;
-	result.push_back({flat_text, flat_w, flat.Lines(), flat_ovf});
+	result.push_back({flat_c.Text(), flat_c.Width(), flat.Lines(), flat_ovf});
 
 	if ( flat_ovf == 0 || fields.size() <= 1 )
 		return result;
@@ -415,9 +394,7 @@ static Candidates FormatSlice(const Node& node, const FmtContext& ctx)
 			hi = c.Text();
 		}
 
-	std::string text = base.Text() + "[" + lo + ":" + hi + "]";
-	int w = static_cast<int>(text.size());
-	return {{text, w}};
+	return {base.Cat("[" + lo + ":" + hi + "]")};
 	}
 
 // ------------------------------------------------------------------
@@ -432,9 +409,7 @@ static Candidates FormatParen(const Node& node, const FmtContext& ctx)
 	auto inner_cs = FormatExpr(*node.Children()[0], ctx.After(2));
 	const auto& inner = Best(inner_cs);
 
-	std::string text = "( " + inner.Text() + " )";
-	int w = inner.Width() + 4;
-	return {{text, w}};
+	return {Candidate("( ", 2).Cat(inner).Cat(" )")};
 	}
 
 // ------------------------------------------------------------------
@@ -450,17 +425,15 @@ static Candidates FormatUnary(const Node& node, const FmtContext& ctx)
 		throw FormatError("UNARY-OP node needs a child");
 
 	// Zeek style: space after "!".
-	std::string prefix = op;
+	std::string ps = op;
 	if ( op == "!" )
-		prefix += " ";
+		ps += " ";
 
-	int pw = static_cast<int>(prefix.size());
-	auto operand_cs = FormatExpr(*kids[0], ctx.After(pw));
+	Candidate prefix(ps, static_cast<int>(ps.size()));
+	auto operand_cs = FormatExpr(*kids[0], ctx.After(prefix.Width()));
 	const auto& operand = Best(operand_cs);
 
-	std::string text = prefix + operand.Text();
-	int w = pw + operand.Width();
-	return {{text, w}};
+	return {prefix.Cat(operand)};
 	}
 
 // ------------------------------------------------------------------
