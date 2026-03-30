@@ -125,6 +125,16 @@ static Candidates FormatExpr(const Node& node, const FmtContext& ctx);
 static Candidates FormatExprStmt(const Node& node, const FmtContext& ctx);
 static Candidates FormatDecl(const Node& node, const FmtContext& ctx);
 static std::string FormatType(const Node& node, const FmtContext& ctx);
+static Candidates FormatFuncDecl(const Node& node, const FmtContext& ctx);
+static Candidates FormatIf(const Node& node, const FmtContext& ctx);
+static Candidates FormatFor(const Node& node, const FmtContext& ctx);
+static Candidates FormatWhile(const Node& node, const FmtContext& ctx);
+static Candidates FormatExport(const Node& node, const FmtContext& ctx);
+static Candidates FormatSwitch(const Node& node, const FmtContext& ctx);
+
+// Forward declaration for dispatch table (used by FormatStmtList).
+using FormatFunc = Candidates (*)(const Node&, const FmtContext&);
+static const std::unordered_map<Tag, FormatFunc>& FormatDispatch();
 
 // ------------------------------------------------------------------
 // Atoms
@@ -949,10 +959,464 @@ static Candidates FormatModuleDecl(const Node& node, const FmtContext& ctx)
 	}
 
 // ------------------------------------------------------------------
-// Dispatch table
+// Block/body formatting: Whitesmith brace style
 // ------------------------------------------------------------------
 
-using FormatFunc = Candidates (*)(const Node&, const FmtContext&);
+// Format a sequence of statement nodes as a body at the given indent
+// level.  Returns the formatted text without enclosing braces.
+// This is the inner-body equivalent of the top-level Format() loop.
+static std::string FormatStmtList(const Node::NodeVec& nodes,
+                                  const FmtContext& ctx,
+                                  bool skip_leading_blanks = false)
+	{
+	std::string pad = LinePrefix(ctx.Indent(), ctx.Col());
+
+	std::string result;
+	bool seen_content = false;
+
+	for ( size_t i = 0; i < nodes.size(); ++i )
+		{
+		const auto& node = *nodes[i];
+		Tag t = node.GetTag();
+
+		if ( t == Tag::Blank )
+			{
+			if ( skip_leading_blanks && ! seen_content )
+				continue;
+			result += "\n";
+			continue;
+			}
+
+		seen_content = true;
+
+		if ( t == Tag::CommentLeading || t == Tag::CommentPrev )
+			{
+			result += pad + node.Arg() + "\n";
+			continue;
+			}
+
+		if ( t == Tag::CommentTrailing )
+			{
+			result += pad + node.Arg() + "\n";
+			continue;
+			}
+
+		// Consume a following SEMI sibling.
+		bool sibling_semi = false;
+		if ( i + 1 < nodes.size() &&
+		     nodes[i + 1]->GetTag() == Tag::Semi )
+			{
+			sibling_semi = true;
+			++i;
+			}
+
+		// Peek ahead for trailing comment.
+		std::string trailing;
+		if ( i + 1 < nodes.size() &&
+		     nodes[i + 1]->GetTag() == Tag::CommentTrailing )
+			{
+			trailing = " " + nodes[i + 1]->Arg();
+			++i;
+			}
+
+		std::string semi_str = sibling_semi ? ";" : "";
+
+		auto it = FormatDispatch().find(t);
+		if ( it == FormatDispatch().end() )
+			{
+			const char* s = TagToString(t);
+			result += pad + "/* TODO: " + s + " */" +
+				semi_str + trailing + "\n";
+			continue;
+			}
+
+		int trail_w = static_cast<int>(trailing.size()) +
+			static_cast<int>(semi_str.size());
+		FmtContext stmt_ctx = ctx.Reserve(trail_w);
+		auto cs = it->second(node, stmt_ctx);
+		result += pad + Best(cs).Text() + semi_str + trailing + "\n";
+		}
+
+	return result;
+	}
+
+// Format a BODY node as a Whitesmith-style braced block.
+// Returns the full block including braces and newlines.
+// The block starts on a new line at one deeper indent than ctx.
+static std::string FormatWhitesmithBlock(const Node* body,
+                                         const FmtContext& ctx)
+	{
+	FmtContext block_ctx = ctx.Indented();
+	std::string brace_pad = LinePrefix(block_ctx.Indent(), block_ctx.Col());
+
+	if ( ! body || body->Children().empty() )
+		return "\n" + brace_pad + "{ }";
+
+	std::string body_text = FormatStmtList(body->Children(), block_ctx, true);
+
+	return "\n" + brace_pad + "{\n" + body_text + brace_pad + "}";
+	}
+
+// Format a single-statement body (no braces, indented one level).
+// Used for if/for/while single-statement bodies.
+// Returns text WITHOUT trailing newline (caller adds it).
+static std::string FormatSingleStmtBody(const Node* body,
+                                        const FmtContext& ctx)
+	{
+	if ( ! body || body->Children().empty() )
+		return "";
+
+	std::string text = FormatStmtList(body->Children(), ctx.Indented());
+
+	// Strip trailing newline — the parent loop adds its own.
+	if ( ! text.empty() && text.back() == '\n' )
+		text.pop_back();
+
+	return text;
+	}
+
+// ------------------------------------------------------------------
+// Function/event/hook declarations
+// ------------------------------------------------------------------
+
+// Format the parameter list for a function declaration.
+static std::string FormatParams(const Node* params, const FmtContext& ctx)
+	{
+	if ( ! params )
+		return "()";
+
+	std::string text = "(";
+	bool first = true;
+
+	for ( const auto& p : params->Children() )
+		{
+		Tag t = p->GetTag();
+		if ( t == Tag::CommentLeading || t == Tag::CommentTrailing ||
+		     t == Tag::CommentPrev )
+			continue;
+
+		if ( ! first )
+			text += ", ";
+		first = false;
+
+		text += p->Arg();
+
+		// Find the type child.
+		for ( const auto& tc : p->Children() )
+			{
+			Tag tt = tc->GetTag();
+			if ( tt == Tag::TypeAtom || tt == Tag::TypeParameterized ||
+			     tt == Tag::TypeFunc )
+				{
+				text += ": " + Best(FormatExpr(*tc, ctx)).Text();
+				break;
+				}
+			}
+		}
+
+	text += ")";
+	return text;
+	}
+
+static Candidates FormatFuncDecl(const Node& node, const FmtContext& ctx)
+	{
+	const auto& keyword = node.Arg(0);	// "event", "function", "hook"
+	const auto& name = node.Arg(1);
+
+	const Node* params = FindChild(node, Tag::Params);
+	const Node* returns = FindChild(node, Tag::Returns);
+	const Node* body = FindChild(node, Tag::Body);
+	const Node* attrs = FindChild(node, Tag::AttrList);
+
+	// Build signature.
+	std::string sig = keyword + " " + name;
+	sig += FormatParams(params, ctx);
+
+	if ( returns )
+		{
+		for ( const auto& c : returns->Children() )
+			{
+			Tag t = c->GetTag();
+			if ( t == Tag::TypeAtom || t == Tag::TypeParameterized ||
+			     t == Tag::TypeFunc )
+				{
+				sig += ": " + Best(FormatExpr(*c, ctx)).Text();
+				break;
+				}
+			}
+		}
+
+	if ( attrs )
+		{
+		std::string as = FormatAttrList(*attrs, ctx);
+		if ( ! as.empty() )
+			sig += " " + as;
+		}
+
+	// Collect trailing comments (COMMENT-PREV children on the func decl).
+	for ( const auto& c : node.Children() )
+		if ( c->GetTag() == Tag::CommentPrev )
+			sig += " " + c->Arg();
+
+	// Format body as Whitesmith block.
+	std::string block = FormatWhitesmithBlock(body, ctx);
+
+	return {Candidate(sig + block, ctx)};
+	}
+
+// ------------------------------------------------------------------
+// If statement: if (cond) body [else body]
+// ------------------------------------------------------------------
+
+static Candidates FormatIf(const Node& node, const FmtContext& ctx)
+	{
+	const Node* cond_node = FindChild(node, Tag::Cond);
+	const Node* body_node = FindChild(node, Tag::Body);
+	const Node* else_node = FindChild(node, Tag::Else);
+
+	// Format condition.
+	std::string cond_text;
+	if ( cond_node && ! cond_node->Children().empty() )
+		{
+		auto cond_cs = FormatExpr(*cond_node->Children()[0], ctx.After(5));
+		cond_text = Best(cond_cs).Text();
+		}
+
+	std::string head = "if ( " + cond_text + " )";
+
+	// Determine if body is a BLOCK (braced) or single statement.
+	std::string body_text;
+	if ( body_node && ! body_node->Children().empty() )
+		{
+		const auto& first = body_node->Children()[0];
+		if ( first->GetTag() == Tag::Block )
+			body_text = FormatWhitesmithBlock(first.get(), ctx);
+		else
+			body_text = "\n" + FormatSingleStmtBody(body_node, ctx);
+		}
+
+	std::string result = head + body_text;
+
+	// Handle else clause.
+	if ( else_node && ! else_node->Children().empty() )
+		{
+		const auto& else_child = else_node->Children()[0];
+
+		// Check for blank line before "else" — look for a BLANK
+		// sibling before the ELSE in the parent's children.
+		bool blank_before_else = false;
+		for ( const auto& c : node.Children() )
+			{
+			if ( c.get() == else_node )
+				break;
+			if ( c->GetTag() == Tag::Blank )
+				blank_before_else = true;
+			else
+				blank_before_else = false;
+			}
+
+		if ( blank_before_else )
+			result += "\n";
+
+		std::string else_pad = LinePrefix(ctx.Indent(), ctx.Col());
+
+		if ( else_child->GetTag() == Tag::If )
+			{
+			// else if — format the nested if
+			auto inner_cs = FormatIf(*else_child, ctx);
+			result += "\n" + else_pad + "else " + Best(inner_cs).Text();
+			}
+		else if ( else_child->GetTag() == Tag::Block )
+			{
+			// else { ... }
+			result += "\n" + else_pad + "else" +
+				FormatWhitesmithBlock(else_child.get(), ctx);
+			}
+		else
+			{
+			// else single-stmt — format the else body
+			std::string else_body = FormatStmtList(
+				else_node->Children(), ctx.Indented());
+			if ( ! else_body.empty() && else_body.back() == '\n' )
+				else_body.pop_back();
+			result += "\n" + else_pad + "else\n" + else_body;
+			}
+		}
+
+	return {Candidate(result, ctx)};
+	}
+
+// ------------------------------------------------------------------
+// For statement: for ( var in iterable ) body
+// ------------------------------------------------------------------
+
+static Candidates FormatFor(const Node& node, const FmtContext& ctx)
+	{
+	const Node* vars_node = FindChild(node, Tag::Vars);
+	const Node* iter_node = FindChild(node, Tag::Iterable);
+	const Node* body_node = FindChild(node, Tag::Body);
+
+	// Format vars (comma-separated identifiers).
+	std::string vars_text;
+	if ( vars_node )
+		{
+		bool first = true;
+		for ( const auto& v : vars_node->Children() )
+			{
+			if ( ! first )
+				vars_text += ", ";
+			first = false;
+			vars_text += Best(FormatExpr(*v, ctx)).Text();
+			}
+		}
+
+	// Format iterable.
+	std::string iter_text;
+	if ( iter_node && ! iter_node->Children().empty() )
+		iter_text = Best(FormatExpr(*iter_node->Children()[0], ctx)).Text();
+
+	std::string head = "for ( " + vars_text + " in " + iter_text + " )";
+
+	// Format body.
+	std::string body_text;
+	if ( body_node && ! body_node->Children().empty() )
+		{
+		const auto& first = body_node->Children()[0];
+		if ( first->GetTag() == Tag::Block )
+			body_text = FormatWhitesmithBlock(first.get(), ctx);
+		else
+			body_text = "\n" + FormatSingleStmtBody(body_node, ctx);
+		}
+
+	return {Candidate(head + body_text, ctx)};
+	}
+
+// ------------------------------------------------------------------
+// While statement: while ( cond ) body
+// ------------------------------------------------------------------
+
+static Candidates FormatWhile(const Node& node, const FmtContext& ctx)
+	{
+	const Node* cond_node = FindChild(node, Tag::Cond);
+	const Node* body_node = FindChild(node, Tag::Body);
+
+	std::string cond_text;
+	if ( cond_node && ! cond_node->Children().empty() )
+		{
+		auto cond_cs = FormatExpr(*cond_node->Children()[0], ctx.After(8));
+		cond_text = Best(cond_cs).Text();
+		}
+
+	std::string head = "while ( " + cond_text + " )";
+
+	std::string body_text;
+	if ( body_node && ! body_node->Children().empty() )
+		{
+		const auto& first = body_node->Children()[0];
+		if ( first->GetTag() == Tag::Block )
+			body_text = FormatWhitesmithBlock(first.get(), ctx);
+		else
+			body_text = "\n" + FormatSingleStmtBody(body_node, ctx);
+		}
+
+	return {Candidate(head + body_text, ctx)};
+	}
+
+// ------------------------------------------------------------------
+// Export declaration: export { decls }
+// ------------------------------------------------------------------
+
+static Candidates FormatExport(const Node& node, const FmtContext& ctx)
+	{
+	std::string body_text = FormatStmtList(node.Children(), ctx.Indented());
+	std::string pad = LinePrefix(ctx.Indent(), ctx.Col());
+
+	return {Candidate("export {\n" + body_text + pad + "}", ctx)};
+	}
+
+// ------------------------------------------------------------------
+// Switch statement: switch expr { case val: body ... }
+// ------------------------------------------------------------------
+
+static Candidates FormatSwitch(const Node& node, const FmtContext& ctx)
+	{
+	// Format the expression.
+	const Node* expr_node = FindChild(node, Tag::Expr);
+	std::string expr_text;
+	if ( expr_node && ! expr_node->Children().empty() )
+		expr_text = Best(FormatExpr(*expr_node->Children()[0], ctx)).Text();
+
+	std::string head = "switch " + expr_text + " {";
+	std::string pad = LinePrefix(ctx.Indent(), ctx.Col());
+
+	std::string result = head;
+
+	// Format each CASE.
+	for ( const auto& c : node.Children() )
+		{
+		if ( c->GetTag() != Tag::Case && c->GetTag() != Tag::Default )
+			continue;
+
+		if ( c->GetTag() == Tag::Default )
+			{
+			result += "\n" + pad + "default:";
+
+			const Node* body = FindChild(*c, Tag::Body);
+			if ( body )
+				{
+				std::string body_text = FormatStmtList(
+					body->Children(), ctx.Indented());
+				if ( ! body_text.empty() && body_text.back() == '\n' )
+					body_text.pop_back();
+				result += "\n" + body_text;
+				}
+			continue;
+			}
+
+		// CASE node: VALUES { exprs } BODY { stmts }
+		const Node* values = FindChild(*c, Tag::Values);
+		const Node* body = FindChild(*c, Tag::Body);
+
+		std::string case_text = "case ";
+		if ( values )
+			{
+			bool first = true;
+			for ( const auto& v : values->Children() )
+				{
+				Tag vt = v->GetTag();
+				if ( vt == Tag::CommentLeading ||
+				     vt == Tag::CommentTrailing ||
+				     vt == Tag::CommentPrev )
+					continue;
+
+				if ( ! first )
+					case_text += ", ";
+				first = false;
+				case_text += Best(FormatExpr(*v, ctx)).Text();
+				}
+			}
+		case_text += ":";
+
+		result += "\n" + pad + case_text;
+
+		if ( body )
+			{
+			std::string body_text = FormatStmtList(
+				body->Children(), ctx.Indented());
+			if ( ! body_text.empty() && body_text.back() == '\n' )
+				body_text.pop_back();
+			result += "\n" + body_text;
+			}
+		}
+
+	result += "\n" + pad + "}";
+
+	return {Candidate(result, ctx)};
+	}
+
+// ------------------------------------------------------------------
+// Dispatch table
+// ------------------------------------------------------------------
 
 static const std::unordered_map<Tag, FormatFunc>& FormatDispatch()
 	{
@@ -985,6 +1449,12 @@ static const std::unordered_map<Tag, FormatFunc>& FormatDispatch()
 		{Tag::Next, FormatBareKeyword},
 		{Tag::Break, FormatBareKeyword},
 		{Tag::Fallthrough, FormatBareKeyword},
+		{Tag::FuncDecl, FormatFuncDecl},
+		{Tag::If, FormatIf},
+		{Tag::For, FormatFor},
+		{Tag::While, FormatWhile},
+		{Tag::ExportDecl, FormatExport},
+		{Tag::Switch, FormatSwitch},
 	};
 
 	return table;
