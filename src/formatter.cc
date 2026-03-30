@@ -341,6 +341,106 @@ static Candidates FormatCall(const Node& node, const FmtContext& ctx)
 	}
 
 // ------------------------------------------------------------------
+// Constructor: table(...), set(...), vector(...)
+// ------------------------------------------------------------------
+
+static Candidates FormatConstructor(const Node& node, const FmtContext& ctx)
+	{
+	const auto& keyword = node.Arg();	// "table", "set", "vector"
+	const auto& kids = node.Children();
+
+	// Collect elements and their trailing comments.
+	std::vector<const Node*> elems;
+	std::vector<std::string> comments;	// parallel: trailing comment
+	bool has_comments = false;
+
+	for ( size_t i = 0; i < kids.size(); ++i )
+		{
+		Tag t = kids[i]->GetTag();
+
+		if ( t == Tag::CommentTrailing && ! elems.empty() )
+			{
+			comments.back() = " " + kids[i]->Arg();
+			has_comments = true;
+			continue;
+			}
+
+		if ( is_comment(t) )
+			{
+			has_comments = true;
+			continue;
+			}
+
+		elems.push_back(kids[i].get());
+		comments.push_back("");
+		}
+
+	if ( elems.empty() )
+		return {Candidate(keyword + "()", ctx)};
+
+	Candidates result;
+
+	// Candidate 1: flat (only when no comments).
+	if ( ! has_comments )
+		{
+		int kw_len = static_cast<int>(keyword.size());
+		FmtContext args_ctx(ctx.Indent(), ctx.Col() + kw_len + 1,
+		                    ctx.Width() - kw_len - 2);
+		auto flat_args = FormatArgsFlat(elems, args_ctx);
+		auto flat_c = Candidate(keyword + "(" + flat_args.Text() + ")",
+		                        ctx);
+		result.push_back(flat_c);
+
+		if ( flat_c.Ovf() == 0 )
+			return result;
+		}
+
+	// Candidate 2: one element per line, indented body.
+	int body_indent = ctx.Indent() + 1;
+	int body_col = body_indent * INDENT_WIDTH;
+	static constexpr int MAX_WIDTH = 80;
+	FmtContext body_ctx(body_indent, body_col, MAX_WIDTH - body_col);
+	std::string body_pad = LinePrefix(body_indent, body_col);
+	std::string close_pad = LinePrefix(ctx.Indent(), ctx.IndentCol());
+
+	std::string text = keyword + "(";
+	int lines = 1;
+	int ovf = 0;
+
+	for ( size_t i = 0; i < elems.size(); ++i )
+		{
+		text += "\n" + body_pad;
+		++lines;
+
+		auto cs = FormatExpr(*elems[i], body_ctx);
+		const auto& best = Best(cs);
+		text += best.Text();
+
+		int line_w = body_col + best.Width();
+
+		if ( i + 1 < elems.size() )
+			{
+			text += ",";
+			++line_w;
+			}
+
+		text += comments[i];
+		line_w += static_cast<int>(comments[i].size());
+
+		if ( line_w > MAX_WIDTH )
+			ovf += line_w - MAX_WIDTH;
+		}
+
+	text += "\n" + close_pad + ")";
+	++lines;
+
+	int last_w = ctx.IndentCol() + 1;
+	result.push_back({text, last_w, lines, ovf, ctx.Col()});
+
+	return result;
+	}
+
+// ------------------------------------------------------------------
 // Index: expr[subscripts]
 // ------------------------------------------------------------------
 
@@ -775,7 +875,29 @@ static Candidates FormatDecl(const Node& node, const FmtContext& ctx)
 		const auto& val = Best(val_cs);
 
 		std::string flat = before_val + val.Text() + suffix;
-		result.push_back(Candidate(flat, ctx));
+
+		if ( val.Lines() > 1 )
+			{
+			// Multi-line init value (e.g. constructor).
+			// Compute proper metrics instead of using
+			// the single-line Candidate constructor.
+			int last_w = LastLineLen(flat);
+			int lines = CountLines(flat);
+
+			// Overflow: first line + val body + last line.
+			auto nl = val.Text().find('\n');
+			int first_val_w = (nl != std::string::npos) ?
+					static_cast<int>(nl) : val.Width();
+			int ovf = OvfNoTrail(before_w + first_val_w, ctx)
+				+ val.Ovf();
+
+			if ( last_w > ctx.MaxCol() )
+				ovf += last_w - ctx.MaxCol();
+
+			result.push_back({flat, last_w, lines, ovf, ctx.Col()});
+			}
+		else
+			result.push_back(Candidate(flat, ctx));
 
 		// --- Candidate 2: split after init operator ---
 		if ( result[0].Ovf() > 0 )
@@ -786,15 +908,13 @@ static Candidates FormatDecl(const Node& node, const FmtContext& ctx)
 			const auto& val2 = Best(val2_cs);
 
 			std::string line1 = head + type_str + " " + op;
-			std::string pad = LinePrefix(cont.Indent(),
-						cont.Col());
+			std::string pad = LinePrefix(cont.Indent(), cont.Col());
 			std::string split = line1 + "\n" + pad +
 						val2.Text() + suffix;
 			int last_w = LastLineLen(split);
 			int lines = CountLines(split);
-			int ovf = OvfNoTrail(
-				static_cast<int>(line1.size()), ctx) +
-				Ovf(last_w, ctx);
+			int ovf = OvfNoTrail(static_cast<int>(line1.size()),
+						ctx) + Ovf(last_w, ctx);
 			result.push_back({split, last_w, lines, ovf,
 			                  ctx.Col()});
 			}
@@ -1714,6 +1834,7 @@ static const std::unordered_map<Tag, FormatFunc>& FormatDispatch()
 		{Tag::BinaryOp, FormatBinary},
 		{Tag::UnaryOp, FormatUnary},
 		{Tag::Call, FormatCall},
+		{Tag::Constructor, FormatConstructor},
 		{Tag::Index, FormatIndex},
 		{Tag::IndexLiteral, FormatIndexLiteral},
 		{Tag::Slice, FormatSlice},
