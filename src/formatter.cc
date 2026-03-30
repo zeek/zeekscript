@@ -784,8 +784,46 @@ static std::string FormatType(const Node& node, const FmtContext& ctx)
 // Attributes: &redef, &default=expr
 // ------------------------------------------------------------------
 
+// Check whether any attr value in an ATTR-LIST contains blanks.
+// If so, all attrs use " = " spacing; otherwise "=".
+static bool AttrListNeedsSpaces(const Node& node, const FmtContext& ctx)
+	{
+	for ( const auto& attr : node.Children() )
+		{
+		if ( attr->GetTag() != Tag::Attr )
+			continue;
+		if ( attr->Children().empty() )
+			continue;
+
+		auto val_cs = FormatExpr(*attr->Children()[0], ctx);
+		const auto& val = Best(val_cs);
+		if ( val.Text().find(' ') != std::string::npos )
+			return true;
+		}
+
+	return false;
+	}
+
+// Format a single attr: "&name" or "&name=value" / "&name = value".
+static std::string FormatOneAttr(const Node& attr, bool spaced,
+                                 const FmtContext& ctx)
+	{
+	std::string text = attr.Arg();
+
+	if ( ! attr.Children().empty() )
+		{
+		auto val_cs = FormatExpr(*attr.Children()[0], ctx);
+		std::string eq = spaced ? " = " : "=";
+		text += eq + Best(val_cs).Text();
+		}
+
+	return text;
+	}
+
+// Format all attrs as a single flat string: "&a=x &b".
 static std::string FormatAttrList(const Node& node, const FmtContext& ctx)
 	{
+	bool spaced = AttrListNeedsSpaces(node, ctx);
 	std::string text;
 
 	for ( const auto& attr : node.Children() )
@@ -796,17 +834,28 @@ static std::string FormatAttrList(const Node& node, const FmtContext& ctx)
 		if ( ! text.empty() )
 			text += " ";
 
-		text += attr->Arg();	// e.g. "&default", "&redef"
-
-		// If the attr has a value child, append =value.
-		if ( ! attr->Children().empty() )
-			{
-			auto val_cs = FormatExpr(*attr->Children()[0], ctx);
-			text += "=" + Best(val_cs).Text();
-			}
+		text += FormatOneAttr(*attr, spaced, ctx);
 		}
 
 	return text;
+	}
+
+// Collect individual attr strings.
+static std::vector<std::string> FormatAttrStrings(const Node& node,
+                                                  const FmtContext& ctx)
+	{
+	bool spaced = AttrListNeedsSpaces(node, ctx);
+	std::vector<std::string> result;
+
+	for ( const auto& attr : node.Children() )
+		{
+		if ( attr->GetTag() != Tag::Attr )
+			continue;
+
+		result.push_back(FormatOneAttr(*attr, spaced, ctx));
+		}
+
+	return result;
 	}
 
 // ------------------------------------------------------------------
@@ -923,6 +972,93 @@ static Candidates FormatDecl(const Node& node, const FmtContext& ctx)
 		{
 		std::string flat = head + type_str + suffix;
 		result.push_back(Candidate(flat, ctx));
+		}
+
+	// --- Candidate: wrapped attrs (type on first line, attrs below) ---
+	if ( attrs_node && result[0].Ovf() > 0 && ! type_str.empty() )
+		{
+		auto attr_strs = FormatAttrStrings(*attrs_node, ctx);
+
+		if ( ! attr_strs.empty() )
+			{
+			// First line: everything except attrs and semi.
+			std::string line1 = head + type_str;
+
+			if ( init_node )
+				{
+				const auto& op = init_node->Arg();
+				FmtContext val_ctx = ctx.After(
+					static_cast<int>(line1.size()) +
+					static_cast<int>(op.size()) + 2);
+				auto vcs = FormatExpr(
+					*init_node->Children()[0], val_ctx);
+				line1 += " " + op + " " + Best(vcs).Text();
+				}
+
+			// Attrs on continuation lines, aligned one column
+			// past where the type starts.  Try all on one
+			// continuation line; if that overflows, go
+			// one-per-line.
+			int type_col = static_cast<int>(head.size()) + 2;
+			int attr_col = type_col + 1;
+			std::string attr_pad = LinePrefix(ctx.Indent(),
+							attr_col);
+
+			int max_col = ctx.MaxCol();
+
+			// Check if all attrs fit on one continuation.
+			std::string all_attrs;
+			for ( size_t i = 0; i < attr_strs.size(); ++i )
+				{
+				if ( i > 0 )
+					all_attrs += " ";
+				all_attrs += attr_strs[i];
+				}
+
+			int semi_w = has_semi ? 1 : 0;
+			bool one_line = attr_col +
+				static_cast<int>(all_attrs.size()) +
+				semi_w <= max_col;
+
+			std::string wrapped = line1;
+			int ovf = OvfNoTrail(
+				static_cast<int>(line1.size()), ctx);
+
+			if ( one_line )
+				{
+				wrapped += "\n" + attr_pad + all_attrs;
+				int aw = attr_col +
+					static_cast<int>(all_attrs.size()) +
+					semi_w;
+				if ( aw > max_col )
+					ovf += aw - max_col;
+				}
+			else
+				{
+				for ( size_t i = 0; i < attr_strs.size();
+				      ++i )
+					{
+					wrapped += "\n" + attr_pad +
+						attr_strs[i];
+					int aw = attr_col + static_cast<int>(
+						attr_strs[i].size());
+					bool last =
+						i + 1 == attr_strs.size();
+					if ( last )
+						aw += semi_w;
+					if ( aw > max_col )
+						ovf += aw - max_col;
+					}
+				}
+
+			if ( has_semi )
+				wrapped += ";";
+
+			int last_w = LastLineLen(wrapped);
+			int lines = CountLines(wrapped);
+			result.push_back({wrapped, last_w, lines, ovf,
+			                  ctx.Col()});
+			}
 		}
 
 	// --- Candidate 3: split after colon (type on next line) ---

@@ -1,4 +1,4 @@
-# C++ Formatter Failing Tests (88 pass, 91 fail as of 2026-03-30)
+# C++ Formatter Failing Tests (90 pass, 89 fail as of 2026-03-30)
 
 ## By category (sorted by count)
 
@@ -30,10 +30,6 @@ test017 test111 test112 test113 test114
 Untyped `{ expr_list }` initializers emit placeholder.
 test086 test087 test143 test145 test155
 
-### Type-decl attr-list layout (4)
-Attributes on typed declarations not wrapping correctly.
-test015 test066 test106 test173
-
 ### LAMBDA support (3)
 Lambda expressions emit placeholder.
 test094 test095 test096
@@ -45,6 +41,10 @@ test157 test158 test159
 ### Vertical call-arg layout (3)
 Multi-element set/redef not formatted one-per-line with trailing commas.
 test041 test097 test098
+
+### TYPE-PARAMETERIZED bracket wrapping (2)
+Long bracket type lists not wrapping across lines.
+test066 test176
 
 ### Param-list wrapping (2)
 Long parameter lists in func/event decls not wrapping.
@@ -82,7 +82,6 @@ test038 (needs LAMBDA support first)
 - test124: PRINT with multiple exprs (only first printed)
 - test161: ASSERT keyword not supported
 - test163: `#@` annotation after if condition dropped
-- test176: Type-decl attr layout
 
 ## Notes
 - Some tests appear in multiple categories; listed under primary failure.
@@ -103,3 +102,9 @@ test038 (needs LAMBDA support first)
   - Fixed: test144, test153, test154, test177, test178, test179 (constructor)
   - Fixed: test035, test146 (multi-line init value metrics in FormatDecl)
   - Removed "CONSTRUCTOR support" category (6 of 8 fixed; test038 needs LAMBDA, test040 is CALL wrapping)
+- After attr wrapping + spacing rule: 90 pass, 89 fail
+  - Fixed: test015, test106, test173 (decl attr-list layout)
+  - Attr "=" spacing: use " = " when any attr value contains blanks, else "="
+  - Wrapping: try all attrs on one continuation line; if overflow, one per line
+  - Remaining test066/test176 need TYPE-PARAMETERIZED bracket wrapping (new category)
+  - Removed "Type-decl attr-list layout" category (3 of 4 fixed)
