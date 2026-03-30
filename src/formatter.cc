@@ -123,14 +123,6 @@ static const Node* FindChild(const Node& node, Tag tag)
 // Forward declarations for mutual recursion.
 static Candidates FormatExpr(const Node& node, const FmtContext& ctx);
 static Candidates FormatExprStmt(const Node& node, const FmtContext& ctx);
-static Candidates FormatDecl(const Node& node, const FmtContext& ctx);
-static std::string FormatType(const Node& node, const FmtContext& ctx);
-static Candidates FormatFuncDecl(const Node& node, const FmtContext& ctx);
-static Candidates FormatIf(const Node& node, const FmtContext& ctx);
-static Candidates FormatFor(const Node& node, const FmtContext& ctx);
-static Candidates FormatWhile(const Node& node, const FmtContext& ctx);
-static Candidates FormatExport(const Node& node, const FmtContext& ctx);
-static Candidates FormatSwitch(const Node& node, const FmtContext& ctx);
 
 // Forward declaration for dispatch table (used by FormatStmtList).
 using FormatFunc = Candidates (*)(const Node&, const FmtContext&);
@@ -289,8 +281,7 @@ static Candidates FormatCall(const Node& node, const FmtContext& ctx)
 	for ( const auto& c : args_node->Children() )
 		{
 		Tag t = c->GetTag();
-		if ( t != Tag::CommentLeading && t != Tag::CommentTrailing &&
-		     t != Tag::CommentPrev )
+		if ( ! is_comment(t) )
 			args.push_back(c.get());
 		}
 
@@ -595,6 +586,13 @@ static Candidates FormatTypeParam(const Node& node, const FmtContext& ctx)
 	return {Candidate(text, ctx)};
 	}
 
+// Needs a better name - suggest it plz, Claude.
+static bool is_type_tag(Tag t)
+	{
+	return t == Tag::TypeAtom || t == Tag::TypeParameterized ||
+		t == Tag::TypeFunc;
+	}
+
 // TYPE-FUNC: event(params), function(params): rettype
 static Candidates FormatTypeFunc(const Node& node, const FmtContext& ctx)
 	{
@@ -609,9 +607,7 @@ static Candidates FormatTypeFunc(const Node& node, const FmtContext& ctx)
 		bool first = true;
 		for ( const auto& p : params->Children() )
 			{
-			if ( p->GetTag() == Tag::CommentLeading ||
-			     p->GetTag() == Tag::CommentTrailing ||
-			     p->GetTag() == Tag::CommentPrev )
+			if ( is_comment(p->GetTag()) )
 				continue;
 
 			if ( ! first )
@@ -637,16 +633,11 @@ static Candidates FormatTypeFunc(const Node& node, const FmtContext& ctx)
 	if ( returns )
 		{
 		for ( const auto& c : returns->Children() )
-			{
-			Tag t = c->GetTag();
-			if ( t == Tag::TypeAtom || t == Tag::TypeParameterized ||
-			     t == Tag::TypeFunc )
+			if ( is_type_tag(c->GetTag()) )
 				{
-				text += ": " + Best(FormatExpr(*c,
-					ctx)).Text();
+				text += ": " + Best(FormatExpr(*c, ctx)).Text();
 				break;
 				}
-			}
 		}
 
 	return {Candidate(text, ctx)};
@@ -656,12 +647,8 @@ static Candidates FormatTypeFunc(const Node& node, const FmtContext& ctx)
 static std::string FormatType(const Node& node, const FmtContext& ctx)
 	{
 	for ( const auto& c : node.Children() )
-		{
-		Tag t = c->GetTag();
-		if ( t == Tag::TypeAtom || t == Tag::TypeParameterized ||
-		     t == Tag::TypeFunc )
+		if ( is_type_tag(c->GetTag()) )
 			return Best(FormatExpr(*c, ctx)).Text();
-		}
 
 	return "";
 	}
@@ -811,8 +798,8 @@ static Candidates FormatDecl(const Node& node, const FmtContext& ctx)
 				static_cast<int>(bare_type.size()) +
 				static_cast<int>(op.size()) + 2).Reserve(
 				suffix_w);
-			auto val_cs = FormatExpr(
-				*init_node->Children()[0], val_ctx);
+			auto val_cs = FormatExpr(*init_node->Children()[0],
+						val_ctx);
 
 			split += " " + op + " " + Best(val_cs).Text();
 			}
@@ -821,9 +808,8 @@ static Candidates FormatDecl(const Node& node, const FmtContext& ctx)
 
 		int last_w = LastLineLen(split);
 		int lines = CountLines(split);
-		int ovf = OvfNoTrail(
-			static_cast<int>(line1.size()), ctx) +
-			Ovf(last_w, ctx);
+		int ovf = OvfNoTrail(static_cast<int>(line1.size()), ctx) +
+					Ovf(last_w, ctx);
 		result.push_back({split, last_w, lines, ovf, ctx.Col()});
 		}
 
@@ -886,13 +872,8 @@ static Candidates FormatKeywordStmt(const Node& node, const FmtContext& ctx)
 		Tag t = c->GetTag();
 		if ( t == Tag::Semi )
 			has_semi = true;
-		else if ( t != Tag::CommentLeading &&
-		          t != Tag::CommentTrailing &&
-		          t != Tag::CommentPrev )
-			{
-			if ( ! expr )
-				expr = c.get();
-			}
+		else if ( ! is_comment(t) && ! expr )
+			expr = c.get();
 		}
 
 	if ( ! expr )
@@ -989,13 +970,7 @@ static std::string FormatStmtList(const Node::NodeVec& nodes,
 
 		seen_content = true;
 
-		if ( t == Tag::CommentLeading || t == Tag::CommentPrev )
-			{
-			result += pad + node.Arg() + "\n";
-			continue;
-			}
-
-		if ( t == Tag::CommentTrailing )
+		if ( is_comment(t) )
 			{
 			result += pad + node.Arg() + "\n";
 			continue;
@@ -1052,7 +1027,8 @@ static std::string FormatWhitesmithBlock(const Node* body,
 	if ( ! body || body->Children().empty() )
 		return "\n" + brace_pad + "{ }";
 
-	std::string body_text = FormatStmtList(body->Children(), block_ctx, true);
+	std::string body_text =
+		FormatStmtList(body->Children(), block_ctx, true);
 
 	return "\n" + brace_pad + "{\n" + body_text + brace_pad + "}";
 	}
@@ -1068,7 +1044,7 @@ static std::string FormatSingleStmtBody(const Node* body,
 
 	std::string text = FormatStmtList(body->Children(), ctx.Indented());
 
-	// Strip trailing newline — the parent loop adds its own.
+	// Strip trailing newline - the parent loop adds its own.
 	if ( ! text.empty() && text.back() == '\n' )
 		text.pop_back();
 
@@ -1090,9 +1066,7 @@ static std::string FormatParams(const Node* params, const FmtContext& ctx)
 
 	for ( const auto& p : params->Children() )
 		{
-		Tag t = p->GetTag();
-		if ( t == Tag::CommentLeading || t == Tag::CommentTrailing ||
-		     t == Tag::CommentPrev )
+		if ( is_comment(p->GetTag()) )
 			continue;
 
 		if ( ! first )
@@ -1105,16 +1079,19 @@ static std::string FormatParams(const Node* params, const FmtContext& ctx)
 		for ( const auto& tc : p->Children() )
 			{
 			Tag tt = tc->GetTag();
-			if ( tt == Tag::TypeAtom || tt == Tag::TypeParameterized ||
+			if ( tt == Tag::TypeAtom ||
+			     tt == Tag::TypeParameterized ||
 			     tt == Tag::TypeFunc )
 				{
-				text += ": " + Best(FormatExpr(*tc, ctx)).Text();
+				text += ": " +
+					Best(FormatExpr(*tc, ctx)).Text();
 				break;
 				}
 			}
 		}
 
 	text += ")";
+
 	return text;
 	}
 
@@ -1135,15 +1112,11 @@ static Candidates FormatFuncDecl(const Node& node, const FmtContext& ctx)
 	if ( returns )
 		{
 		for ( const auto& c : returns->Children() )
-			{
-			Tag t = c->GetTag();
-			if ( t == Tag::TypeAtom || t == Tag::TypeParameterized ||
-			     t == Tag::TypeFunc )
+			if ( is_type_tag(c->GetTag()) )
 				{
 				sig += ": " + Best(FormatExpr(*c, ctx)).Text();
 				break;
 				}
-			}
 		}
 
 	if ( attrs )
@@ -1202,7 +1175,7 @@ static Candidates FormatIf(const Node& node, const FmtContext& ctx)
 		{
 		const auto& else_child = else_node->Children()[0];
 
-		// Check for blank line before "else" — look for a BLANK
+		// Check for blank line before "else" - look for a BLANK
 		// sibling before the ELSE in the parent's children.
 		bool blank_before_else = false;
 		for ( const auto& c : node.Children() )
@@ -1222,7 +1195,7 @@ static Candidates FormatIf(const Node& node, const FmtContext& ctx)
 
 		if ( else_child->GetTag() == Tag::If )
 			{
-			// else if — format the nested if
+			// else if - format the nested if
 			auto inner_cs = FormatIf(*else_child, ctx);
 			result += "\n" + else_pad + "else " + Best(inner_cs).Text();
 			}
@@ -1234,7 +1207,7 @@ static Candidates FormatIf(const Node& node, const FmtContext& ctx)
 			}
 		else
 			{
-			// else single-stmt — format the else body
+			// else single-stmt - format the else body
 			std::string else_body = FormatStmtList(
 				else_node->Children(), ctx.Indented());
 			if ( ! else_body.empty() && else_body.back() == '\n' )
@@ -1383,10 +1356,7 @@ static Candidates FormatSwitch(const Node& node, const FmtContext& ctx)
 			bool first = true;
 			for ( const auto& v : values->Children() )
 				{
-				Tag vt = v->GetTag();
-				if ( vt == Tag::CommentLeading ||
-				     vt == Tag::CommentTrailing ||
-				     vt == Tag::CommentPrev )
+				if ( is_comment(v->GetTag()) )
 					continue;
 
 				if ( ! first )
@@ -1488,12 +1458,8 @@ static Candidates FormatExprStmt(const Node& node, const FmtContext& ctx)
 		if ( t == Tag::Semi )
 			has_semi = true;
 
-		else if ( t != Tag::CommentLeading &&
-		          t != Tag::CommentTrailing && t != Tag::CommentPrev )
-			{
-			if ( ! expr )
-				expr = c.get();
-			}
+		else if ( ! is_comment(t) && ! expr )
+			expr = c.get();
 		}
 
 	if ( ! expr )
@@ -1553,16 +1519,8 @@ std::string Format(const Node::NodeVec& nodes)
 			continue;
 			}
 
-		if ( t == Tag::CommentLeading || t == Tag::CommentPrev )
+		if ( is_comment(t) )
 			{
-			result += FormatComment(node) + "\n";
-			continue;
-			}
-
-		if ( t == Tag::CommentTrailing )
-			{
-			// Orphan trailing comment (not preceded by a
-			// statement) - emit on its own line.
 			result += FormatComment(node) + "\n";
 			continue;
 			}
