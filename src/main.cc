@@ -62,15 +62,23 @@ int main(int argc, char** argv)
 		return 1;
 		}
 
-	if ( dump_mode )
+	try
 		{
-		for ( const auto& node : nodes )
-			node->Dump();
+		if ( dump_mode )
+			{
+			for ( const auto& node : nodes )
+				node->Dump();
+			}
+		else
+			{
+			std::string out = Format(nodes);
+			printf("%s", out.c_str());
+			}
 		}
-	else
+	catch ( const FormatError& e )
 		{
-		std::string out = Format(nodes);
-		printf("%s", out.c_str());
+		fprintf(stderr, "format error: %s\n", e.what());
+		return 1;
 		}
 
 	return 0;

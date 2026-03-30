@@ -115,7 +115,7 @@ static Candidates FormatFieldAccess(const Node& node, const FmtContext& ctx)
 	{
 	const auto& kids = node.Children();
 	if ( kids.size() < 2 )
-		return {{"$???", 4}};
+		throw FormatError("FIELD-ACCESS node needs 2 children");
 
 	auto lhs_cs = FormatExpr(*kids[0], ctx);
 	const auto& lhs = Best(lhs_cs);
@@ -139,7 +139,7 @@ static Candidates FormatFieldAssign(const Node& node, const FmtContext& ctx)
 	int pw = static_cast<int>(prefix.size());
 
 	if ( node.Children().empty() )
-		return {{prefix, pw}};
+		throw FormatError("FIELD-ASSIGN node needs a value child");
 
 	auto val_cs = FormatExpr(*node.Children()[0], ctx.After(pw));
 	const auto& val = Best(val_cs);
@@ -232,7 +232,7 @@ static Candidates FormatCall(const Node& node, const FmtContext& ctx)
 	{
 	const auto& kids = node.Children();
 	if ( kids.empty() )
-		return {{"()", 2}};
+		throw FormatError("CALL node needs children");
 
 	auto func_cs = FormatExpr(*kids[0], ctx);
 	const auto& func = Best(func_cs);
@@ -312,7 +312,7 @@ static Candidates FormatIndex(const Node& node, const FmtContext& ctx)
 	{
 	const auto& kids = node.Children();
 	if ( kids.empty() )
-		return {{"[]", 2}};
+		throw FormatError("INDEX node needs children");
 
 	auto base_cs = FormatExpr(*kids[0], ctx);
 	const auto& base = Best(base_cs);
@@ -347,7 +347,7 @@ static Candidates FormatIndexLiteral(const Node& node, const FmtContext& ctx)
 		fields.push_back(c.get());
 
 	if ( fields.empty() )
-		return {{"[]", 2}};
+		throw FormatError("INDEX-LITERAL node needs children");
 
 	int open_col = ctx.Col() + 1;  // after "["
 
@@ -386,7 +386,7 @@ static Candidates FormatSlice(const Node& node, const FmtContext& ctx)
 	{
 	const auto& kids = node.Children();
 	if ( kids.empty() )
-		return {{"[:]", 3}};
+		throw FormatError("SLICE node needs children");
 
 	auto base_cs = FormatExpr(*kids[0], ctx);
 	const auto& base = Best(base_cs);
@@ -425,7 +425,7 @@ static Candidates FormatSlice(const Node& node, const FmtContext& ctx)
 static Candidates FormatParen(const Node& node, const FmtContext& ctx)
 	{
 	if ( node.Children().empty() )
-		return {{"()", 2}};
+		throw FormatError("PAREN node needs a child");
 
 	auto inner_cs = FormatExpr(*node.Children()[0], ctx.After(2));
 	const auto& inner = Best(inner_cs);
@@ -445,7 +445,7 @@ static Candidates FormatUnary(const Node& node, const FmtContext& ctx)
 	const auto& kids = node.Children();
 
 	if ( kids.empty() )
-		return {{op, static_cast<int>(op.size())}};
+		throw FormatError("UNARY-OP node needs a child");
 
 	// Zeek style: space after "!".
 	std::string prefix = op;
@@ -471,7 +471,7 @@ static Candidates FormatBinary(const Node& node, const FmtContext& ctx)
 	const auto& kids = node.Children();
 
 	if ( kids.size() < 2 )
-		return {{op, static_cast<int>(op.size())}};
+		throw FormatError("BINARY-OP node needs 2 children");
 
 	auto lhs_cs = FormatExpr(*kids[0], ctx);
 	const auto& lhs = Best(lhs_cs);
@@ -583,7 +583,7 @@ static Candidates FormatExprStmt(const Node& node, const FmtContext& ctx)
 	{
 	const auto& kids = node.Children();
 	if ( kids.empty() )
-		return {{";", 1}};
+		throw FormatError("EXPR-STMT node needs children");
 
 	const Node* expr = nullptr;
 	bool has_semi = false;

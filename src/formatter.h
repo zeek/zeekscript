@@ -1,9 +1,17 @@
 #pragma once
 
+#include <stdexcept>
 #include <string>
 #include <vector>
 
 #include "node.h"
+
+// Thrown when the formatter encounters a malformed node tree.
+class FormatError : public std::runtime_error {
+public:
+	FormatError(const std::string& msg)
+		: std::runtime_error(msg) {}
+};
 
 static constexpr int INDENT_WIDTH = 8;  // columns per indent level
 
