@@ -1,5 +1,5 @@
 CXX ?= c++
-CXXFLAGS ?= -std=c++17 -Wall -Wextra -O2
+CXXFLAGS ?= -std=c++17 -Wall -Wextra -g
 TARGET = zeek-format
 
 SRCS = main.cc node.cc parser.cc tag.cc formatter.cc
