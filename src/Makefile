@@ -50,7 +50,14 @@ roundtrip: $(TARGET)
 	echo "$$pass pass, $$fail fail"; \
 	[ $$fail -eq 0 ]
 
+new: $(TARGET)
+	@for f in ../tests/formatting/test*.rep; do \
+		name=$$(basename "$$f" .rep); \
+		./$(TARGET) "$$f" > "../tests/formatting/$${name}.new"; \
+	done; \
+	echo "wrote .new files for $$(ls ../tests/formatting/test*.new | wc -l | tr -d ' ') tests"
+
 clean:
 	rm -f $(OBJS) $(TARGET)
 
-.PHONY: all clean test roundtrip
+.PHONY: all clean test roundtrip new
