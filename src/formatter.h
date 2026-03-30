@@ -81,21 +81,25 @@ public:
 	// Accounts for trailing reservation (e.g. comment after stmt).
 	Candidate(const std::string& t, const FmtContext& ctx)
 		: text(t), width(static_cast<int>(t.size())),
-		  lines(1)
+		  lines(1), spread(0)
 		{
 		int avail = ctx.Width() - ctx.Trail();
 		int excess = width - avail;
 		overflow = excess > 0 ? excess : 0;
 		}
 
-	// Multi-line candidate.
-	Candidate(const std::string& t, int w, int l, int ovf)
-		: text(t), width(w), lines(l), overflow(ovf) {}
+	// Multi-line candidate.  first_col is the absolute column where the
+	// first line starts (needed for balance/spread computation).
+	Candidate(const std::string& t, int w, int l, int ovf,
+	          int first_col = 0)
+		: text(t), width(w), lines(l), overflow(ovf),
+		  spread(l > 1 ? ComputeSpread(t, first_col) : 0) {}
 
 	const std::string& Text() const { return text; }
 	int Width() const { return width; }
 	int Lines() const { return lines; }
 	int Ovf() const { return overflow; }
+	int Spread() const { return spread; }
 
 	// Build a new single-line candidate by appending a literal string.
 	// Overflow is not set; use In() to finalize.
@@ -120,14 +124,20 @@ public:
 	// Is this a clean single-line result?
 	bool Fits() const { return lines == 1 && overflow <= 0; }
 
-	// Comparison: fewer overflows wins, then fewer lines, then narrower.
+	// Comparison: fewer overflows wins, then fewer lines, then
+	// more balanced (smaller spread).
 	bool BetterThan(const Candidate& o) const;
 
 private:
+	// Compute spread (max line width - min line width) from text.
+	// first_col is the absolute column where the first line starts.
+	static int ComputeSpread(const std::string& text, int first_col);
+
 	std::string text;
 	int width;	// width of last (or only) line
 	int lines;	// number of lines (1 = single line)
 	int overflow;	// columns past the allowed width
+	int spread;	// max line width - min line width (0 = balanced)
 };
 
 using Candidates = std::vector<Candidate>;

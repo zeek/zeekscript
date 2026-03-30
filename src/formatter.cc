@@ -25,13 +25,44 @@ std::string LinePrefix(int indent, int col)
 // Candidate comparison
 // ------------------------------------------------------------------
 
+int Candidate::ComputeSpread(const std::string& t, int first_col)
+	{
+	int max_w = 0;
+	int min_w = 99999;
+	int line_w = first_col;
+
+	for ( char c : t )
+		{
+		if ( c == '\n' )
+			{
+			if ( line_w > max_w )
+				max_w = line_w;
+			if ( line_w < min_w )
+				min_w = line_w;
+			line_w = 0;
+			}
+		else if ( c == '\t' )
+			line_w = (line_w / INDENT_WIDTH + 1) * INDENT_WIDTH;
+		else
+			++line_w;
+		}
+
+	// Last line (after final \n or entire string).
+	if ( line_w > max_w )
+		max_w = line_w;
+	if ( line_w < min_w )
+		min_w = line_w;
+
+	return max_w - min_w;
+	}
+
 bool Candidate::BetterThan(const Candidate& o) const
 	{
 	if ( Ovf() != o.Ovf() )
 		return Ovf() < o.Ovf();
 	if ( Lines() != o.Lines() )
 		return Lines() < o.Lines();
-	return Width() < o.Width();
+	return Spread() < o.Spread();
 	}
 
 const Candidate& Best(const Candidates& cs)
@@ -289,7 +320,7 @@ static Candidates FormatCall(const Node& node, const FmtContext& ctx)
 		int last_w = sc.Width() + 1;  // ")"
 		int sovf = sc.Ovf();
 
-		result.push_back({stext, last_w, sc.Lines(), sovf});
+		result.push_back({stext, last_w, sc.Lines(), sovf, ctx.Col()});
 		}
 
 	return result;
@@ -355,7 +386,7 @@ static Candidates FormatIndexLiteral(const Node& node, const FmtContext& ctx)
 		std::string st = "[" + sc.Text() + "]";
 		int last_w = sc.Width() + 1;
 		int sovf = sc.Ovf();
-		result.push_back({st, last_w, sc.Lines(), sovf});
+		result.push_back({st, last_w, sc.Lines(), sovf, ctx.Col()});
 		}
 
 	return result;
@@ -450,7 +481,8 @@ static Candidates FormatBinary(const Node& node, const FmtContext& ctx)
 	if ( rhs.Lines() > 1 )
 		{
 		int last_w = LastLineLen(flat);
-		result.push_back({flat, last_w, CountLines(flat), flat_ovf});
+		result.push_back({flat, last_w, CountLines(flat),
+		                  flat_ovf, ctx.Col()});
 		}
 	else
 		result.push_back({flat, flat_w, 1, flat_ovf});
@@ -476,7 +508,8 @@ static Candidates FormatBinary(const Node& node, const FmtContext& ctx)
 		int last_w = rhs2.Lines() > 1 ?
 				LastLineLen(split) : rhs2.Width();
 
-		result.push_back({split, last_w, split_lines, split_ovf});
+		result.push_back({split, last_w, split_lines, split_ovf,
+		                  ctx.Col()});
 		}
 
 	// Candidate 3: split after operator, continuation aligned to start
@@ -500,7 +533,7 @@ static Candidates FormatBinary(const Node& node, const FmtContext& ctx)
 	int split_lines = 1 + rhs3.Lines();
 	int last_w = rhs3.Lines() > 1 ?  LastLineLen(split) : rhs3.Width();
 
-	result.push_back({split, last_w, split_lines, split_ovf});
+	result.push_back({split, last_w, split_lines, split_ovf, ctx.Col()});
 
 	return result;
 	}
@@ -591,7 +624,7 @@ static Candidates FormatExprStmt(const Node& node, const FmtContext& ctx)
 		if ( ec.Lines() == 1 )
 			ovf = Ovf(w, ctx);
 
-		result.push_back({text, w, ec.Lines(), ovf});
+		result.push_back({text, w, ec.Lines(), ovf, ctx.Col()});
 		}
 
 	return result;
