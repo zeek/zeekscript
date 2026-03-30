@@ -1,26 +1,28 @@
 TYPE-DECL "SomeInfo" {
   TYPE-RECORD {
+    COMMENT-LEADING "## A timestamp field."
     FIELD "ts" {
       TYPE-ATOM "time"
       ATTR-LIST {
         ATTR "&log"
       }
     }
+    BLANK
+    COMMENT-LEADING "## A unique identifier."
     FIELD "uid" {
       TYPE-ATOM "string"
       ATTR-LIST {
         ATTR "&log"
       }
     }
+    BLANK
+    COMMENT-LEADING "## A network address."
     FIELD "addr_field" {
       TYPE-ATOM "addr"
       ATTR-LIST {
         ATTR "&log"
       }
     }
-    COMMENT-LEADING "## A timestamp field."
-    COMMENT-LEADING "## A unique identifier."
-    COMMENT-LEADING "## A network address."
   }
   SEMI
 }

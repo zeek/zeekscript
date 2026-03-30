@@ -16,6 +16,8 @@ FUNC-DECL "event" "some_evt" {
             FIELD-ASSIGN "conn" {
               IDENTIFIER "c"
             }
+            COMMENT-LEADING "# This is a comment about the next field."
+            COMMENT-LEADING "# Another comment line."
             FIELD-ASSIGN "identifier" {
               CALL {
                 IDENTIFIER "cat"
@@ -31,8 +33,6 @@ FUNC-DECL "event" "some_evt" {
                 }
               }
             }
-            COMMENT-LEADING "# This is a comment about the next field."
-            COMMENT-LEADING "# Another comment line."
           }
         }
       }

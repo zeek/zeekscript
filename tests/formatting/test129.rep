@@ -16,6 +16,8 @@ TYPE-DECL "Foo" {
         }
       }
     }
+    COMMENT-TRAILING "# a comment"
+    BLANK
     FIELD "cc" {
       TYPE-ATOM "bool"
     }
@@ -27,7 +29,6 @@ TYPE-DECL "Foo" {
         }
       }
     }
-    COMMENT-TRAILING "# a comment"
   }
   SEMI
 }

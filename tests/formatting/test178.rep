@@ -9,9 +9,9 @@ GLOBAL-DECL "const" "xs" {
     CONSTRUCTOR "vector" {
       CONSTANT "0.01"
       CONSTANT "0.02"
+      COMMENT-TRAILING "# a note"
       CONSTANT "0.03"
       CONSTANT "0.04"
-      COMMENT-TRAILING "# a note"
     }
   }
   SEMI

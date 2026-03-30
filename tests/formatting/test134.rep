@@ -11,10 +11,10 @@ FUNC-DECL "event" "some_event" {
             FIELD-ASSIGN "cc" {
               IDENTIFIER "dd"
             }
+            COMMENT-PREV "#@ SOME-TAG"
             FIELD-ASSIGN "ee" {
               IDENTIFIER "ff"
             }
-            COMMENT-PREV "#@ SOME-TAG"
           }
         }
       }

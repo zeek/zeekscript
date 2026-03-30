@@ -2,8 +2,8 @@ GLOBAL-DECL "global" "x" {
   INIT "=" {
     INDEX-LITERAL {
       CONSTANT "1"
-      CONSTANT "2"
       COMMENT-TRAILING "# Comment one"
+      CONSTANT "2"
     }
   }
   SEMI

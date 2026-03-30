@@ -131,6 +131,33 @@ class Emitter:
             else:
                 self._w(f'COMMENT-LEADING {_quote(text)}')
 
+    def _iter_children(self, node: tree_sitter.Node):
+        """Yield non-extra children, emitting extras inline in source order.
+
+        Use this instead of _children() + _emit_extras_in() for container
+        nodes (records, enums, expr lists, etc.) where trailing comments
+        must stay adjacent to the sibling they trail.
+        """
+        last_non_extra = None
+        for child in node.children:
+            if child.is_extra:
+                if child.type == "nl":
+                    continue
+                self._maybe_blank(child)
+                text = self._text(child)
+                if text.startswith("##<") or text.startswith("#@"):
+                    self._w(f'COMMENT-PREV {_quote(text)}')
+                elif (last_non_extra is not None
+                        and child.start_point[0]
+                            == last_non_extra.end_point[0]):
+                    self._w(f'COMMENT-TRAILING {_quote(text)}')
+                else:
+                    self._w(f'COMMENT-LEADING {_quote(text)}')
+                self._mark_content(child)
+                continue
+            last_non_extra = child
+            yield child
+
     # ------------------------------------------------------------------
     # Blank line between items
     # ------------------------------------------------------------------
@@ -496,14 +523,13 @@ class Emitter:
 
     def _emit_expr_list(self, node: tree_sitter.Node) -> None:
         """Emit children of an expr_list, skipping commas."""
-        for child in self._children(node):
+        for child in self._iter_children(node):
             if child.type == "expr":
                 self._emit_expr(child)
-            elif child.type == ",":
+            elif not child.is_named and self._text(child) == ",":
                 pass  # structural separator, C++ knows from context
             else:
                 self._emit_expr_child(child)
-        self._emit_extras_in(node)
 
     def _emit_lambda(self, node: tree_sitter.Node) -> None:
         """Emit a lambda (anonymous function) expression."""
@@ -612,10 +638,10 @@ class Emitter:
         # Record type
         if first_text == "record":
             self._open('TYPE-RECORD')
-            for k in kids:
+            for k in self._iter_children(node):
                 if k.type == "type_spec":
+                    self._maybe_blank(k)
                     self._emit_type_spec(k)
-            self._emit_extras_in(node)
             self._close()
             return
 
@@ -662,15 +688,16 @@ class Emitter:
 
     def _emit_enum_body(self, node: tree_sitter.Node) -> None:
         """Emit enum body elements."""
-        for child in self._children(node):
+        for child in self._iter_children(node):
             if child.type == "enum_body_elem":
                 kids = self._children(child)
                 for k in kids:
                     if k.type == "id":
                         self._w(f'ENUM-VALUE {_quote(self._text(k))}')
+                self._mark_content(child)
             elif child.type == "id":
                 self._w(f'ENUM-VALUE {_quote(self._text(child))}')
-        self._emit_extras_in(node)
+                self._mark_content(child)
 
     # ------------------------------------------------------------------
     # Attributes
@@ -678,10 +705,9 @@ class Emitter:
 
     def _emit_attr_list(self, node: tree_sitter.Node) -> None:
         self._open('ATTR-LIST')
-        for child in self._children(node):
+        for child in self._iter_children(node):
             if child.type == "attr":
                 self._emit_attr(child)
-        self._emit_extras_in(node)
         self._close()
 
     def _emit_attr(self, node: tree_sitter.Node) -> None:
@@ -704,10 +730,9 @@ class Emitter:
     # ------------------------------------------------------------------
 
     def _emit_formal_args(self, node: tree_sitter.Node) -> None:
-        for child in self._children(node):
+        for child in self._iter_children(node):
             if child.type == "formal_arg":
                 self._emit_formal_arg(child)
-        self._emit_extras_in(node)
 
     def _emit_formal_arg(self, node: tree_sitter.Node) -> None:
         kids = self._children(node)
@@ -905,16 +930,16 @@ class Emitter:
         self._mark_content(node)
 
     def _emit_redef_record_decl(self, node: tree_sitter.Node) -> None:
-        kids = self._children(node)
         name = ""
-        for k in kids:
+        for k in self._children(node):
             if k.type == "id":
                 name = self._text(k)
+                break
         self._open(f'REDEF-RECORD {_quote(name)}')
-        for k in kids:
+        for k in self._iter_children(node):
             if k.type == "type_spec":
+                self._maybe_blank(k)
                 self._emit_type_spec(k)
-        self._emit_extras_in(node)
         self._w('SEMI')
         self._close()
         self._mark_content(node)
