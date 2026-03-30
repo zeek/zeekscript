@@ -69,9 +69,14 @@ private:
 // a parent choose among alternatives.
 class Candidate {
 public:
-	// Single-line candidate.
-	Candidate(const std::string& t, int w)
-		: text(t), width(w), lines(1), overflow(0) {}
+	// Single-line candidate with overflow computed from context.
+	Candidate(const std::string& t, const FmtContext& ctx)
+		: text(t), width(static_cast<int>(t.size())),
+		  lines(1)
+		{
+		int excess = width - ctx.Width();
+		overflow = excess > 0 ? excess : 0;
+		}
 
 	// Multi-line candidate.
 	Candidate(const std::string& t, int w, int l, int ovf)
@@ -83,12 +88,24 @@ public:
 	int Ovf() const { return overflow; }
 
 	// Build a new single-line candidate by appending a literal string.
+	// Overflow is not set; use In() to finalize.
 	Candidate Cat(const std::string& s) const
-		{ return {text + s, width + static_cast<int>(s.size())}; }
+		{
+		std::string t = text + s;
+		return {t, static_cast<int>(t.size()), 1, 0};
+		}
 
 	// Build a new single-line candidate by appending another candidate.
+	// Overflow is not set; use In() to finalize.
 	Candidate Cat(const Candidate& o) const
-		{ return {text + o.text, width + o.width}; }
+		{
+		std::string t = text + o.text;
+		return {t, static_cast<int>(t.size()), 1, 0};
+		}
+
+	// Return a copy with overflow computed against a context.
+	Candidate In(const FmtContext& ctx) const
+		{ return Candidate(text, ctx); }
 
 	// Is this a clean single-line result?
 	bool Fits() const { return lines == 1 && overflow <= 0; }

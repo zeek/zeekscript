@@ -95,18 +95,14 @@ static Candidates FormatExprStmt(const Node& node, const FmtContext& ctx);
 // Atoms
 // ------------------------------------------------------------------
 
-static Candidates FormatIdentifier(const Node& node, const FmtContext&)
+static Candidates FormatIdentifier(const Node& node, const FmtContext& ctx)
 	{
-	const auto& name = node.Arg();
-	int w = static_cast<int>(name.size());
-	return {{name, w}};
+	return {Candidate(node.Arg(), ctx)};
 	}
 
-static Candidates FormatConstant(const Node& node, const FmtContext&)
+static Candidates FormatConstant(const Node& node, const FmtContext& ctx)
 	{
-	const auto& val = node.Arg();
-	int w = static_cast<int>(val.size());
-	return {{val, w}};
+	return {Candidate(node.Arg(), ctx)};
 	}
 
 // ------------------------------------------------------------------
@@ -125,7 +121,7 @@ static Candidates FormatFieldAccess(const Node& node, const FmtContext& ctx)
 	auto rhs_cs = FormatExpr(*kids[1], ctx.After(lhs.Width() + 1));
 	const auto& rhs = Best(rhs_cs);
 
-	return {lhs.Cat("$").Cat(rhs)};
+	return {lhs.Cat("$").Cat(rhs).In(ctx)};
 	}
 
 // ------------------------------------------------------------------
@@ -134,8 +130,7 @@ static Candidates FormatFieldAccess(const Node& node, const FmtContext& ctx)
 
 static Candidates FormatFieldAssign(const Node& node, const FmtContext& ctx)
 	{
-	std::string ps = "$" + node.Arg() + "=";
-	Candidate prefix(ps, static_cast<int>(ps.size()));
+	Candidate prefix("$" + node.Arg() + "=", ctx);
 
 	if ( node.Children().empty() )
 		throw FormatError("FIELD-ASSIGN node needs a value child");
@@ -143,7 +138,7 @@ static Candidates FormatFieldAssign(const Node& node, const FmtContext& ctx)
 	auto val_cs = FormatExpr(*node.Children()[0], ctx.After(prefix.Width()));
 	const auto& val = Best(val_cs);
 
-	return {prefix.Cat(val)};
+	return {prefix.Cat(val).In(ctx)};
 	}
 
 // ------------------------------------------------------------------
@@ -171,7 +166,7 @@ static Candidate FormatArgsFlat(const std::vector<const Node*>& args,
 		w += best.Width();
 		}
 
-	return {text, w};
+	return {text, static_cast<int>(text.size()), 1, 0};
 	}
 
 // Format args with line breaks: first N on line 1, rest start at align_col.
@@ -243,7 +238,7 @@ static Candidates FormatCall(const Node& node, const FmtContext& ctx)
 			}
 
 	if ( ! args_node )
-		return {func.Cat("()")};
+		return {func.Cat("()").In(ctx)};
 
 	std::vector<const Node*> args;
 	for ( const auto& c : args_node->Children() )
@@ -255,7 +250,7 @@ static Candidates FormatCall(const Node& node, const FmtContext& ctx)
 		}
 
 	if ( args.empty() )
-		return {func.Cat("()")};
+		return {func.Cat("()").In(ctx)};
 
 	// Column right after "(" - alignment point for continuation lines.
 	int open_col = ctx.Col() + func.Width() + 1;
@@ -267,13 +262,12 @@ static Candidates FormatCall(const Node& node, const FmtContext& ctx)
 	// Try flat.
 	auto flat = FormatArgsFlat(args, args_ctx);
 
-	auto flat_c = func.Cat("(").Cat(flat).Cat(")");
-	int flat_ovf = Ovf(flat_c.Width(), ctx);
+	auto flat_c = func.Cat("(").Cat(flat).Cat(")").In(ctx);
 
 	Candidates result;
-	result.push_back({flat_c.Text(), flat_c.Width(), flat.Lines(), flat_ovf});
+	result.push_back(flat_c);
 
-	if ( flat_ovf == 0 || args.size() <= 1 )
+	if ( flat_c.Ovf() == 0 || args.size() <= 1 )
 		return result;
 
 	// If flat doesn't fit, try splitting at each position.
@@ -307,7 +301,7 @@ static Candidates FormatIndex(const Node& node, const FmtContext& ctx)
 
 	const Node* subs_node = FindChild(node, Tag::Subscripts);
 	if ( ! subs_node || subs_node->Children().empty() )
-		return {base.Cat("[]")};
+		return {base.Cat("[]").In(ctx)};
 
 	int sub_col = ctx.Col() + base.Width() + 1;
 	FmtContext bracket_ctx(ctx.Indent(), sub_col,
@@ -315,7 +309,7 @@ static Candidates FormatIndex(const Node& node, const FmtContext& ctx)
 	auto sub_cs = FormatExpr(*subs_node->Children()[0], bracket_ctx);
 	const auto& sub = Best(sub_cs);
 
-	return {base.Cat("[").Cat(sub).Cat("]")};
+	return {base.Cat("[").Cat(sub).Cat("]").In(ctx)};
 	}
 
 // ------------------------------------------------------------------
@@ -337,13 +331,12 @@ static Candidates FormatIndexLiteral(const Node& node, const FmtContext& ctx)
 	FmtContext inner_ctx(ctx.Indent(), open_col, ctx.Width() - 2);
 
 	auto flat = FormatArgsFlat(fields, inner_ctx);
-	auto flat_c = Candidate("[", 1).Cat(flat).Cat("]");
-	int flat_ovf = Ovf(flat_c.Width(), ctx);
+	auto flat_c = Candidate("[", ctx).Cat(flat).Cat("]").In(ctx);
 
 	Candidates result;
-	result.push_back({flat_c.Text(), flat_c.Width(), flat.Lines(), flat_ovf});
+	result.push_back(flat_c);
 
-	if ( flat_ovf == 0 || fields.size() <= 1 )
+	if ( flat_c.Ovf() == 0 || fields.size() <= 1 )
 		return result;
 
 	for ( size_t split = 1; split < fields.size(); ++split )
@@ -394,7 +387,7 @@ static Candidates FormatSlice(const Node& node, const FmtContext& ctx)
 			hi = c.Text();
 		}
 
-	return {base.Cat("[" + lo + ":" + hi + "]")};
+	return {base.Cat("[" + lo + ":" + hi + "]").In(ctx)};
 	}
 
 // ------------------------------------------------------------------
@@ -409,7 +402,7 @@ static Candidates FormatParen(const Node& node, const FmtContext& ctx)
 	auto inner_cs = FormatExpr(*node.Children()[0], ctx.After(2));
 	const auto& inner = Best(inner_cs);
 
-	return {Candidate("( ", 2).Cat(inner).Cat(" )")};
+	return {Candidate("( ", ctx).Cat(inner).Cat(" )").In(ctx)};
 	}
 
 // ------------------------------------------------------------------
@@ -429,11 +422,11 @@ static Candidates FormatUnary(const Node& node, const FmtContext& ctx)
 	if ( op == "!" )
 		ps += " ";
 
-	Candidate prefix(ps, static_cast<int>(ps.size()));
+	Candidate prefix(ps, ctx);
 	auto operand_cs = FormatExpr(*kids[0], ctx.After(prefix.Width()));
 	const auto& operand = Best(operand_cs);
 
-	return {prefix.Cat(operand)};
+	return {prefix.Cat(operand).In(ctx)};
 	}
 
 // ------------------------------------------------------------------
@@ -554,9 +547,7 @@ static Candidates FormatExpr(const Node& node, const FmtContext& ctx)
 	if ( it != FormatDispatch().end() )
 		return it->second(node, ctx);
 
-	const char* s = TagToString(node.GetTag());
-	std::string text = std::string("/* ") + s + " */";
-	return {{text, static_cast<int>(text.size())}};
+	return {Candidate(std::string("/* ") + TagToString(node.GetTag()) + " */", ctx)};
 	}
 
 // ------------------------------------------------------------------
@@ -587,7 +578,7 @@ static Candidates FormatExprStmt(const Node& node, const FmtContext& ctx)
 		}
 
 	if ( ! expr )
-		return {{";", 1}};
+		return {Candidate(";", ctx)};
 
 	// Expression gets the context width minus room for the semicolon.
 	int semi_cost = has_semi ? 1 : 0;
@@ -685,7 +676,5 @@ Candidates FormatNode(const Node& node, const FmtContext& ctx)
 	if ( it != FormatDispatch().end() )
 		return it->second(node, ctx);
 
-	const char* s = TagToString(node.GetTag());
-	std::string text = std::string("/* ") + s + " */";
-	return {{text, static_cast<int>(text.size())}};
+	return {Candidate(std::string("/* ") + TagToString(node.GetTag()) + " */", ctx)};
 	}
