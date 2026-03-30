@@ -2,6 +2,7 @@
 #include <cassert>
 #include <cstdio>
 #include <sstream>
+#include <unordered_map>
 
 #include "formatter.h"
 
@@ -88,6 +89,7 @@ static const Node* FindChild(const Node& node, Tag tag)
 
 // Forward declarations for mutual recursion.
 static Candidates FormatExpr(const Node& node, const FmtContext& ctx);
+static Candidates FormatExprStmt(const Node& node, const FmtContext& ctx);
 
 // ------------------------------------------------------------------
 // Atoms
@@ -548,31 +550,40 @@ static Candidates FormatBinary(const Node& node, const FmtContext& ctx)
 	}
 
 // ------------------------------------------------------------------
-// Expression dispatcher
+// Dispatch table
 // ------------------------------------------------------------------
+
+using FormatFunc = Candidates (*)(const Node&, const FmtContext&);
+
+static const std::unordered_map<Tag, FormatFunc>& FormatDispatch()
+	{
+	static const std::unordered_map<Tag, FormatFunc> table = {
+		{Tag::Identifier, FormatIdentifier},
+		{Tag::Constant, FormatConstant},
+		{Tag::FieldAccess, FormatFieldAccess},
+		{Tag::FieldAssign, FormatFieldAssign},
+		{Tag::BinaryOp, FormatBinary},
+		{Tag::UnaryOp, FormatUnary},
+		{Tag::Call, FormatCall},
+		{Tag::Index, FormatIndex},
+		{Tag::IndexLiteral, FormatIndexLiteral},
+		{Tag::Slice, FormatSlice},
+		{Tag::Paren, FormatParen},
+		{Tag::ExprStmt, FormatExprStmt},
+	};
+
+	return table;
+	}
 
 static Candidates FormatExpr(const Node& node, const FmtContext& ctx)
 	{
-	switch ( node.GetTag() ) {
-	case Tag::Identifier: return FormatIdentifier(node, ctx);
-	case Tag::Constant: return FormatConstant(node, ctx);
-	case Tag::FieldAccess: return FormatFieldAccess(node, ctx);
-	case Tag::FieldAssign: return FormatFieldAssign(node, ctx);
-	case Tag::BinaryOp: return FormatBinary(node, ctx);
-	case Tag::UnaryOp: return FormatUnary(node, ctx);
-	case Tag::Call: return FormatCall(node, ctx);
-	case Tag::Index: return FormatIndex(node, ctx);
-	case Tag::IndexLiteral: return FormatIndexLiteral(node, ctx);
-	case Tag::Slice: return FormatSlice(node, ctx);
-	case Tag::Paren: return FormatParen(node, ctx);
+	auto it = FormatDispatch().find(node.GetTag());
+	if ( it != FormatDispatch().end() )
+		return it->second(node, ctx);
 
-	default:
-		{
-		const char* s = TagToString(node.GetTag());
-		std::string text = std::string("/* ") + s + " */";
-		return {{text, static_cast<int>(text.size())}};
-		}
-	}
+	const char* s = TagToString(node.GetTag());
+	std::string text = std::string("/* ") + s + " */";
+	return {{text, static_cast<int>(text.size())}};
 	}
 
 // ------------------------------------------------------------------
@@ -679,22 +690,16 @@ std::string Format(const Node::NodeVec& nodes)
 			continue;
 			}
 
-		Candidates cs;
-
-		switch ( t ) {
-		case Tag::ExprStmt:
-			cs = FormatExprStmt(node, ctx);
-			break;
-
-		default:
+		auto it = FormatDispatch().find(t);
+		if ( it == FormatDispatch().end() )
 			{
 			const char* s = TagToString(t);
 			std::string text = std::string("/* TODO: ") + s + " */";
-			cs.push_back({text, static_cast<int>(text.size())});
+			result += text + "\n";
+			continue;
 			}
-			break;
-		}
 
+		auto cs = it->second(node, ctx);
 		result += Best(cs).Text() + "\n";
 		}
 
@@ -703,10 +708,11 @@ std::string Format(const Node::NodeVec& nodes)
 
 Candidates FormatNode(const Node& node, const FmtContext& ctx)
 	{
-	switch ( node.GetTag() ) {
-	case Tag::ExprStmt: return FormatExprStmt(node, ctx);
+	auto it = FormatDispatch().find(node.GetTag());
+	if ( it != FormatDispatch().end() )
+		return it->second(node, ctx);
 
-	default:
-		return FormatExpr(node, ctx);
-	}
+	const char* s = TagToString(node.GetTag());
+	std::string text = std::string("/* ") + s + " */";
+	return {{text, static_cast<int>(text.size())}};
 	}
