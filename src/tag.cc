@@ -16,6 +16,7 @@ static const std::unordered_map<std::string, Tag> tag_map = {
 	{"FIELD-ASSIGN", Tag::FieldAssign},
 	{"BRACE-INIT", Tag::BraceInit},
 	{"CONSTRUCTOR", Tag::Constructor},
+	{"SCHEDULE", Tag::Schedule},
 	{"KEYWORD-EXPR", Tag::KeywordExpr},
 	{"LAMBDA", Tag::Lambda},
 	{"WHEN-LOCAL", Tag::WhenLocal},

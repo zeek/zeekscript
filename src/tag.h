@@ -18,7 +18,8 @@ enum class Tag {
 	FieldAssign,
 	BraceInit,
 	Constructor,
-	KeywordExpr,   // hook, schedule, copy
+	Schedule,
+	KeywordExpr,   // hook, copy
 	Lambda,
 	WhenLocal,
 

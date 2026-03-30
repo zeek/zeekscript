@@ -1,4 +1,4 @@
-# C++ Formatter Failing Tests (90 pass, 89 fail as of 2026-03-30)
+# C++ Formatter Failing Tests (95 pass, 84 fail as of 2026-03-30)
 
 ## By category (sorted by count)
 
@@ -25,10 +25,6 @@ test075 test076 test078 test079 test080 test103
 ### NO-FORMAT directives (5)
 `#@ NO-FORMAT` / `#@ BEGIN-NO-FORMAT` not honored.
 test017 test111 test112 test113 test114
-
-### BRACE-INIT support (5)
-Untyped `{ expr_list }` initializers emit placeholder.
-test086 test087 test143 test145 test155
 
 ### LAMBDA support (3)
 Lambda expressions emit placeholder.
@@ -107,4 +103,10 @@ test038 (needs LAMBDA support first)
   - Attr "=" spacing: use " = " when any attr value contains blanks, else "="
   - Wrapping: try all attrs on one continuation line; if overflow, one per line
   - Remaining test066/test176 need TYPE-PARAMETERIZED bracket wrapping (new category)
-  - Removed "Type-decl attr-list layout" category (3 of 4 fixed)
+- After BRACE-INIT type inference + SCHEDULE: 95 pass, 84 fail
+  - Fixed: test086, test087, test145, test155 (brace-init → CONSTRUCTOR "table"/"set")
+  - Fixed: test143 (schedule expression mis-detected as brace-init)
+  - Emitter: infer table (if elements have =) or set, emit CONSTRUCTOR instead of BRACE-INIT
+  - Emitter: detect schedule expr before brace-init check, emit SCHEDULE node
+  - Formatter: added FormatSchedule (schedule interval { event })
+  - Removed "BRACE-INIT support" category (all 5 fixed)

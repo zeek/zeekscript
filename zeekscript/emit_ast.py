@@ -481,10 +481,51 @@ class Emitter:
             self._emit_lambda(node)
             return
 
+        # Schedule expression: schedule interval { event }
+        if (not kids[0].is_named
+                and self._text(kids[0]) == "schedule"
+                and "{" in token_texts):
+            interval = [k for k in kids if k.is_named and k.type == "expr"]
+            event_hdrs = [k for k in kids if k.type == "event_hdr"]
+            self._open('SCHEDULE')
+            if interval:
+                self._emit_expr(interval[0])
+            if event_hdrs:
+                eh = event_hdrs[0]
+                eh_kids = self._children(eh)
+                name = ""
+                args = None
+                for c in eh_kids:
+                    if c.type == "id":
+                        name = self._text(c)
+                    elif c.type == "expr_list":
+                        args = c
+                self._open(f'CALL')
+                self._w(f'IDENTIFIER {_quote(name)}')
+                if args:
+                    self._open('ARGS')
+                    self._emit_expr_list(args)
+                    self._close()
+                self._close()
+            self._close()
+            self._mark_content(node)
+            return
+
         # Brace initializer: { expr_list }
+        # Infer type: table if any element is key=value, else set.
         if "{" in token_texts and "}" in token_texts:
             args = [k for k in kids if k.type == "expr_list"]
-            self._open('BRACE-INIT')
+            keyword = "set"
+            if args:
+                for child in args[0].children:
+                    if child.type == "expr":
+                        for c in child.children:
+                            if not c.is_named and self._text(c) == "=":
+                                keyword = "table"
+                                break
+                        if keyword == "table":
+                            break
+            self._open(f'CONSTRUCTOR {_quote(keyword)}')
             if args:
                 self._emit_expr_list(args[0])
             self._close()

@@ -1,6 +1,6 @@
 LOCAL-DECL "local" "x" {
   INIT "=" {
-    BRACE-INIT {
+    CONSTRUCTOR "set" {
     }
   }
   SEMI

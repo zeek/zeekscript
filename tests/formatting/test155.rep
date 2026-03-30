@@ -1,6 +1,6 @@
 GLOBAL-DECL "const" "tbl" {
   INIT "=" {
-    BRACE-INIT {
+    CONSTRUCTOR "table" {
       BINARY-OP "=" {
         CONSTANT "[1]"
         CONSTANT "\"a\""

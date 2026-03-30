@@ -341,6 +341,30 @@ static Candidates FormatCall(const Node& node, const FmtContext& ctx)
 	}
 
 // ------------------------------------------------------------------
+// Schedule: schedule interval { event() }
+// ------------------------------------------------------------------
+
+static Candidates FormatSchedule(const Node& node, const FmtContext& ctx)
+	{
+	const auto& kids = node.Children();
+	if ( kids.size() < 2 )
+		throw FormatError("SCHEDULE node needs 2 children");
+
+	// First child: interval expression.
+	auto interval_cs = FormatExpr(*kids[0], ctx.After(9));	// "schedule "
+	const auto& interval = Best(interval_cs);
+
+	// Second child: event call.
+	int after_brace = 9 + interval.Width() + 3;	// "schedule interval { "
+	auto event_cs = FormatExpr(*kids[1], ctx.After(after_brace + 2));
+	const auto& event = Best(event_cs);
+
+	std::string text = "schedule " + interval.Text() + " { " +
+		event.Text() + " }";
+	return {Candidate(text, ctx)};
+	}
+
+// ------------------------------------------------------------------
 // Constructor: table(...), set(...), vector(...)
 // ------------------------------------------------------------------
 
@@ -1971,6 +1995,7 @@ static const std::unordered_map<Tag, FormatFunc>& FormatDispatch()
 		{Tag::UnaryOp, FormatUnary},
 		{Tag::Call, FormatCall},
 		{Tag::Constructor, FormatConstructor},
+		{Tag::Schedule, FormatSchedule},
 		{Tag::Index, FormatIndex},
 		{Tag::IndexLiteral, FormatIndexLiteral},
 		{Tag::Slice, FormatSlice},

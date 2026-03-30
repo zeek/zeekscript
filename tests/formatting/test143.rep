@@ -1,7 +1,11 @@
 FUNC-DECL "function" "f" {
   BODY {
     EXPR-STMT {
-      BRACE-INIT {
+      SCHEDULE {
+        IDENTIFIER "some_time_interval"
+        CALL {
+          IDENTIFIER "SomeModule::some_very_long_event_name"
+        }
       }
       SEMI
     }
