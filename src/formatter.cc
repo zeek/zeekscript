@@ -838,6 +838,135 @@ static Candidates FormatDecl(const Node& node, const FmtContext& ctx)
 	}
 
 // ------------------------------------------------------------------
+// Ternary: cond ? true_val : false_val
+// ------------------------------------------------------------------
+
+static Candidates FormatTernary(const Node& node, const FmtContext& ctx)
+	{
+	const auto& kids = node.Children();
+	if ( kids.size() < 3 )
+		throw FormatError("TERNARY node needs 3 children");
+
+	auto cond_cs = FormatExpr(*kids[0], ctx);
+	const auto& cond = Best(cond_cs);
+
+	auto tv_cs = FormatExpr(*kids[1], ctx.After(cond.Width() + 3));
+	const auto& tv = Best(tv_cs);
+
+	auto fv_cs = FormatExpr(*kids[2],
+		ctx.After(cond.Width() + 3 + tv.Width() + 3));
+	const auto& fv = Best(fv_cs);
+
+	std::string flat = cond.Text() + " ? " + tv.Text() +
+				" : " + fv.Text();
+	return {Candidate(flat, ctx)};
+	}
+
+// ------------------------------------------------------------------
+// Simple keyword statements: return [expr], print expr, add expr,
+// delete expr, next, break, fallthrough
+// ------------------------------------------------------------------
+
+// Format a keyword statement with an optional expression child.
+// SEMI is handled by the caller (top-level or block).
+static const char* KeywordForTag(Tag t)
+	{
+	switch ( t ) {
+	case Tag::Return: return "return";
+	case Tag::Print: return "print";
+	case Tag::Add: return "add";
+	case Tag::Delete: return "delete";
+	case Tag::EventStmt: return "event";
+	default: return "???";
+	}
+	}
+
+static Candidates FormatKeywordStmt(const Node& node, const FmtContext& ctx)
+	{
+	const char* keyword = KeywordForTag(node.GetTag());
+
+	// Find expression child and SEMI.
+	const Node* expr = nullptr;
+	bool has_semi = false;
+
+	for ( const auto& c : node.Children() )
+		{
+		Tag t = c->GetTag();
+		if ( t == Tag::Semi )
+			has_semi = true;
+		else if ( t != Tag::CommentLeading &&
+		          t != Tag::CommentTrailing &&
+		          t != Tag::CommentPrev )
+			{
+			if ( ! expr )
+				expr = c.get();
+			}
+		}
+
+	if ( ! expr )
+		{
+		std::string text = keyword;
+		if ( has_semi )
+			text += ";";
+		return {Candidate(text, ctx)};
+		}
+
+	std::string prefix = std::string(keyword) + " ";
+	int prefix_w = static_cast<int>(prefix.size());
+	int semi_cost = has_semi ? 1 : 0;
+
+	FmtContext expr_ctx = ctx.After(prefix_w).Reserve(semi_cost);
+	auto expr_cs = FormatExpr(*expr, expr_ctx);
+
+	Candidates result;
+	for ( const auto& ec : expr_cs )
+		{
+		std::string text = prefix + ec.Text();
+		int w = prefix_w + ec.Width();
+
+		if ( has_semi )
+			{
+			text += ";";
+			++w;
+			}
+
+		int ovf = ec.Ovf();
+		if ( ec.Lines() == 1 )
+			ovf = Ovf(w, ctx);
+
+		result.push_back({text, w, ec.Lines(), ovf, ctx.Col()});
+		}
+
+	return result;
+	}
+
+// Bare keyword statements with no expression and no children.
+static Candidates FormatBareKeyword(const Node& node, const FmtContext& ctx)
+	{
+	Tag t = node.GetTag();
+	const char* kw = "???";
+
+	if ( t == Tag::Next )
+		kw = "next";
+	else if ( t == Tag::Break )
+		kw = "break";
+	else if ( t == Tag::Fallthrough )
+		kw = "fallthrough";
+
+	return {Candidate(kw, ctx)};
+	}
+
+// ------------------------------------------------------------------
+// Module declaration: module SomeName;
+// ------------------------------------------------------------------
+
+static Candidates FormatModuleDecl(const Node& node, const FmtContext& ctx)
+	{
+	std::string text = "module " + node.Arg() + ";";
+	return {Candidate(text, ctx)};
+	}
+
+// ------------------------------------------------------------------
 // Dispatch table
 // ------------------------------------------------------------------
 
@@ -861,9 +990,19 @@ static const std::unordered_map<Tag, FormatFunc>& FormatDispatch()
 		{Tag::TypeAtom, FormatTypeAtom},
 		{Tag::TypeParameterized, FormatTypeParam},
 		{Tag::TypeFunc, FormatTypeFunc},
+		{Tag::Ternary, FormatTernary},
 		{Tag::GlobalDecl, FormatDecl},
 		{Tag::LocalDecl, FormatDecl},
+		{Tag::ModuleDecl, FormatModuleDecl},
 		{Tag::ExprStmt, FormatExprStmt},
+		{Tag::Return, FormatKeywordStmt},
+		{Tag::Print, FormatKeywordStmt},
+		{Tag::Add, FormatKeywordStmt},
+		{Tag::Delete, FormatKeywordStmt},
+		{Tag::EventStmt, FormatKeywordStmt},
+		{Tag::Next, FormatBareKeyword},
+		{Tag::Break, FormatBareKeyword},
+		{Tag::Fallthrough, FormatBareKeyword},
 	};
 
 	return table;
@@ -976,6 +1115,16 @@ std::string Format(const Node::NodeVec& nodes)
 			continue;
 			}
 
+		// Consume a following SEMI (sibling of bare statements
+		// like RETURN, NEXT, etc.).
+		bool sibling_semi = false;
+		if ( i + 1 < nodes.size() &&
+		     nodes[i + 1]->GetTag() == Tag::Semi )
+			{
+			sibling_semi = true;
+			++i;
+			}
+
 		// Peek ahead: if the next node is a trailing comment,
 		// we'll append it to the last line of this statement.
 		std::string trailing;
@@ -986,19 +1135,21 @@ std::string Format(const Node::NodeVec& nodes)
 			++i;  // consume the comment node
 			}
 
+		std::string semi_str = sibling_semi ? ";" : "";
+
 		auto it = FormatDispatch().find(t);
 		if ( it == FormatDispatch().end() )
 			{
 			const char* s = TagToString(t);
 			std::string text = std::string("/* TODO: ") + s + " */";
-			result += text + trailing + "\n";
+			result += text + semi_str + trailing + "\n";
 			continue;
 			}
-
-		int trail_w = static_cast<int>(trailing.size());
+		int trail_w = static_cast<int>(trailing.size()) +
+			static_cast<int>(semi_str.size());
 		FmtContext stmt_ctx = ctx.Reserve(trail_w);
 		auto cs = it->second(node, stmt_ctx);
-		result += Best(cs).Text() + trailing + "\n";
+		result += Best(cs).Text() + semi_str + trailing + "\n";
 		}
 
 	return result;
