@@ -110,11 +110,14 @@ class Emitter:
                 continue
             if child.type == "nl":
                 continue
+
+            self._maybe_blank(child)
             text = self._text(child)
 
             # Prev-attached: ##< (zeekygen prev) or #@ (annotation)
             if text.startswith("##<") or text.startswith("#@"):
                 self._w(f'COMMENT-PREV {_quote(text)}')
+                self._mark_content(child)
                 continue
 
             # Find preceding and following non-extra siblings for context.
@@ -130,6 +133,7 @@ class Emitter:
                 self._w(f'COMMENT-TRAILING {_quote(text)}')
             else:
                 self._w(f'COMMENT-LEADING {_quote(text)}')
+            self._mark_content(child)
 
     def _iter_children(self, node: tree_sitter.Node):
         """Yield non-extra children, emitting extras inline in source order.

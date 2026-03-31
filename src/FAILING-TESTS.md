@@ -1,4 +1,4 @@
-# C++ Formatter Failing Tests (121 pass, 52 fail as of 2026-03-31)
+# C++ Formatter Failing Tests (122 pass, 51 fail as of 2026-03-31)
 
 ## By category (sorted by count)
 
@@ -6,9 +6,9 @@
 Call args, assignments, binary ops not splitting at overflow.
 test{011,014,029,044,071,093,101,104,105,108,125,126,127,128,130,133,135,136,140}
 
-### Comment handling (4)
+### Comment handling (3)
 Comments dropped, mispositioned, or rendered as `/* COMMENT-xxx */`.
-test{057,088,109,134}
+test{088,109,134}
 
 ### LAMBDA support (3)
 Lambda expressions emit placeholder.
@@ -198,3 +198,8 @@ entries chronological within a session date.
     no longer gets redundant "\n" prefix (line 1996 provides body-ending newline)
   - Updated .rep files: test{018,032} (BLANK before else); test110 reverted
   - Removed test018 from "Comment handling" category (now passes)
+- After _emit_extras_in blank/content tracking fix: 122 pass, 51 fail
+  - Fixed: test057 (blank line before comments in export block)
+  - _emit_extras_in was missing _maybe_blank and _mark_content calls,
+    unlike _iter_children - all ~20 call sites silently dropped blank lines
+  - Removed test057 from "Comment handling" category (now passes)
