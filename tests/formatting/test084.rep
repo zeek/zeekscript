@@ -1,6 +1,7 @@
 EXPR-STMT {
   INDEX-LITERAL {
     CONSTANT "1"
+    TRAILING-COMMA
   }
   SEMI
 }

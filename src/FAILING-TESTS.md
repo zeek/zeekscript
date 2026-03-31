@@ -1,4 +1,4 @@
-# C++ Formatter Failing Tests (135 pass, 38 fail as of 2026-03-31)
+# C++ Formatter Failing Tests (137 pass, 36 fail as of 2026-03-31)
 
 ## By category (sorted by count)
 
@@ -19,9 +19,6 @@ test{041,097,098}
 Trailing comma missing, or short enums not collapsed to one line.
 test{047,048}
 
-### INDEX-LITERAL trailing comma (2)
-Missing trailing comma in `[1, ]`.
-test{084,085}
 
 
 ### For/while trailing comment (2)
@@ -225,3 +222,9 @@ entries chronological within a session date.
   - Fixed: test{139,174} (field type + attrs wrapping to continuation line)
   - FormatField: wraps attrs to continuation aligned one past type start
   - Removed "Record field attr wrapping" category (both fixed)
+- After INDEX-LITERAL trailing comma support: 137 pass, 36 fail
+  - Fixed: test{084,085} (trailing comma preserved from source)
+  - Emitter: detects trailing comma in expr_list, emits TRAILING-COMMA marker
+  - Formatter: FlatOrFill close_prefix param; FormatArgsVertical trailing_comma param
+  - Added Tag::TrailingComma; CollectArgs skips it
+  - Removed "INDEX-LITERAL trailing comma" category (both fixed)

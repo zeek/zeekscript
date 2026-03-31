@@ -96,6 +96,7 @@ static const std::unordered_map<std::string, Tag> tag_map = {
 	{"SEMI", Tag::Semi},
 	{"BLANK", Tag::Blank},
 	{"RAW", Tag::Raw},
+	{"TRAILING-COMMA", Tag::TrailingComma},
 
 	// Preprocessor
 	{"PREPROC", Tag::Preproc},

@@ -98,6 +98,7 @@ enum class Tag {
 	Semi,
 	Blank,
 	Raw,
+	TrailingComma,
 
 	// Preprocessor
 	Preproc,

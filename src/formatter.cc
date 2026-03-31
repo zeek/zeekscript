@@ -240,6 +240,9 @@ CollectArgs(const Node::NodeVec& children)
 		auto& c = children[i];
 		Tag t = c->GetTag();
 
+		if ( t == Tag::TrailingComma )
+			continue;
+
 		if ( is_comment(t) )
 			{
 			if ( t == Tag::CommentPrev && ! items.empty() )
@@ -459,16 +462,18 @@ static Candidates FlatOrFill(const std::string& prefix,
                              const std::vector<ArgComment>& items,
                              bool has_comments,
                              const FmtContext& ctx,
-                             const std::string& open_comment = "")
+                             const std::string& open_comment = "",
+                             const std::string& close_prefix = "")
 	{
 	int prefix_w = static_cast<int>(prefix.size());
+	int close_extra = static_cast<int>(close_prefix.size());
 	int suffix_w = static_cast<int>(suffix.size());
 	int open_col = ctx.Col() + prefix_w + 1;
-	int inner_w = ctx.MaxCol() - open_col - 1 - suffix_w;
+	int inner_w = ctx.MaxCol() - open_col - close_extra - 1 - suffix_w;
 	FmtContext inner_ctx(ctx.Indent(), open_col, inner_w);
 
 	std::string ob(1, open);
-	std::string cb(1, close);
+	std::string cb = close_prefix + std::string(1, close);
 
 	Candidates result;
 
@@ -500,7 +505,7 @@ static Candidates FlatOrFill(const std::string& prefix,
 	auto fill = FormatArgsFill(items, open_col, ctx.Indent(), inner_ctx);
 	std::string fill_text = prefix + ob + fill_prefix +
 		fill.Text() + cb + suffix;
-	int flast_w = fill.Width() + 1 + suffix_w;
+	int flast_w = fill.Width() + close_extra + 1 + suffix_w;
 	int fill_lines = fill.Lines() + (open_comment.empty() ? 0 : 1);
 	result.push_back({fill_text, flast_w, fill_lines,
 	                  fill.Ovf(), ctx.Col()});
@@ -512,7 +517,8 @@ static Candidates FlatOrFill(const std::string& prefix,
 static Candidate FormatArgsVertical(const std::string& open,
                                     const std::string& close,
                                     const std::vector<ArgComment>& items,
-                                    const FmtContext& ctx)
+                                    const FmtContext& ctx,
+                                    bool trailing_comma = false)
 	{
 	int body_indent = ctx.Indent() + 1;
 	int body_col = body_indent * INDENT_WIDTH;
@@ -536,7 +542,7 @@ static Candidate FormatArgsVertical(const std::string& open,
 
 		int line_w = body_col + best.Width();
 
-		if ( i + 1 < items.size() )
+		if ( i + 1 < items.size() || trailing_comma )
 			{
 			text += ",";
 			++line_w;
@@ -695,6 +701,10 @@ static Candidates FormatIndexLiteral(const Node& node, const FmtContext& ctx)
 	if ( items.empty() )
 		return {Candidate("[]", ctx)};
 
+	bool has_trailing_comma =
+		FindChild(node, Tag::TrailingComma) != nullptr;
+	std::string close_pfx = has_trailing_comma ? ", " : "";
+
 	// When every item has a trailing comment, use vertical indented
 	// layout (each item on its own line).  Otherwise use fill, which
 	// packs items and wraps after any trailing comment.
@@ -706,10 +716,12 @@ static Candidates FormatIndexLiteral(const Node& node, const FmtContext& ctx)
 				all_trailing = false;
 
 		if ( all_trailing )
-			return {FormatArgsVertical("[", "]", items, ctx)};
+			return {FormatArgsVertical("[", "]", items, ctx,
+				has_trailing_comma)};
 		}
 
-	return FlatOrFill("", '[', ']', "", items, has_comments, ctx);
+	return FlatOrFill("", '[', ']', "", items, has_comments, ctx,
+		"", close_pfx);
 	}
 
 // ------------------------------------------------------------------

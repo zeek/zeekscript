@@ -420,6 +420,12 @@ class Emitter:
             self._open('INDEX-LITERAL')
             if args:
                 self._emit_expr_list(args[0])
+                # Detect trailing comma in source.
+                el_kids = args[0].children
+                if (el_kids
+                        and not el_kids[-1].is_named
+                        and self._text(el_kids[-1]) == ","):
+                    self._w('TRAILING-COMMA')
             self._emit_extras_in(node)
             self._close()
             self._mark_content(node)
