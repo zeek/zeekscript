@@ -274,7 +274,7 @@ static std::vector<const Node*> ArgNodes(const std::vector<ArgComment>& items)
 	}
 
 // ------------------------------------------------------------------
-// Call: func(args)
+// Arg list formatting
 // ------------------------------------------------------------------
 
 // Format a comma-separated arg list on one line.
@@ -301,6 +301,46 @@ static Candidate FormatArgsFlat(const std::vector<const Node*>& args,
 	return {text, static_cast<int>(text.size()), 1, 0};
 	}
 
+// Append a trailing comment to the current fill line.  Emits a comma
+// before the comment unless this is the last item.
+static void AppendTrailing(const ArgComment& it, bool is_last,
+                           std::string& text, int& cur_col,
+                           bool& force_wrap)
+	{
+	if ( it.comment.empty() )
+		return;
+	if ( ! is_last )
+		{
+		text += ",";
+		++cur_col;
+		}
+	text += it.comment;
+	cur_col += static_cast<int>(it.comment.size());
+	force_wrap = true;
+	}
+
+// Format an arg at the current column, appending to text and
+// updating position/lines/overflow.
+static void FormatFillArg(const Node& arg, int indent, int max_col,
+                           std::string& text, int& cur_col,
+                           int& lines, int& total_overflow)
+	{
+	FmtContext sub(indent, cur_col, max_col - cur_col);
+	auto cs = FormatExpr(arg, sub);
+	const auto& best = Best(cs);
+	text += best.Text();
+
+	if ( best.Lines() > 1 )
+		{
+		lines += best.Lines() - 1;
+		cur_col = LastLineLen(text);
+		}
+	else
+		cur_col += best.Width();
+
+	total_overflow += best.Ovf();
+	}
+
 // Greedy-fill args: pack as many per line as fit, wrapping to align_col.
 // When an item has a trailing comment, the comma is placed before the
 // comment and the next item is forced to a new line.
@@ -320,13 +360,11 @@ static Candidate FormatArgsFill(const std::vector<ArgComment>& items,
 	for ( size_t i = 0; i < items.size(); ++i )
 		{
 		auto& it = items[i];
-		bool has_cmt = ! it.comment.empty();
-		bool has_leading = ! it.leading.empty();
 		bool is_last = (i + 1 == items.size());
 
 		// Leading comments force a wrap and appear on their
 		// own lines before the item.
-		if ( has_leading )
+		if ( ! it.leading.empty() )
 			{
 			if ( i > 0 )
 				{
@@ -345,34 +383,9 @@ static Candidate FormatArgsFill(const std::vector<ArgComment>& items,
 			cur_col = align_col;
 			force_wrap = false;
 
-			FmtContext nsub(indent, cur_col, max_col - cur_col);
-			auto ncs = FormatExpr(*it.arg, nsub);
-			const auto& nbest = Best(ncs);
-			text += nbest.Text();
-
-			if ( nbest.Lines() > 1 )
-				{
-				lines += nbest.Lines() - 1;
-				cur_col = LastLineLen(text);
-				}
-			else
-				cur_col += nbest.Width();
-
-			total_overflow += nbest.Ovf();
-
-			if ( has_cmt )
-				{
-				if ( ! is_last )
-					{
-					text += ",";
-					++cur_col;
-					}
-
-				text += it.comment;
-				cur_col += static_cast<int>(it.comment.size());
-				force_wrap = true;
-				}
-
+			FormatFillArg(*it.arg, indent, max_col,
+			              text, cur_col, lines, total_overflow);
+			AppendTrailing(it, is_last, text, cur_col, force_wrap);
 			continue;
 			}
 
@@ -386,50 +399,20 @@ static Candidate FormatArgsFill(const std::vector<ArgComment>& items,
 			text += best.Text();
 			cur_col += aw;
 			}
-
 		else if ( force_wrap )
 			{
-			// Previous item had a trailing comment and already
-			// emitted the comma - just wrap.
 			text += "\n" + pad;
 			cur_col = align_col;
 			force_wrap = false;
 
-			// Re-format in the new context.
-			FmtContext nsub(indent, cur_col, max_col - cur_col);
-			auto ncs = FormatExpr(*it.arg, nsub);
-			const auto& nbest = Best(ncs);
-			text += nbest.Text();
-
-			if ( nbest.Lines() > 1 )
-				{
-				lines += nbest.Lines() - 1;
-				cur_col = LastLineLen(text);
-				}
-			else
-				cur_col += nbest.Width();
-
-			total_overflow += nbest.Ovf();
+			FormatFillArg(*it.arg, indent, max_col,
+			              text, cur_col, lines, total_overflow);
 			++lines;
-
-			if ( has_cmt )
-				{
-				if ( ! is_last )
-					{
-					text += ",";
-					++cur_col;
-					}
-
-				text += it.comment;
-				cur_col += static_cast<int>(it.comment.size());
-				force_wrap = true;
-				}
-
+			AppendTrailing(it, is_last, text, cur_col, force_wrap);
 			continue;
 			}
 		else
 			{
-			// Would ", arg" fit on this line?
 			int need = 2 + aw;
 			if ( cur_col + need <= max_col )
 				{
@@ -441,38 +424,11 @@ static Candidate FormatArgsFill(const std::vector<ArgComment>& items,
 				text += ",\n" + pad;
 				cur_col = align_col;
 
-				// Re-format in the new context.
-				FmtContext nsub(indent, cur_col,
-				                max_col - cur_col);
-				auto ncs = FormatExpr(*it.arg, nsub);
-				const auto& nbest = Best(ncs);
-				text += nbest.Text();
-
-				if ( nbest.Lines() > 1 )
-					{
-					lines += nbest.Lines() - 1;
-					cur_col = LastLineLen(text);
-					}
-				else
-					cur_col += nbest.Width();
-
-				total_overflow += nbest.Ovf();
+				FormatFillArg(*it.arg, indent, max_col, text,
+						cur_col, lines, total_overflow);
 				++lines;
-
-				if ( has_cmt )
-					{
-					if ( ! is_last )
-						{
-						text += ",";
-						++cur_col;
-						}
-
-					text += it.comment;
-					cur_col += static_cast<int>(
-						it.comment.size());
-					force_wrap = true;
-					}
-
+				AppendTrailing(it, is_last, text, cur_col,
+				               force_wrap);
 				continue;
 				}
 			}
@@ -484,21 +440,7 @@ static Candidate FormatArgsFill(const std::vector<ArgComment>& items,
 			}
 
 		total_overflow += best.Ovf();
-
-		// Trailing comment: emit comma before comment, force
-		// next item to wrap.
-		if ( has_cmt )
-			{
-			if ( ! is_last )
-				{
-				text += ",";
-				++cur_col;
-				}
-
-			text += it.comment;
-			cur_col += static_cast<int>(it.comment.size());
-			force_wrap = true;
-			}
+		AppendTrailing(it, is_last, text, cur_col, force_wrap);
 		}
 
 	int end_ovf = std::max(0, cur_col - max_col);
@@ -566,6 +508,58 @@ static Candidates FlatOrFill(const std::string& prefix,
 	return result;
 	}
 
+// Format items one-per-line with indented body: open\n\titem,\n\titem\nclose.
+static Candidate FormatArgsVertical(const std::string& open,
+                                    const std::string& close,
+                                    const std::vector<ArgComment>& items,
+                                    const FmtContext& ctx)
+	{
+	int body_indent = ctx.Indent() + 1;
+	int body_col = body_indent * INDENT_WIDTH;
+	FmtContext body_ctx(body_indent, body_col, ctx.MaxCol() - body_col);
+	std::string body_pad = LinePrefix(body_indent, body_col);
+	std::string close_pad = LinePrefix(ctx.Indent(), ctx.IndentCol());
+
+	std::string text = open;
+	int lines = 1;
+	int ovf = 0;
+
+	for ( size_t i = 0; i < items.size(); ++i )
+		{
+		text += "\n" + body_pad;
+		++lines;
+
+		auto& it = items[i];
+		auto cs = FormatExpr(*it.arg, body_ctx);
+		const auto& best = Best(cs);
+		text += best.Text();
+
+		int line_w = body_col + best.Width();
+
+		if ( i + 1 < items.size() )
+			{
+			text += ",";
+			++line_w;
+			}
+
+		text += it.comment;
+		line_w += static_cast<int>(it.comment.size());
+
+		if ( line_w > ctx.MaxCol() )
+			ovf += line_w - ctx.MaxCol();
+		}
+
+	text += "\n" + close_pad + close;
+	++lines;
+
+	int last_w = ctx.IndentCol() + static_cast<int>(close.size());
+	return {text, last_w, lines, ovf, ctx.Col()};
+	}
+
+// ------------------------------------------------------------------
+// Call: func(args)
+// ------------------------------------------------------------------
+
 static Candidates FormatCall(const Node& node, const FmtContext& ctx)
 	{
 	const auto& kids = node.Children();
@@ -618,54 +612,6 @@ static Candidates FormatSchedule(const Node& node, const FmtContext& ctx)
 	return {Candidate(text, ctx)};
 	}
 
-// Format items one-per-line with indented body: open\n\titem,\n\titem\nclose.
-static Candidate FormatArgsVertical(const std::string& open,
-                                    const std::string& close,
-                                    const std::vector<ArgComment>& items,
-                                    const FmtContext& ctx)
-	{
-	int body_indent = ctx.Indent() + 1;
-	int body_col = body_indent * INDENT_WIDTH;
-	FmtContext body_ctx(body_indent, body_col, ctx.MaxCol() - body_col);
-	std::string body_pad = LinePrefix(body_indent, body_col);
-	std::string close_pad = LinePrefix(ctx.Indent(), ctx.IndentCol());
-
-	std::string text = open;
-	int lines = 1;
-	int ovf = 0;
-
-	for ( size_t i = 0; i < items.size(); ++i )
-		{
-		text += "\n" + body_pad;
-		++lines;
-
-		auto& it = items[i];
-		auto cs = FormatExpr(*it.arg, body_ctx);
-		const auto& best = Best(cs);
-		text += best.Text();
-
-		int line_w = body_col + best.Width();
-
-		if ( i + 1 < items.size() )
-			{
-			text += ",";
-			++line_w;
-			}
-
-		text += it.comment;
-		line_w += static_cast<int>(it.comment.size());
-
-		if ( line_w > ctx.MaxCol() )
-			ovf += line_w - ctx.MaxCol();
-		}
-
-	text += "\n" + close_pad + close;
-	++lines;
-
-	int last_w = ctx.IndentCol() + static_cast<int>(close.size());
-	return {text, last_w, lines, ovf, ctx.Col()};
-	}
-
 // ------------------------------------------------------------------
 // Constructor: table(...), set(...), vector(...)
 // ------------------------------------------------------------------
@@ -675,9 +621,8 @@ static Candidates FormatConstructor(const Node& node, const FmtContext& ctx)
 	const auto& keyword = node.Arg();	// "table", "set", "vector"
 
 	auto [items, has_comments] = CollectArgs(node.Children());
-	auto elems = ArgNodes(items);
 
-	if ( elems.empty() )
+	if ( items.empty() )
 		return {Candidate(keyword + "()", ctx)};
 
 	Candidates result;
@@ -688,7 +633,7 @@ static Candidates FormatConstructor(const Node& node, const FmtContext& ctx)
 		int kw_len = static_cast<int>(keyword.size());
 		FmtContext args_ctx(ctx.Indent(), ctx.Col() + kw_len + 1,
 		                    ctx.Width() - kw_len - 2);
-		auto flat_args = FormatArgsFlat(elems, args_ctx);
+		auto flat_args = FormatArgsFlat(ArgNodes(items), args_ctx);
 		auto flat_c = Candidate(keyword + "(" + flat_args.Text() + ")",
 		                        ctx);
 		result.push_back(flat_c);
@@ -2020,28 +1965,23 @@ static Candidates FormatIf(const Node& node, const FmtContext& ctx)
 
 		result += if_comments;
 
-		std::string else_pad = LinePrefix(ctx.Indent(), ctx.Col());
-
 		if ( else_child->GetTag() == Tag::If )
 			{
-			// else if - format the nested if
 			auto inner_cs = FormatIf(*else_child, ctx);
-			result += "\n" + else_pad + "else " + Best(inner_cs).Text();
+			result += "\n" + stmt_pad + "else " + Best(inner_cs).Text();
 			}
 		else if ( else_child->GetTag() == Tag::Block )
 			{
-			// else { ... }
-			result += "\n" + else_pad + "else" +
+			result += "\n" + stmt_pad + "else" +
 				FormatWhitesmithBlock(else_child.get(), ctx);
 			}
 		else
 			{
-			// else single-stmt - format the else body
 			std::string else_body = FormatStmtList(
 				else_node->Children(), ctx.Indented());
 			if ( ! else_body.empty() && else_body.back() == '\n' )
 				else_body.pop_back();
-			result += "\n" + else_pad + "else\n" + else_body;
+			result += "\n" + stmt_pad + "else\n" + else_body;
 			}
 		}
 
