@@ -121,6 +121,35 @@ static int LastLineLen(const std::string& s)
 	return static_cast<int>(n);
 	}
 
+// Compute total overflow across all lines in a multi-line string.
+// start_col is the absolute column where the first line starts;
+// subsequent lines start at column 0 (the padding is in the string).
+static int TextOverflow(const std::string& text, int start_col,
+                        int max_col)
+	{
+	int ovf = 0;
+	int pos = 0;
+	int line_start_col = start_col;
+
+	for ( size_t j = 0; j < text.size(); ++j )
+		if ( text[j] == '\n' )
+			{
+			int line_w = static_cast<int>(j) - pos +
+				line_start_col;
+			if ( line_w > max_col )
+				ovf += line_w - max_col;
+			pos = static_cast<int>(j) + 1;
+			line_start_col = 0;
+			}
+
+	// Check the last line too.
+	int final_w = static_cast<int>(text.size()) - pos + line_start_col;
+	if ( final_w > max_col )
+		ovf += final_w - max_col;
+
+	return ovf;
+	}
+
 // Find a child node by tag.  Returns nullptr if not found.
 static const Node* FindChild(const Node& node, Tag tag)
 	{
@@ -142,12 +171,7 @@ static const std::unordered_map<Tag, FormatFunc>& FormatDispatch();
 // Atoms
 // ------------------------------------------------------------------
 
-static Candidates FormatIdentifier(const Node& node, const FmtContext& ctx)
-	{
-	return {Candidate(node.Arg(), ctx)};
-	}
-
-static Candidates FormatConstant(const Node& node, const FmtContext& ctx)
+static Candidates FormatAtom(const Node& node, const FmtContext& ctx)
 	{
 	return {Candidate(node.Arg(), ctx)};
 	}
@@ -677,22 +701,7 @@ static Candidates FormatBinary(const Node& node, const FmtContext& ctx)
 		// widest line, not just the last.
 		int last_w = LastLineLen(flat);
 		int lines = CountLines(flat);
-		int ovf = 0;
-
-		// Check each line for overflow.
-		int pos = 0;
-		for ( size_t j = 0; j < flat.size(); ++j )
-			if ( flat[j] == '\n' )
-				{
-				int lw = static_cast<int>(j) - pos + ctx.Col();
-				if ( lw > ctx.MaxCol() )
-					ovf += lw - ctx.MaxCol();
-				pos = static_cast<int>(j) + 1;
-				}
-
-		// Check the last line too.
-		int final_lw = static_cast<int>(flat.size()) - pos;
-		ovf += Ovf(final_lw, ctx);
+		int ovf = TextOverflow(flat, ctx.Col(), ctx.MaxCol());
 
 		result.push_back({flat, last_w, lines, ovf, ctx.Col()});
 
@@ -745,12 +754,6 @@ static Candidates FormatInterval(const Node& node, const FmtContext& ctx)
 // ------------------------------------------------------------------
 // Types
 // ------------------------------------------------------------------
-
-// TYPE-ATOM: string, count, addr, etc.
-static Candidates FormatTypeAtom(const Node& node, const FmtContext& ctx)
-	{
-	return {Candidate(node.Arg(), ctx)};
-	}
 
 // TYPE-PARAMETERIZED: table[k] of v, set[t], vector of t
 // Children are type args plus optional OF marker.
@@ -812,11 +815,13 @@ static Candidates FormatTypeParam(const Node& node, const FmtContext& ctx)
 	               ctx.Col()}};
 	}
 
-// Needs a better name - suggest it plz, Claude.
-static bool is_type_tag(Tag t)
+// Find the first type child (TypeAtom, TypeParameterized, TypeFunc).
+static const Node* FindTypeChild(const Node& node)
 	{
-	return t == Tag::TypeAtom || t == Tag::TypeParameterized ||
-		t == Tag::TypeFunc;
+	for ( const auto& c : node.Children() )
+		if ( is_type_tag(c->GetTag()) )
+			return c.get();
+	return nullptr;
 	}
 
 // TYPE-FUNC: event(params), function(params): rettype
@@ -840,14 +845,8 @@ static Candidates FormatTypeFunc(const Node& node, const FmtContext& ctx)
 				text += ", ";
 			first = false;
 
-			// PARAM "name" { TYPE-ATOM "t" }
 			text += p->Arg();
-			const Node* ptype = FindChild(*p, Tag::TypeAtom);
-			if ( ! ptype )
-				ptype = FindChild(*p, Tag::TypeParameterized);
-			if ( ! ptype )
-				ptype = FindChild(*p, Tag::TypeFunc);
-
+			const Node* ptype = FindTypeChild(*p);
 			if ( ptype )
 				text += ": " + Best(FormatExpr(*ptype,
 					ctx)).Text();
@@ -858,12 +857,9 @@ static Candidates FormatTypeFunc(const Node& node, const FmtContext& ctx)
 
 	if ( returns )
 		{
-		for ( const auto& c : returns->Children() )
-			if ( is_type_tag(c->GetTag()) )
-				{
-				text += ": " + Best(FormatExpr(*c, ctx)).Text();
-				break;
-				}
+		const Node* rt = FindTypeChild(*returns);
+		if ( rt )
+			text += ": " + Best(FormatExpr(*rt, ctx)).Text();
 		}
 
 	return {Candidate(text, ctx)};
@@ -872,11 +868,8 @@ static Candidates FormatTypeFunc(const Node& node, const FmtContext& ctx)
 // TYPE wrapper node: contains a type child.
 static std::string FormatType(const Node& node, const FmtContext& ctx)
 	{
-	for ( const auto& c : node.Children() )
-		if ( is_type_tag(c->GetTag()) )
-			return Best(FormatExpr(*c, ctx)).Text();
-
-	return "";
+	const Node* tc = FindTypeChild(node);
+	return tc ? Best(FormatExpr(*tc, ctx)).Text() : "";
 	}
 
 // ------------------------------------------------------------------
@@ -1587,6 +1580,20 @@ static std::string FormatSingleStmtBody(const Node* body,
 	return text;
 	}
 
+// Format a BODY node: Whitesmith block if first child is BLOCK,
+// otherwise indented single-statement body.
+static std::string FormatBodyText(const Node* body, const FmtContext& ctx)
+	{
+	if ( ! body || body->Children().empty() )
+		return "";
+
+	const auto& first = body->Children()[0];
+	if ( first->GetTag() == Tag::Block )
+		return FormatWhitesmithBlock(first.get(), ctx);
+
+	return "\n" + FormatSingleStmtBody(body, ctx);
+	}
+
 // ------------------------------------------------------------------
 // Function/event/hook declarations
 // ------------------------------------------------------------------
@@ -1607,18 +1614,9 @@ static std::vector<std::string> FormatParamStrings(const Node* params,
 
 		std::string text = p->Arg();
 
-		for ( const auto& tc : p->Children() )
-			{
-			Tag tt = tc->GetTag();
-			if ( tt == Tag::TypeAtom ||
-			     tt == Tag::TypeParameterized ||
-			     tt == Tag::TypeFunc )
-				{
-				text += ": " +
-					Best(FormatExpr(*tc, ctx)).Text();
-				break;
-				}
-			}
+		const Node* ptype = FindTypeChild(*p);
+		if ( ptype )
+			text += ": " + Best(FormatExpr(*ptype, ctx)).Text();
 
 		result.push_back(text);
 		}
@@ -1653,13 +1651,11 @@ static Candidates FormatFuncDecl(const Node& node, const FmtContext& ctx)
 	// Return type suffix.
 	std::string ret_str;
 	if ( returns )
-		for ( const auto& c : returns->Children() )
-			if ( is_type_tag(c->GetTag()) )
-				{
-				ret_str = ": " +
-					Best(FormatExpr(*c, ctx)).Text();
-				break;
-				}
+		{
+		const Node* rt = FindTypeChild(*returns);
+		if ( rt )
+			ret_str = ": " + Best(FormatExpr(*rt, ctx)).Text();
+		}
 
 	// Attribute suffix.
 	std::string attr_str;
@@ -1740,27 +1736,7 @@ static Candidates FormatFuncDecl(const Node& node, const FmtContext& ctx)
 
 	int last_w = LastLineLen(wrapped);
 	int lines = CountLines(wrapped);
-	int ovf = Ovf(last_w, ctx);
-
-	// Also check each line for overflow.
-	{
-	int pos = 0;
-	int line_start_col = ctx.Col();
-	for ( size_t j = 0; j < wrapped.size(); ++j )
-		{
-		if ( wrapped[j] == '\n' )
-			{
-			int line_w = static_cast<int>(j) - pos +
-				line_start_col;
-			if ( line_w > max_col )
-				ovf += line_w - max_col;
-			pos = static_cast<int>(j) + 1;
-			// Next line starts at whatever column pad
-			// brings us to.
-			line_start_col = 0;
-			}
-		}
-	}
+	int ovf = TextOverflow(wrapped, ctx.Col(), max_col);
 
 	result.push_back({wrapped, last_w, lines, ovf, ctx.Col()});
 	return result;
@@ -1785,19 +1761,7 @@ static Candidates FormatIf(const Node& node, const FmtContext& ctx)
 		}
 
 	std::string head = "if ( " + cond_text + " )";
-
-	// Determine if body is a BLOCK (braced) or single statement.
-	std::string body_text;
-	if ( body_node && ! body_node->Children().empty() )
-		{
-		const auto& first = body_node->Children()[0];
-		if ( first->GetTag() == Tag::Block )
-			body_text = FormatWhitesmithBlock(first.get(), ctx);
-		else
-			body_text = "\n" + FormatSingleStmtBody(body_node, ctx);
-		}
-
-	std::string result = head + body_text;
+	std::string result = head + FormatBodyText(body_node, ctx);
 
 	// Handle else clause.
 	if ( else_node && ! else_node->Children().empty() )
@@ -1879,18 +1843,7 @@ static Candidates FormatFor(const Node& node, const FmtContext& ctx)
 
 	std::string head = "for ( " + vars_text + " in " + iter_text + " )";
 
-	// Format body.
-	std::string body_text;
-	if ( body_node && ! body_node->Children().empty() )
-		{
-		const auto& first = body_node->Children()[0];
-		if ( first->GetTag() == Tag::Block )
-			body_text = FormatWhitesmithBlock(first.get(), ctx);
-		else
-			body_text = "\n" + FormatSingleStmtBody(body_node, ctx);
-		}
-
-	return {Candidate(head + body_text, ctx)};
+	return {Candidate(head + FormatBodyText(body_node, ctx), ctx)};
 	}
 
 // ------------------------------------------------------------------
@@ -1911,17 +1864,7 @@ static Candidates FormatWhile(const Node& node, const FmtContext& ctx)
 
 	std::string head = "while ( " + cond_text + " )";
 
-	std::string body_text;
-	if ( body_node && ! body_node->Children().empty() )
-		{
-		const auto& first = body_node->Children()[0];
-		if ( first->GetTag() == Tag::Block )
-			body_text = FormatWhitesmithBlock(first.get(), ctx);
-		else
-			body_text = "\n" + FormatSingleStmtBody(body_node, ctx);
-		}
-
-	return {Candidate(head + body_text, ctx)};
+	return {Candidate(head + FormatBodyText(body_node, ctx), ctx)};
 	}
 
 // ------------------------------------------------------------------
@@ -2022,13 +1965,9 @@ static std::string FormatField(const Node& node, const FmtContext& ctx)
 	{
 	std::string text = node.Arg() + ": ";
 
-	// Find type child.
-	for ( const auto& c : node.Children() )
-		if ( is_type_tag(c->GetTag()) )
-			{
-			text += Best(FormatExpr(*c, ctx)).Text();
-			break;
-			}
+	const Node* tc = FindTypeChild(node);
+	if ( tc )
+		text += Best(FormatExpr(*tc, ctx)).Text();
 
 	// Find attr-list.
 	const Node* attrs = FindChild(node, Tag::AttrList);
@@ -2049,13 +1988,13 @@ static Candidates FormatTypeDecl(const Node& node, const FmtContext& ctx)
 	std::string semi_str = has_semi ? ";" : "";
 
 	// Simple type alias: type name: basetype;
-	for ( const auto& c : node.Children() )
-		if ( is_type_tag(c->GetTag()) )
-			{
-			std::string text = "type " + name + ": " +
-				Best(FormatExpr(*c, ctx)).Text() + semi_str;
-			return {Candidate(text, ctx)};
-			}
+	const Node* base_type = FindTypeChild(node);
+	if ( base_type )
+		{
+		std::string text = "type " + name + ": " +
+			Best(FormatExpr(*base_type, ctx)).Text() + semi_str;
+		return {Candidate(text, ctx)};
+		}
 
 	// Enum type.
 	const Node* enum_node = FindChild(node, Tag::TypeEnum);
@@ -2154,8 +2093,8 @@ static Candidates FormatTypeDecl(const Node& node, const FmtContext& ctx)
 static const std::unordered_map<Tag, FormatFunc>& FormatDispatch()
 	{
 	static const std::unordered_map<Tag, FormatFunc> table = {
-		{Tag::Identifier, FormatIdentifier},
-		{Tag::Constant, FormatConstant},
+		{Tag::Identifier, FormatAtom},
+		{Tag::Constant, FormatAtom},
 		{Tag::FieldAccess, FormatFieldAccess},
 		{Tag::FieldAssign, FormatFieldAssign},
 		{Tag::BinaryOp, FormatBinary},
@@ -2168,7 +2107,7 @@ static const std::unordered_map<Tag, FormatFunc>& FormatDispatch()
 		{Tag::Slice, FormatSlice},
 		{Tag::Paren, FormatParen},
 		{Tag::Interval, FormatInterval},
-		{Tag::TypeAtom, FormatTypeAtom},
+		{Tag::TypeAtom, FormatAtom},
 		{Tag::TypeParameterized, FormatTypeParam},
 		{Tag::TypeFunc, FormatTypeFunc},
 		{Tag::Ternary, FormatTernary},
@@ -2272,9 +2211,5 @@ std::string Format(const Node::NodeVec& nodes)
 
 Candidates FormatNode(const Node& node, const FmtContext& ctx)
 	{
-	auto it = FormatDispatch().find(node.GetTag());
-	if ( it != FormatDispatch().end() )
-		return it->second(node, ctx);
-
-	return {Candidate(std::string("/* ") + TagToString(node.GetTag()) + " */", ctx)};
+	return FormatExpr(node, ctx);
 	}

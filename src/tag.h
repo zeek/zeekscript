@@ -121,3 +121,9 @@ inline bool is_comment(Tag t)
 	return t == Tag::CommentLeading || t == Tag::CommentTrailing ||
 		t == Tag::CommentPrev;
 	}
+
+inline bool is_type_tag(Tag t)
+	{
+	return t == Tag::TypeAtom || t == Tag::TypeParameterized ||
+		t == Tag::TypeFunc;
+	}
