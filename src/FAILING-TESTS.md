@@ -1,4 +1,4 @@
-# C++ Formatter Failing Tests (112 pass, 67 fail as of 2026-03-31)
+# C++ Formatter Failing Tests (114 pass, 65 fail as of 2026-03-31)
 
 ## By category (sorted by count)
 
@@ -6,9 +6,9 @@
 Call args, assignments, binary ops not splitting at overflow.
 test{011,014,029,044,071,093,101,104,105,108,125,126,127,128,130,133,135,136,140}
 
-### Comment handling (15)
+### Comment handling (13)
 Comments dropped, mispositioned, or rendered as `/* COMMENT-xxx */`.
-test{001,002,016,018,026,045,057,088,109,112,113,114,132,134,167}
+test{002,016,018,026,045,057,088,109,112,113,114,134,167}
 
 ### NO-FORMAT directives (5)
 `#@ NO-FORMAT` / `#@ BEGIN-NO-FORMAT` not honored.
@@ -169,3 +169,11 @@ entries chronological within a session date.
   - FormatStmtList: COMMENT-PREV attaches as trailing when stmt is single-line
   - FormatIf: collect COMMENT-LEADING/COMMENT-PREV children, emit before else
   - Updated baseline: test032 (one-sided slice spacing benign difference)
+- After CollectArgs/ArgComment shared comment infrastructure: 114 pass, 65 fail
+  - Fixed: test{001,132} (comments inside ARGS and INDEX-LITERAL)
+  - CollectArgs: shared helper pairs children with trailing/leading comments
+  - ArgComment struct: trailing comment + leading comments per item
+  - FormatArgsFill: trailing comment emits comma before comment, forces wrap;
+    leading comments emit on own lines before item
+  - FlatOrFill: skips flat candidate when comments present
+  - FormatConstructor/FormatCall/FormatIndexLiteral: use CollectArgs

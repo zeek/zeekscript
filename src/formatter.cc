@@ -213,6 +213,72 @@ static Candidates FormatFieldAssign(const Node& node, const FmtContext& ctx)
 	}
 
 // ------------------------------------------------------------------
+// Arg lists with trailing comments
+// ------------------------------------------------------------------
+
+// An argument paired with its trailing comment (if any).
+struct ArgComment
+	{
+	const Node* arg;
+	std::string comment;	// trailing: empty or " # ..."
+	std::vector<std::string> leading;	// leading comments before item
+	};
+
+// Scan a node's children, pairing each non-comment child with
+// any trailing COMMENT-TRAILING/COMMENT-PREV that follows it
+// and any COMMENT-LEADING that precedes it.
+// Returns the items and whether any comments were found.
+static std::pair<std::vector<ArgComment>, bool>
+CollectArgs(const Node::NodeVec& children)
+	{
+	std::vector<ArgComment> items;
+	bool has_comments = false;
+	std::vector<std::string> pending_leading;
+
+	for ( size_t i = 0; i < children.size(); ++i )
+		{
+		Tag t = children[i]->GetTag();
+
+		if ( t == Tag::CommentTrailing || t == Tag::CommentPrev )
+			{
+			if ( ! items.empty() )
+				items.back().comment = " " + children[i]->Arg();
+			has_comments = true;
+			continue;
+			}
+
+		if ( t == Tag::CommentLeading )
+			{
+			pending_leading.push_back(children[i]->Arg());
+			has_comments = true;
+			continue;
+			}
+
+		if ( is_comment(t) )
+			{
+			has_comments = true;
+			continue;
+			}
+
+		items.push_back({children[i].get(), {},
+			std::move(pending_leading)});
+		pending_leading.clear();
+		}
+
+	return {items, has_comments};
+	}
+
+// Extract just the Node pointers from an ArgComment vector.
+static std::vector<const Node*> ArgNodes(const std::vector<ArgComment>& items)
+	{
+	std::vector<const Node*> nodes;
+	nodes.reserve(items.size());
+	for ( const auto& ac : items )
+		nodes.push_back(ac.arg);
+	return nodes;
+	}
+
+// ------------------------------------------------------------------
 // Call: func(args)
 // ------------------------------------------------------------------
 
@@ -241,7 +307,9 @@ static Candidate FormatArgsFlat(const std::vector<const Node*>& args,
 	}
 
 // Greedy-fill args: pack as many per line as fit, wrapping to align_col.
-static Candidate FormatArgsFill(const std::vector<const Node*>& args,
+// When an item has a trailing comment, the comma is placed before the
+// comment and the next item is forced to a new line.
+static Candidate FormatArgsFill(const std::vector<ArgComment>& items,
                                 int align_col, int indent,
                                 const FmtContext& first_line_ctx)
 	{
@@ -252,11 +320,68 @@ static Candidate FormatArgsFill(const std::vector<const Node*>& args,
 	int cur_col = first_line_ctx.Col();
 	int lines = 1;
 	int total_overflow = 0;
+	bool force_wrap = false;
 
-	for ( size_t i = 0; i < args.size(); ++i )
+	for ( size_t i = 0; i < items.size(); ++i )
 		{
+		bool has_cmt = ! items[i].comment.empty();
+		bool has_leading = ! items[i].leading.empty();
+		bool is_last = (i + 1 == items.size());
+
+		// Leading comments force a wrap and appear on their
+		// own lines before the item.
+		if ( has_leading )
+			{
+			if ( i > 0 )
+				{
+				text += ",";
+				++cur_col;
+				}
+
+			for ( const auto& lc : items[i].leading )
+				{
+				text += "\n" + pad + lc;
+				++lines;
+				}
+
+			text += "\n" + pad;
+			++lines;
+			cur_col = align_col;
+			force_wrap = false;
+
+			FmtContext nsub(indent, cur_col, max_col - cur_col);
+			auto ncs = FormatExpr(*items[i].arg, nsub);
+			const auto& nbest = Best(ncs);
+			text += nbest.Text();
+
+			if ( nbest.Lines() > 1 )
+				{
+				lines += nbest.Lines() - 1;
+				cur_col = LastLineLen(text);
+				}
+			else
+				cur_col += nbest.Width();
+
+			total_overflow += nbest.Ovf();
+
+			if ( has_cmt )
+				{
+				if ( ! is_last )
+					{
+					text += ",";
+					++cur_col;
+					}
+				text += items[i].comment;
+				cur_col += static_cast<int>(
+					items[i].comment.size());
+				force_wrap = true;
+				}
+
+			continue;
+			}
+
 		FmtContext sub(indent, cur_col, max_col - cur_col);
-		auto cs = FormatExpr(*args[i], sub);
+		auto cs = FormatExpr(*items[i].arg, sub);
 		const auto& best = Best(cs);
 		int aw = best.Width();
 
@@ -264,6 +389,46 @@ static Candidate FormatArgsFill(const std::vector<const Node*>& args,
 			{
 			text += best.Text();
 			cur_col += aw;
+			}
+		else if ( force_wrap )
+			{
+			// Previous item had a trailing comment and already
+			// emitted the comma — just wrap.
+			text += "\n" + pad;
+			cur_col = align_col;
+			force_wrap = false;
+
+			// Re-format in the new context.
+			FmtContext nsub(indent, cur_col, max_col - cur_col);
+			auto ncs = FormatExpr(*items[i].arg, nsub);
+			const auto& nbest = Best(ncs);
+			text += nbest.Text();
+
+			if ( nbest.Lines() > 1 )
+				{
+				lines += nbest.Lines() - 1;
+				cur_col = LastLineLen(text);
+				}
+			else
+				cur_col += nbest.Width();
+
+			total_overflow += nbest.Ovf();
+			++lines;
+
+			if ( has_cmt )
+				{
+				if ( ! is_last )
+					{
+					text += ",";
+					++cur_col;
+					}
+				text += items[i].comment;
+				cur_col += static_cast<int>(
+					items[i].comment.size());
+				force_wrap = true;
+				}
+
+			continue;
 			}
 		else
 			{
@@ -282,7 +447,7 @@ static Candidate FormatArgsFill(const std::vector<const Node*>& args,
 				// Re-format in the new context.
 				FmtContext nsub(indent, cur_col,
 				                max_col - cur_col);
-				auto ncs = FormatExpr(*args[i], nsub);
+				auto ncs = FormatExpr(*items[i].arg, nsub);
 				const auto& nbest = Best(ncs);
 				text += nbest.Text();
 
@@ -296,6 +461,20 @@ static Candidate FormatArgsFill(const std::vector<const Node*>& args,
 
 				total_overflow += nbest.Ovf();
 				++lines;
+
+				if ( has_cmt )
+					{
+					if ( ! is_last )
+						{
+						text += ",";
+						++cur_col;
+						}
+					text += items[i].comment;
+					cur_col += static_cast<int>(
+						items[i].comment.size());
+					force_wrap = true;
+					}
+
 				continue;
 				}
 			}
@@ -307,6 +486,21 @@ static Candidate FormatArgsFill(const std::vector<const Node*>& args,
 			}
 
 		total_overflow += best.Ovf();
+
+		// Trailing comment: emit comma before comment, force
+		// next item to wrap.
+		if ( has_cmt )
+			{
+			if ( ! is_last )
+				{
+				text += ",";
+				++cur_col;
+				}
+
+			text += items[i].comment;
+			cur_col += static_cast<int>(items[i].comment.size());
+			force_wrap = true;
+			}
 		}
 
 	int end_ovf = std::max(0, cur_col - max_col);
@@ -322,7 +516,8 @@ static Candidate FormatArgsFill(const std::vector<const Node*>& args,
 static Candidates FlatOrFill(const std::string& prefix,
                              char open, char close,
                              const std::string& suffix,
-                             const std::vector<const Node*>& items,
+                             const std::vector<ArgComment>& items,
+                             bool has_comments,
                              const FmtContext& ctx)
 	{
 	int prefix_w = static_cast<int>(prefix.size());
@@ -334,19 +529,26 @@ static Candidates FlatOrFill(const std::string& prefix,
 	std::string ob(1, open);
 	std::string cb(1, close);
 
-	// Try flat.
-	auto flat_args = FormatArgsFlat(items, inner_ctx);
-	std::string flat_text = prefix + ob + flat_args.Text() + cb + suffix;
-	Candidate flat_c(flat_text, ctx);
-
 	Candidates result;
-	result.push_back(flat_c);
 
-	if ( flat_c.Ovf() == 0 || items.size() <= 1 )
-		return result;
+	// Try flat (only when no comments — a trailing comment
+	// forces a line break, so flat would lose it).
+	if ( ! has_comments )
+		{
+		auto nodes = ArgNodes(items);
+		auto flat_args = FormatArgsFlat(nodes, inner_ctx);
+		std::string flat_text = prefix + ob + flat_args.Text() +
+			cb + suffix;
+		Candidate flat_c(flat_text, ctx);
+		result.push_back(flat_c);
+
+		if ( flat_c.Ovf() == 0 || items.size() <= 1 )
+			return result;
+		}
 
 	// Greedy-fill: pack as many items per line as fit.
-	auto fill = FormatArgsFill(items, open_col, ctx.Indent(), inner_ctx);
+	auto fill = FormatArgsFill(items, open_col, ctx.Indent(),
+		inner_ctx);
 	std::string fill_text = prefix + ob + fill.Text() + cb + suffix;
 	int flast_w = fill.Width() + 1 + suffix_w;
 	result.push_back({fill_text, flast_w, fill.Lines(),
@@ -375,15 +577,13 @@ static Candidates FormatCall(const Node& node, const FmtContext& ctx)
 	if ( ! args_node )
 		return {func.Cat("()").In(ctx)};
 
-	std::vector<const Node*> args;
-	for ( const auto& c : args_node->Children() )
-		if ( ! is_comment(c->GetTag()) )
-			args.push_back(c.get());
+	auto [items, has_comments] = CollectArgs(args_node->Children());
 
-	if ( args.empty() )
+	if ( items.empty() )
 		return {func.Cat("()").In(ctx)};
 
-	return FlatOrFill(func.Text(), '(', ')', "", args, ctx);
+	return FlatOrFill(func.Text(), '(', ')', "", items,
+		has_comments, ctx);
 	}
 
 // ------------------------------------------------------------------
@@ -417,33 +617,9 @@ static Candidates FormatSchedule(const Node& node, const FmtContext& ctx)
 static Candidates FormatConstructor(const Node& node, const FmtContext& ctx)
 	{
 	const auto& keyword = node.Arg();	// "table", "set", "vector"
-	const auto& kids = node.Children();
 
-	// Collect elements and their trailing comments.
-	std::vector<const Node*> elems;
-	std::vector<std::string> comments;	// parallel: trailing comment
-	bool has_comments = false;
-
-	for ( size_t i = 0; i < kids.size(); ++i )
-		{
-		Tag t = kids[i]->GetTag();
-
-		if ( t == Tag::CommentTrailing && ! elems.empty() )
-			{
-			comments.back() = " " + kids[i]->Arg();
-			has_comments = true;
-			continue;
-			}
-
-		if ( is_comment(t) )
-			{
-			has_comments = true;
-			continue;
-			}
-
-		elems.push_back(kids[i].get());
-		comments.push_back("");
-		}
+	auto [items, has_comments] = CollectArgs(node.Children());
+	auto elems = ArgNodes(items);
 
 	if ( elems.empty() )
 		return {Candidate(keyword + "()", ctx)};
@@ -476,25 +652,25 @@ static Candidates FormatConstructor(const Node& node, const FmtContext& ctx)
 	int lines = 1;
 	int ovf = 0;
 
-	for ( size_t i = 0; i < elems.size(); ++i )
+	for ( size_t i = 0; i < items.size(); ++i )
 		{
 		text += "\n" + body_pad;
 		++lines;
 
-		auto cs = FormatExpr(*elems[i], body_ctx);
+		auto cs = FormatExpr(*items[i].arg, body_ctx);
 		const auto& best = Best(cs);
 		text += best.Text();
 
 		int line_w = body_col + best.Width();
 
-		if ( i + 1 < elems.size() )
+		if ( i + 1 < items.size() )
 			{
 			text += ",";
 			++line_w;
 			}
 
-		text += comments[i];
-		line_w += static_cast<int>(comments[i].size());
+		text += items[i].comment;
+		line_w += static_cast<int>(items[i].comment.size());
 
 		if ( line_w > ctx.MaxCol() )
 			ovf += line_w - ctx.MaxCol();
@@ -541,14 +717,12 @@ static Candidates FormatIndex(const Node& node, const FmtContext& ctx)
 
 static Candidates FormatIndexLiteral(const Node& node, const FmtContext& ctx)
 	{
-	std::vector<const Node*> fields;
-	for ( const auto& c : node.Children() )
-		fields.push_back(c.get());
+	auto [items, has_comments] = CollectArgs(node.Children());
 
-	if ( fields.empty() )
+	if ( items.empty() )
 		return {Candidate("[]", ctx)};
 
-	return FlatOrFill("", '[', ']', "", fields, ctx);
+	return FlatOrFill("", '[', ']', "", items, has_comments, ctx);
 	}
 
 // ------------------------------------------------------------------
@@ -777,7 +951,11 @@ static Candidates FormatTypeParam(const Node& node, const FmtContext& ctx)
 	if ( bracket_types.empty() )
 		return {Candidate(keyword + suffix, ctx)};
 
-	return FlatOrFill(keyword, '[', ']', suffix, bracket_types, ctx);
+	std::vector<ArgComment> bt_items;
+	for ( const auto* n : bracket_types )
+		bt_items.push_back({n, "", {}});
+
+	return FlatOrFill(keyword, '[', ']', suffix, bt_items, false, ctx);
 	}
 
 // Find the first type child (TypeAtom, TypeParameterized, TypeFunc).
