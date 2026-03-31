@@ -666,13 +666,22 @@ static Candidates FormatIndex(const Node& node, const FmtContext& ctx)
 	if ( ! subs_node || subs_node->Children().empty() )
 		return {base.Cat("[]").In(ctx)};
 
-	int sub_col = ctx.Col() + base.Width() + 1;
-	FmtContext bracket_ctx(ctx.Indent(), sub_col,
-	                       ctx.Width() - base.Width() - 2);
-	auto sub_cs = FormatExpr(*subs_node->Children()[0], bracket_ctx);
-	const auto& sub = Best(sub_cs);
+	auto& subs = subs_node->Children();
 
-	return {base.Cat("[").Cat(sub).Cat("]").In(ctx)};
+	if ( subs.size() == 1 )
+		{
+		int sub_col = ctx.Col() + base.Width() + 1;
+		FmtContext bracket_ctx(ctx.Indent(), sub_col,
+		                       ctx.Width() - base.Width() - 2);
+		auto sub_cs = FormatExpr(*subs[0], bracket_ctx);
+		const auto& sub = Best(sub_cs);
+		return {base.Cat("[").Cat(sub).Cat("]").In(ctx)};
+		}
+
+	// Multiple subscripts: format as comma-separated list.
+	auto [items, has_comments] = CollectArgs(subs);
+	return FlatOrFill(base.Text(), '[', ']', "", items,
+		has_comments, ctx);
 	}
 
 // ------------------------------------------------------------------
