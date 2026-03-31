@@ -18,7 +18,6 @@ FUNC-DECL "function" "foo" {
               TYPE-ATOM "bool"
             }
             BODY {
-              BLANK
               RETURN {
                 IDENTIFIER "val"
               }

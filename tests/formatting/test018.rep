@@ -37,6 +37,7 @@ FUNC-DECL "function" "some_func" {
           SEMI
         }
       }
+      COMMENT-TRAILING "#@ NOT-TESTED"
       ELSE {
         IF {
           COND {
@@ -63,7 +64,6 @@ FUNC-DECL "function" "some_func" {
           }
         }
       }
-      COMMENT-PREV "#@ NOT-TESTED"
     }
   }
 }

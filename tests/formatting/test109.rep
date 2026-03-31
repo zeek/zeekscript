@@ -11,6 +11,7 @@ FUNC-DECL "function" "some_func" {
     }
   }
   BODY {
+    COMMENT-PREV "#@ BEGIN-SKIP-TESTING"
     IF {
       COND {
         BINARY-OP "in" {
@@ -31,6 +32,5 @@ FUNC-DECL "function" "some_func" {
       }
       SEMI
     }
-    COMMENT-PREV "#@ BEGIN-SKIP-TESTING"
   }
 }

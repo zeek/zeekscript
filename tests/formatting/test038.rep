@@ -46,7 +46,6 @@ GLOBAL-DECL "const" "some_lookup" {
           TYPE-ATOM "string"
         }
         BODY {
-          BLANK
           RETURN {
             CALL {
               IDENTIFIER "fmt"

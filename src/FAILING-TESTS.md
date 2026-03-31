@@ -1,4 +1,4 @@
-# C++ Formatter Failing Tests (117 pass, 56 fail as of 2026-03-31)
+# C++ Formatter Failing Tests (118 pass, 55 fail as of 2026-03-31)
 
 ## By category (sorted by count)
 
@@ -39,7 +39,6 @@ test038 (needs LAMBDA support first)
 
 ### Miscellaneous (1 each)
 - test005: Constant with embedded ops
-- test019: Missing blank line between else-if blocks
 - test021: Layout issue
 - test027: Switch case values not wrapping
 - test040: CALL wrapping (set() args should use indent, not alignment)
@@ -180,3 +179,8 @@ entries chronological within a session date.
   - Fixed: test{002,045} (trailing annotation on split expression stmts)
   - COMMENT-PREV attaches to multi-line stmts unless stmt ends with '}'
   - Updated baseline: test002 (split line with annotation on second line)
+- After emitter comment positioning fixes: 118 pass, 55 fail
+  - Fixed: test019 (blank line between body and else now emitted)
+  - _emit_func_body: same-line check priority over #@ prefix; track { } lines
+  - _emit_if_extras: new helper for extras between cond/body and body/else
+  - Regenerated 15 .rep files with improved comment/blank positioning

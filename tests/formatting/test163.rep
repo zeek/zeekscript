@@ -18,11 +18,11 @@ FUNC-DECL "function" "some_func" {
           IDENTIFIER "did_check"
         }
       }
+      COMMENT-TRAILING "#@ BEGIN-SKIP-TESTING"
       BODY {
         RETURN
         SEMI
       }
-      COMMENT-PREV "#@ BEGIN-SKIP-TESTING"
     }
   }
 }

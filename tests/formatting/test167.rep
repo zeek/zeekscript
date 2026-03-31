@@ -1,9 +1,9 @@
 FUNC-DECL "event" "some_evt" {
   BODY {
+    COMMENT-TRAILING "# Start tracking."
     PRINT {
       CONSTANT "1"
       SEMI
     }
-    COMMENT-TRAILING "# Start tracking."
   }
 }

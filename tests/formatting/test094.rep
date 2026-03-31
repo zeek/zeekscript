@@ -15,7 +15,6 @@ FUNC-DECL "event" "zeek_init" {
               }
             }
             BODY {
-              BLANK
               PRINT {
                 IDENTIFIER "h"
                 SEMI

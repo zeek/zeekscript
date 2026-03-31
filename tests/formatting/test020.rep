@@ -7,7 +7,6 @@ FUNC-DECL "function" "some_func" {
     }
   }
   BODY {
-    BLANK
     EXPR-STMT {
       CALL {
         IDENTIFIER "some_call"

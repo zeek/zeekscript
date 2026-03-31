@@ -1,7 +1,6 @@
 COMMENT-PREV "#@ BEGIN"
 FUNC-DECL "function" "foo" {
   BODY {
-    BLANK
     EXPR-STMT {
       CALL {
         IDENTIFIER "bar"

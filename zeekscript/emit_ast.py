@@ -926,12 +926,30 @@ class Emitter:
         self._mark_content(node)
 
     def _emit_func_body(self, node: tree_sitter.Node) -> None:
-        kids = self._children(node)
         self._open('BODY')
-        for k in kids:
-            if k.type == "stmt_list":
-                self._emit_stmt_list(k)
-        self._emit_extras_in(node)
+        # Emit extras in source order so comments before/after
+        # stmt_list land at the right position.
+        for child in node.children:
+            if child.is_extra:
+                if child.type == "nl":
+                    continue
+                self._maybe_blank(child)
+                text = self._text(child)
+                same_line = (self._prev_content_line >= 0
+                        and child.start_point[0]
+                            == self._prev_content_line)
+                if same_line:
+                    self._w(f'COMMENT-TRAILING {_quote(text)}')
+                elif text.startswith("##<") or text.startswith("#@"):
+                    self._w(f'COMMENT-PREV {_quote(text)}')
+                else:
+                    self._w(f'COMMENT-LEADING {_quote(text)}')
+                self._mark_content(child)
+            elif child.type == "stmt_list":
+                self._emit_stmt_list(child)
+            else:
+                # Track { and } for same-line comment detection.
+                self._mark_content(child)
         self._close()
 
     def _emit_export_decl(self, node: tree_sitter.Node) -> None:
@@ -1149,9 +1167,38 @@ class Emitter:
         self._close()
         self._mark_content(node)
 
+    def _emit_if_extras(self, node, after_node, before_node,
+                         ref_node=None) -> None:
+        """Emit extra children of `node` between `after_node` and
+        `before_node`.  `ref_node` is used for same-line detection."""
+        past_after = after_node is None
+        for child in node.children:
+            if not child.is_extra:
+                if child == after_node:
+                    past_after = True
+                if child == before_node:
+                    break
+                continue
+            if not past_after:
+                continue
+            if child.type == "nl":
+                self._maybe_blank(child)
+                continue
+            text = self._text(child)
+            same_line = (ref_node is not None
+                    and child.start_point[0]
+                        == ref_node.end_point[0])
+            if same_line:
+                self._w(f'COMMENT-TRAILING {_quote(text)}')
+            elif text.startswith("##<") or text.startswith("#@"):
+                self._w(f'COMMENT-PREV {_quote(text)}')
+            else:
+                self._w(f'COMMENT-LEADING {_quote(text)}')
+            self._mark_content(child)
+
     def _emit_if(self, node: tree_sitter.Node) -> None:
+        # Classify non-extra children.
         kids = self._children(node)
-        # if ( expr ) stmt [else stmt]
         cond = None
         body = None
         else_body = None
@@ -1171,15 +1218,23 @@ class Emitter:
             self._open('COND')
             self._emit_expr(cond)
             self._close()
+
+        # Emit extras between cond and body (e.g. #@ annotation
+        # after the closing paren of the condition).
+        self._emit_if_extras(node, cond, body, ref_node=cond)
+
         if body:
             self._open('BODY')
             self._emit_stmt(body)
             self._close()
+
+        # Emit extras between body and else.
+        self._emit_if_extras(node, body, else_body, ref_node=body)
+
         if else_body:
             self._open('ELSE')
             self._emit_stmt(else_body)
             self._close()
-        self._emit_extras_in(node)
         self._close()
         self._mark_content(node)
 

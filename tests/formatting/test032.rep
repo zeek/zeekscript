@@ -21,6 +21,8 @@ FUNC-DECL "function" "some_func" {
           SEMI
         }
       }
+      COMMENT-LEADING "# This handles the fallback case."
+      COMMENT-LEADING "# Check secondary pattern too."
       ELSE {
         IF {
           COND {
@@ -47,8 +49,6 @@ FUNC-DECL "function" "some_func" {
           }
         }
       }
-      COMMENT-LEADING "# This handles the fallback case."
-      COMMENT-LEADING "# Check secondary pattern too."
     }
   }
 }
