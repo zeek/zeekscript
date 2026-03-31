@@ -432,8 +432,7 @@ static Candidates FormatConstructor(const Node& node, const FmtContext& ctx)
 	// Candidate 2: one element per line, indented body.
 	int body_indent = ctx.Indent() + 1;
 	int body_col = body_indent * INDENT_WIDTH;
-	static constexpr int MAX_WIDTH = 80;
-	FmtContext body_ctx(body_indent, body_col, MAX_WIDTH - body_col);
+	FmtContext body_ctx(body_indent, body_col, ctx.MaxCol() - body_col);
 	std::string body_pad = LinePrefix(body_indent, body_col);
 	std::string close_pad = LinePrefix(ctx.Indent(), ctx.IndentCol());
 
@@ -461,8 +460,8 @@ static Candidates FormatConstructor(const Node& node, const FmtContext& ctx)
 		text += comments[i];
 		line_w += static_cast<int>(comments[i].size());
 
-		if ( line_w > MAX_WIDTH )
-			ovf += line_w - MAX_WIDTH;
+		if ( line_w > ctx.MaxCol() )
+			ovf += line_w - ctx.MaxCol();
 		}
 
 	text += "\n" + close_pad + ")";
@@ -1448,7 +1447,7 @@ static std::string FormatStmtList(const Node::NodeVec& nodes,
                                   const FmtContext& ctx,
                                   bool skip_leading_blanks = false)
 	{
-	static constexpr int MAX_WIDTH = 80;
+	int max_col = ctx.MaxCol();
 	int preproc_depth = 0;
 	FmtContext cur_ctx = ctx;
 	std::string pad = LinePrefix(cur_ctx.Indent(), cur_ctx.Col());
@@ -1483,7 +1482,7 @@ static std::string FormatStmtList(const Node::NodeVec& nodes,
 				int new_indent = preproc_depth;
 				int new_col = new_indent * INDENT_WIDTH;
 				cur_ctx = FmtContext(new_indent, new_col,
-					MAX_WIDTH - new_col);
+					max_col - new_col);
 				pad = LinePrefix(new_indent, new_col);
 				}
 
@@ -1500,7 +1499,7 @@ static std::string FormatStmtList(const Node::NodeVec& nodes,
 				int new_indent = preproc_depth;
 				int new_col = new_indent * INDENT_WIDTH;
 				cur_ctx = FmtContext(new_indent, new_col,
-					MAX_WIDTH - new_col);
+					max_col - new_col);
 				pad = LinePrefix(new_indent, new_col);
 				}
 
@@ -2096,9 +2095,8 @@ static Candidates FormatTypeDecl(const Node& node, const FmtContext& ctx)
 
 		int field_indent = ctx.Indent() + 1;
 		int field_col = field_indent * INDENT_WIDTH;
-		static constexpr int MAX_WIDTH = 80;
 		FmtContext field_ctx(field_indent, field_col,
-			MAX_WIDTH - field_col);
+			ctx.MaxCol() - field_col);
 		std::string field_pad = LinePrefix(field_indent, field_col);
 
 		// Collect fields, comments, blanks.

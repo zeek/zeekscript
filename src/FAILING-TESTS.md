@@ -18,12 +18,9 @@ test{017,111,112,113,114}
 Lambda expressions emit placeholder.
 test{094,095,096}
 
-
 ### Vertical call-arg layout (3)
 Multi-element set/redef not formatted one-per-line with trailing commas.
 test{041,097,098}
-
-
 
 ### Enum tweaks (2)
 Trailing comma missing, or short enums not collapsed to one line.
