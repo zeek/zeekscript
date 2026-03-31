@@ -1086,6 +1086,7 @@ class Emitter:
             for k in kids:
                 if k.type == "stmt_list":
                     self._emit_stmt_list(k)
+            self._emit_extras_in(node)
             self._close()
             self._mark_content(node)
             return
