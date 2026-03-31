@@ -2148,24 +2148,53 @@ static Candidates FormatSwitch(const Node& node, const FmtContext& ctx)
 // ------------------------------------------------------------------
 
 // Format a record field: "name: type attrs"
-static std::string FormatField(const Node& node, const FmtContext& ctx)
+// Format a record field.  suffix includes ";" and any trailing
+// comment so we can measure overflow and wrap attrs if needed.
+static std::string FormatField(const Node& node, const std::string& suffix,
+                               const FmtContext& ctx)
 	{
-	std::string text = node.Arg() + ": ";
+	std::string head = node.Arg() + ": ";
 
 	const Node* tc = FindTypeChild(node);
+	std::string type_str;
 	if ( tc )
-		text += Best(FormatExpr(*tc, ctx)).Text();
+		type_str = Best(FormatExpr(*tc, ctx)).Text();
 
-	// Find attr-list.
 	const Node* attrs = FindChild(node, Tag::AttrList);
+	std::string attr_str;
 	if ( attrs )
 		{
 		std::string as = FormatAttrList(*attrs, ctx);
 		if ( ! as.empty() )
-			text += " " + as;
+			attr_str = " " + as;
 		}
 
-	return text;
+	// Try flat.
+	std::string flat = head + type_str + attr_str + suffix;
+	if ( ctx.Col() + static_cast<int>(flat.size()) <= ctx.MaxCol() )
+		return flat;
+
+	// Wrap attrs to continuation line aligned one past type start.
+	if ( ! attr_str.empty() )
+		{
+		int attr_col = static_cast<int>(head.size()) + 1;
+		std::string pad = LinePrefix(ctx.Indent(),
+			ctx.Col() + attr_col);
+
+		auto attr_strs = FormatAttrStrings(*attrs, ctx);
+		std::string all_attrs;
+		for ( size_t i = 0; i < attr_strs.size(); ++i )
+			{
+			if ( i > 0 )
+				all_attrs += " ";
+			all_attrs += attr_strs[i];
+			}
+
+		return head + type_str + "\n" + pad +
+			all_attrs + suffix;
+		}
+
+	return flat;
 	}
 
 static Candidates FormatTypeDecl(const Node& node, const FmtContext& ctx)
@@ -2246,11 +2275,12 @@ static Candidates FormatTypeDecl(const Node& node, const FmtContext& ctx)
 
 			if ( t == Tag::Field )
 				{
+				std::string suffix = ";" +
+					kids[i]->TrailingComment();
 				std::string field_text =
-					FormatField(*kids[i], field_ctx);
+					FormatField(*kids[i], suffix, field_ctx);
 
-				body += field_pad + field_text + ";" +
-					kids[i]->TrailingComment() + "\n";
+				body += field_pad + field_text + "\n";
 				}
 			}
 

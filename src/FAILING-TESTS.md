@@ -1,4 +1,4 @@
-# C++ Formatter Failing Tests (133 pass, 40 fail as of 2026-03-31)
+# C++ Formatter Failing Tests (135 pass, 38 fail as of 2026-03-31)
 
 ## By category (sorted by count)
 
@@ -23,9 +23,6 @@ test{047,048}
 Missing trailing comma in `[1, ]`.
 test{084,085}
 
-### Record field attr wrapping (2)
-Field type + attrs not breaking across lines.
-test{139,174}
 
 ### For/while trailing comment (2)
 Comment after condition dropped.
@@ -224,3 +221,7 @@ entries chronological within a session date.
 - After multi-subscript INDEX fix: 133 pass, 40 fail
   - Fixed: test071 (FormatIndex only formatted first subscript)
   - FormatIndex: use FlatOrFill for multiple subscripts
+- After record field attr wrapping: 135 pass, 38 fail
+  - Fixed: test{139,174} (field type + attrs wrapping to continuation line)
+  - FormatField: wraps attrs to continuation aligned one past type start
+  - Removed "Record field attr wrapping" category (both fixed)
