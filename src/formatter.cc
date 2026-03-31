@@ -618,6 +618,54 @@ static Candidates FormatSchedule(const Node& node, const FmtContext& ctx)
 	return {Candidate(text, ctx)};
 	}
 
+// Format items one-per-line with indented body: open\n\titem,\n\titem\nclose.
+static Candidate FormatArgsVertical(const std::string& open,
+                                    const std::string& close,
+                                    const std::vector<ArgComment>& items,
+                                    const FmtContext& ctx)
+	{
+	int body_indent = ctx.Indent() + 1;
+	int body_col = body_indent * INDENT_WIDTH;
+	FmtContext body_ctx(body_indent, body_col, ctx.MaxCol() - body_col);
+	std::string body_pad = LinePrefix(body_indent, body_col);
+	std::string close_pad = LinePrefix(ctx.Indent(), ctx.IndentCol());
+
+	std::string text = open;
+	int lines = 1;
+	int ovf = 0;
+
+	for ( size_t i = 0; i < items.size(); ++i )
+		{
+		text += "\n" + body_pad;
+		++lines;
+
+		auto& it = items[i];
+		auto cs = FormatExpr(*it.arg, body_ctx);
+		const auto& best = Best(cs);
+		text += best.Text();
+
+		int line_w = body_col + best.Width();
+
+		if ( i + 1 < items.size() )
+			{
+			text += ",";
+			++line_w;
+			}
+
+		text += it.comment;
+		line_w += static_cast<int>(it.comment.size());
+
+		if ( line_w > ctx.MaxCol() )
+			ovf += line_w - ctx.MaxCol();
+		}
+
+	text += "\n" + close_pad + close;
+	++lines;
+
+	int last_w = ctx.IndentCol() + static_cast<int>(close.size());
+	return {text, last_w, lines, ovf, ctx.Col()};
+	}
+
 // ------------------------------------------------------------------
 // Constructor: table(...), set(...), vector(...)
 // ------------------------------------------------------------------
@@ -650,46 +698,8 @@ static Candidates FormatConstructor(const Node& node, const FmtContext& ctx)
 		}
 
 	// Candidate 2: one element per line, indented body.
-	int body_indent = ctx.Indent() + 1;
-	int body_col = body_indent * INDENT_WIDTH;
-	FmtContext body_ctx(body_indent, body_col, ctx.MaxCol() - body_col);
-	std::string body_pad = LinePrefix(body_indent, body_col);
-	std::string close_pad = LinePrefix(ctx.Indent(), ctx.IndentCol());
-
-	std::string text = keyword + "(";
-	int lines = 1;
-	int ovf = 0;
-
-	for ( size_t i = 0; i < items.size(); ++i )
-		{
-		text += "\n" + body_pad;
-		++lines;
-
-		auto& it = items[i];
-		auto cs = FormatExpr(*it.arg, body_ctx);
-		const auto& best = Best(cs);
-		text += best.Text();
-
-		int line_w = body_col + best.Width();
-
-		if ( i + 1 < items.size() )
-			{
-			text += ",";
-			++line_w;
-			}
-
-		text += it.comment;
-		line_w += static_cast<int>(it.comment.size());
-
-		if ( line_w > ctx.MaxCol() )
-			ovf += line_w - ctx.MaxCol();
-		}
-
-	text += "\n" + close_pad + ")";
-	++lines;
-
-	int last_w = ctx.IndentCol() + 1;
-	result.push_back({text, last_w, lines, ovf, ctx.Col()});
+	result.push_back(FormatArgsVertical(keyword + "(", ")",
+	                                    items, ctx));
 
 	return result;
 	}
@@ -731,7 +741,18 @@ static Candidates FormatIndexLiteral(const Node& node, const FmtContext& ctx)
 	if ( items.empty() )
 		return {Candidate("[]", ctx)};
 
-	return FlatOrFill("", '[', ']', "", items, has_comments, ctx);
+	// Check whether any item has a trailing comment (forces
+	// vertical indented layout since each line needs its own
+	// comment).  Leading-only comments use FlatOrFill.
+	bool has_trailing = false;
+	for ( const auto& it : items )
+		if ( ! it.comment.empty() )
+			has_trailing = true;
+
+	if ( ! has_trailing )
+		return FlatOrFill("", '[', ']', "", items, has_comments, ctx);
+
+	return {FormatArgsVertical("[", "]", items, ctx)};
 	}
 
 // ------------------------------------------------------------------

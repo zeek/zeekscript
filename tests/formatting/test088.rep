@@ -4,6 +4,7 @@ GLOBAL-DECL "global" "x" {
       CONSTANT "1"
       COMMENT-TRAILING "# Comment one"
       CONSTANT "2"
+      COMMENT-TRAILING "# Comment two"
     }
   }
   SEMI

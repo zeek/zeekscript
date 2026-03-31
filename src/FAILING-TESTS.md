@@ -1,4 +1,4 @@
-# C++ Formatter Failing Tests (122 pass, 51 fail as of 2026-03-31)
+# C++ Formatter Failing Tests (123 pass, 50 fail as of 2026-03-31)
 
 ## By category (sorted by count)
 
@@ -6,9 +6,9 @@
 Call args, assignments, binary ops not splitting at overflow.
 test{011,014,029,044,071,093,101,104,105,108,125,126,127,128,130,133,135,136,140}
 
-### Comment handling (3)
+### Comment handling (2)
 Comments dropped, mispositioned, or rendered as `/* COMMENT-xxx */`.
-test{088,109,134}
+test{109,134}
 
 ### LAMBDA support (3)
 Lambda expressions emit placeholder.
@@ -203,3 +203,9 @@ entries chronological within a session date.
   - _emit_extras_in was missing _maybe_blank and _mark_content calls,
     unlike _iter_children - all ~20 call sites silently dropped blank lines
   - Removed test057 from "Comment handling" category (now passes)
+- After INDEX-LITERAL trailing comment fix: 123 pass, 50 fail
+  - Fixed: test088 (trailing comments in index literal)
+  - Emitter: added _emit_extras_in to INDEX-LITERAL path (caught # Comment two)
+  - Formatter: FormatIndexLiteral uses vertical indented layout when items
+    have trailing comments; extracted shared FormatArgsVertical helper
+  - Removed test088 from "Comment handling" category (now passes)

@@ -431,6 +431,7 @@ class Emitter:
             self._open('INDEX-LITERAL')
             if args:
                 self._emit_expr_list(args[0])
+            self._emit_extras_in(node)
             self._close()
             self._mark_content(node)
             return
