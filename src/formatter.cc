@@ -1664,28 +1664,31 @@ static std::string FormatStmtList(const Node::NodeVec& nodes,
 
 		std::string semi_str = sibling_semi ? ";" : "";
 
-		// Peek ahead for trailing comment.  COMMENT-TRAILING
-		// always attaches.  COMMENT-PREV attaches only when the
-		// formatted statement is single-line (multi-line stmts
-		// get COMMENT-PREV on its own line instead).
+		// Peek ahead for trailing comment.
 		Tag next_tag = (i + 1 < nodes.size()) ?
 			nodes[i + 1]->GetTag() : Tag::Unknown;
 		bool maybe_trailing = next_tag == Tag::CommentTrailing ||
 			next_tag == Tag::CommentPrev;
 
-		auto it = FormatDispatch().find(t);
+		// Reserve trailing space so the formatter can account
+		// for the comment width on the last line.
+		std::string comment_text;
+		int comment_w = 0;
 
-		// Format the statement first so we can check line count.
+		if ( maybe_trailing )
+			{
+			comment_text = " " + nodes[i + 1]->Arg();
+			comment_w = static_cast<int>(comment_text.size());
+			}
+
+		int trail_w = static_cast<int>(semi_str.size()) +
+			comment_w;
+
+		auto it = FormatDispatch().find(t);
 		std::string stmt_text;
+
 		if ( it != FormatDispatch().end() )
 			{
-			// Tentatively reserve trailing space.
-			int tentative_trail =
-				maybe_trailing ?
-				static_cast<int>(
-					nodes[i + 1]->Arg().size()) + 1 : 0;
-			int trail_w = static_cast<int>(semi_str.size()) +
-				tentative_trail;
 			FmtContext stmt_ctx = cur_ctx.Reserve(trail_w);
 			auto cs = it->second(node, stmt_ctx);
 			stmt_text = Best(cs).Text();
@@ -1696,16 +1699,24 @@ static std::string FormatStmtList(const Node::NodeVec& nodes,
 			stmt_text = std::string("/* TODO: ") + s + " */";
 			}
 
-		// Now decide whether to attach the trailing comment.
+		// Attach the comment to the statement.
+		// COMMENT-TRAILING always attaches.  COMMENT-PREV
+		// attaches unless the statement is a compound block
+		// (ends with '}') where the comment belongs on its
+		// own line.
 		std::string trailing;
-		bool is_single_line = stmt_text.find('\n') ==
-			std::string::npos;
-
-		if ( maybe_trailing &&
-		     (next_tag == Tag::CommentTrailing || is_single_line) )
+		if ( maybe_trailing )
 			{
-			trailing = " " + nodes[i + 1]->Arg();
-			++i;
+			bool is_block = ! stmt_text.empty() &&
+				stmt_text.back() == '}';
+			bool attach = next_tag == Tag::CommentTrailing ||
+				! is_block;
+
+			if ( attach )
+				{
+				trailing = comment_text;
+				++i;
+				}
 			}
 
 		result += pad + stmt_text + semi_str + trailing + "\n";
