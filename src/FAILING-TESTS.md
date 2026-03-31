@@ -1,4 +1,4 @@
-# C++ Formatter Failing Tests (114 pass, 65 fail as of 2026-03-31)
+# C++ Formatter Failing Tests (115 pass, 64 fail as of 2026-03-31)
 
 ## By category (sorted by count)
 
@@ -6,9 +6,9 @@
 Call args, assignments, binary ops not splitting at overflow.
 test{011,014,029,044,071,093,101,104,105,108,125,126,127,128,130,133,135,136,140}
 
-### Comment handling (13)
+### Comment handling (12)
 Comments dropped, mispositioned, or rendered as `/* COMMENT-xxx */`.
-test{002,016,018,026,045,057,088,109,112,113,114,134,167}
+test{002,016,018,045,057,088,109,112,113,114,134,167}
 
 ### NO-FORMAT directives (5)
 `#@ NO-FORMAT` / `#@ BEGIN-NO-FORMAT` not honored.
@@ -177,3 +177,6 @@ entries chronological within a session date.
     leading comments emit on own lines before item
   - FlatOrFill: skips flat candidate when comments present
   - FormatConstructor/FormatCall/FormatIndexLiteral: use CollectArgs
+- After CALL open-bracket comment: 115 pass, 64 fail
+  - Fixed: test026 (COMMENT-TRAILING on CALL emitted after open paren)
+  - FlatOrFill: open_comment parameter for comment after open bracket

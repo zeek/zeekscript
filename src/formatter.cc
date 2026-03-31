@@ -513,7 +513,8 @@ static Candidates FlatOrFill(const std::string& prefix,
                              const std::string& suffix,
                              const std::vector<ArgComment>& items,
                              bool has_comments,
-                             const FmtContext& ctx)
+                             const FmtContext& ctx,
+                             const std::string& open_comment = "")
 	{
 	int prefix_w = static_cast<int>(prefix.size());
 	int suffix_w = static_cast<int>(suffix.size());
@@ -542,10 +543,21 @@ static Candidates FlatOrFill(const std::string& prefix,
 		}
 
 	// Greedy-fill: pack as many items per line as fit.
+	// When there's a comment after the open bracket, it occupies
+	// the first line and args start on the next line.
+	std::string fill_prefix;
+	if ( ! open_comment.empty() )
+		{
+		std::string pad = LinePrefix(ctx.Indent(), open_col);
+		fill_prefix = open_comment + "\n" + pad;
+		}
+
 	auto fill = FormatArgsFill(items, open_col, ctx.Indent(), inner_ctx);
-	std::string fill_text = prefix + ob + fill.Text() + cb + suffix;
+	std::string fill_text = prefix + ob + fill_prefix +
+		fill.Text() + cb + suffix;
 	int flast_w = fill.Width() + 1 + suffix_w;
-	result.push_back({fill_text, flast_w, fill.Lines(),
+	int fill_lines = fill.Lines() + (open_comment.empty() ? 0 : 1);
+	result.push_back({fill_text, flast_w, fill_lines,
 	                  fill.Ovf(), ctx.Col()});
 
 	return result;
@@ -561,12 +573,14 @@ static Candidates FormatCall(const Node& node, const FmtContext& ctx)
 	const auto& func = Best(func_cs);
 
 	const Node* args_node = nullptr;
+	std::string call_comment;
 	for ( const auto& c : kids )
+		{
 		if ( c->GetTag() == Tag::Args )
-			{
 			args_node = c.get();
-			break;
-			}
+		else if ( is_comment(c->GetTag()) && c.get() != kids[0].get() )
+			call_comment = " " + c->Arg();
+		}
 
 	if ( ! args_node )
 		return {func.Cat("()").In(ctx)};
@@ -576,7 +590,11 @@ static Candidates FormatCall(const Node& node, const FmtContext& ctx)
 	if ( items.empty() )
 		return {func.Cat("()").In(ctx)};
 
-	return FlatOrFill(func.Text(), '(', ')', "", items, has_comments, ctx);
+	if ( ! call_comment.empty() )
+		has_comments = true;
+
+	return FlatOrFill(func.Text(), '(', ')', "", items,
+		has_comments, ctx, call_comment);
 	}
 
 // ------------------------------------------------------------------
@@ -2307,7 +2325,9 @@ static Candidates FormatExpr(const Node& node, const FmtContext& ctx)
 	if ( it != FormatDispatch().end() )
 		return it->second(node, ctx);
 
-	return {Candidate(std::string("/* ") + TagToString(node.GetTag()) + " */", ctx)};
+	std::string fallback = std::string("/* ") +
+		TagToString(node.GetTag()) + " */";
+	return {Candidate(fallback, ctx)};
 	}
 
 // ------------------------------------------------------------------
