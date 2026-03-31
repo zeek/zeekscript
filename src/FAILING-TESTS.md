@@ -1,4 +1,4 @@
-# C++ Formatter Failing Tests (120 pass, 53 fail as of 2026-03-31)
+# C++ Formatter Failing Tests (121 pass, 52 fail as of 2026-03-31)
 
 ## By category (sorted by count)
 
@@ -6,9 +6,9 @@
 Call args, assignments, binary ops not splitting at overflow.
 test{011,014,029,044,071,093,101,104,105,108,125,126,127,128,130,133,135,136,140}
 
-### Comment handling (5)
+### Comment handling (4)
 Comments dropped, mispositioned, or rendered as `/* COMMENT-xxx */`.
-test{018,057,088,109,134}
+test{057,088,109,134}
 
 ### LAMBDA support (3)
 Lambda expressions emit placeholder.
@@ -190,3 +190,11 @@ entries chronological within a session date.
   - FormatWhitesmithBlock: first-child COMMENT-TRAILING goes after open brace
   - WarnStandaloneTrailing: validates no trailing comment renders standalone
   - Dump: emits TrailingComment as COMMENT-TRAILING sibling for round-trip fidelity
+- After emitter blank-before-else + FormatIf comment fix: 121 pass, 52 fail
+  - Fixed: test018 (blank line before else with trailing comment)
+  - Emitter: _emit_if_extras skips nl nodes, emits BLANK by checking gap
+    between body.end_byte and else keyword (not else_body, which spans too far)
+  - FormatIf: fix double-blank when BLANK + comments before else; first comment
+    no longer gets redundant "\n" prefix (line 1996 provides body-ending newline)
+  - Updated .rep files: test{018,032} (BLANK before else); test110 reverted
+  - Removed test018 from "Comment handling" category (now passes)

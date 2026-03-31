@@ -1980,9 +1980,11 @@ static Candidates FormatIf(const Node& node, const FmtContext& ctx)
 
 		if ( is_comment(ct) )
 			{
-			if ( blank_before_else && if_comments.empty() )
+			if ( ! if_comments.empty() )
 				if_comments += "\n";
-			if_comments += "\n" + stmt_pad + c->Arg();
+			else if ( blank_before_else )
+				if_comments += "\n";
+			if_comments += stmt_pad + c->Arg();
 			blank_before_else = false;
 			}
 		}

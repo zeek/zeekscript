@@ -21,6 +21,7 @@ FUNC-DECL "function" "some_func" {
           SEMI
         }
       }
+      BLANK
       COMMENT-LEADING "# This handles the fallback case."
       COMMENT-LEADING "# Check secondary pattern too."
       ELSE {

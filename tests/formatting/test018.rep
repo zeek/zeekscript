@@ -38,6 +38,7 @@ FUNC-DECL "function" "some_func" {
         }
       }
       COMMENT-TRAILING "#@ NOT-TESTED"
+      BLANK
       ELSE {
         IF {
           COND {

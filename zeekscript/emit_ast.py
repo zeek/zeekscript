@@ -1172,6 +1172,7 @@ class Emitter:
         """Emit extra children of `node` between `after_node` and
         `before_node`.  `ref_node` is used for same-line detection."""
         past_after = after_node is None
+        had_extras = False
         for child in node.children:
             if not child.is_extra:
                 if child == after_node:
@@ -1182,8 +1183,8 @@ class Emitter:
             if not past_after:
                 continue
             if child.type == "nl":
-                self._maybe_blank(child)
                 continue
+            self._maybe_blank(child)
             text = self._text(child)
             same_line = (ref_node is not None
                     and child.start_point[0]
@@ -1195,12 +1196,16 @@ class Emitter:
             else:
                 self._w(f'COMMENT-LEADING {_quote(text)}')
             self._mark_content(child)
+            had_extras = True
+
+        return had_extras
 
     def _emit_if(self, node: tree_sitter.Node) -> None:
         # Classify non-extra children.
         kids = self._children(node)
         cond = None
         body = None
+        else_kw = None
         else_body = None
         found_else = False
         for k in kids:
@@ -1210,6 +1215,7 @@ class Emitter:
                 body = k
             elif self._text(k) == "else":
                 found_else = True
+                else_kw = k
             elif k.type == "stmt" and found_else:
                 else_body = k
 
@@ -1228,8 +1234,17 @@ class Emitter:
             self._emit_stmt(body)
             self._close()
 
-        # Emit extras between body and else.
-        self._emit_if_extras(node, body, else_body, ref_node=body)
+        # Emit extras between body and else, then check for a
+        # blank line before the else keyword.
+        if else_kw:
+            had_extras = self._emit_if_extras(
+                node, body, else_body, ref_node=body)
+            if had_extras:
+                self._maybe_blank(else_kw)
+            elif (body is not None
+                    and self._has_blank(body.end_byte,
+                                        else_kw.start_byte)):
+                self._w("BLANK")
 
         if else_body:
             self._open('ELSE')
