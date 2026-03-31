@@ -27,6 +27,13 @@ public:
 		{ return args; }
 	const NodeVec& Children() const
 		{ return children; }
+	NodeVec& Children()
+		{ return children; }
+
+	const std::string& TrailingComment() const
+		{ return trailing_comment; }
+	void SetTrailingComment(std::string c)
+		{ trailing_comment = " " + std::move(c); }
 
 	void AddArg(std::string a)
 		{ args.push_back(std::move(a)); }
@@ -49,5 +56,6 @@ private:
 	Tag tag;
 	std::vector<std::string> args;
 	NodeVec children;
+	std::string trailing_comment;
 	bool has_block = false;
 };

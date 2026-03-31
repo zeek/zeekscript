@@ -225,8 +225,8 @@ struct ArgComment
 	};
 
 // Scan a node's children, pairing each non-comment child with
-// any trailing COMMENT-TRAILING/COMMENT-PREV that follows it
-// and any COMMENT-LEADING that precedes it.
+// its trailing comment (from the node's TrailingComment field or
+// a COMMENT-PREV sibling) and any COMMENT-LEADING that precedes it.
 // Returns the items and whether any comments were found.
 static std::pair<std::vector<ArgComment>, bool>
 CollectArgs(const Node::NodeVec& children)
@@ -242,8 +242,7 @@ CollectArgs(const Node::NodeVec& children)
 
 		if ( is_comment(t) )
 			{
-			if ( (t == Tag::CommentTrailing ||
-			      t == Tag::CommentPrev) && ! items.empty() )
+			if ( t == Tag::CommentPrev && ! items.empty() )
 				items.back().comment = " " + c->Arg();
 
 			else if ( t == Tag::CommentLeading )
@@ -253,7 +252,11 @@ CollectArgs(const Node::NodeVec& children)
 			continue;
 			}
 
-		items.push_back({c.get(), {}, std::move(pending_leading)});
+		if ( ! c->TrailingComment().empty() )
+			has_comments = true;
+
+		items.push_back({c.get(), c->TrailingComment(),
+		                 std::move(pending_leading)});
 		pending_leading.clear();
 		}
 
@@ -572,15 +575,7 @@ static Candidates FormatCall(const Node& node, const FmtContext& ctx)
 	auto func_cs = FormatExpr(*kids[0], ctx);
 	const auto& func = Best(func_cs);
 
-	const Node* args_node = nullptr;
-	std::string call_comment;
-	for ( const auto& c : kids )
-		{
-		if ( c->GetTag() == Tag::Args )
-			args_node = c.get();
-		else if ( is_comment(c->GetTag()) && c.get() != kids[0].get() )
-			call_comment = " " + c->Arg();
-		}
+	const Node* args_node = FindChild(node, Tag::Args);
 
 	if ( ! args_node )
 		return {func.Cat("()").In(ctx)};
@@ -590,11 +585,13 @@ static Candidates FormatCall(const Node& node, const FmtContext& ctx)
 	if ( items.empty() )
 		return {func.Cat("()").In(ctx)};
 
-	if ( ! call_comment.empty() )
+	// Trailing comment on ARGS acts as an open-bracket comment
+	// (goes after the open paren, with args on the next line).
+	if ( ! args_node->TrailingComment().empty() )
 		has_comments = true;
 
 	return FlatOrFill(func.Text(), '(', ')', "", items,
-		has_comments, ctx, call_comment);
+		has_comments, ctx, args_node->TrailingComment());
 	}
 
 // ------------------------------------------------------------------
@@ -1647,6 +1644,12 @@ static std::string FormatStmtList(const Node::NodeVec& nodes,
 			continue;
 			}
 
+		// COMMENT-TRAILING nodes are handled by the parser
+		// (attached to preceding node) or by the parent
+		// (e.g. after open brace).  Skip them here.
+		if ( t == Tag::CommentTrailing )
+			continue;
+
 		if ( is_comment(t) )
 			{
 			result += pad + node.Arg() + "\n";
@@ -1664,25 +1667,20 @@ static std::string FormatStmtList(const Node::NodeVec& nodes,
 
 		std::string semi_str = sibling_semi ? ";" : "";
 
-		// Peek ahead for trailing comment.
+		// Check for trailing comment on the node or its SEMI.
+		std::string comment_text = node.TrailingComment();
+		if ( comment_text.empty() && sibling_semi )
+			comment_text = nodes[i]->TrailingComment();
+
+		// Peek ahead for COMMENT-PREV (##< / #@ annotations).
 		Tag next_tag = (i + 1 < nodes.size()) ?
 			nodes[i + 1]->GetTag() : Tag::Unknown;
-		bool maybe_trailing = next_tag == Tag::CommentTrailing ||
-			next_tag == Tag::CommentPrev;
 
-		// Reserve trailing space so the formatter can account
-		// for the comment width on the last line.
-		std::string comment_text;
-		int comment_w = 0;
-
-		if ( maybe_trailing )
-			{
+		if ( comment_text.empty() && next_tag == Tag::CommentPrev )
 			comment_text = " " + nodes[i + 1]->Arg();
-			comment_w = static_cast<int>(comment_text.size());
-			}
 
-		int trail_w = static_cast<int>(semi_str.size()) +
-			comment_w;
+		int comment_w = static_cast<int>(comment_text.size());
+		int trail_w = static_cast<int>(semi_str.size()) + comment_w;
 
 		auto it = FormatDispatch().find(t);
 		std::string stmt_text;
@@ -1700,23 +1698,27 @@ static std::string FormatStmtList(const Node::NodeVec& nodes,
 			}
 
 		// Attach the comment to the statement.
-		// COMMENT-TRAILING always attaches.  COMMENT-PREV
+		// Trailing comments always attach.  COMMENT-PREV
 		// attaches unless the statement is a compound block
 		// (ends with '}') where the comment belongs on its
 		// own line.
 		std::string trailing;
-		if ( maybe_trailing )
+		if ( ! comment_text.empty() )
 			{
-			bool is_block = ! stmt_text.empty() &&
-				stmt_text.back() == '}';
-			bool attach = next_tag == Tag::CommentTrailing ||
-				! is_block;
+			bool from_prev = next_tag == Tag::CommentPrev &&
+				node.TrailingComment().empty();
 
-			if ( attach )
+			if ( from_prev )
 				{
-				trailing = comment_text;
-				++i;
+				if ( stmt_text.empty() ||
+				     stmt_text.back() != '}' )
+					{
+					trailing = comment_text;
+					++i;
+					}
 				}
+			else
+				trailing = comment_text;
 			}
 
 		result += pad + stmt_text + semi_str + trailing + "\n";
@@ -1737,10 +1739,19 @@ static std::string FormatWhitesmithBlock(const Node* body,
 	if ( ! body || body->Children().empty() )
 		return "\n" + brace_pad + "{ }";
 
-	std::string body_text =
-		FormatStmtList(body->Children(), block_ctx, true);
+	const auto& kids = body->Children();
 
-	return "\n" + brace_pad + "{\n" + body_text + brace_pad + "}";
+	// Check if the first child is a trailing comment (no preceding
+	// sibling to attach to) - it goes after the open brace.
+	std::string brace_trail;
+	if ( kids[0]->GetTag() == Tag::CommentTrailing )
+		brace_trail = " " + kids[0]->Arg();
+
+	std::string body_text =
+		FormatStmtList(kids, block_ctx, true);
+
+	return "\n" + brace_pad + "{" + brace_trail + "\n" +
+		body_text + brace_pad + "}";
 	}
 
 // Format a single-statement body (no braces, indented one level).
@@ -1847,7 +1858,7 @@ static Candidates FormatFuncDecl(const Node& node, const FmtContext& ctx)
 			attr_str = " " + as;
 		}
 
-	// Trailing comments.
+	// Trailing comments on the func decl.
 	std::string trail_str;
 	for ( const auto& c : node.Children() )
 		if ( c->GetTag() == Tag::CommentPrev )
@@ -1942,9 +1953,16 @@ static Candidates FormatIf(const Node& node, const FmtContext& ctx)
 		}
 
 	std::string head = "if ( " + cond_text + " )";
+
+	if ( cond_node )
+		head += cond_node->TrailingComment();
+
 	std::string result = head + FormatBodyText(body_node, ctx);
 
-	// Collect comment and blank children of the IF node.
+	if ( body_node )
+		result += body_node->TrailingComment();
+
+	// Collect leading comment and blank children of the IF node.
 	// Comments before ELSE become leading comments; a BLANK before
 	// the else (or its leading comments) produces a blank line.
 	std::string if_comments;
@@ -1960,12 +1978,7 @@ static Candidates FormatIf(const Node& node, const FmtContext& ctx)
 			continue;
 			}
 
-		if ( ct == Tag::CommentTrailing )
-			{
-			// Append to the last line of result.
-			result += " " + c->Arg();
-			}
-		else if ( is_comment(ct) )
+		if ( is_comment(ct) )
 			{
 			if ( blank_before_else && if_comments.empty() )
 				if_comments += "\n";
@@ -2262,17 +2275,8 @@ static Candidates FormatTypeDecl(const Node& node, const FmtContext& ctx)
 				std::string field_text =
 					FormatField(*kids[i], field_ctx);
 
-				// Check for trailing comment.
-				std::string trailing;
-				if ( i + 1 < kids.size() &&
-				     kids[i + 1]->GetTag() == Tag::CommentTrailing )
-					{
-					trailing = " " + kids[i + 1]->Arg();
-					++i;
-					}
-
 				body += field_pad + field_text + ";" +
-					trailing + "\n";
+					kids[i]->TrailingComment() + "\n";
 				}
 			}
 
@@ -2403,17 +2407,17 @@ static Candidates FormatExprStmt(const Node& node, const FmtContext& ctx)
 // Top-level formatting
 // ------------------------------------------------------------------
 
-// Collect all COMMENT-TRAILING text from a node tree.
+// Collect all trailing comments from node fields.
 static void CollectTrailing(const Node& node,
                             std::vector<std::string>& out)
 	{
-	if ( node.GetTag() == Tag::CommentTrailing )
-		out.push_back(node.Arg());
+	if ( ! node.TrailingComment().empty() )
+		out.push_back(node.TrailingComment());
 	for ( const auto& c : node.Children() )
 		CollectTrailing(*c, out);
 	}
 
-// Check that every COMMENT-TRAILING text appears on a line that has
+// Check that every trailing comment appears on a line that has
 // preceding content - never as a standalone line.
 static void WarnStandaloneTrailing(const std::string& output,
                                    const Node::NodeVec& nodes)
@@ -2427,8 +2431,8 @@ static void WarnStandaloneTrailing(const std::string& output,
 		auto pos = output.find(text);
 		if ( pos == std::string::npos )
 			{
-			fprintf(stderr, "warning: COMMENT-TRAILING dropped: %s\n",
-			        text.c_str());
+			fprintf(stderr, "warning: trailing comment dropped: "
+			        "%s\n", text.c_str());
 			continue;
 			}
 
@@ -2446,7 +2450,7 @@ static void WarnStandaloneTrailing(const std::string& output,
 				}
 
 		if ( ! has_content )
-			fprintf(stderr, "warning: COMMENT-TRAILING on its own "
+			fprintf(stderr, "warning: trailing comment on its own "
 			        "line: %s\n", text.c_str());
 		}
 	}

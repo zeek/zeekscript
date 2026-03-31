@@ -20,7 +20,13 @@ Node::NodeVec Parser::ParseFile()
 		if ( ! node )
 			return {};  // error already reported
 
-		nodes.push_back(std::move(node));
+		// Attach COMMENT-TRAILING to the preceding node.
+		if ( node->GetTag() == Tag::CommentTrailing &&
+		     ! nodes.empty() )
+			nodes.back()->SetTrailingComment(node->Arg());
+		else
+			nodes.push_back(std::move(node));
+
 		SkipWhitespace();
 		}
 
@@ -69,7 +75,14 @@ std::unique_ptr<Node> Parser::ParseNode()
 			if ( ! child )
 				return nullptr;
 
-			node->AddChild(std::move(child));
+			// Attach COMMENT-TRAILING to the preceding child node.
+			if ( child->GetTag() == Tag::CommentTrailing
+			     && node->HasChildren() )
+				node->Children().back()->SetTrailingComment(
+								child->Arg());
+			else
+				node->AddChild(std::move(child));
+
 			SkipWhitespace();
 			}
 

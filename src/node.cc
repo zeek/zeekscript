@@ -43,10 +43,22 @@ void Node::Dump(int indent) const
 	if ( ! has_block )
 		{
 		printf("\n");
+
+		// Emit trailing comment as a sibling COMMENT-TRAILING line.
+		// Strip leading space added by SetTrailingComment.
+		if ( ! trailing_comment.empty() )
+			{
+			for ( int i = 0; i < indent; ++i )
+				printf("  ");
+			printf("COMMENT-TRAILING ");
+			PrintQuoted(trailing_comment.substr(1));
+			printf("\n");
+			}
+
 		return;
 		}
 
-	if ( children.empty() )
+	if ( children.empty() && trailing_comment.empty() )
 		{
 		printf(" {\n");
 		for ( int i = 0; i < indent; ++i )
@@ -63,4 +75,15 @@ void Node::Dump(int indent) const
 	for ( int i = 0; i < indent; ++i )
 		printf("  ");
 	printf("}\n");
+
+	// Emit trailing comment as a sibling after the block.
+	// Strip leading space added by SetTrailingComment.
+	if ( ! trailing_comment.empty() )
+		{
+		for ( int i = 0; i < indent; ++i )
+			printf("  ");
+		printf("COMMENT-TRAILING ");
+		PrintQuoted(trailing_comment.substr(1));
+		printf("\n");
+		}
 	}

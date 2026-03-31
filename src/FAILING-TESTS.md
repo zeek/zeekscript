@@ -1,4 +1,4 @@
-# C++ Formatter Failing Tests (118 pass, 55 fail as of 2026-03-31)
+# C++ Formatter Failing Tests (120 pass, 53 fail as of 2026-03-31)
 
 ## By category (sorted by count)
 
@@ -6,9 +6,9 @@
 Call args, assignments, binary ops not splitting at overflow.
 test{011,014,029,044,071,093,101,104,105,108,125,126,127,128,130,133,135,136,140}
 
-### Comment handling (6)
+### Comment handling (5)
 Comments dropped, mispositioned, or rendered as `/* COMMENT-xxx */`.
-test{018,057,088,109,134,167}
+test{018,057,088,109,134}
 
 ### LAMBDA support (3)
 Lambda expressions emit placeholder.
@@ -48,7 +48,6 @@ test038 (needs LAMBDA support first)
 - test115: Extra spaces inside PAREN
 - test124: PRINT with multiple exprs (only first printed)
 - test161: ASSERT keyword not supported
-- test163: `#@` annotation after if condition dropped
 
 ## Notes
 - Some tests appear in multiple categories; listed under primary failure.
@@ -184,3 +183,10 @@ entries chronological within a session date.
   - _emit_func_body: same-line check priority over #@ prefix; track { } lines
   - _emit_if_extras: new helper for extras between cond/body and body/else
   - Regenerated 15 .rep files with improved comment/blank positioning
+- After trailing comment as Node field: 120 pass, 53 fail
+  - Fixed: test{163,167} (trailing comment on if-cond and after open brace)
+  - Parser attaches COMMENT-TRAILING to preceding sibling's TrailingComment field
+  - Removed peek-ahead in FormatStmtList, FormatIf, FormatTypeDecl, CollectArgs
+  - FormatWhitesmithBlock: first-child COMMENT-TRAILING goes after open brace
+  - WarnStandaloneTrailing: validates no trailing comment renders standalone
+  - Dump: emits TrailingComment as COMMENT-TRAILING sibling for round-trip fidelity
