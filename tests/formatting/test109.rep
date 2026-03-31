@@ -11,7 +11,7 @@ FUNC-DECL "function" "some_func" {
     }
   }
   BODY {
-    COMMENT-PREV "#@ BEGIN-SKIP-TESTING"
+    COMMENT-LEADING "#@ BEGIN-SKIP-TESTING"
     IF {
       COND {
         BINARY-OP "in" {
@@ -24,7 +24,7 @@ FUNC-DECL "function" "some_func" {
         SEMI
       }
     }
-    COMMENT-PREV "#@ END-SKIP-TESTING"
+    COMMENT-LEADING "#@ END-SKIP-TESTING"
     BLANK
     EXPR-STMT {
       CALL {

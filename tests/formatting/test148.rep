@@ -1,4 +1,4 @@
-COMMENT-PREV "#@ BEGIN"
+COMMENT-LEADING "#@ BEGIN"
 FUNC-DECL "function" "foo" {
   BODY {
     EXPR-STMT {
@@ -9,4 +9,4 @@ FUNC-DECL "function" "foo" {
     }
   }
 }
-COMMENT-PREV "#@ END"
+COMMENT-LEADING "#@ END"

@@ -1824,11 +1824,10 @@ static Candidates FormatFuncDecl(const Node& node, const FmtContext& ctx)
 			attr_str = " " + as;
 		}
 
-	// Trailing comments on the func decl.
+	// Trailing comment on the func decl (attached to body).
 	std::string trail_str;
-	for ( const auto& c : node.Children() )
-		if ( c->GetTag() == Tag::CommentPrev )
-			trail_str += " " + c->Arg();
+	if ( body && ! body->TrailingComment().empty() )
+		trail_str = body->TrailingComment();
 
 	std::string block = FormatWhitesmithBlock(body, ctx);
 

@@ -21,4 +21,4 @@ EXPR-STMT {
   }
   SEMI
 }
-COMMENT-PREV "#@ annotation"
+COMMENT-TRAILING "#@ annotation"

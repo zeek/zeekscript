@@ -8,7 +8,7 @@ EXPR-STMT {
           CONSTANT "\"tracking %s %s\""
           IDENTIFIER "host"
           IDENTIFIER "some_uid"
-          COMMENT-PREV "#@ NOT-TESTED"
+          COMMENT-TRAILING "#@ NOT-TESTED"
           IDENTIFIER "some_dest"
           IDENTIFIER "extra_data"
         }

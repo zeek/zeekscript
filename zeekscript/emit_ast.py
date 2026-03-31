@@ -114,20 +114,13 @@ class Emitter:
             self._maybe_blank(child)
             text = self._text(child)
 
-            # Prev-attached: ##< (zeekygen prev) or #@ (annotation)
-            if text.startswith("##<") or text.startswith("#@"):
-                self._w(f'COMMENT-PREV {_quote(text)}')
-                self._mark_content(child)
-                continue
-
-            # Find preceding and following non-extra siblings for context.
+            # Find preceding non-extra sibling for same-line check.
             prev_content = None
             for j in range(i - 1, -1, -1):
                 if not children[j].is_extra:
                     prev_content = children[j]
                     break
 
-            # Trailing: same line as preceding content
             if (prev_content is not None
                     and child.start_point[0] == prev_content.end_point[0]):
                 self._w(f'COMMENT-TRAILING {_quote(text)}')
@@ -149,9 +142,7 @@ class Emitter:
                     continue
                 self._maybe_blank(child)
                 text = self._text(child)
-                if text.startswith("##<") or text.startswith("#@"):
-                    self._w(f'COMMENT-PREV {_quote(text)}')
-                elif (last_non_extra is not None
+                if (last_non_extra is not None
                         and child.start_point[0]
                             == last_non_extra.end_point[0]):
                     self._w(f'COMMENT-TRAILING {_quote(text)}')
@@ -190,9 +181,7 @@ class Emitter:
                 if child.type != "nl":
                     self._maybe_blank(child)
                     text = self._text(child)
-                    if text.startswith("##<") or text.startswith("#@"):
-                        self._w(f'COMMENT-PREV {_quote(text)}')
-                    elif (self._prev_content_line >= 0
+                    if (self._prev_content_line >= 0
                           and child.start_point[0]
                               == self._prev_content_line):
                         self._w(f'COMMENT-TRAILING {_quote(text)}')
@@ -945,8 +934,6 @@ class Emitter:
                             == self._prev_content_line)
                 if same_line:
                     self._w(f'COMMENT-TRAILING {_quote(text)}')
-                elif text.startswith("##<") or text.startswith("#@"):
-                    self._w(f'COMMENT-PREV {_quote(text)}')
                 else:
                     self._w(f'COMMENT-LEADING {_quote(text)}')
                 self._mark_content(child)
@@ -1038,9 +1025,7 @@ class Emitter:
                 if child.type != "nl":
                     self._maybe_blank(child)
                     text = self._text(child)
-                    if text.startswith("##<") or text.startswith("#@"):
-                        self._w(f'COMMENT-PREV {_quote(text)}')
-                    elif (self._prev_content_line >= 0
+                    if (self._prev_content_line >= 0
                           and child.start_point[0]
                               == self._prev_content_line):
                         self._w(f'COMMENT-TRAILING {_quote(text)}')
@@ -1196,8 +1181,6 @@ class Emitter:
                         == ref_node.end_point[0])
             if same_line:
                 self._w(f'COMMENT-TRAILING {_quote(text)}')
-            elif text.startswith("##<") or text.startswith("#@"):
-                self._w(f'COMMENT-PREV {_quote(text)}')
             else:
                 self._w(f'COMMENT-LEADING {_quote(text)}')
             self._mark_content(child)

@@ -1,4 +1,4 @@
-# C++ Formatter Failing Tests (123 pass, 50 fail as of 2026-03-31)
+# C++ Formatter Failing Tests (124 pass, 49 fail as of 2026-03-31)
 
 ## By category (sorted by count)
 
@@ -6,9 +6,9 @@
 Call args, assignments, binary ops not splitting at overflow.
 test{011,014,029,044,071,093,101,104,105,108,125,126,127,128,130,133,135,136,140}
 
-### Comment handling (2)
+### Comment handling (1)
 Comments dropped, mispositioned, or rendered as `/* COMMENT-xxx */`.
-test{109,134}
+test134
 
 ### LAMBDA support (3)
 Lambda expressions emit placeholder.
@@ -209,3 +209,11 @@ entries chronological within a session date.
   - Formatter: FormatIndexLiteral uses vertical indented layout when items
     have trailing comments; extracted shared FormatArgsVertical helper
   - Removed test088 from "Comment handling" category (now passes)
+- After removing COMMENT-PREV special-casing: 124 pass, 49 fail
+  - Fixed: test109 (#@ comments no longer force COMMENT-PREV)
+  - Emitter: removed all 6 instances of ##</#@ -> COMMENT-PREV classification;
+    all comments now classified by same-line test only (TRAILING vs LEADING)
+  - Formatter: FormatFuncDecl reads body->TrailingComment() instead of
+    scanning for COMMENT-PREV children
+  - Regenerated .rep files: test{001,002,003,020,030,045,109,134,148}
+  - Removed test109 from "Comment handling" category (now passes)
