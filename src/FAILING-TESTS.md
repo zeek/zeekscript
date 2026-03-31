@@ -1,4 +1,4 @@
-# C++ Formatter Failing Tests (110 pass, 69 fail as of 2026-03-30)
+# C++ Formatter Failing Tests (111 pass, 68 fail as of 2026-03-30)
 
 ## By category (sorted by count)
 
@@ -23,9 +23,6 @@ test{094,095,096}
 Multi-element set/redef not formatted one-per-line with trailing commas.
 test{041,097,098}
 
-### TYPE-PARAMETERIZED bracket wrapping (3)
-Long bracket type lists not wrapping across lines.
-test{066,172,176}
 
 
 ### Enum tweaks (2)
@@ -162,3 +159,9 @@ entries chronological within a session date.
   - Added FitCol() helper: prefer align_col, back up to max_col - 1 if needed
   - Updated baseline: test060 (params pack tighter on continuation line)
   - Removed "Param-list wrapping" category (both fixed)
+- After TYPE-PARAMETERIZED bracket wrapping + decl type-split: 111 pass, 68 fail
+  - Fixed: test{066,172,176} (bracket type wrapping + type-split to indented line)
+  - FormatTypeParam: greedy-fill bracket types when flat overflows
+  - FormatDecl: split after ":" with type on indented line when head+type overflows
+  - Updated baseline: test172 (current output acceptable)
+  - Removed "TYPE-PARAMETERIZED bracket wrapping" category (all 3 fixed)

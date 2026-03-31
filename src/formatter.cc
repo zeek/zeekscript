@@ -776,6 +776,10 @@ static Candidates FormatTypeParam(const Node& node, const FmtContext& ctx)
 		}
 
 	std::string text = keyword;
+	std::string suffix;
+
+	if ( of_type )
+		suffix = " of " + Best(FormatExpr(*of_type, ctx)).Text();
 
 	if ( ! bracket_types.empty() )
 		{
@@ -790,10 +794,23 @@ static Candidates FormatTypeParam(const Node& node, const FmtContext& ctx)
 		text += "]";
 		}
 
-	if ( of_type )
-		text += " of " + Best(FormatExpr(*of_type, ctx)).Text();
+	text += suffix;
+	Candidate flat(text, ctx);
 
-	return {Candidate(text, ctx)};
+	if ( flat.Fits() || bracket_types.size() <= 1 )
+		return {flat};
+
+	// Greedy-fill bracket types, aligning after "[".
+	int open_col = ctx.Col() + static_cast<int>(keyword.size()) + 1;
+	int suffix_w = static_cast<int>(suffix.size()) + 1;  // +1 for "]"
+	FmtContext inner_ctx(ctx.Indent(), open_col,
+	                     ctx.MaxCol() - open_col - suffix_w);
+	auto fill = FormatArgsFill(bracket_types, open_col,
+	                           ctx.Indent(), inner_ctx);
+	std::string ft = keyword + "[" + fill.Text() + "]" + suffix;
+	int flast_w = fill.Width() + suffix_w;
+	return {flat, {ft, flast_w, fill.Lines(), fill.Ovf(),
+	               ctx.Col()}};
 	}
 
 // Needs a better name - suggest it plz, Claude.
@@ -1051,10 +1068,63 @@ static Candidates FormatDecl(const Node& node, const FmtContext& ctx)
 			                  ctx.Col()});
 			}
 		}
+
 	else
 		{
 		std::string flat = head + type_str + suffix;
 		result.push_back(Candidate(flat, ctx));
+
+		// Split after ":" - type on indented continuation.
+		// Only when head + type itself overflows.
+		int head_type_w = static_cast<int>((head + type_str).size());
+		if ( head_type_w > ctx.MaxCol() && ! type_str.empty() )
+			{
+			FmtContext cont = ctx.Indented();
+			auto type_cs = FormatExpr(*type_node->Children()[0],
+							cont);
+			std::string tv = Best(type_cs).Text();
+
+			std::string line1 = head + ":";
+			std::string pad = LinePrefix(cont.Indent(), cont.Col());
+
+			// Try type + suffix on one continuation line.
+			std::string oneline = tv + suffix;
+			if ( cont.Col() + static_cast<int>(oneline.size()) <=
+			     ctx.MaxCol() )
+				{
+				std::string split = line1 + "\n" +
+							pad + oneline;
+				int last_w = LastLineLen(split);
+				result.push_back({split, last_w,
+					CountLines(split),
+					Ovf(last_w, ctx), ctx.Col()});
+				}
+			else
+				{
+				// Type alone, attrs on separate lines.
+				std::string semi_str = has_semi ? ";" : "";
+				std::string type_suffix = attrs_node ?
+					"" : suffix;
+				std::string split = line1 + "\n" +
+					pad + tv + type_suffix;
+
+				if ( attrs_node )
+					{
+					auto astrs = FormatAttrStrings(
+						*attrs_node, ctx);
+					std::string ap = LinePrefix(
+						cont.Indent(), cont.Col());
+					for ( const auto& a : astrs )
+						split += "\n" + ap + a;
+					split += semi_str;
+					}
+
+				int last_w = LastLineLen(split);
+				result.push_back({split, last_w,
+					CountLines(split),
+					Ovf(last_w, ctx), ctx.Col()});
+				}
+			}
 		}
 
 	// --- Candidate: wrapped attrs (type on first line, attrs below) ---
