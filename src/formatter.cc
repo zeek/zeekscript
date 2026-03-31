@@ -686,18 +686,21 @@ static Candidates FormatIndexLiteral(const Node& node, const FmtContext& ctx)
 	if ( items.empty() )
 		return {Candidate("[]", ctx)};
 
-	// Check whether any item has a trailing comment (forces
-	// vertical indented layout since each line needs its own
-	// comment).  Leading-only comments use FlatOrFill.
-	bool has_trailing = false;
-	for ( const auto& it : items )
-		if ( ! it.comment.empty() )
-			has_trailing = true;
+	// When every item has a trailing comment, use vertical indented
+	// layout (each item on its own line).  Otherwise use fill, which
+	// packs items and wraps after any trailing comment.
+	if ( has_comments )
+		{
+		bool all_trailing = true;
+		for ( const auto& it : items )
+			if ( it.comment.empty() )
+				all_trailing = false;
 
-	if ( ! has_trailing )
-		return FlatOrFill("", '[', ']', "", items, has_comments, ctx);
+		if ( all_trailing )
+			return {FormatArgsVertical("[", "]", items, ctx)};
+		}
 
-	return {FormatArgsVertical("[", "]", items, ctx)};
+	return FlatOrFill("", '[', ']', "", items, has_comments, ctx);
 	}
 
 // ------------------------------------------------------------------

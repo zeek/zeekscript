@@ -1,4 +1,4 @@
-# C++ Formatter Failing Tests (124 pass, 49 fail as of 2026-03-31)
+# C++ Formatter Failing Tests (125 pass, 48 fail as of 2026-03-31)
 
 ## By category (sorted by count)
 
@@ -6,9 +6,6 @@
 Call args, assignments, binary ops not splitting at overflow.
 test{011,014,029,044,071,093,101,104,105,108,125,126,127,128,130,133,135,136,140}
 
-### Comment handling (1)
-Comments dropped, mispositioned, or rendered as `/* COMMENT-xxx */`.
-test134
 
 ### LAMBDA support (3)
 Lambda expressions emit placeholder.
@@ -217,3 +214,8 @@ entries chronological within a session date.
     scanning for COMMENT-PREV children
   - Regenerated .rep files: test{001,002,003,020,030,045,109,134,148}
   - Removed test109 from "Comment handling" category (now passes)
+- After INDEX-LITERAL partial-comment fill layout: 125 pass, 48 fail
+  - Fixed: test134 (mid-arg trailing comment in index literal)
+  - FormatIndexLiteral: vertical layout only when every item has a trailing
+    comment; otherwise use FlatOrFill (packs items, wraps after comment)
+  - Removed "Comment handling" category (all tests now pass)
