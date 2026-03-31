@@ -1,4 +1,4 @@
-# C++ Formatter Failing Tests (117 pass, 62 fail as of 2026-03-31)
+# C++ Formatter Failing Tests (117 pass, 56 fail as of 2026-03-31)
 
 ## By category (sorted by count)
 
@@ -6,13 +6,9 @@
 Call args, assignments, binary ops not splitting at overflow.
 test{011,014,029,044,071,093,101,104,105,108,125,126,127,128,130,133,135,136,140}
 
-### Comment handling (10)
+### Comment handling (6)
 Comments dropped, mispositioned, or rendered as `/* COMMENT-xxx */`.
-test{016,018,057,088,109,112,113,114,134,167}
-
-### NO-FORMAT directives (5)
-`#@ NO-FORMAT` / `#@ BEGIN-NO-FORMAT` not honored.
-test{017,111,112,113,114}
+test{018,057,088,109,134,167}
 
 ### LAMBDA support (3)
 Lambda expressions emit placeholder.
