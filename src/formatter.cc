@@ -1472,31 +1472,53 @@ static std::string FormatStmtList(const Node::NodeVec& nodes,
 			++i;
 			}
 
-		// Peek ahead for trailing comment.
+		std::string semi_str = sibling_semi ? ";" : "";
+
+		// Peek ahead for trailing comment.  COMMENT-TRAILING
+		// always attaches.  COMMENT-PREV attaches only when the
+		// formatted statement is single-line (multi-line stmts
+		// get COMMENT-PREV on its own line instead).
+		Tag next_tag = (i + 1 < nodes.size()) ?
+			nodes[i + 1]->GetTag() : Tag::Unknown;
+		bool maybe_trailing = next_tag == Tag::CommentTrailing ||
+			next_tag == Tag::CommentPrev;
+
+		auto it = FormatDispatch().find(t);
+
+		// Format the statement first so we can check line count.
+		std::string stmt_text;
+		if ( it != FormatDispatch().end() )
+			{
+			// Tentatively reserve trailing space.
+			int tentative_trail =
+				maybe_trailing ?
+				static_cast<int>(
+					nodes[i + 1]->Arg().size()) + 1 : 0;
+			int trail_w = static_cast<int>(semi_str.size()) +
+				tentative_trail;
+			FmtContext stmt_ctx = cur_ctx.Reserve(trail_w);
+			auto cs = it->second(node, stmt_ctx);
+			stmt_text = Best(cs).Text();
+			}
+		else
+			{
+			const char* s = TagToString(t);
+			stmt_text = std::string("/* TODO: ") + s + " */";
+			}
+
+		// Now decide whether to attach the trailing comment.
 		std::string trailing;
-		if ( i + 1 < nodes.size() &&
-		     nodes[i + 1]->GetTag() == Tag::CommentTrailing )
+		bool is_single_line = stmt_text.find('\n') ==
+			std::string::npos;
+
+		if ( maybe_trailing &&
+		     (next_tag == Tag::CommentTrailing || is_single_line) )
 			{
 			trailing = " " + nodes[i + 1]->Arg();
 			++i;
 			}
 
-		std::string semi_str = sibling_semi ? ";" : "";
-
-		auto it = FormatDispatch().find(t);
-		if ( it == FormatDispatch().end() )
-			{
-			const char* s = TagToString(t);
-			result += pad + "/* TODO: " + s + " */" +
-				semi_str + trailing + "\n";
-			continue;
-			}
-
-		int trail_w = static_cast<int>(trailing.size()) +
-			static_cast<int>(semi_str.size());
-		FmtContext stmt_ctx = cur_ctx.Reserve(trail_w);
-		auto cs = it->second(node, stmt_ctx);
-		result += pad + Best(cs).Text() + semi_str + trailing + "\n";
+		result += pad + stmt_text + semi_str + trailing + "\n";
 		}
 
 	return result;
@@ -1721,26 +1743,40 @@ static Candidates FormatIf(const Node& node, const FmtContext& ctx)
 	std::string head = "if ( " + cond_text + " )";
 	std::string result = head + FormatBodyText(body_node, ctx);
 
+	// Collect comment and blank children of the IF node.
+	// Comments before ELSE become leading comments; a BLANK before
+	// the else (or its leading comments) produces a blank line.
+	std::string if_comments;
+	bool blank_before_else = false;
+	std::string stmt_pad = LinePrefix(ctx.Indent(), ctx.Col());
+	for ( const auto& c : node.Children() )
+		{
+		Tag ct = c->GetTag();
+
+		if ( ct == Tag::Blank )
+			{
+			blank_before_else = true;
+			continue;
+			}
+
+		if ( is_comment(ct) )
+			{
+			if ( blank_before_else && if_comments.empty() )
+				if_comments += "\n";
+			if_comments += "\n" + stmt_pad + c->Arg();
+			blank_before_else = false;
+			}
+		}
+
 	// Handle else clause.
 	if ( else_node && ! else_node->Children().empty() )
 		{
 		const auto& else_child = else_node->Children()[0];
 
-		// Check for blank line before "else" - look for a BLANK
-		// sibling before the ELSE in the parent's children.
-		bool blank_before_else = false;
-		for ( const auto& c : node.Children() )
-			{
-			if ( c.get() == else_node )
-				break;
-			if ( c->GetTag() == Tag::Blank )
-				blank_before_else = true;
-			else
-				blank_before_else = false;
-			}
-
-		if ( blank_before_else )
+		if ( blank_before_else || ! if_comments.empty() )
 			result += "\n";
+
+		result += if_comments;
 
 		std::string else_pad = LinePrefix(ctx.Indent(), ctx.Col());
 

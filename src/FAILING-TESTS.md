@@ -1,4 +1,4 @@
-# C++ Formatter Failing Tests (111 pass, 68 fail as of 2026-03-30)
+# C++ Formatter Failing Tests (112 pass, 67 fail as of 2026-03-31)
 
 ## By category (sorted by count)
 
@@ -6,9 +6,9 @@
 Call args, assignments, binary ops not splitting at overflow.
 test{011,014,029,044,071,093,101,104,105,108,125,126,127,128,130,133,135,136,140}
 
-### Comment handling (16)
+### Comment handling (15)
 Comments dropped, mispositioned, or rendered as `/* COMMENT-xxx */`.
-test{001,002,016,018,026,032,045,057,088,109,112,113,114,132,134,167}
+test{001,002,016,018,026,045,057,088,109,112,113,114,132,134,167}
 
 ### NO-FORMAT directives (5)
 `#@ NO-FORMAT` / `#@ BEGIN-NO-FORMAT` not honored.
@@ -162,3 +162,10 @@ entries chronological within a session date.
   - FormatDecl: split after ":" with type on indented line when head+type overflows
   - Updated baseline: test172 (current output acceptable)
   - Removed "TYPE-PARAMETERIZED bracket wrapping" category (all 3 fixed)
+
+## Session progress (2026-03-31)
+- After comment handling (trailing + if-else comments): 112 pass, 67 fail
+  - Fixed: test032 (comments before else clause, blank line insertion)
+  - FormatStmtList: COMMENT-PREV attaches as trailing when stmt is single-line
+  - FormatIf: collect COMMENT-LEADING/COMMENT-PREV children, emit before else
+  - Updated baseline: test032 (one-sided slice spacing benign difference)
