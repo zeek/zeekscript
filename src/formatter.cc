@@ -315,6 +315,46 @@ static Candidate FormatArgsFill(const std::vector<const Node*>& args,
 	return {text, cur_col, lines, total_overflow};
 	}
 
+// Try flat, then greedy-fill for a bracketed list of items.
+// prefix: text before the open bracket (e.g. "func_name" or "table")
+// open/close: bracket characters
+// suffix: text after close bracket (e.g. " of type", usually empty)
+static Candidates FlatOrFill(const std::string& prefix,
+                             char open, char close,
+                             const std::string& suffix,
+                             const std::vector<const Node*>& items,
+                             const FmtContext& ctx)
+	{
+	int prefix_w = static_cast<int>(prefix.size());
+	int suffix_w = static_cast<int>(suffix.size());
+	int open_col = ctx.Col() + prefix_w + 1;
+	int inner_w = ctx.MaxCol() - open_col - 1 - suffix_w;
+	FmtContext inner_ctx(ctx.Indent(), open_col, inner_w);
+
+	std::string ob(1, open);
+	std::string cb(1, close);
+
+	// Try flat.
+	auto flat_args = FormatArgsFlat(items, inner_ctx);
+	std::string flat_text = prefix + ob + flat_args.Text() + cb + suffix;
+	Candidate flat_c(flat_text, ctx);
+
+	Candidates result;
+	result.push_back(flat_c);
+
+	if ( flat_c.Ovf() == 0 || items.size() <= 1 )
+		return result;
+
+	// Greedy-fill: pack as many items per line as fit.
+	auto fill = FormatArgsFill(items, open_col, ctx.Indent(), inner_ctx);
+	std::string fill_text = prefix + ob + fill.Text() + cb + suffix;
+	int flast_w = fill.Width() + 1 + suffix_w;
+	result.push_back({fill_text, flast_w, fill.Lines(),
+	                  fill.Ovf(), ctx.Col()});
+
+	return result;
+	}
+
 static Candidates FormatCall(const Node& node, const FmtContext& ctx)
 	{
 	const auto& kids = node.Children();
@@ -337,41 +377,13 @@ static Candidates FormatCall(const Node& node, const FmtContext& ctx)
 
 	std::vector<const Node*> args;
 	for ( const auto& c : args_node->Children() )
-		{
-		Tag t = c->GetTag();
-		if ( ! is_comment(t) )
+		if ( ! is_comment(c->GetTag()) )
 			args.push_back(c.get());
-		}
 
 	if ( args.empty() )
 		return {func.Cat("()").In(ctx)};
 
-	// Column right after "(" - alignment point for continuation lines.
-	int open_col = ctx.Col() + func.Width() + 1;
-
-	// Args context: after "(", leaving room for ")".
-	FmtContext args_ctx(ctx.Indent(), open_col,
-	                    ctx.Width() - func.Width() - 2);
-
-	// Try flat.
-	auto flat = FormatArgsFlat(args, args_ctx);
-
-	auto flat_c = func.Cat("(").Cat(flat).Cat(")").In(ctx);
-
-	Candidates result;
-	result.push_back(flat_c);
-
-	if ( flat_c.Ovf() == 0 || args.size() <= 1 )
-		return result;
-
-	// Greedy-fill: pack as many args per line as fit.
-	auto fill = FormatArgsFill(args, open_col, ctx.Indent(), args_ctx);
-	std::string ftext = func.Text() + "(" + fill.Text() + ")";
-	int flast_w = fill.Width() + 1;
-	result.push_back({ftext, flast_w, fill.Lines(), fill.Ovf(),
-	                  ctx.Col()});
-
-	return result;
+	return FlatOrFill(func.Text(), '(', ')', "", args, ctx);
 	}
 
 // ------------------------------------------------------------------
@@ -536,27 +548,7 @@ static Candidates FormatIndexLiteral(const Node& node, const FmtContext& ctx)
 	if ( fields.empty() )
 		return {Candidate("[]", ctx)};
 
-	int open_col = ctx.Col() + 1;  // after "["
-
-	// Width for contents: total minus "[" and "]".
-	FmtContext inner_ctx(ctx.Indent(), open_col, ctx.Width() - 2);
-
-	auto flat = FormatArgsFlat(fields, inner_ctx);
-	auto flat_c = Candidate("[", ctx).Cat(flat).Cat("]").In(ctx);
-
-	Candidates result;
-	result.push_back(flat_c);
-
-	if ( flat_c.Ovf() == 0 || fields.size() <= 1 )
-		return result;
-
-	// Greedy-fill: pack as many fields per line as fit.
-	auto fill = FormatArgsFill(fields, open_col, ctx.Indent(), inner_ctx);
-	std::string ft = "[" + fill.Text() + "]";
-	int flast_w = fill.Width() + 1;
-	result.push_back({ft, flast_w, fill.Lines(), fill.Ovf(), ctx.Col()});
-
-	return result;
+	return FlatOrFill("", '[', ']', "", fields, ctx);
 	}
 
 // ------------------------------------------------------------------
@@ -777,42 +769,15 @@ static Candidates FormatTypeParam(const Node& node, const FmtContext& ctx)
 			bracket_types.push_back(c.get());
 		}
 
-	std::string text = keyword;
 	std::string suffix;
 
 	if ( of_type )
 		suffix = " of " + Best(FormatExpr(*of_type, ctx)).Text();
 
-	if ( ! bracket_types.empty() )
-		{
-		text += "[";
-		for ( size_t i = 0; i < bracket_types.size(); ++i )
-			{
-			if ( i > 0 )
-				text += ", ";
-			text += Best(FormatExpr(*bracket_types[i],
-				ctx)).Text();
-			}
-		text += "]";
-		}
+	if ( bracket_types.empty() )
+		return {Candidate(keyword + suffix, ctx)};
 
-	text += suffix;
-	Candidate flat(text, ctx);
-
-	if ( flat.Fits() || bracket_types.size() <= 1 )
-		return {flat};
-
-	// Greedy-fill bracket types, aligning after "[".
-	int open_col = ctx.Col() + static_cast<int>(keyword.size()) + 1;
-	int suffix_w = static_cast<int>(suffix.size()) + 1;  // +1 for "]"
-	FmtContext inner_ctx(ctx.Indent(), open_col,
-	                     ctx.MaxCol() - open_col - suffix_w);
-	auto fill = FormatArgsFill(bracket_types, open_col,
-	                           ctx.Indent(), inner_ctx);
-	std::string ft = keyword + "[" + fill.Text() + "]" + suffix;
-	int flast_w = fill.Width() + suffix_w;
-	return {flat, {ft, flast_w, fill.Lines(), fill.Ovf(),
-	               ctx.Col()}};
+	return FlatOrFill(keyword, '[', ']', suffix, bracket_types, ctx);
 	}
 
 // Find the first type child (TypeAtom, TypeParameterized, TypeFunc).
