@@ -1960,7 +1960,12 @@ static Candidates FormatIf(const Node& node, const FmtContext& ctx)
 			continue;
 			}
 
-		if ( is_comment(ct) )
+		if ( ct == Tag::CommentTrailing )
+			{
+			// Append to the last line of result.
+			result += " " + c->Arg();
+			}
+		else if ( is_comment(ct) )
 			{
 			if ( blank_before_else && if_comments.empty() )
 				if_comments += "\n";
@@ -2398,12 +2403,62 @@ static Candidates FormatExprStmt(const Node& node, const FmtContext& ctx)
 // Top-level formatting
 // ------------------------------------------------------------------
 
+// Collect all COMMENT-TRAILING text from a node tree.
+static void CollectTrailing(const Node& node,
+                            std::vector<std::string>& out)
+	{
+	if ( node.GetTag() == Tag::CommentTrailing )
+		out.push_back(node.Arg());
+	for ( const auto& c : node.Children() )
+		CollectTrailing(*c, out);
+	}
+
+// Check that every COMMENT-TRAILING text appears on a line that has
+// preceding content - never as a standalone line.
+static void WarnStandaloneTrailing(const std::string& output,
+                                   const Node::NodeVec& nodes)
+	{
+	std::vector<std::string> trailing;
+	for ( const auto& n : nodes )
+		CollectTrailing(*n, trailing);
+
+	for ( const auto& text : trailing )
+		{
+		auto pos = output.find(text);
+		if ( pos == std::string::npos )
+			{
+			fprintf(stderr, "warning: COMMENT-TRAILING dropped: %s\n",
+			        text.c_str());
+			continue;
+			}
+
+		// Find the start of this line.
+		auto sol = output.rfind('\n', pos);
+		sol = (sol == std::string::npos) ? 0 : sol + 1;
+
+		// Check whether there is non-whitespace before the comment.
+		bool has_content = false;
+		for ( auto i = sol; i < pos; ++i )
+			if ( output[i] != ' ' && output[i] != '\t' )
+				{
+				has_content = true;
+				break;
+				}
+
+		if ( ! has_content )
+			fprintf(stderr, "warning: COMMENT-TRAILING on its own "
+			        "line: %s\n", text.c_str());
+		}
+	}
+
 std::string Format(const Node::NodeVec& nodes)
 	{
 	static constexpr int MAX_WIDTH = 80;
 	FmtContext ctx(0, 0, MAX_WIDTH);
 
-	return FormatStmtList(nodes, ctx);
+	std::string result = FormatStmtList(nodes, ctx);
+	WarnStandaloneTrailing(result, nodes);
+	return result;
 	}
 
 Candidates FormatNode(const Node& node, const FmtContext& ctx)
