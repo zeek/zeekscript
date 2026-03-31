@@ -237,31 +237,23 @@ CollectArgs(const Node::NodeVec& children)
 
 	for ( size_t i = 0; i < children.size(); ++i )
 		{
-		Tag t = children[i]->GetTag();
-
-		if ( t == Tag::CommentTrailing || t == Tag::CommentPrev )
-			{
-			if ( ! items.empty() )
-				items.back().comment = " " + children[i]->Arg();
-			has_comments = true;
-			continue;
-			}
-
-		if ( t == Tag::CommentLeading )
-			{
-			pending_leading.push_back(children[i]->Arg());
-			has_comments = true;
-			continue;
-			}
+		auto& c = children[i];
+		Tag t = c->GetTag();
 
 		if ( is_comment(t) )
 			{
+			if ( (t == Tag::CommentTrailing ||
+			      t == Tag::CommentPrev) && ! items.empty() )
+				items.back().comment = " " + c->Arg();
+
+			else if ( t == Tag::CommentLeading )
+				pending_leading.push_back(c->Arg());
+
 			has_comments = true;
 			continue;
 			}
 
-		items.push_back({children[i].get(), {},
-			std::move(pending_leading)});
+		items.push_back({c.get(), {}, std::move(pending_leading)});
 		pending_leading.clear();
 		}
 
@@ -324,8 +316,9 @@ static Candidate FormatArgsFill(const std::vector<ArgComment>& items,
 
 	for ( size_t i = 0; i < items.size(); ++i )
 		{
-		bool has_cmt = ! items[i].comment.empty();
-		bool has_leading = ! items[i].leading.empty();
+		auto& it = items[i];
+		bool has_cmt = ! it.comment.empty();
+		bool has_leading = ! it.leading.empty();
 		bool is_last = (i + 1 == items.size());
 
 		// Leading comments force a wrap and appear on their
@@ -338,7 +331,7 @@ static Candidate FormatArgsFill(const std::vector<ArgComment>& items,
 				++cur_col;
 				}
 
-			for ( const auto& lc : items[i].leading )
+			for ( const auto& lc : it.leading )
 				{
 				text += "\n" + pad + lc;
 				++lines;
@@ -350,7 +343,7 @@ static Candidate FormatArgsFill(const std::vector<ArgComment>& items,
 			force_wrap = false;
 
 			FmtContext nsub(indent, cur_col, max_col - cur_col);
-			auto ncs = FormatExpr(*items[i].arg, nsub);
+			auto ncs = FormatExpr(*it.arg, nsub);
 			const auto& nbest = Best(ncs);
 			text += nbest.Text();
 
@@ -371,9 +364,9 @@ static Candidate FormatArgsFill(const std::vector<ArgComment>& items,
 					text += ",";
 					++cur_col;
 					}
-				text += items[i].comment;
-				cur_col += static_cast<int>(
-					items[i].comment.size());
+
+				text += it.comment;
+				cur_col += static_cast<int>(it.comment.size());
 				force_wrap = true;
 				}
 
@@ -381,7 +374,7 @@ static Candidate FormatArgsFill(const std::vector<ArgComment>& items,
 			}
 
 		FmtContext sub(indent, cur_col, max_col - cur_col);
-		auto cs = FormatExpr(*items[i].arg, sub);
+		auto cs = FormatExpr(*it.arg, sub);
 		const auto& best = Best(cs);
 		int aw = best.Width();
 
@@ -390,17 +383,18 @@ static Candidate FormatArgsFill(const std::vector<ArgComment>& items,
 			text += best.Text();
 			cur_col += aw;
 			}
+
 		else if ( force_wrap )
 			{
 			// Previous item had a trailing comment and already
-			// emitted the comma — just wrap.
+			// emitted the comma - just wrap.
 			text += "\n" + pad;
 			cur_col = align_col;
 			force_wrap = false;
 
 			// Re-format in the new context.
 			FmtContext nsub(indent, cur_col, max_col - cur_col);
-			auto ncs = FormatExpr(*items[i].arg, nsub);
+			auto ncs = FormatExpr(*it.arg, nsub);
 			const auto& nbest = Best(ncs);
 			text += nbest.Text();
 
@@ -422,9 +416,9 @@ static Candidate FormatArgsFill(const std::vector<ArgComment>& items,
 					text += ",";
 					++cur_col;
 					}
-				text += items[i].comment;
-				cur_col += static_cast<int>(
-					items[i].comment.size());
+
+				text += it.comment;
+				cur_col += static_cast<int>(it.comment.size());
 				force_wrap = true;
 				}
 
@@ -447,7 +441,7 @@ static Candidate FormatArgsFill(const std::vector<ArgComment>& items,
 				// Re-format in the new context.
 				FmtContext nsub(indent, cur_col,
 				                max_col - cur_col);
-				auto ncs = FormatExpr(*items[i].arg, nsub);
+				auto ncs = FormatExpr(*it.arg, nsub);
 				const auto& nbest = Best(ncs);
 				text += nbest.Text();
 
@@ -469,9 +463,10 @@ static Candidate FormatArgsFill(const std::vector<ArgComment>& items,
 						text += ",";
 						++cur_col;
 						}
-					text += items[i].comment;
+
+					text += it.comment;
 					cur_col += static_cast<int>(
-						items[i].comment.size());
+						it.comment.size());
 					force_wrap = true;
 					}
 
@@ -497,8 +492,8 @@ static Candidate FormatArgsFill(const std::vector<ArgComment>& items,
 				++cur_col;
 				}
 
-			text += items[i].comment;
-			cur_col += static_cast<int>(items[i].comment.size());
+			text += it.comment;
+			cur_col += static_cast<int>(it.comment.size());
 			force_wrap = true;
 			}
 		}
@@ -531,7 +526,7 @@ static Candidates FlatOrFill(const std::string& prefix,
 
 	Candidates result;
 
-	// Try flat (only when no comments — a trailing comment
+	// Try flat (only when no comments - a trailing comment
 	// forces a line break, so flat would lose it).
 	if ( ! has_comments )
 		{
@@ -547,8 +542,7 @@ static Candidates FlatOrFill(const std::string& prefix,
 		}
 
 	// Greedy-fill: pack as many items per line as fit.
-	auto fill = FormatArgsFill(items, open_col, ctx.Indent(),
-		inner_ctx);
+	auto fill = FormatArgsFill(items, open_col, ctx.Indent(), inner_ctx);
 	std::string fill_text = prefix + ob + fill.Text() + cb + suffix;
 	int flast_w = fill.Width() + 1 + suffix_w;
 	result.push_back({fill_text, flast_w, fill.Lines(),
@@ -582,8 +576,7 @@ static Candidates FormatCall(const Node& node, const FmtContext& ctx)
 	if ( items.empty() )
 		return {func.Cat("()").In(ctx)};
 
-	return FlatOrFill(func.Text(), '(', ')', "", items,
-		has_comments, ctx);
+	return FlatOrFill(func.Text(), '(', ')', "", items, has_comments, ctx);
 	}
 
 // ------------------------------------------------------------------
@@ -657,7 +650,8 @@ static Candidates FormatConstructor(const Node& node, const FmtContext& ctx)
 		text += "\n" + body_pad;
 		++lines;
 
-		auto cs = FormatExpr(*items[i].arg, body_ctx);
+		auto& it = items[i];
+		auto cs = FormatExpr(*it.arg, body_ctx);
 		const auto& best = Best(cs);
 		text += best.Text();
 
@@ -669,8 +663,8 @@ static Candidates FormatConstructor(const Node& node, const FmtContext& ctx)
 			++line_w;
 			}
 
-		text += items[i].comment;
-		line_w += static_cast<int>(items[i].comment.size());
+		text += it.comment;
+		line_w += static_cast<int>(it.comment.size());
 
 		if ( line_w > ctx.MaxCol() )
 			ovf += line_w - ctx.MaxCol();
