@@ -2041,6 +2041,8 @@ static Candidates FormatFor(const Node& node, const FmtContext& ctx)
 		iter_text = Best(FormatExpr(*iter_node->Children()[0], ctx)).Text();
 
 	std::string head = "for ( " + vars_text + " in " + iter_text + " )";
+	if ( iter_node )
+		head += iter_node->TrailingComment();
 
 	return {Candidate(head + FormatBodyText(body_node, ctx), ctx)};
 	}
@@ -2062,6 +2064,8 @@ static Candidates FormatWhile(const Node& node, const FmtContext& ctx)
 		}
 
 	std::string head = "while ( " + cond_text + " )";
+	if ( cond_node )
+		head += cond_node->TrailingComment();
 
 	return {Candidate(head + FormatBodyText(body_node, ctx), ctx)};
 	}

@@ -574,30 +574,18 @@ class Emitter:
 
     def _emit_lambda(self, node: tree_sitter.Node) -> None:
         """Emit a lambda (anonymous function) expression."""
-        kids = self._children(node)
-        # Find begin_lambda and func_body
-        begin = None
-        body = None
-        capture = None
-        for k in kids:
-            if k.type == "begin_lambda":
-                begin = k
-            elif k.type == "func_body":
-                body = k
-            elif k.type == "capture_list":
-                capture = k
-
         self._open('LAMBDA')
-        if capture:
-            self._open('CAPTURES')
-            for ck in self._children(capture):
-                if ck.type == "id":
-                    self._w(f'IDENTIFIER {_quote(self._text(ck))}')
-            self._close()
-        if begin:
-            self._emit_func_params_from(begin)
-        if body:
-            self._emit_func_body(body)
+        for child in self._iter_children(node):
+            if child.type == "capture_list":
+                self._open('CAPTURES')
+                for ck in self._iter_children(child):
+                    if ck.type == "id":
+                        self._w(f'IDENTIFIER {_quote(self._text(ck))}')
+                self._close()
+            elif child.type == "begin_lambda":
+                self._emit_func_params_from(child)
+            elif child.type == "func_body":
+                self._emit_func_body(child)
         self._close()
         self._mark_content(node)
 
@@ -752,16 +740,20 @@ class Emitter:
         self._close()
 
     def _emit_attr(self, node: tree_sitter.Node) -> None:
-        kids = self._children(node)
-        name = self._text(kids[0]) if kids else "?"
-        value_expr = None
-        for k in kids:
-            if k.type == "expr":
-                value_expr = k
+        # Name is always the first non-extra child.
+        name = "?"
+        for k in node.children:
+            if not k.is_extra:
+                name = self._text(k)
                 break
-        if value_expr:
-            self._open(f'ATTR {_quote(name)}')
-            self._emit_expr(value_expr)
+        has_expr = False
+        for child in self._iter_children(node):
+            if child.type == "expr":
+                if not has_expr:
+                    self._open(f'ATTR {_quote(name)}')
+                    has_expr = True
+                self._emit_expr(child)
+        if has_expr:
             self._close()
         else:
             self._w(f'ATTR {_quote(name)}')
@@ -776,50 +768,38 @@ class Emitter:
                 self._emit_formal_arg(child)
 
     def _emit_formal_arg(self, node: tree_sitter.Node) -> None:
-        kids = self._children(node)
+        # Need the name before opening the PARAM node, so
+        # pre-scan for it (ids always come first).
         name = ""
-        typ = None
-        attrs = None
-        for k in kids:
-            if k.type == "id":
+        for k in node.children:
+            if not k.is_extra and k.type == "id":
                 name = self._text(k)
-            elif k.type == "type":
-                typ = k
-            elif k.type == "attr_list":
-                attrs = k
+                break
         self._open(f'PARAM {_quote(name)}')
-        if typ:
-            self._emit_type(typ)
-        if attrs:
-            self._emit_attr_list(attrs)
+        for child in self._iter_children(node):
+            if child.type == "id":
+                pass  # already extracted for PARAM tag
+            elif child.type == "type":
+                self._emit_type(child)
+            elif child.type == "attr_list":
+                self._emit_attr_list(child)
         self._close()
 
     def _emit_func_params_from(self, node: tree_sitter.Node) -> None:
         """Extract and emit PARAMS, RETURNS, and ATTR-LIST from a begin_lambda or func_hdr child."""
-        params = None
-        ret = None
-        attrs = None
-        for k in node.children:
-            if k.is_extra:
-                continue
-            if k.type == "func_params":
-                for pk in self._children(k):
+        for child in self._iter_children(node):
+            if child.type == "func_params":
+                for pk in self._iter_children(child):
                     if pk.type == "formal_args":
-                        params = pk
+                        self._open('PARAMS')
+                        self._emit_formal_args(pk)
+                        self._close()
                     elif pk.type == "type":
-                        ret = pk
-            elif k.type == "attr_list":
-                attrs = k
-        if params:
-            self._open('PARAMS')
-            self._emit_formal_args(params)
-            self._close()
-        if ret:
-            self._open('RETURNS')
-            self._emit_type(ret)
-            self._close()
-        if attrs:
-            self._emit_attr_list(attrs)
+                        self._open('RETURNS')
+                        self._emit_type(pk)
+                        self._close()
+            elif child.type == "attr_list":
+                self._emit_attr_list(child)
 
     # ------------------------------------------------------------------
     # Declarations
@@ -966,11 +946,10 @@ class Emitter:
         self._mark_content(node)
 
     def _emit_module_decl(self, node: tree_sitter.Node) -> None:
-        kids = self._children(node)
         name = ""
-        for k in kids:
-            if k.type == "id":
-                name = self._text(k)
+        for child in self._iter_children(node):
+            if child.type == "id":
+                name = self._text(child)
         self._w(f'MODULE {_quote(name)}')
         self._mark_content(node)
 
@@ -1248,51 +1227,56 @@ class Emitter:
         self._mark_content(node)
 
     def _emit_for(self, node: tree_sitter.Node) -> None:
-        kids = self._children(node)
-        ids = [k for k in kids if k.type == "id"]
-        exprs = [k for k in kids if k.type == "expr"]
-        body = [k for k in kids if k.type == "stmt"]
-
         self._open('FOR')
-        if ids:
-            self._open('VARS')
-            for ident in ids:
-                self._w(f'IDENTIFIER {_quote(self._text(ident))}')
-            self._close()
-        if exprs:
-            self._open('ITERABLE')
-            self._emit_expr(exprs[0])
-            self._close()
-        if body:
-            self._open('BODY')
-            self._emit_stmt(body[0])
+        in_vars = False
+        for child in self._iter_children(node):
+            if child.type == "id":
+                if not in_vars:
+                    self._open('VARS')
+                    in_vars = True
+                self._w(f'IDENTIFIER {_quote(self._text(child))}')
+            elif child.type == "expr":
+                if in_vars:
+                    self._close()
+                    in_vars = False
+                self._open('ITERABLE')
+                self._emit_expr(child)
+                self._close()
+            elif child.type == "stmt":
+                if in_vars:
+                    self._close()
+                    in_vars = False
+                self._open('BODY')
+                self._emit_stmt(child)
+                self._close()
+        if in_vars:
             self._close()
         self._close()
         self._mark_content(node)
 
     def _emit_while(self, node: tree_sitter.Node) -> None:
-        kids = self._children(node)
-        cond = [k for k in kids if k.type == "expr"]
-        body = [k for k in kids if k.type == "stmt"]
-
         self._open('WHILE')
-        if cond:
-            self._open('COND')
-            self._emit_expr(cond[0])
-            self._close()
-        if body:
-            self._open('BODY')
-            self._emit_stmt(body[0])
-            self._close()
+        for child in self._iter_children(node):
+            if child.type == "expr":
+                self._open('COND')
+                self._emit_expr(child)
+                self._close()
+            elif child.type == "stmt":
+                self._open('BODY')
+                self._emit_stmt(child)
+                self._close()
         self._close()
         self._mark_content(node)
 
     def _emit_return(self, node: tree_sitter.Node) -> None:
-        kids = self._children(node)
-        expr = [k for k in kids if k.type == "expr"]
-        if expr:
-            self._open('RETURN')
-            self._emit_expr(expr[0])
+        has_expr = False
+        for child in self._iter_children(node):
+            if child.type == "expr":
+                if not has_expr:
+                    self._open('RETURN')
+                    has_expr = True
+                self._emit_expr(child)
+        if has_expr:
             self._close()
         else:
             self._w('RETURN')
@@ -1331,17 +1315,14 @@ class Emitter:
         self._mark_content(node)
 
     def _emit_switch(self, node: tree_sitter.Node) -> None:
-        kids = self._children(node)
-        exprs = [k for k in kids if k.type == "expr"]
-        case_list = [k for k in kids if k.type == "case_list"]
-
         self._open('SWITCH')
-        if exprs:
-            self._open('EXPR')
-            self._emit_expr(exprs[0])
-            self._close()
-        if case_list:
-            self._emit_case_list(case_list[0])
+        for child in self._iter_children(node):
+            if child.type == "expr":
+                self._open('EXPR')
+                self._emit_expr(child)
+                self._close()
+            elif child.type == "case_list":
+                self._emit_case_list(child)
         self._close()
         self._mark_content(node)
 
@@ -1384,59 +1365,45 @@ class Emitter:
                 i += 1
 
     def _emit_when(self, node: tree_sitter.Node) -> None:
-        kids = self._children(node)
-        cond = None
-        body = None
-        timeout_expr = None
-        timeout_body = None
-
+        self._open('WHEN')
         state = "init"
-        for k in kids:
-            if k.is_extra or not k.is_named:
-                if self._text(k) == "timeout":
-                    state = "timeout"
+        in_timeout = False
+        for child in self._iter_children(node):
+            text = self._text(child)
+            if text == "timeout":
+                state = "timeout"
                 continue
             if state == "init":
-                if k.type == "expr":
-                    cond = k
-                elif k.type == "stmt":
-                    body = k
+                if child.type == "expr":
+                    self._open('COND')
+                    self._emit_expr(child)
+                    self._close()
+                elif child.type == "stmt":
+                    self._open('BODY')
+                    self._emit_stmt(child)
+                    self._close()
                     state = "after_body"
             elif state == "after_body":
-                if self._text(k) == "timeout":
-                    state = "timeout"
+                pass
             elif state == "timeout":
-                if k.type == "expr":
-                    timeout_expr = k
-                elif k.type == "stmt_list":
-                    timeout_body = k
-
-        self._open('WHEN')
-        if cond:
-            self._open('COND')
-            self._emit_expr(cond)
-            self._close()
-        if body:
-            self._open('BODY')
-            self._emit_stmt(body)
-            self._close()
-        if timeout_expr:
-            self._open('TIMEOUT')
-            self._emit_expr(timeout_expr)
-            if timeout_body:
-                self._open('BODY')
-                self._emit_stmt_list(timeout_body)
-                self._close()
+                if child.type == "expr":
+                    self._open('TIMEOUT')
+                    in_timeout = True
+                    self._emit_expr(child)
+                elif child.type == "stmt_list":
+                    self._open('BODY')
+                    self._emit_stmt_list(child)
+                    self._close()
+        if in_timeout:
             self._close()
         self._close()
         self._mark_content(node)
 
     def _emit_add_delete(self, node: tree_sitter.Node, keyword: str) -> None:
-        kids = self._children(node)
-        expr = [k for k in kids if k.type == "expr"]
         self._open(keyword.upper())
-        if expr:
-            self._emit_expr(expr[0])
+        for child in self._iter_children(node):
+            if child.type == "expr":
+                self._emit_expr(child)
         self._w('SEMI')
         self._close()
         self._mark_content(node)

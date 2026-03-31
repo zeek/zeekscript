@@ -4,6 +4,7 @@ FUNC-DECL "event" "some_evt" {
       COND {
         IDENTIFIER "some_flag"
       }
+      COMMENT-TRAILING "# keep going"
       BODY {
         PRINT {
           CONSTANT "1"

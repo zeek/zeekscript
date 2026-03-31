@@ -1,4 +1,4 @@
-# C++ Formatter Failing Tests (137 pass, 36 fail as of 2026-03-31)
+# C++ Formatter Failing Tests (139 pass, 34 fail as of 2026-03-31)
 
 ## By category (sorted by count)
 
@@ -21,9 +21,6 @@ test{047,048}
 
 
 
-### For/while trailing comment (2)
-Comment after condition dropped.
-test{162,171}
 
 ### CONSTRUCTOR with LAMBDA attr (1)
 test038 (needs LAMBDA support first)
@@ -228,3 +225,8 @@ entries chronological within a session date.
   - Formatter: FlatOrFill close_prefix param; FormatArgsVertical trailing_comma param
   - Added Tag::TrailingComma; CollectArgs skips it
   - Removed "INDEX-LITERAL trailing comma" category (both fixed)
+- After emitter _iter_children refactor: 139 pass, 34 fail
+  - Fixed: test{162,171} (for/while trailing comments)
+  - Refactored 10 _emit_* functions to use _iter_children instead of
+    _children + type-filtering, structurally capturing interstitial comments
+  - Removed "For/while trailing comment" category (both fixed)
