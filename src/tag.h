@@ -58,9 +58,6 @@ enum class Tag {
 	Add,
 	Delete,
 	Block,
-	Next,
-	Break,
-	Fallthrough,
 
 	// Statement/declaration parts
 	Args,
@@ -69,14 +66,10 @@ enum class Tag {
 	Param,
 	Returns,
 	Body,
-	Cond,
 	Else,
 	Iterable,
 	Vars,
 	Captures,
-	Init,
-	Type,
-	Expr,
 	Field,
 	EnumValue,
 	Case,
@@ -92,7 +85,6 @@ enum class Tag {
 	// Comments
 	CommentLeading,
 	CommentTrailing,
-	CommentPrev,
 
 	// Syntactic tokens
 	Comma,
@@ -133,8 +125,7 @@ const char* TagToString(Tag t);
 
 inline bool is_comment(Tag t)
 	{
-	return t == Tag::CommentLeading || t == Tag::CommentTrailing ||
-		t == Tag::CommentPrev;
+	return t == Tag::CommentLeading || t == Tag::CommentTrailing;
 	}
 
 inline bool is_type_tag(Tag t)

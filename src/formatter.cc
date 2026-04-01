@@ -273,10 +273,7 @@ CollectArgs(const Node::NodeVec& children)
 
 		if ( is_comment(t) )
 			{
-			if ( t == Tag::CommentPrev && ! items.empty() )
-				items.back().comment = " " + c->Arg();
-
-			else if ( t == Tag::CommentLeading )
+			if ( t == Tag::CommentLeading )
 				pending_leading.push_back(c->Arg());
 
 			has_comments = true;
@@ -1650,7 +1647,7 @@ static Candidates FormatTernary(const Node& node, const FmtContext& ctx)
 
 // ------------------------------------------------------------------
 // Simple keyword statements: return [expr], print expr, add expr,
-// delete expr, next, break, fallthrough
+// delete expr
 // ------------------------------------------------------------------
 
 static const std::unordered_map<Tag, const char*> keyword_for_tag = {
@@ -1659,9 +1656,6 @@ static const std::unordered_map<Tag, const char*> keyword_for_tag = {
 	{Tag::Add, "add"},
 	{Tag::Delete, "delete"},
 	{Tag::EventStmt, "event"},
-	{Tag::Next, "next"},
-	{Tag::Break, "break"},
-	{Tag::Fallthrough, "fallthrough"},
 };
 
 // Format a keyword statement with an optional expression child.
@@ -1900,13 +1894,6 @@ static std::string FormatStmtList(const Node::NodeVec& nodes,
 		if ( comment_text.empty() && sibling_semi )
 			comment_text = nodes[i]->TrailingComment();
 
-		// Peek ahead for COMMENT-PREV (##< / #@ annotations).
-		Tag next_tag = (i + 1 < nodes.size()) ?
-			nodes[i + 1]->GetTag() : Tag::Unknown;
-
-		if ( comment_text.empty() && next_tag == Tag::CommentPrev )
-			comment_text = " " + nodes[i + 1]->Arg();
-
 		int comment_w = static_cast<int>(comment_text.size());
 		int trail_w = static_cast<int>(semi_str.size()) + comment_w;
 
@@ -1935,31 +1922,7 @@ static std::string FormatStmtList(const Node::NodeVec& nodes,
 				}
 			}
 
-		// Attach the comment to the statement.
-		// Trailing comments always attach.  COMMENT-PREV
-		// attaches unless the statement is a compound block
-		// (ends with '}') where the comment belongs on its
-		// own line.
-		std::string trailing;
-		if ( ! comment_text.empty() )
-			{
-			bool from_prev = next_tag == Tag::CommentPrev &&
-				node.TrailingComment().empty();
-
-			if ( from_prev )
-				{
-				if ( stmt_text.empty() ||
-				     stmt_text.back() != '}' )
-					{
-					trailing = comment_text;
-					++i;
-					}
-				}
-			else
-				trailing = comment_text;
-			}
-
-		result += pad + stmt_text + semi_str + trailing + "\n";
+		result += pad + stmt_text + semi_str + comment_text + "\n";
 		}
 
 	return result;

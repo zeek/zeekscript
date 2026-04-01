@@ -61,9 +61,6 @@ static const std::unordered_map<std::string, TagEntry> tag_map = {
 	{"ADD", {Tag::Add, false}},
 	{"DELETE", {Tag::Delete, false}},
 	{"BLOCK", {Tag::Block, false}},
-	{"NEXT", {Tag::Next, false}},
-	{"BREAK", {Tag::Break, false}},
-	{"FALLTHROUGH", {Tag::Fallthrough, false}},
 
 	// Statement/declaration parts
 	{"ARGS", {Tag::Args, false}},
@@ -72,14 +69,10 @@ static const std::unordered_map<std::string, TagEntry> tag_map = {
 	{"PARAM", {Tag::Param, false}},
 	{"RETURNS", {Tag::Returns, false}},
 	{"BODY", {Tag::Body, false}},
-	{"COND", {Tag::Cond, false}},
 	{"ELSE", {Tag::Else, false}},
 	{"ITERABLE", {Tag::Iterable, false}},
 	{"VARS", {Tag::Vars, false}},
 	{"CAPTURES", {Tag::Captures, false}},
-	{"INIT", {Tag::Init, false}},
-	{"TYPE", {Tag::Type, false}},
-	{"EXPR", {Tag::Expr, false}},
 	{"FIELD", {Tag::Field, false}},
 	{"ENUM-VALUE", {Tag::EnumValue, false}},
 	{"CASE", {Tag::Case, false}},
@@ -95,7 +88,6 @@ static const std::unordered_map<std::string, TagEntry> tag_map = {
 	// Comments
 	{"COMMENT-LEADING", {Tag::CommentLeading, false}},
 	{"COMMENT-TRAILING", {Tag::CommentTrailing, false}},
-	{"COMMENT-PREV", {Tag::CommentPrev, false}},
 
 	// Syntactic tokens
 	{"COMMA", {Tag::Comma, true}},
