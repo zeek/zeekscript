@@ -704,9 +704,17 @@ class Emitter:
         for child in self._iter_children(node):
             if child.type == "enum_body_elem":
                 kids = self._children(child)
+                name = ""
+                init = ""
                 for k in kids:
                     if k.type == "id":
-                        self._w(f'ENUM-VALUE {_quote(self._text(k))}')
+                        name = self._text(k)
+                    elif k.type == "constant":
+                        init = self._text(k)
+                tag = f'ENUM-VALUE {_quote(name)}'
+                if init:
+                    tag += f' {_quote("= " + init)}'
+                self._w(tag)
                 self._mark_content(child)
             elif child.type == "id":
                 self._w(f'ENUM-VALUE {_quote(self._text(child))}')

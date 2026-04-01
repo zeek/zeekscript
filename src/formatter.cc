@@ -2240,7 +2240,12 @@ static Candidates FormatTypeDecl(const Node& node, const FmtContext& ctx)
 		for ( const auto& c : enum_node->Children() )
 			{
 			if ( c->GetTag() == Tag::EnumValue )
-				values.push_back(c->Arg());
+				{
+				std::string v = c->Arg();
+				if ( ! c->Arg(1).empty() )
+					v += " " + c->Arg(1);
+				values.push_back(v);
+				}
 			else if ( c->GetTag() == Tag::TrailingComma )
 				has_trailing_comma = true;
 			}

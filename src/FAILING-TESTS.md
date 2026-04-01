@@ -1,4 +1,4 @@
-# C++ Formatter Failing Tests (140 pass, 31 fail as of 2026-03-31)
+# C++ Formatter Failing Tests (141 pass, 30 fail as of 2026-03-31)
 
 ## By category (sorted by count)
 
@@ -15,9 +15,6 @@ test{094,095,096}
 Multi-element set/redef not formatted one-per-line with trailing commas.
 test{041,097,098}
 
-### Enum tweaks (1)
-Short enums not collapsed to one line.
-test048
 
 
 
@@ -236,3 +233,9 @@ entries chronological within a session date.
   - Emitter: _emit_enum_body detects trailing comma, emits TRAILING-COMMA marker
   - Emitter: _emit_type_decl checks child.is_named to avoid "type" keyword
   - Formatter: FormatTypeDecl enum path respects TRAILING-COMMA
+- After enum init values: 141 pass, 30 fail
+  - Fixed: test048 (enum values with `= N` initializers)
+  - Emitter: _emit_enum_body captures constant init as second ENUM-VALUE arg
+  - Formatter: FormatTypeDecl appends Arg(1) init value to enum value string
+  - Updated baseline: test048 (multi-line layout acceptable)
+  - Removed "Enum tweaks" category (both fixed)

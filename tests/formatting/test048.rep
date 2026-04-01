@@ -1,9 +1,9 @@
 TYPE-DECL "score" {
   TYPE-ENUM {
-    ENUM-VALUE "NOT"
-    ENUM-VALUE "LOW"
-    ENUM-VALUE "MED"
-    ENUM-VALUE "HIGH"
+    ENUM-VALUE "NOT" "= 0"
+    ENUM-VALUE "LOW" "= 1"
+    ENUM-VALUE "MED" "= 2"
+    ENUM-VALUE "HIGH" "= 3"
   }
   SEMI
 }
