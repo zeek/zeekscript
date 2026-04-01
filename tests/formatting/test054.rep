@@ -5,7 +5,14 @@ FUNC-DECL "function" "some_func_a" {
         IDENTIFIER "foo"
       }
       BODY {
-        EVENT-STMT "" {
+        EVENT-STMT "SomeModule::some_raised_evt" {
+          ARGS {
+            IDENTIFIER "o"
+            IDENTIFIER "label"
+            IDENTIFIER "conf"
+            IDENTIFIER "source"
+            IDENTIFIER "caller"
+          }
           SEMI
         }
       }

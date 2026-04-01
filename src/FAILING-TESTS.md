@@ -1,4 +1,4 @@
-# C++ Formatter Failing Tests (143 pass, 28 fail as of 2026-03-31)
+# C++ Formatter Failing Tests (144 pass, 27 fail as of 2026-03-31)
 
 ## By category (sorted by count)
 
@@ -27,7 +27,6 @@ test038 (needs LAMBDA support first)
 - test021: Layout issue
 - test027: Switch case values not wrapping
 - test040: CALL wrapping (set() args should use indent, not alignment)
-- test054: EVENT-STMT bare event without args
 - test056: TYPE-FUNC params not wrapping
 - test102: Pattern literal emits `/* UNKNOWN-EXPR */`
 - test124: PRINT with multiple exprs (only first printed)
@@ -246,3 +245,7 @@ entries chronological within a session date.
   - Fixed: test{061,115,131} (multi-line args placed on fresh line)
   - FormatArgsFill: multi-line args always wrap to alignment column
     where they may fit flat, instead of packing inline with split text
+- After EVENT-STMT fix: 144 pass, 27 fail
+  - Fixed: test054 (event statement with name and args)
+  - Emitter: _emit_event_stmt descends into event_hdr for name and expr_list
+  - Formatter: new FormatEventStmt formats `event name(args);` using FlatOrFill

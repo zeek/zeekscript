@@ -1260,19 +1260,28 @@ class Emitter:
 
     def _emit_event_stmt(self, node: tree_sitter.Node) -> None:
         """Event statement: event name(args);"""
+        # The id and expr_list live inside an event_hdr child.
         name = ""
+        hdr = None
         for k in node.children:
-            if not k.is_extra and k.type == "id":
-                name = self._text(k)
+            if not k.is_extra and k.type == "event_hdr":
+                hdr = k
                 break
+        if hdr:
+            for k in hdr.children:
+                if not k.is_extra and k.type == "id":
+                    name = self._text(k)
+                    break
         self._open(f'EVENT-STMT {_quote(name)}')
-        for child in self._iter_children(node):
-            if child.type == "id":
-                pass  # already extracted for tag
-            elif child.type == "expr_list":
-                self._open('ARGS')
-                self._emit_expr_list(child)
-                self._close()
+        if hdr:
+            for child in self._iter_children(hdr):
+                if child.type == "id":
+                    pass  # already extracted for tag
+                elif child.type == "expr_list":
+                    self._open('ARGS')
+                    self._emit_expr_list(child)
+                    self._close()
+        self._emit_extras_in(node)
         self._w('SEMI')
         self._close()
         self._mark_content(node)

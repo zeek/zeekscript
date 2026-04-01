@@ -1466,6 +1466,38 @@ static const std::unordered_map<Tag, const char*> keyword_for_tag = {
 
 // Format a keyword statement with an optional expression child.
 // SEMI is handled by the caller (top-level or block).
+static Candidates FormatEventStmt(const Node& node, const FmtContext& ctx)
+	{
+	std::string name = node.Arg();
+	const Node* args_node = FindChild(node, Tag::Args);
+	bool has_semi = FindChild(node, Tag::Semi) != nullptr;
+	std::string semi_str = has_semi ? ";" : "";
+
+	std::string prefix = "event " + name;
+
+	if ( ! args_node || args_node->Children().empty() )
+		return {Candidate(prefix + "()" + semi_str, ctx)};
+
+	auto [items, has_comments] = CollectArgs(args_node->Children());
+
+	if ( ! args_node->TrailingComment().empty() )
+		has_comments = true;
+
+	FmtContext inner = has_semi ? ctx.Reserve(1) : ctx;
+	auto cs = FlatOrFill(prefix, '(', ')', "", items,
+		has_comments, inner, args_node->TrailingComment());
+
+	Candidates result;
+	for ( auto& c : cs )
+		{
+		std::string text = c.Text() + semi_str;
+		int w = c.Width() + (has_semi ? 1 : 0);
+		result.push_back({text, w, c.Lines(), c.Ovf(), ctx.Col()});
+		}
+
+	return result;
+	}
+
 static Candidates FormatKeywordStmt(const Node& node, const FmtContext& ctx)
 	{
 	const char* keyword = keyword_for_tag.at(node.GetTag());
@@ -2368,7 +2400,7 @@ static const std::unordered_map<Tag, FormatFunc>& FormatDispatch()
 		{Tag::Print, FormatKeywordStmt},
 		{Tag::Add, FormatKeywordStmt},
 		{Tag::Delete, FormatKeywordStmt},
-		{Tag::EventStmt, FormatKeywordStmt},
+		{Tag::EventStmt, FormatEventStmt},
 		{Tag::Next, FormatBareKeyword},
 		{Tag::Break, FormatBareKeyword},
 		{Tag::Fallthrough, FormatBareKeyword},
