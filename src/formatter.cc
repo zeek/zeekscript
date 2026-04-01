@@ -2236,9 +2236,14 @@ static Candidates FormatTypeDecl(const Node& node, const FmtContext& ctx)
 
 		// Collect enum values.
 		std::vector<std::string> values;
+		bool has_trailing_comma = false;
 		for ( const auto& c : enum_node->Children() )
+			{
 			if ( c->GetTag() == Tag::EnumValue )
 				values.push_back(c->Arg());
+			else if ( c->GetTag() == Tag::TrailingComma )
+				has_trailing_comma = true;
+			}
 
 		// One per line.
 		std::string pad = LinePrefix(ctx.Indent() + 1,
@@ -2247,7 +2252,7 @@ static Candidates FormatTypeDecl(const Node& node, const FmtContext& ctx)
 		for ( size_t i = 0; i < values.size(); ++i )
 			{
 			body += pad + values[i];
-			if ( i + 1 < values.size() )
+			if ( i + 1 < values.size() || has_trailing_comma )
 				body += ",";
 			body += "\n";
 			}

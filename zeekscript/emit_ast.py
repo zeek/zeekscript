@@ -712,6 +712,13 @@ class Emitter:
                 self._w(f'ENUM-VALUE {_quote(self._text(child))}')
                 self._mark_content(child)
 
+        # Detect trailing comma in source.
+        kids = node.children
+        if (kids
+                and not kids[-1].is_named
+                and self._text(kids[-1]) == ","):
+            self._w('TRAILING-COMMA')
+
     # ------------------------------------------------------------------
     # Attributes
     # ------------------------------------------------------------------
@@ -928,7 +935,7 @@ class Emitter:
         for child in self._iter_children(node):
             if child.type == "id":
                 pass  # already extracted for tag
-            elif child.type == "type":
+            elif child.type == "type" and child.is_named:
                 self._emit_type(child)
         self._w('SEMI')
         self._close()
