@@ -2,115 +2,134 @@
 
 #include <unordered_map>
 
-static const std::unordered_map<std::string, Tag> tag_map = {
+struct TagEntry {
+	Tag tag;
+	bool token;  // true for syntactic tokens (COMMA, LPAREN, etc.)
+};
+
+static const std::unordered_map<std::string, TagEntry> tag_map = {
 	// Expressions
-	{"BINARY-OP", Tag::BinaryOp},
-	{"UNARY-OP", Tag::UnaryOp},
-	{"TERNARY", Tag::Ternary},
-	{"PAREN", Tag::Paren},
-	{"CALL", Tag::Call},
-	{"INDEX", Tag::Index},
-	{"INDEX-LITERAL", Tag::IndexLiteral},
-	{"SLICE", Tag::Slice},
-	{"FIELD-ACCESS", Tag::FieldAccess},
-	{"FIELD-ASSIGN", Tag::FieldAssign},
-	{"BRACE-INIT", Tag::BraceInit},
-	{"CONSTRUCTOR", Tag::Constructor},
-	{"SCHEDULE", Tag::Schedule},
-	{"KEYWORD-EXPR", Tag::KeywordExpr},
-	{"LAMBDA", Tag::Lambda},
-	{"WHEN-LOCAL", Tag::WhenLocal},
+	{"BINARY-OP", {Tag::BinaryOp, false}},
+	{"UNARY-OP", {Tag::UnaryOp, false}},
+	{"TERNARY", {Tag::Ternary, false}},
+	{"PAREN", {Tag::Paren, false}},
+	{"CALL", {Tag::Call, false}},
+	{"INDEX", {Tag::Index, false}},
+	{"INDEX-LITERAL", {Tag::IndexLiteral, false}},
+	{"SLICE", {Tag::Slice, false}},
+	{"FIELD-ACCESS", {Tag::FieldAccess, false}},
+	{"FIELD-ASSIGN", {Tag::FieldAssign, false}},
+	{"BRACE-INIT", {Tag::BraceInit, false}},
+	{"CONSTRUCTOR", {Tag::Constructor, false}},
+	{"SCHEDULE", {Tag::Schedule, false}},
+	{"KEYWORD-EXPR", {Tag::KeywordExpr, false}},
+	{"LAMBDA", {Tag::Lambda, false}},
+	{"WHEN-LOCAL", {Tag::WhenLocal, false}},
 
 	// Expression atoms
-	{"IDENTIFIER", Tag::Identifier},
-	{"CONSTANT", Tag::Constant},
-	{"INTERVAL", Tag::Interval},
+	{"IDENTIFIER", {Tag::Identifier, false}},
+	{"CONSTANT", {Tag::Constant, false}},
+	{"INTERVAL", {Tag::Interval, false}},
 
 	// Types
-	{"TYPE-ATOM", Tag::TypeAtom},
-	{"TYPE-PARAMETERIZED", Tag::TypeParameterized},
-	{"TYPE-FUNC", Tag::TypeFunc},
-	{"TYPE-RECORD", Tag::TypeRecord},
-	{"TYPE-ENUM", Tag::TypeEnum},
+	{"TYPE-ATOM", {Tag::TypeAtom, false}},
+	{"TYPE-PARAMETERIZED", {Tag::TypeParameterized, false}},
+	{"TYPE-FUNC", {Tag::TypeFunc, false}},
+	{"TYPE-RECORD", {Tag::TypeRecord, false}},
+	{"TYPE-ENUM", {Tag::TypeEnum, false}},
 
 	// Declarations
-	{"GLOBAL-DECL", Tag::GlobalDecl},
-	{"LOCAL-DECL", Tag::LocalDecl},
-	{"TYPE-DECL", Tag::TypeDecl},
-	{"FUNC-DECL", Tag::FuncDecl},
-	{"EXPORT", Tag::ExportDecl},
-	{"MODULE", Tag::ModuleDecl},
-	{"REDEF-RECORD", Tag::RedefRecord},
-	{"REDEF-ENUM", Tag::RedefEnum},
+	{"GLOBAL-DECL", {Tag::GlobalDecl, false}},
+	{"LOCAL-DECL", {Tag::LocalDecl, false}},
+	{"TYPE-DECL", {Tag::TypeDecl, false}},
+	{"FUNC-DECL", {Tag::FuncDecl, false}},
+	{"EXPORT", {Tag::ExportDecl, false}},
+	{"MODULE", {Tag::ModuleDecl, false}},
+	{"REDEF-RECORD", {Tag::RedefRecord, false}},
+	{"REDEF-ENUM", {Tag::RedefEnum, false}},
 
 	// Statements
-	{"EXPR-STMT", Tag::ExprStmt},
-	{"IF", Tag::If},
-	{"FOR", Tag::For},
-	{"WHILE", Tag::While},
-	{"SWITCH", Tag::Switch},
-	{"WHEN", Tag::When},
-	{"RETURN", Tag::Return},
-	{"PRINT", Tag::Print},
-	{"EVENT-STMT", Tag::EventStmt},
-	{"ADD", Tag::Add},
-	{"DELETE", Tag::Delete},
-	{"BLOCK", Tag::Block},
-	{"NEXT", Tag::Next},
-	{"BREAK", Tag::Break},
-	{"FALLTHROUGH", Tag::Fallthrough},
+	{"EXPR-STMT", {Tag::ExprStmt, false}},
+	{"IF", {Tag::If, false}},
+	{"FOR", {Tag::For, false}},
+	{"WHILE", {Tag::While, false}},
+	{"SWITCH", {Tag::Switch, false}},
+	{"WHEN", {Tag::When, false}},
+	{"RETURN", {Tag::Return, false}},
+	{"PRINT", {Tag::Print, false}},
+	{"EVENT-STMT", {Tag::EventStmt, false}},
+	{"ADD", {Tag::Add, false}},
+	{"DELETE", {Tag::Delete, false}},
+	{"BLOCK", {Tag::Block, false}},
+	{"NEXT", {Tag::Next, false}},
+	{"BREAK", {Tag::Break, false}},
+	{"FALLTHROUGH", {Tag::Fallthrough, false}},
 
 	// Statement/declaration parts
-	{"ARGS", Tag::Args},
-	{"SUBSCRIPTS", Tag::Subscripts},
-	{"PARAMS", Tag::Params},
-	{"PARAM", Tag::Param},
-	{"RETURNS", Tag::Returns},
-	{"BODY", Tag::Body},
-	{"COND", Tag::Cond},
-	{"ELSE", Tag::Else},
-	{"ITERABLE", Tag::Iterable},
-	{"VARS", Tag::Vars},
-	{"CAPTURES", Tag::Captures},
-	{"INIT", Tag::Init},
-	{"TYPE", Tag::Type},
-	{"EXPR", Tag::Expr},
-	{"FIELD", Tag::Field},
-	{"ENUM-VALUE", Tag::EnumValue},
-	{"CASE", Tag::Case},
-	{"DEFAULT", Tag::Default},
-	{"VALUES", Tag::Values},
-	{"TIMEOUT", Tag::Timeout},
-	{"OF", Tag::Of},
+	{"ARGS", {Tag::Args, false}},
+	{"SUBSCRIPTS", {Tag::Subscripts, false}},
+	{"PARAMS", {Tag::Params, false}},
+	{"PARAM", {Tag::Param, false}},
+	{"RETURNS", {Tag::Returns, false}},
+	{"BODY", {Tag::Body, false}},
+	{"COND", {Tag::Cond, false}},
+	{"ELSE", {Tag::Else, false}},
+	{"ITERABLE", {Tag::Iterable, false}},
+	{"VARS", {Tag::Vars, false}},
+	{"CAPTURES", {Tag::Captures, false}},
+	{"INIT", {Tag::Init, false}},
+	{"TYPE", {Tag::Type, false}},
+	{"EXPR", {Tag::Expr, false}},
+	{"FIELD", {Tag::Field, false}},
+	{"ENUM-VALUE", {Tag::EnumValue, false}},
+	{"CASE", {Tag::Case, false}},
+	{"DEFAULT", {Tag::Default, false}},
+	{"VALUES", {Tag::Values, false}},
+	{"TIMEOUT", {Tag::Timeout, false}},
+	{"OF", {Tag::Of, false}},
 
 	// Attributes
-	{"ATTR", Tag::Attr},
-	{"ATTR-LIST", Tag::AttrList},
+	{"ATTR", {Tag::Attr, false}},
+	{"ATTR-LIST", {Tag::AttrList, false}},
 
 	// Comments
-	{"COMMENT-LEADING", Tag::CommentLeading},
-	{"COMMENT-TRAILING", Tag::CommentTrailing},
-	{"COMMENT-PREV", Tag::CommentPrev},
+	{"COMMENT-LEADING", {Tag::CommentLeading, false}},
+	{"COMMENT-TRAILING", {Tag::CommentTrailing, false}},
+	{"COMMENT-PREV", {Tag::CommentPrev, false}},
+
+	// Syntactic tokens
+	{"COMMA", {Tag::Comma, true}},
+	{"LPAREN", {Tag::LParen, true}},
+	{"RPAREN", {Tag::RParen, true}},
+	{"LBRACE", {Tag::LBrace, true}},
+	{"RBRACE", {Tag::RBrace, true}},
+	{"LBRACKET", {Tag::LBracket, true}},
+	{"RBRACKET", {Tag::RBracket, true}},
+	{"COLON", {Tag::Colon, true}},
+	{"KEYWORD", {Tag::Keyword, true}},
+	{"OP", {Tag::Op, true}},
+	{"ASSIGN", {Tag::Assign, true}},
+	{"QUESTION", {Tag::Question, true}},
 
 	// Markers
-	{"SEMI", Tag::Semi},
-	{"BLANK", Tag::Blank},
-	{"RAW", Tag::Raw},
-	{"TRAILING-COMMA", Tag::TrailingComma},
+	{"SEMI", {Tag::Semi, false}},
+	{"BLANK", {Tag::Blank, false}},
+	{"RAW", {Tag::Raw, false}},
+	{"TRAILING-COMMA", {Tag::TrailingComma, false}},
 
 	// Preprocessor
-	{"PREPROC", Tag::Preproc},
+	{"PREPROC", {Tag::Preproc, false}},
 
 	// Fallback
-	{"TOKEN", Tag::Token},
-	{"UNKNOWN", Tag::Unknown},
-	{"UNKNOWN-EXPR", Tag::UnknownExpr},
+	{"TOKEN", {Tag::Token, false}},
+	{"UNKNOWN", {Tag::Unknown, false}},
+	{"UNKNOWN-EXPR", {Tag::UnknownExpr, false}},
 };
 
 Tag TagFromString(const std::string& s)
 	{
 	auto it = tag_map.find(s);
-	return it == tag_map.end() ? Tag::Unknown : it->second;
+	return it == tag_map.end() ? Tag::Unknown : it->second.tag;
 	}
 
 const char* TagToString(Tag t)
@@ -118,9 +137,21 @@ const char* TagToString(Tag t)
 	static std::unordered_map<Tag, const char*> rm;
 
 	if ( rm.empty() )
-		for ( const auto& [str, tag] : tag_map )
-			rm[tag] = str.c_str();
+		for ( const auto& [str, entry] : tag_map )
+			rm[entry.tag] = str.c_str();
 
 	auto it = rm.find(t);
 	return it == rm.end() ? "UNKNOWN" : it->second;
+	}
+
+bool is_token(Tag t)
+	{
+	static std::unordered_map<Tag, bool> tm;
+
+	if ( tm.empty() )
+		for ( const auto& [str, entry] : tag_map )
+			tm[entry.tag] = entry.token;
+
+	auto it = tm.find(t);
+	return it != tm.end() && it->second;
 	}

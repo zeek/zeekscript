@@ -94,6 +94,20 @@ enum class Tag {
 	CommentTrailing,
 	CommentPrev,
 
+	// Syntactic tokens
+	Comma,
+	LParen,
+	RParen,
+	LBrace,
+	RBrace,
+	LBracket,
+	RBracket,
+	Colon,
+	Keyword,
+	Op,
+	Assign,
+	Question,
+
 	// Markers
 	Semi,
 	Blank,
@@ -128,3 +142,5 @@ inline bool is_type_tag(Tag t)
 	return t == Tag::TypeAtom || t == Tag::TypeParameterized ||
 		t == Tag::TypeFunc;
 	}
+
+bool is_token(Tag t);
