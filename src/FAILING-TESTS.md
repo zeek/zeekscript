@@ -1,10 +1,10 @@
-# C++ Formatter Failing Tests (139 pass, 34 fail as of 2026-03-31)
+# C++ Formatter Failing Tests (139 pass, 32 fail as of 2026-03-31)
 
 ## By category (sorted by count)
 
-### Line-breaking / layout quality (11)
+### Line-breaking / layout quality (9)
 Call args, assignments, binary ops not splitting at overflow.
-test{014,093,104,108,125,126,127,130,133,135,136}
+test{014,093,104,126,127,130,133,135,136}
 
 
 ### LAMBDA support (3)
