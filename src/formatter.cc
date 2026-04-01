@@ -159,6 +159,20 @@ static const Node* FindChild(const Node& node, Tag tag)
 	return nullptr;
 	}
 
+// Collect non-token, non-comment children (the "content" children).
+static std::vector<const Node*> ContentChildren(const Node& node)
+	{
+	std::vector<const Node*> result;
+	for ( const auto& c : node.Children() )
+		{
+		Tag t = c->GetTag();
+		if ( ! is_token(t) && ! is_comment(t) && t != Tag::Semi &&
+		     t != Tag::Blank && t != Tag::TrailingComma )
+			result.push_back(c.get());
+		}
+	return result;
+	}
+
 // Forward declarations for mutual recursion.
 static Candidates FormatExpr(const Node& node, const FmtContext& ctx);
 static Candidates FormatExprStmt(const Node& node, const FmtContext& ctx);
@@ -182,14 +196,14 @@ static Candidates FormatAtom(const Node& node, const FmtContext& ctx)
 
 static Candidates FormatFieldAccess(const Node& node, const FmtContext& ctx)
 	{
-	const auto& kids = node.Children();
-	if ( kids.size() < 2 )
+	auto content = ContentChildren(node);
+	if ( content.size() < 2 )
 		throw FormatError("FIELD-ACCESS node needs 2 children");
 
-	auto lhs_cs = FormatExpr(*kids[0], ctx);
+	auto lhs_cs = FormatExpr(*content[0], ctx);
 	const auto& lhs = Best(lhs_cs);
 
-	auto rhs_cs = FormatExpr(*kids[1], ctx.After(lhs.Width() + 1));
+	auto rhs_cs = FormatExpr(*content[1], ctx.After(lhs.Width() + 1));
 	const auto& rhs = Best(rhs_cs);
 
 	return {lhs.Cat("$").Cat(rhs).In(ctx)};
@@ -203,10 +217,11 @@ static Candidates FormatFieldAssign(const Node& node, const FmtContext& ctx)
 	{
 	Candidate prefix("$" + node.Arg() + "=", ctx);
 
-	if ( node.Children().empty() )
+	auto content = ContentChildren(node);
+	if ( content.empty() )
 		throw FormatError("FIELD-ASSIGN node needs a value child");
 
-	auto val_cs = FormatExpr(*node.Children()[0], ctx.After(prefix.Width()));
+	auto val_cs = FormatExpr(*content[0], ctx.After(prefix.Width()));
 	const auto& val = Best(val_cs);
 
 	return {prefix.Cat(val).In(ctx)};
@@ -242,6 +257,19 @@ CollectArgs(const Node::NodeVec& children)
 
 		if ( t == Tag::TrailingComma )
 			continue;
+
+		// Token children (COMMA, LPAREN, etc.) may carry
+		// trailing comments attached by the parser.
+		if ( is_token(t) )
+			{
+			if ( ! c->TrailingComment().empty() &&
+			     ! items.empty() )
+				{
+				items.back().comment = c->TrailingComment();
+				has_comments = true;
+				}
+			continue;
+			}
 
 		if ( is_comment(t) )
 			{
@@ -572,11 +600,11 @@ static Candidate FormatArgsVertical(const std::string& open,
 
 static Candidates FormatCall(const Node& node, const FmtContext& ctx)
 	{
-	const auto& kids = node.Children();
-	if ( kids.empty() )
+	auto content = ContentChildren(node);
+	if ( content.empty() )
 		throw FormatError("CALL node needs children");
 
-	auto func_cs = FormatExpr(*kids[0], ctx);
+	auto func_cs = FormatExpr(*content[0], ctx);
 	const auto& func = Best(func_cs);
 
 	const Node* args_node = FindChild(node, Tag::Args);
@@ -604,17 +632,17 @@ static Candidates FormatCall(const Node& node, const FmtContext& ctx)
 
 static Candidates FormatSchedule(const Node& node, const FmtContext& ctx)
 	{
-	const auto& kids = node.Children();
-	if ( kids.size() < 2 )
-		throw FormatError("SCHEDULE node needs 2 children");
+	auto content = ContentChildren(node);
+	if ( content.size() < 2 )
+		throw FormatError("SCHEDULE node needs 2 content children");
 
-	// First child: interval expression.
-	auto interval_cs = FormatExpr(*kids[0], ctx.After(9));	// "schedule "
+	// First content child: interval expression.
+	auto interval_cs = FormatExpr(*content[0], ctx.After(9));
 	const auto& interval = Best(interval_cs);
 
-	// Second child: event call.
-	int after_brace = 9 + interval.Width() + 3;	// "schedule interval { "
-	auto event_cs = FormatExpr(*kids[1], ctx.After(after_brace + 2));
+	// Second content child: event call.
+	int after_brace = 9 + interval.Width() + 3;
+	auto event_cs = FormatExpr(*content[1], ctx.After(after_brace + 2));
 	const auto& event = Best(event_cs);
 
 	std::string text = "schedule " + interval.Text() + " { " +
@@ -665,31 +693,33 @@ static Candidates FormatConstructor(const Node& node, const FmtContext& ctx)
 
 static Candidates FormatIndex(const Node& node, const FmtContext& ctx)
 	{
-	const auto& kids = node.Children();
-	if ( kids.empty() )
+	auto content = ContentChildren(node);
+	if ( content.empty() )
 		throw FormatError("INDEX node needs children");
 
-	auto base_cs = FormatExpr(*kids[0], ctx);
+	auto base_cs = FormatExpr(*content[0], ctx);
 	const auto& base = Best(base_cs);
 
 	const Node* subs_node = FindChild(node, Tag::Subscripts);
-	if ( ! subs_node || subs_node->Children().empty() )
+	if ( ! subs_node )
 		return {base.Cat("[]").In(ctx)};
 
-	auto& subs = subs_node->Children();
+	auto subs_content = ContentChildren(*subs_node);
+	if ( subs_content.empty() )
+		return {base.Cat("[]").In(ctx)};
 
-	if ( subs.size() == 1 )
+	if ( subs_content.size() == 1 )
 		{
 		int sub_col = ctx.Col() + base.Width() + 1;
 		FmtContext bracket_ctx(ctx.Indent(), sub_col,
 		                       ctx.Width() - base.Width() - 2);
-		auto sub_cs = FormatExpr(*subs[0], bracket_ctx);
+		auto sub_cs = FormatExpr(*subs_content[0], bracket_ctx);
 		const auto& sub = Best(sub_cs);
 		return {base.Cat("[").Cat(sub).Cat("]").In(ctx)};
 		}
 
 	// Multiple subscripts: format as comma-separated list.
-	auto [items, has_comments] = CollectArgs(subs);
+	auto [items, has_comments] = CollectArgs(subs_node->Children());
 	return FlatOrFill(base.Text(), '[', ']', "", items,
 		has_comments, ctx);
 	}
@@ -734,15 +764,15 @@ static Candidates FormatIndexLiteral(const Node& node, const FmtContext& ctx)
 
 static Candidates FormatSlice(const Node& node, const FmtContext& ctx)
 	{
-	const auto& kids = node.Children();
-	if ( kids.size() < 3 )
-		throw FormatError("SLICE node needs 3 children");
+	auto content = ContentChildren(node);
+	if ( content.size() < 3 )
+		throw FormatError("SLICE node needs 3 content children");
 
-	auto base_cs = FormatExpr(*kids[0], ctx);
+	auto base_cs = FormatExpr(*content[0], ctx);
 	const auto& base = Best(base_cs);
 
-	std::string lo = Best(FormatExpr(*kids[1], ctx)).Text();
-	std::string hi = Best(FormatExpr(*kids[2], ctx)).Text();
+	std::string lo = Best(FormatExpr(*content[1], ctx)).Text();
+	std::string hi = Best(FormatExpr(*content[2], ctx)).Text();
 
 	std::string sep = (! lo.empty() && ! hi.empty()) ? " : " : ":";
 	Candidate flat = base.Cat("[" + lo + sep + hi + "]").In(ctx);
@@ -753,7 +783,7 @@ static Candidates FormatSlice(const Node& node, const FmtContext& ctx)
 	// Split after ":" - continuation aligns after "[".
 	int bracket_col = ctx.Col() + base.Width() + 1;
 	FmtContext hi_ctx = ctx.AtCol(bracket_col);
-	std::string hi2 = Best(FormatExpr(*kids[2], hi_ctx)).Text();
+	std::string hi2 = Best(FormatExpr(*content[2], hi_ctx)).Text();
 
 	std::string prefix = LinePrefix(hi_ctx.Indent(), bracket_col);
 	std::string split = base.Text() + "[" + lo + " :\n" +
@@ -771,10 +801,11 @@ static Candidates FormatSlice(const Node& node, const FmtContext& ctx)
 
 static Candidates FormatParen(const Node& node, const FmtContext& ctx)
 	{
-	if ( node.Children().empty() )
+	auto content = ContentChildren(node);
+	if ( content.empty() )
 		throw FormatError("PAREN node needs a child");
 
-	auto inner_cs = FormatExpr(*node.Children()[0], ctx.After(1));
+	auto inner_cs = FormatExpr(*content[0], ctx.After(1));
 	const auto& inner = Best(inner_cs);
 
 	return {Candidate("(", ctx).Cat(inner).Cat(")").In(ctx)};
@@ -787,15 +818,15 @@ static Candidates FormatParen(const Node& node, const FmtContext& ctx)
 static Candidates FormatUnary(const Node& node, const FmtContext& ctx)
 	{
 	const auto& op = node.Arg();
-	const auto& kids = node.Children();
+	auto content = ContentChildren(node);
 
-	if ( kids.empty() )
+	if ( content.empty() )
 		throw FormatError("UNARY-OP node needs a child");
 
 	// Cardinality/absolute value: |expr|
 	if ( op == "|...|" )
 		{
-		auto operand_cs = FormatExpr(*kids[0], ctx.After(2));
+		auto operand_cs = FormatExpr(*content[0], ctx.After(2));
 		const auto& operand = Best(operand_cs);
 		return {Candidate("|", ctx).Cat(operand).Cat("|").In(ctx)};
 		}
@@ -806,7 +837,7 @@ static Candidates FormatUnary(const Node& node, const FmtContext& ctx)
 		ps += " ";
 
 	Candidate prefix(ps, ctx);
-	auto operand_cs = FormatExpr(*kids[0], ctx.After(prefix.Width()));
+	auto operand_cs = FormatExpr(*content[0], ctx.After(prefix.Width()));
 	const auto& operand = Best(operand_cs);
 
 	return {prefix.Cat(operand).In(ctx)};
@@ -821,11 +852,12 @@ static Candidates FormatUnary(const Node& node, const FmtContext& ctx)
 static void FlattenBoolChain(const Node& node, const std::string& op,
                              std::vector<const Node*>& out)
 	{
+	auto content = ContentChildren(node);
 	if ( node.GetTag() == Tag::BinaryOp && node.Arg() == op &&
-	     node.Children().size() >= 2 )
+	     content.size() >= 2 )
 		{
-		FlattenBoolChain(*node.Children()[0], op, out);
-		out.push_back(node.Children()[1].get());
+		FlattenBoolChain(*content[0], op, out);
+		out.push_back(content[1]);
 		}
 	else
 		out.push_back(&node);
@@ -933,9 +965,9 @@ static Candidates FormatBoolChain(const std::string& op,
 static Candidates FormatBinary(const Node& node, const FmtContext& ctx)
 	{
 	const auto& op = node.Arg();
-	const auto& kids = node.Children();
+	auto content = ContentChildren(node);
 
-	if ( kids.size() < 2 )
+	if ( content.size() < 2 )
 		throw FormatError("BINARY-OP node needs 2 children");
 
 	// Boolean chains: flatten and fill-pack at && or ||.
@@ -951,10 +983,10 @@ static Candidates FormatBinary(const Node& node, const FmtContext& ctx)
 	if ( op == "?$" )
 		{
 		std::string rhs_text =
-			Best(FormatExpr(*kids[1], ctx)).Text();
+			Best(FormatExpr(*content[1], ctx)).Text();
 		int suffix_w = 2 + static_cast<int>(rhs_text.size());
 
-		auto lhs_cs = FormatExpr(*kids[0], ctx.Reserve(suffix_w));
+		auto lhs_cs = FormatExpr(*content[0], ctx.Reserve(suffix_w));
 		const auto& lhs = Best(lhs_cs);
 
 		std::string text = lhs.Text() + "?$" + rhs_text;
@@ -972,15 +1004,15 @@ static Candidates FormatBinary(const Node& node, const FmtContext& ctx)
 	// "/" with atomic RHS: no spaces (subnet masking heuristic).
 	// Division typically has a compound RHS; masking has a bare
 	// constant or identifier.
-	bool tight = (op == "/" && ! kids[1]->HasChildren());
+	bool tight = (op == "/" && ! content[1]->HasChildren());
 	std::string lsep = tight ? "" : " ";
 	std::string rsep = tight ? "" : " ";
 	int op_w = static_cast<int>(op.size()) + (tight ? 0 : 2);
 
-	auto lhs_cs = FormatExpr(*kids[0], ctx);
+	auto lhs_cs = FormatExpr(*content[0], ctx);
 	const auto& lhs = Best(lhs_cs);
 
-	auto rhs_cs = FormatExpr(*kids[1], ctx.After(lhs.Width() + op_w));
+	auto rhs_cs = FormatExpr(*content[1], ctx.After(lhs.Width() + op_w));
 	const auto& rhs = Best(rhs_cs);
 
 	// Candidate 1: flat - lhs op rhs
@@ -1019,7 +1051,7 @@ static Candidates FormatBinary(const Node& node, const FmtContext& ctx)
 	FmtContext cont_ctx = ctx.Col() == ctx.IndentCol() ?
 				ctx.Indented() : ctx.AtCol(ctx.Col());
 
-	auto rhs2_cs = FormatExpr(*kids[1], cont_ctx);
+	auto rhs2_cs = FormatExpr(*content[1], cont_ctx);
 	const auto& rhs2 = Best(rhs2_cs);
 
 	std::string cont_prefix = LinePrefix(cont_ctx.Indent(), cont_ctx.Col());
@@ -1053,24 +1085,34 @@ static Candidates FormatInterval(const Node& node, const FmtContext& ctx)
 // ------------------------------------------------------------------
 
 // TYPE-PARAMETERIZED: table[k] of v, set[t], vector of t
-// Children are type args plus optional OF marker.
+// Children now include LBRACKET, RBRACKET, COMMA, KEYWORD "of".
 static Candidates FormatTypeParam(const Node& node, const FmtContext& ctx)
 	{
 	const auto& keyword = node.Arg();	// "table", "set", "vector"
-	const auto& kids = node.Children();
 
-	// Collect bracketed type args and "of" type.
+	// Collect bracketed type args (between LBRACKET/RBRACKET)
+	// and "of" type (after KEYWORD "of").
 	std::vector<const Node*> bracket_types;
 	const Node* of_type = nullptr;
+	bool in_brackets = false;
 	bool past_of = false;
 
-	for ( const auto& c : kids )
+	for ( const auto& c : node.Children() )
 		{
-		if ( c->GetTag() == Tag::Of )
-			past_of = true;
-		else if ( past_of )
+		Tag t = c->GetTag();
+
+		if ( t == Tag::LBracket )
+			{ in_brackets = true; continue; }
+		if ( t == Tag::RBracket )
+			{ in_brackets = false; continue; }
+		if ( t == Tag::Keyword && c->Arg() == "of" )
+			{ past_of = true; continue; }
+		if ( is_token(t) || is_comment(t) )
+			continue;
+
+		if ( past_of )
 			of_type = c.get();
-		else
+		else if ( in_brackets )
 			bracket_types.push_back(c.get());
 		}
 
@@ -1099,6 +1141,7 @@ static const Node* FindTypeChild(const Node& node)
 	}
 
 // TYPE-FUNC: event(params), function(params): rettype
+// PARAMS now has LPAREN/RPAREN, COLON before RETURNS.
 static Candidates FormatTypeFunc(const Node& node, const FmtContext& ctx)
 	{
 	const auto& keyword = node.Arg();	// "event", "function", "hook"
@@ -1112,7 +1155,10 @@ static Candidates FormatTypeFunc(const Node& node, const FmtContext& ctx)
 		bool first = true;
 		for ( const auto& p : params->Children() )
 			{
-			if ( is_comment(p->GetTag()) )
+			Tag t = p->GetTag();
+			if ( is_comment(t) || is_token(t) )
+				continue;
+			if ( t != Tag::Param )
 				continue;
 
 			if ( ! first )
@@ -1137,13 +1183,6 @@ static Candidates FormatTypeFunc(const Node& node, const FmtContext& ctx)
 		}
 
 	return {Candidate(text, ctx)};
-	}
-
-// TYPE wrapper node: contains a type child.
-static std::string FormatType(const Node& node, const FmtContext& ctx)
-	{
-	const Node* tc = FindTypeChild(node);
-	return tc ? Best(FormatExpr(*tc, ctx)).Text() : "";
 	}
 
 // ------------------------------------------------------------------
@@ -1252,8 +1291,9 @@ struct DeclParts {
 	std::string head;	// "global foo", "local bar", etc.
 	std::string type_str;	// ": type" or ""
 	std::string suffix;	// " &attr1 &attr2;" or ";" or ""
-	const Node* type_node;
-	const Node* init_node;
+	const Node* type_node;	// direct type child (after COLON)
+	std::string assign_op;	// "=", "+=", or ""
+	const Node* init_val;	// direct init value (after ASSIGN)
 	const Node* attrs_node;
 	bool has_semi;
 };
@@ -1262,17 +1302,13 @@ struct DeclParts {
 static void DeclWithInit(const DeclParts& d, Candidates& result,
                          const FmtContext& ctx)
 	{
-	const auto& op = d.init_node->Arg();	// "=", "+="
-
-	if ( d.init_node->Children().empty() )
-		throw FormatError("INIT node needs a value child");
-
-	std::string before_val = d.head + d.type_str + " " + op + " ";
+	std::string before_val = d.head + d.type_str + " " +
+		d.assign_op + " ";
 	int before_w = static_cast<int>(before_val.size());
 	int suffix_w = static_cast<int>(d.suffix.size());
 
 	FmtContext val_ctx = ctx.After(before_w).Reserve(suffix_w);
-	auto val_cs = FormatExpr(*d.init_node->Children()[0], val_ctx);
+	auto val_cs = FormatExpr(*d.init_val, val_ctx);
 	const auto& val = Best(val_cs);
 
 	std::string flat = before_val + val.Text() + d.suffix;
@@ -1300,10 +1336,11 @@ static void DeclWithInit(const DeclParts& d, Candidates& result,
 	if ( result[0].Ovf() > 0 )
 		{
 		FmtContext cont = ctx.Indented().Reserve(suffix_w);
-		auto val2_cs = FormatExpr(*d.init_node->Children()[0], cont);
+		auto val2_cs = FormatExpr(*d.init_val, cont);
 		const auto& val2 = Best(val2_cs);
 
-		std::string line1 = d.head + d.type_str + " " + op;
+		std::string line1 = d.head + d.type_str + " " +
+			d.assign_op;
 		std::string pad = LinePrefix(cont.Indent(), cont.Col());
 		std::string split = line1 + "\n" + pad +
 					val2.Text() + d.suffix;
@@ -1329,8 +1366,7 @@ static void DeclNoInit(const DeclParts& d, Candidates& result,
 		return;
 
 	FmtContext cont = ctx.Indented();
-	auto type_cs = FormatExpr(*d.type_node->Children()[0], cont);
-	std::string tv = Best(type_cs).Text();
+	std::string tv = Best(FormatExpr(*d.type_node, cont)).Text();
 
 	std::string line1 = d.head + ":";
 	std::string pad = LinePrefix(cont.Indent(), cont.Col());
@@ -1381,14 +1417,13 @@ static void DeclWrappedAttrs(const DeclParts& d, Candidates& result,
 	// First line: everything except attrs and semi.
 	std::string line1 = d.head + d.type_str;
 
-	if ( d.init_node )
+	if ( d.init_val )
 		{
-		const auto& op = d.init_node->Arg();
 		FmtContext val_ctx = ctx.After(
 			static_cast<int>(line1.size()) +
-			static_cast<int>(op.size()) + 2);
-		auto vcs = FormatExpr(*d.init_node->Children()[0], val_ctx);
-		line1 += " " + op + " " + Best(vcs).Text();
+			static_cast<int>(d.assign_op.size()) + 2);
+		auto vcs = FormatExpr(*d.init_val, val_ctx);
+		line1 += " " + d.assign_op + " " + Best(vcs).Text();
 		}
 
 	// Attrs aligned one column past where the type starts.
@@ -1454,17 +1489,15 @@ static void DeclTypeSplit(const DeclParts& d, Candidates& result,
 	std::string pad = LinePrefix(cont.Indent(), cont.Col());
 	std::string split = line1 + "\n" + pad + bare_type;
 
-	if ( d.init_node )
+	if ( d.init_val )
 		{
-		const auto& op = d.init_node->Arg();
 		int suffix_w = static_cast<int>(d.suffix.size());
 		FmtContext val_ctx = cont.After(
 			static_cast<int>(bare_type.size()) +
-			static_cast<int>(op.size()) + 2).Reserve(
+			static_cast<int>(d.assign_op.size()) + 2).Reserve(
 			suffix_w);
-		auto val_cs = FormatExpr(*d.init_node->Children()[0],
-					val_ctx);
-		split += " " + op + " " + Best(val_cs).Text();
+		auto val_cs = FormatExpr(*d.init_val, val_ctx);
+		split += " " + d.assign_op + " " + Best(val_cs).Text();
 		}
 
 	split += d.suffix;
@@ -1483,23 +1516,60 @@ static Candidates FormatDecl(const Node& node, const FmtContext& ctx)
 
 	DeclParts d;
 	d.head = keyword + " " + name;
-	d.type_node = FindChild(node, Tag::Type);
-	d.init_node = FindChild(node, Tag::Init);
+	d.type_node = nullptr;
+	d.init_val = nullptr;
 	d.attrs_node = FindChild(node, Tag::AttrList);
 	d.has_semi = FindChild(node, Tag::Semi) != nullptr;
 
+	// Scan children sequentially: COLON precedes type, ASSIGN
+	// precedes init value.
+	bool expect_type = false;
+	bool expect_init = false;
+
+	for ( const auto& c : node.Children() )
+		{
+		Tag t = c->GetTag();
+
+		if ( t == Tag::Colon )
+			{
+			expect_type = true;
+			continue;
+			}
+
+		if ( t == Tag::Assign )
+			{
+			d.assign_op = c->Arg();
+			expect_init = true;
+			continue;
+			}
+
+		if ( expect_type && ! is_token(t) && ! is_comment(t) )
+			{
+			d.type_node = c.get();
+			expect_type = false;
+			continue;
+			}
+
+		if ( expect_init && ! is_token(t) && ! is_comment(t) )
+			{
+			d.init_val = c.get();
+			expect_init = false;
+			continue;
+			}
+		}
+
 	if ( d.type_node )
 		{
-		d.type_str = FormatType(*d.type_node, ctx);
-		if ( ! d.type_str.empty() )
-			d.type_str = ": " + d.type_str;
+		std::string ts = Best(FormatExpr(*d.type_node, ctx)).Text();
+		if ( ! ts.empty() )
+			d.type_str = ": " + ts;
 		}
 
 	d.suffix = DeclSuffix(d.attrs_node, d.has_semi, ctx);
 
 	Candidates result;
 
-	if ( d.init_node )
+	if ( d.init_val )
 		DeclWithInit(d, result, ctx);
 	else
 		DeclNoInit(d, result, ctx);
@@ -1519,18 +1589,18 @@ static Candidates FormatDecl(const Node& node, const FmtContext& ctx)
 
 static Candidates FormatTernary(const Node& node, const FmtContext& ctx)
 	{
-	const auto& kids = node.Children();
-	if ( kids.size() < 3 )
+	auto content = ContentChildren(node);
+	if ( content.size() < 3 )
 		throw FormatError("TERNARY node needs 3 children");
 
-	auto cond_cs = FormatExpr(*kids[0], ctx);
+	auto cond_cs = FormatExpr(*content[0], ctx);
 	const auto& cond = Best(cond_cs);
 
 	int tv_col = ctx.Col() + cond.Width() + 3;  // after "cond ? "
-	auto tv_cs = FormatExpr(*kids[1], ctx.After(cond.Width() + 3));
+	auto tv_cs = FormatExpr(*content[1], ctx.After(cond.Width() + 3));
 	const auto& tv = Best(tv_cs);
 
-	auto fv_cs = FormatExpr(*kids[2],
+	auto fv_cs = FormatExpr(*content[2],
 		ctx.After(cond.Width() + 3 + tv.Width() + 3));
 	const auto& fv = Best(fv_cs);
 
@@ -1546,7 +1616,7 @@ static Candidates FormatTernary(const Node& node, const FmtContext& ctx)
 
 	// Split after ":" - false-value aligns under true-value.
 	FmtContext fv_ctx = ctx.AtCol(tv_col);
-	auto fv2_cs = FormatExpr(*kids[2], fv_ctx);
+	auto fv2_cs = FormatExpr(*content[2], fv_ctx);
 	const auto& fv2 = Best(fv2_cs);
 
 	std::string fv_prefix = LinePrefix(fv_ctx.Indent(), tv_col);
@@ -1561,10 +1631,10 @@ static Candidates FormatTernary(const Node& node, const FmtContext& ctx)
 	// Split after "?" - true and false on continuation line,
 	// aligned under the start of cond.
 	FmtContext cont_ctx = ctx.AtCol(ctx.Col());
-	auto tv2_cs = FormatExpr(*kids[1], cont_ctx);
+	auto tv2_cs = FormatExpr(*content[1], cont_ctx);
 	const auto& tv2 = Best(tv2_cs);
 
-	auto fv3_cs = FormatExpr(*kids[2], cont_ctx.After(tv2.Width() + 3));
+	auto fv3_cs = FormatExpr(*content[2], cont_ctx.After(tv2.Width() + 3));
 	const auto& fv3 = Best(fv3_cs);
 
 	std::string cont_prefix = LinePrefix(cont_ctx.Indent(), ctx.Col());
@@ -1605,10 +1675,13 @@ static Candidates FormatEventStmt(const Node& node, const FmtContext& ctx)
 
 	std::string prefix = "event " + name;
 
-	if ( ! args_node || args_node->Children().empty() )
+	if ( ! args_node )
 		return {Candidate(prefix + "()" + semi_str, ctx)};
 
 	auto [items, has_comments] = CollectArgs(args_node->Children());
+
+	if ( items.empty() )
+		return {Candidate(prefix + "()" + semi_str, ctx)};
 
 	if ( ! args_node->TrailingComment().empty() )
 		has_comments = true;
@@ -1630,9 +1703,8 @@ static Candidates FormatEventStmt(const Node& node, const FmtContext& ctx)
 
 static Candidates FormatKeywordStmt(const Node& node, const FmtContext& ctx)
 	{
-	const char* keyword = keyword_for_tag.at(node.GetTag());
-
-	// Find expression child and SEMI.
+	// Find keyword text from KEYWORD child or keyword_for_tag.
+	std::string keyword;
 	const Node* expr = nullptr;
 	bool has_semi = false;
 
@@ -1641,9 +1713,14 @@ static Candidates FormatKeywordStmt(const Node& node, const FmtContext& ctx)
 		Tag t = c->GetTag();
 		if ( t == Tag::Semi )
 			has_semi = true;
-		else if ( ! is_comment(t) && ! expr )
+		else if ( t == Tag::Keyword )
+			keyword = c->Arg();
+		else if ( ! is_comment(t) && ! is_token(t) && ! expr )
 			expr = c.get();
 		}
+
+	if ( keyword.empty() )
+		keyword = keyword_for_tag.at(node.GetTag());
 
 	if ( ! expr )
 		{
@@ -1653,7 +1730,7 @@ static Candidates FormatKeywordStmt(const Node& node, const FmtContext& ctx)
 		return {Candidate(text, ctx)};
 		}
 
-	std::string prefix = std::string(keyword) + " ";
+	std::string prefix = keyword + " ";
 	int prefix_w = static_cast<int>(prefix.size());
 	int semi_cost = has_semi ? 1 : 0;
 
@@ -1680,12 +1757,6 @@ static Candidates FormatKeywordStmt(const Node& node, const FmtContext& ctx)
 		}
 
 	return result;
-	}
-
-// Bare keyword statements with no expression and no children.
-static Candidates FormatBareKeyword(const Node& node, const FmtContext& ctx)
-	{
-	return {Candidate(keyword_for_tag.at(node.GetTag()), ctx)};
 	}
 
 // ------------------------------------------------------------------
@@ -1753,6 +1824,7 @@ static std::string FormatStmtList(const Node::NodeVec& nodes,
 		{
 		const auto& node = *nodes[i];
 		Tag t = node.GetTag();
+
 
 		if ( t == Tag::Blank )
 			{
@@ -1838,19 +1910,29 @@ static std::string FormatStmtList(const Node::NodeVec& nodes,
 		int comment_w = static_cast<int>(comment_text.size());
 		int trail_w = static_cast<int>(semi_str.size()) + comment_w;
 
-		auto it = FormatDispatch().find(t);
 		std::string stmt_text;
 
-		if ( it != FormatDispatch().end() )
+		// Bare KEYWORD at statement level: break, next, etc.
+		if ( t == Tag::Keyword )
 			{
-			FmtContext stmt_ctx = cur_ctx.Reserve(trail_w);
-			auto cs = it->second(node, stmt_ctx);
-			stmt_text = Best(cs).Text();
+			stmt_text = node.Arg();
 			}
 		else
 			{
-			const char* s = TagToString(t);
-			stmt_text = std::string("/* TODO: ") + s + " */";
+			auto it = FormatDispatch().find(t);
+
+			if ( it != FormatDispatch().end() )
+				{
+				FmtContext stmt_ctx = cur_ctx.Reserve(trail_w);
+				auto cs = it->second(node, stmt_ctx);
+				stmt_text = Best(cs).Text();
+				}
+			else
+				{
+				const char* s = TagToString(t);
+				stmt_text = std::string("/* TODO: ") +
+					s + " */";
+				}
 			}
 
 		// Attach the comment to the statement.
@@ -1883,7 +1965,7 @@ static std::string FormatStmtList(const Node::NodeVec& nodes,
 	return result;
 	}
 
-// Format a BODY node as a Whitesmith-style braced block.
+// Format a BODY or BLOCK node as a Whitesmith-style braced block.
 // Returns the full block including braces and newlines.
 // The block starts on a new line at one deeper indent than ctx.
 static std::string FormatWhitesmithBlock(const Node* body,
@@ -1892,21 +1974,52 @@ static std::string FormatWhitesmithBlock(const Node* body,
 	FmtContext block_ctx = ctx.Indented();
 	std::string brace_pad = LinePrefix(block_ctx.Indent(), block_ctx.Col());
 
-	if ( ! body || body->Children().empty() )
+	if ( ! body )
 		return "\n" + brace_pad + "{ }";
 
+	// Extract the children between LBRACE and RBRACE, reading
+	// trailing comments from the brace tokens themselves.
 	const auto& kids = body->Children();
+	std::string open_trail;
+	std::string close_trail;
+	Node::NodeVec inner;
 
-	// Check if the first child is a trailing comment (no preceding
-	// sibling to attach to) - it goes after the open brace.
-	std::string brace_trail;
-	if ( kids[0]->GetTag() == Tag::CommentTrailing )
-		brace_trail = " " + kids[0]->Arg();
+	bool past_open = false;
+	for ( const auto& c : kids )
+		{
+		Tag t = c->GetTag();
+
+		if ( t == Tag::LBrace )
+			{
+			open_trail = c->TrailingComment();
+			past_open = true;
+			continue;
+			}
+
+		if ( t == Tag::RBrace )
+			{
+			close_trail = c->TrailingComment();
+			continue;
+			}
+
+		if ( past_open )
+			inner.push_back(c);
+		}
+
+	if ( inner.empty() && open_trail.empty() )
+		return "\n" + brace_pad + "{ }" + close_trail;
 
 	std::string body_text =
-		FormatStmtList(kids, block_ctx, true);
+		FormatStmtList(inner, block_ctx, true);
 
-	return "\n" + brace_pad + "{" + brace_trail + "\n" +
+	// If the closing brace has a trailing comment, it
+	// belongs on the last statement line, not on the '}'.
+	if ( ! close_trail.empty() && ! body_text.empty() &&
+	     body_text.back() == '\n' )
+		body_text = body_text.substr(0, body_text.size() - 1)
+			+ close_trail + "\n";
+
+	return "\n" + brace_pad + "{" + open_trail + "\n" +
 		body_text + brace_pad + "}";
 	}
 
@@ -1957,7 +2070,10 @@ static std::vector<std::string> FormatParamStrings(const Node* params,
 
 	for ( const auto& p : params->Children() )
 		{
-		if ( is_comment(p->GetTag()) )
+		Tag t = p->GetTag();
+		if ( is_comment(t) || is_token(t) )
+			continue;
+		if ( t != Tag::Param )
 			continue;
 
 		std::string text = p->Arg();
@@ -2095,23 +2211,49 @@ static Candidates FormatFuncDecl(const Node& node, const FmtContext& ctx)
 
 static Candidates FormatIf(const Node& node, const FmtContext& ctx)
 	{
-	const Node* cond_node = FindChild(node, Tag::Cond);
+	// New format: IF { KEYWORD "if" LPAREN cond RPAREN BODY {...}
+	//              [comments/blanks] [ELSE {...}] }
+	// Condition is between LPAREN and RPAREN (direct children).
+	const Node* cond_expr = nullptr;
 	const Node* body_node = FindChild(node, Tag::Body);
 	const Node* else_node = FindChild(node, Tag::Else);
 
+	// Find condition: first non-token, non-comment child that isn't
+	// BODY, ELSE, or a structural node.
+	bool in_parens = false;
+	std::string cond_trail;
+
+	for ( const auto& c : node.Children() )
+		{
+		Tag t = c->GetTag();
+
+		if ( t == Tag::LParen )
+			{
+			in_parens = true;
+			continue;
+			}
+
+		if ( t == Tag::RParen )
+			{
+			cond_trail = c->TrailingComment();
+			in_parens = false;
+			continue;
+			}
+
+		if ( in_parens && ! is_token(t) && ! is_comment(t) )
+			cond_expr = c.get();
+		}
+
 	// Format condition.
 	std::string cond_text;
-	if ( cond_node && ! cond_node->Children().empty() )
+	if ( cond_expr )
 		{
-		auto cond_cs = FormatExpr(*cond_node->Children()[0],
+		auto cond_cs = FormatExpr(*cond_expr,
 			ctx.After(5).Reserve(2));
 		cond_text = Best(cond_cs).Text();
 		}
 
-	std::string head = "if ( " + cond_text + " )";
-
-	if ( cond_node )
-		head += cond_node->TrailingComment();
+	std::string head = "if ( " + cond_text + " )" + cond_trail;
 
 	std::string result = head + FormatBodyText(body_node, ctx);
 
@@ -2119,8 +2261,6 @@ static Candidates FormatIf(const Node& node, const FmtContext& ctx)
 		result += body_node->TrailingComment();
 
 	// Collect leading comment and blank children of the IF node.
-	// Comments before ELSE become leading comments; a BLANK before
-	// the else (or its leading comments) produces a blank line.
 	std::string if_comments;
 	bool blank_before_else = false;
 	std::string stmt_pad = LinePrefix(ctx.Indent(), ctx.Col());
@@ -2134,7 +2274,7 @@ static Candidates FormatIf(const Node& node, const FmtContext& ctx)
 			continue;
 			}
 
-		if ( is_comment(ct) )
+		if ( ct == Tag::CommentLeading )
 			{
 			if ( ! if_comments.empty() )
 				if_comments += "\n";
@@ -2145,33 +2285,43 @@ static Candidates FormatIf(const Node& node, const FmtContext& ctx)
 			}
 		}
 
-	// Handle else clause.
-	if ( else_node && ! else_node->Children().empty() )
+	// Handle else clause.  ELSE now has KEYWORD "else" as first
+	// child; ContentChildren skips it.
+	if ( else_node )
 		{
-		const auto& else_child = else_node->Children()[0];
+		auto else_content = ContentChildren(*else_node);
 
-		if ( blank_before_else || ! if_comments.empty() )
-			result += "\n";
+		if ( ! else_content.empty() )
+			{
+			const Node* else_child = else_content[0];
 
-		result += if_comments;
+			if ( blank_before_else || ! if_comments.empty() )
+				result += "\n";
 
-		if ( else_child->GetTag() == Tag::If )
-			{
-			auto inner_cs = FormatIf(*else_child, ctx);
-			result += "\n" + stmt_pad + "else " + Best(inner_cs).Text();
-			}
-		else if ( else_child->GetTag() == Tag::Block )
-			{
-			result += "\n" + stmt_pad + "else" +
-				FormatWhitesmithBlock(else_child.get(), ctx);
-			}
-		else
-			{
-			std::string else_body = FormatStmtList(
-				else_node->Children(), ctx.Indented());
-			if ( ! else_body.empty() && else_body.back() == '\n' )
-				else_body.pop_back();
-			result += "\n" + stmt_pad + "else\n" + else_body;
+			result += if_comments;
+
+			if ( else_child->GetTag() == Tag::If )
+				{
+				auto inner_cs = FormatIf(*else_child, ctx);
+				result += "\n" + stmt_pad + "else " +
+					Best(inner_cs).Text();
+				}
+			else if ( else_child->GetTag() == Tag::Block )
+				{
+				result += "\n" + stmt_pad + "else" +
+					FormatWhitesmithBlock(else_child, ctx);
+				}
+			else
+				{
+				// Single-statement else: format the
+				// content child (skip KEYWORD "else").
+				FmtContext else_ctx = ctx.Indented();
+				auto cs = FormatExpr(*else_child, else_ctx);
+				std::string epad = LinePrefix(
+					else_ctx.Indent(), else_ctx.Col());
+				result += "\n" + stmt_pad + "else\n" +
+					epad + Best(cs).Text();
+				}
 			}
 		}
 
@@ -2192,8 +2342,9 @@ static Candidates FormatFor(const Node& node, const FmtContext& ctx)
 	std::string vars_text;
 	if ( vars_node )
 		{
+		auto vars_content = ContentChildren(*vars_node);
 		bool first = true;
-		for ( const auto& v : vars_node->Children() )
+		for ( const auto* v : vars_content )
 			{
 			if ( ! first )
 				vars_text += ", ";
@@ -2204,12 +2355,25 @@ static Candidates FormatFor(const Node& node, const FmtContext& ctx)
 
 	// Format iterable.
 	std::string iter_text;
-	if ( iter_node && ! iter_node->Children().empty() )
-		iter_text = Best(FormatExpr(*iter_node->Children()[0], ctx)).Text();
-
-	std::string head = "for ( " + vars_text + " in " + iter_text + " )";
 	if ( iter_node )
-		head += iter_node->TrailingComment();
+		{
+		auto iter_content = ContentChildren(*iter_node);
+		if ( ! iter_content.empty() )
+			iter_text = Best(FormatExpr(*iter_content[0],
+				ctx)).Text();
+		}
+
+	// Read trailing comment from RPAREN token.
+	std::string rparen_trail;
+	for ( const auto& c : node.Children() )
+		if ( c->GetTag() == Tag::RParen )
+			{
+			rparen_trail = c->TrailingComment();
+			break;
+			}
+
+	std::string head = "for ( " + vars_text + " in " +
+		iter_text + " )" + rparen_trail;
 
 	return {Candidate(head + FormatBodyText(body_node, ctx), ctx)};
 	}
@@ -2220,20 +2384,38 @@ static Candidates FormatFor(const Node& node, const FmtContext& ctx)
 
 static Candidates FormatWhile(const Node& node, const FmtContext& ctx)
 	{
-	const Node* cond_node = FindChild(node, Tag::Cond);
 	const Node* body_node = FindChild(node, Tag::Body);
 
-	std::string cond_text;
-	if ( cond_node && ! cond_node->Children().empty() )
+	// Find condition between LPAREN/RPAREN.
+	const Node* cond_expr = nullptr;
+	std::string cond_trail;
+	bool in_parens = false;
+
+	for ( const auto& c : node.Children() )
 		{
-		auto cond_cs = FormatExpr(*cond_node->Children()[0],
+		Tag t = c->GetTag();
+
+		if ( t == Tag::LParen )
+			{ in_parens = true; continue; }
+		if ( t == Tag::RParen )
+			{
+			cond_trail = c->TrailingComment();
+			in_parens = false;
+			continue;
+			}
+		if ( in_parens && ! is_token(t) && ! is_comment(t) )
+			cond_expr = c.get();
+		}
+
+	std::string cond_text;
+	if ( cond_expr )
+		{
+		auto cond_cs = FormatExpr(*cond_expr,
 			ctx.After(8).Reserve(2));
 		cond_text = Best(cond_cs).Text();
 		}
 
-	std::string head = "while ( " + cond_text + " )";
-	if ( cond_node )
-		head += cond_node->TrailingComment();
+	std::string head = "while ( " + cond_text + " )" + cond_trail;
 
 	return {Candidate(head + FormatBodyText(body_node, ctx), ctx)};
 	}
@@ -2256,21 +2438,40 @@ static Candidates FormatExport(const Node& node, const FmtContext& ctx)
 
 static Candidates FormatSwitch(const Node& node, const FmtContext& ctx)
 	{
-	// Format the expression.  If the source used parens, unwrap the
-	// PAREN node and apply Zeek-style ( expr ) spacing.
-	const Node* expr_node = FindChild(node, Tag::Expr);
-	std::string expr_text;
-	if ( expr_node && ! expr_node->Children().empty() )
+	// Find the switch expression: first non-token, non-structural
+	// child (between KEYWORD "switch" and LBRACE).
+	const Node* switch_expr = nullptr;
+	bool past_keyword = false;
+
+	for ( const auto& c : node.Children() )
 		{
-		const Node* inner = expr_node->Children()[0].get();
-		if ( inner->GetTag() == Tag::Paren &&
-		     ! inner->Children().empty() )
+		Tag t = c->GetTag();
+
+		if ( t == Tag::Keyword )
+			{ past_keyword = true; continue; }
+		if ( t == Tag::LBrace )
+			break;
+
+		if ( past_keyword && ! is_token(t) && ! is_comment(t) )
+			switch_expr = c.get();
+		}
+
+	// Format the expression.  If the source used parens, unwrap
+	// the PAREN node and apply Zeek-style ( expr ) spacing.
+	std::string expr_text;
+	if ( switch_expr )
+		{
+		if ( switch_expr->GetTag() == Tag::Paren )
 			{
-			auto cs = FormatExpr(*inner->Children()[0], ctx);
-			expr_text = "( " + Best(cs).Text() + " )";
+			auto paren_content = ContentChildren(*switch_expr);
+			if ( ! paren_content.empty() )
+				{
+				auto cs = FormatExpr(*paren_content[0], ctx);
+				expr_text = "( " + Best(cs).Text() + " )";
+				}
 			}
 		else
-			expr_text = Best(FormatExpr(*inner, ctx)).Text();
+			expr_text = Best(FormatExpr(*switch_expr, ctx)).Text();
 		}
 
 	std::string head = "switch " + expr_text + " {";
@@ -2278,7 +2479,7 @@ static Candidates FormatSwitch(const Node& node, const FmtContext& ctx)
 
 	std::string result = head;
 
-	// Format each CASE.
+	// Format each CASE/DEFAULT.
 	for ( const auto& c : node.Children() )
 		{
 		if ( c->GetTag() != Tag::Case && c->GetTag() != Tag::Default )
@@ -2301,21 +2502,19 @@ static Candidates FormatSwitch(const Node& node, const FmtContext& ctx)
 			continue;
 			}
 
-		// CASE node: VALUES { exprs } BODY { stmts }
+		// CASE: KEYWORD "case" VALUES {...} COLON BODY {...}
 		const Node* values = FindChild(*c, Tag::Values);
 		const Node* body = FindChild(*c, Tag::Body);
 
 		std::string case_text = "case ";
 		if ( values )
 			{
-			// Collect formatted values.
+			// Collect formatted values (skip COMMA tokens).
+			auto val_content = ContentChildren(*values);
 			std::vector<std::string> vals;
-			for ( const auto& v : values->Children() )
-				{
-				if ( is_comment(v->GetTag()) )
-					continue;
-				vals.push_back(Best(FormatExpr(*v, ctx)).Text());
-				}
+			for ( const auto* v : val_content )
+				vals.push_back(
+					Best(FormatExpr(*v, ctx)).Text());
 
 			// Fill-pack values, wrapping at comma.
 			int case_col = ctx.Col() +
@@ -2329,7 +2528,7 @@ static Candidates FormatSwitch(const Node& node, const FmtContext& ctx)
 				auto& vi = vals[i];
 				int need = static_cast<int>(vi.size());
 				if ( i > 0 )
-					need += 2;	// ", "
+					need += 2;
 
 				if ( i > 0 && cur_col + need > max_col )
 					{
@@ -2352,9 +2551,10 @@ static Candidates FormatSwitch(const Node& node, const FmtContext& ctx)
 
 		if ( body )
 			{
-			std::string body_text = FormatStmtList(body->Children(),
-							ctx.Indented());
-			if ( ! body_text.empty() && body_text.back() == '\n' )
+			std::string body_text = FormatStmtList(
+				body->Children(), ctx.Indented());
+			if ( ! body_text.empty() &&
+			     body_text.back() == '\n' )
 				body_text.pop_back();
 			result += "\n" + body_text;
 			}
@@ -2560,9 +2760,6 @@ static const std::unordered_map<Tag, FormatFunc>& FormatDispatch()
 		{Tag::Add, FormatKeywordStmt},
 		{Tag::Delete, FormatKeywordStmt},
 		{Tag::EventStmt, FormatEventStmt},
-		{Tag::Next, FormatBareKeyword},
-		{Tag::Break, FormatBareKeyword},
-		{Tag::Fallthrough, FormatBareKeyword},
 		{Tag::FuncDecl, FormatFuncDecl},
 		{Tag::If, FormatIf},
 		{Tag::For, FormatFor},

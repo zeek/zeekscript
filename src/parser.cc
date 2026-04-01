@@ -33,7 +33,7 @@ Node::NodeVec Parser::ParseFile()
 	return nodes;
 	}
 
-std::unique_ptr<Node> Parser::ParseNode()
+std::shared_ptr<Node> Parser::ParseNode()
 	{
 	SkipWhitespace();
 
@@ -50,7 +50,7 @@ std::unique_ptr<Node> Parser::ParseNode()
 		return nullptr;
 		}
 
-	auto node = std::make_unique<Node>(TagFromString(t));
+	auto node = std::make_shared<Node>(TagFromString(t));
 
 	// Parse zero or more quoted-string arguments.
 	SkipWhitespace();

@@ -18,7 +18,7 @@
 
 class Node {
 public:
-	using NodeVec = std::vector<std::unique_ptr<Node>>;
+	using NodeVec = std::vector<std::shared_ptr<Node>>;
 
 	Node(Tag tag) : tag(tag) {}
 
@@ -37,7 +37,7 @@ public:
 
 	void AddArg(std::string a)
 		{ args.push_back(std::move(a)); }
-	void AddChild(std::unique_ptr<Node> child)
+	void AddChild(std::shared_ptr<Node> child)
 		{ children.push_back(std::move(child)); }
 
 	// Convenience: i-th arg, or empty string if absent.
