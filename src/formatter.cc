@@ -262,8 +262,7 @@ CollectArgs(const Node::NodeVec& children)
 		// trailing comments attached by the parser.
 		if ( is_token(t) )
 			{
-			if ( ! c->TrailingComment().empty() &&
-			     ! items.empty() )
+			if ( c->MustBreak() && ! items.empty() )
 				{
 				items.back().comment = c->TrailingComment();
 				has_comments = true;
@@ -280,7 +279,7 @@ CollectArgs(const Node::NodeVec& children)
 			continue;
 			}
 
-		if ( ! c->TrailingComment().empty() )
+		if ( c->MustBreak() )
 			has_comments = true;
 
 		items.push_back({c.get(), c->TrailingComment(),
@@ -2184,25 +2183,16 @@ static Candidates FormatIf(const Node& node, const FmtContext& ctx)
 	// Find condition: first non-token, non-comment child that isn't
 	// BODY, ELSE, or a structural node.
 	bool in_parens = false;
-	std::string cond_trail;
+	std::string rparen_text = ")";
 
 	for ( const auto& c : node.Children() )
 		{
 		Tag t = c->GetTag();
 
 		if ( t == Tag::LParen )
-			{
-			in_parens = true;
-			continue;
-			}
-
+			{ in_parens = true; continue; }
 		if ( t == Tag::RParen )
-			{
-			cond_trail = c->TrailingComment();
-			in_parens = false;
-			continue;
-			}
-
+			{ rparen_text = c->Text(); in_parens = false; continue; }
 		if ( in_parens && ! is_token(t) && ! is_comment(t) )
 			cond_expr = c.get();
 		}
@@ -2216,7 +2206,7 @@ static Candidates FormatIf(const Node& node, const FmtContext& ctx)
 		cond_text = Best(cond_cs).Text();
 		}
 
-	std::string head = "if ( " + cond_text + " )" + cond_trail;
+	std::string head = "if ( " + cond_text + " " + rparen_text;
 
 	std::string result = head + FormatBodyText(body_node, ctx);
 
@@ -2326,17 +2316,14 @@ static Candidates FormatFor(const Node& node, const FmtContext& ctx)
 				ctx)).Text();
 		}
 
-	// Read trailing comment from RPAREN token.
-	std::string rparen_trail;
+	// Get RPAREN text (includes any trailing comment).
+	std::string rparen_text = ")";
 	for ( const auto& c : node.Children() )
 		if ( c->GetTag() == Tag::RParen )
-			{
-			rparen_trail = c->TrailingComment();
-			break;
-			}
+			{ rparen_text = c->Text(); break; }
 
 	std::string head = "for ( " + vars_text + " in " +
-		iter_text + " )" + rparen_trail;
+		iter_text + " " + rparen_text;
 
 	return {Candidate(head + FormatBodyText(body_node, ctx), ctx)};
 	}
@@ -2351,7 +2338,7 @@ static Candidates FormatWhile(const Node& node, const FmtContext& ctx)
 
 	// Find condition between LPAREN/RPAREN.
 	const Node* cond_expr = nullptr;
-	std::string cond_trail;
+	std::string rparen_text = ")";
 	bool in_parens = false;
 
 	for ( const auto& c : node.Children() )
@@ -2361,11 +2348,7 @@ static Candidates FormatWhile(const Node& node, const FmtContext& ctx)
 		if ( t == Tag::LParen )
 			{ in_parens = true; continue; }
 		if ( t == Tag::RParen )
-			{
-			cond_trail = c->TrailingComment();
-			in_parens = false;
-			continue;
-			}
+			{ rparen_text = c->Text(); in_parens = false; continue; }
 		if ( in_parens && ! is_token(t) && ! is_comment(t) )
 			cond_expr = c.get();
 		}
@@ -2378,7 +2361,7 @@ static Candidates FormatWhile(const Node& node, const FmtContext& ctx)
 		cond_text = Best(cond_cs).Text();
 		}
 
-	std::string head = "while ( " + cond_text + " )" + cond_trail;
+	std::string head = "while ( " + cond_text + " " + rparen_text;
 
 	return {Candidate(head + FormatBodyText(body_node, ctx), ctx)};
 	}
