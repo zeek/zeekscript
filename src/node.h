@@ -43,6 +43,16 @@ public:
 	// Convenience: i-th arg, or empty string if absent.
 	const std::string& Arg(size_t i = 0) const;
 
+	// Complete text for this node: for tokens, the syntax
+	// string + trailing comment; for atoms, the arg + trailing
+	// comment; for composite nodes, just the trailing comment.
+	std::string Text() const;
+
+	// True if a line break must follow this node (has a
+	// trailing comment).
+	bool MustBreak() const
+		{ return ! trailing_comment.empty(); }
+
 	bool HasBlock() const { return has_block; }
 	void SetHasBlock() { has_block = true; }
 

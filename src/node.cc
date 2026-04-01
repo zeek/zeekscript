@@ -1,11 +1,36 @@
 #include "node.h"
 
 #include <cstdio>
+#include <unordered_map>
 
 const std::string& Node::Arg(size_t i) const
 	{
 	static const std::string empty;
 	return i < args.size() ? args[i] : empty;
+	}
+
+static const std::unordered_map<Tag, const char*> token_syntax = {
+	{Tag::Comma, ","},
+	{Tag::LParen, "("},
+	{Tag::RParen, ")"},
+	{Tag::LBrace, "{"},
+	{Tag::RBrace, "}"},
+	{Tag::LBracket, "["},
+	{Tag::RBracket, "]"},
+	{Tag::Colon, ":"},
+	{Tag::Question, "?"},
+};
+
+std::string Node::Text() const
+	{
+	auto it = token_syntax.find(tag);
+	if ( it != token_syntax.end() )
+		return std::string(it->second) + trailing_comment;
+
+	if ( ! args.empty() )
+		return args.back() + trailing_comment;
+
+	return trailing_comment;
 	}
 
 static void PrintQuoted(const std::string& s)
