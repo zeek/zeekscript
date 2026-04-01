@@ -417,6 +417,10 @@ static Candidate FormatArgsFill(const std::vector<ArgComment>& items,
 		else
 			{
 			int need = 2 + aw;
+			// Multi-line args always wrap to a fresh line where
+			// they may fit flat at the alignment column.
+			if ( best.Lines() > 1 )
+				need = max_col + 1;
 			if ( cur_col + need <= max_col )
 				{
 				text += ", " + best.Text();

@@ -1,4 +1,4 @@
-# C++ Formatter Failing Tests (141 pass, 30 fail as of 2026-03-31)
+# C++ Formatter Failing Tests (143 pass, 28 fail as of 2026-03-31)
 
 ## By category (sorted by count)
 
@@ -30,7 +30,6 @@ test038 (needs LAMBDA support first)
 - test054: EVENT-STMT bare event without args
 - test056: TYPE-FUNC params not wrapping
 - test102: Pattern literal emits `/* UNKNOWN-EXPR */`
-- test115: Line-breaking (paren spacing now fixed)
 - test124: PRINT with multiple exprs (only first printed)
 - test161: ASSERT keyword not supported
 
@@ -243,3 +242,7 @@ entries chronological within a session date.
   - FormatParen: no spaces for expression grouping parens: (expr) not ( expr )
   - FormatSwitch: unwrap PAREN and apply ( expr ) spacing for switch conditions
   - test115 paren spacing fixed; remaining failure is line-breaking
+- After multi-line arg wrap in greedy fill: 143 pass, 28 fail
+  - Fixed: test{061,115,131} (multi-line args placed on fresh line)
+  - FormatArgsFill: multi-line args always wrap to alignment column
+    where they may fit flat, instead of packing inline with split text
