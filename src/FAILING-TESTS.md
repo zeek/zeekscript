@@ -1,4 +1,4 @@
-# C++ Formatter Failing Tests (144 pass, 27 fail as of 2026-03-31)
+# C++ Formatter Failing Tests (145 pass, 26 fail as of 2026-03-31)
 
 ## By category (sorted by count)
 
@@ -23,7 +23,6 @@ test{041,097,098}
 test038 (needs LAMBDA support first)
 
 ### Miscellaneous (1 each)
-- test005: Constant with embedded ops
 - test021: Layout issue
 - test027: Switch case values not wrapping
 - test040: CALL wrapping (set() args should use indent, not alignment)
@@ -252,4 +251,5 @@ entries chronological within a session date.
 - After tight `/` for subnet masking: 144 pass, 27 fail
   - FormatBinary: no spaces around `/` when RHS is atomic (masking heuristic)
   - Split after `/` still works as a break point
-  - Updated baselines: test{002,004,013,035,100,103,107}
+  - Updated baselines: test{002,004,005,013,035,100,103,107}
+  - test005: `1000 / 1000` is a tree-sitter-zeek subnet literal bug (filed)
