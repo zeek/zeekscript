@@ -1,64 +1,81 @@
 FUNC-DECL "function" "some_func" {
   PARAMS {
+    LPAREN
     PARAM "c" {
       TYPE-ATOM "connection"
     }
+    RPAREN
   }
+  COLON
   RETURNS {
     TYPE-ATOM "SomeInfo"
   }
   BODY {
+    LBRACE
     LOCAL-DECL "local" "rec" {
-      INIT "=" {
-        FIELD-ACCESS {
-          IDENTIFIER "c"
-          IDENTIFIER "some_rec"
-        }
+      ASSIGN "="
+      FIELD-ACCESS {
+        IDENTIFIER "c"
+        IDENTIFIER "some_rec"
       }
       SEMI
     }
     IF {
-      COND {
-        BINARY-OP "?$" {
+      KEYWORD "if"
+      LPAREN
+      BINARY-OP "?$" {
+        BINARY-OP "||" {
           BINARY-OP "||" {
-            BINARY-OP "||" {
-              BINARY-OP "?$" {
-                UNARY-OP "!" {
-                  IDENTIFIER "rec"
-                }
-                IDENTIFIER "some_field"
+            BINARY-OP "?$" {
+              UNARY-OP "!" {
+                OP "!"
+                IDENTIFIER "rec"
               }
-              BINARY-OP "==" {
-                UNARY-OP "|...|" {
-                  FIELD-ACCESS {
-                    IDENTIFIER "rec"
-                    IDENTIFIER "some_field"
-                  }
-                }
-                CONSTANT "0"
-              }
+              OP "?$"
+              IDENTIFIER "some_field"
             }
-            UNARY-OP "!" {
-              INDEX {
+            OP "||"
+            BINARY-OP "==" {
+              UNARY-OP "|...|" {
+                OP "|"
                 FIELD-ACCESS {
                   IDENTIFIER "rec"
                   IDENTIFIER "some_field"
                 }
-                SUBSCRIPTS {
-                  CONSTANT "0"
-                }
+                OP "|"
+              }
+              OP "=="
+              CONSTANT "0"
+            }
+          }
+          OP "||"
+          UNARY-OP "!" {
+            OP "!"
+            INDEX {
+              FIELD-ACCESS {
+                IDENTIFIER "rec"
+                IDENTIFIER "some_field"
+              }
+              SUBSCRIPTS {
+                LBRACKET
+                CONSTANT "0"
+                RBRACKET
               }
             }
           }
-          IDENTIFIER "some_val"
         }
+        OP "?$"
+        IDENTIFIER "some_val"
       }
+      RPAREN
       BODY {
         RETURN {
+          KEYWORD "return"
           IDENTIFIER "ci"
         }
         SEMI
       }
     }
+    RBRACE
   }
 }

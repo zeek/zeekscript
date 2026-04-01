@@ -1,4 +1,6 @@
 TYPE-DECL "score" {
+  KEYWORD "type"
+  COLON
   TYPE-ENUM {
     ENUM-VALUE "NOT" "= 0"
     ENUM-VALUE "LOW" "= 1"

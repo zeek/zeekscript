@@ -1,24 +1,37 @@
 FUNC-DECL "event" "zeek_init" {
+  PARAMS {
+    LPAREN
+    RPAREN
+  }
   BODY {
+    LBRACE
     EXPR-STMT {
       CALL {
         IDENTIFIER "Log::create_stream"
         ARGS {
+          LPAREN
           IDENTIFIER "LOG"
+          COMMA
           INDEX-LITERAL {
+            LBRACKET
             FIELD-ASSIGN "columns" {
               IDENTIFIER "Conn::Info"
             }
+            COMMA
             FIELD-ASSIGN "path" {
               IDENTIFIER "path"
             }
+            COMMA
             FIELD-ASSIGN "policy" {
               IDENTIFIER "Conn::log_policy"
             }
+            RBRACKET
           }
+          RPAREN
         }
       }
       SEMI
     }
+    RBRACE
   }
 }

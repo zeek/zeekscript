@@ -1,12 +1,22 @@
 COMMENT-LEADING "#@ BEGIN"
 FUNC-DECL "function" "foo" {
+  PARAMS {
+    LPAREN
+    RPAREN
+  }
   BODY {
+    LBRACE
     EXPR-STMT {
       CALL {
         IDENTIFIER "bar"
+        ARGS {
+          LPAREN
+          RPAREN
+        }
       }
       SEMI
     }
+    RBRACE
   }
 }
 COMMENT-LEADING "#@ END"

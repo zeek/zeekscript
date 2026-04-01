@@ -1,7 +1,8 @@
 LOCAL-DECL "local" "x" {
-  INIT "=" {
-    CONSTRUCTOR "set" {
-    }
+  ASSIGN "="
+  CONSTRUCTOR "set" {
+    LPAREN
+    RPAREN
   }
   SEMI
 }

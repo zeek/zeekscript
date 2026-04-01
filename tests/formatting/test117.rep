@@ -1,34 +1,45 @@
 FUNC-DECL "function" "some_func" {
   PARAMS {
+    LPAREN
     PARAM "a" {
       TYPE-ATOM "int"
     }
+    RPAREN
   }
   BODY {
+    LBRACE
     IF {
-      COND {
-        BINARY-OP "!in" {
-          INDEX {
-            IDENTIFIER "some_very_long_access_to_a_member"
-            SUBSCRIPTS {
-              IDENTIFIER "foo"
-            }
-          }
-          FIELD-ACCESS {
-            IDENTIFIER "SomeModule::other"
-            IDENTIFIER "nested_field"
+      KEYWORD "if"
+      LPAREN
+      BINARY-OP "!in" {
+        INDEX {
+          IDENTIFIER "some_very_long_access_to_a_member"
+          SUBSCRIPTS {
+            LBRACKET
+            IDENTIFIER "foo"
+            RBRACKET
           }
         }
+        OP "!in"
+        FIELD-ACCESS {
+          IDENTIFIER "SomeModule::other"
+          IDENTIFIER "nested_field"
+        }
       }
+      RPAREN
       BODY {
         BLOCK {
+          LBRACE
           BLANK
           PRINT {
+            KEYWORD "print"
             CONSTANT "\"hi\""
             SEMI
           }
+          RBRACE
         }
       }
     }
+    RBRACE
   }
 }

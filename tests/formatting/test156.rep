@@ -1,59 +1,83 @@
 FUNC-DECL "function" "f" {
+  PARAMS {
+    LPAREN
+    RPAREN
+  }
   BODY {
+    LBRACE
     IF {
-      COND {
-        UNARY-OP "!" {
-          CALL {
-            IDENTIFIER "some_function_name"
-            ARGS {
-              IDENTIFIER "some_argument"
-              IDENTIFIER "new_file"
-              IDENTIFIER "extra_vals"
-              IDENTIFIER "some_uids"
-              IDENTIFIER "some_ids"
-              TERNARY {
-                FIELD-ACCESS {
-                  IDENTIFIER "info"
-                  IDENTIFIER "source"
-                }
-                FIELD-ACCESS {
-                  IDENTIFIER "info"
-                  IDENTIFIER "source"
-                }
-                CONSTANT "\"\""
+      KEYWORD "if"
+      LPAREN
+      UNARY-OP "!" {
+        OP "!"
+        CALL {
+          IDENTIFIER "some_function_name"
+          ARGS {
+            LPAREN
+            IDENTIFIER "some_argument"
+            COMMA
+            IDENTIFIER "new_file"
+            COMMA
+            IDENTIFIER "extra_vals"
+            COMMA
+            IDENTIFIER "some_uids"
+            COMMA
+            IDENTIFIER "some_ids"
+            COMMA
+            TERNARY {
+              FIELD-ACCESS {
+                IDENTIFIER "info"
+                IDENTIFIER "source"
               }
-              TERNARY {
-                FIELD-ACCESS {
-                  IDENTIFIER "info"
-                  IDENTIFIER "mime"
-                }
-                FIELD-ACCESS {
-                  IDENTIFIER "info"
-                  IDENTIFIER "mime"
-                }
-                CONSTANT "\"\""
+              QUESTION
+              FIELD-ACCESS {
+                IDENTIFIER "info"
+                IDENTIFIER "source"
               }
-              TERNARY {
-                FIELD-ACCESS {
-                  IDENTIFIER "info"
-                  IDENTIFIER "md5"
-                }
-                FIELD-ACCESS {
-                  IDENTIFIER "info"
-                  IDENTIFIER "md5"
-                }
-                CONSTANT "\"\""
-              }
+              COLON
+              CONSTANT "\"\""
             }
+            COMMA
+            TERNARY {
+              FIELD-ACCESS {
+                IDENTIFIER "info"
+                IDENTIFIER "mime"
+              }
+              QUESTION
+              FIELD-ACCESS {
+                IDENTIFIER "info"
+                IDENTIFIER "mime"
+              }
+              COLON
+              CONSTANT "\"\""
+            }
+            COMMA
+            TERNARY {
+              FIELD-ACCESS {
+                IDENTIFIER "info"
+                IDENTIFIER "md5"
+              }
+              QUESTION
+              FIELD-ACCESS {
+                IDENTIFIER "info"
+                IDENTIFIER "md5"
+              }
+              COLON
+              CONSTANT "\"\""
+            }
+            RPAREN
           }
         }
       }
+      RPAREN
       BODY {
         PRINT {
+          KEYWORD "print"
           CONSTANT "\"failed\""
           SEMI
         }
       }
     }
+    RBRACE
   }
 }

@@ -1,21 +1,35 @@
 FUNC-DECL "function" "some_func_a" {
+  PARAMS {
+    LPAREN
+    RPAREN
+  }
   BODY {
+    LBRACE
     IF {
-      COND {
-        IDENTIFIER "foo"
-      }
+      KEYWORD "if"
+      LPAREN
+      IDENTIFIER "foo"
+      RPAREN
       BODY {
         EVENT-STMT "SomeModule::some_raised_evt" {
+          KEYWORD "event"
           ARGS {
+            LPAREN
             IDENTIFIER "o"
+            COMMA
             IDENTIFIER "label"
+            COMMA
             IDENTIFIER "conf"
+            COMMA
             IDENTIFIER "source"
+            COMMA
             IDENTIFIER "caller"
+            RPAREN
           }
           SEMI
         }
       }
     }
+    RBRACE
   }
 }

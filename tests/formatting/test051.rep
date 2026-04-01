@@ -1,11 +1,13 @@
 FUNC-DECL "event" "some_generic_packet_threshold_crossed" {
   PARAMS {
+    LPAREN
     PARAM "c" {
       TYPE-ATOM "connection"
     }
     PARAM "threshold" {
       TYPE-ATOM "count"
     }
+    RPAREN
   }
   ATTR-LIST {
     ATTR "&group" {
@@ -13,9 +15,12 @@ FUNC-DECL "event" "some_generic_packet_threshold_crossed" {
     }
   }
   BODY {
+    LBRACE
     PRINT {
+      KEYWORD "print"
       IDENTIFIER "c"
       SEMI
     }
+    RBRACE
   }
 }

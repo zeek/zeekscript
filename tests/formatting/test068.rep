@@ -1,6 +1,7 @@
 PREPROC "@ifdef" "SOME_FEATURE"
 FUNC-DECL "event" "SomeModule::some_esp_message" {
   PARAMS {
+    LPAREN
     PARAM "c" {
       TYPE-ATOM "connection"
     }
@@ -10,6 +11,7 @@ FUNC-DECL "event" "SomeModule::some_esp_message" {
     PARAM "msg" {
       TYPE-ATOM "SomeModule::SomeEspMsg"
     }
+    RPAREN
   }
   ATTR-LIST {
     ATTR "&group" {
@@ -17,15 +19,19 @@ FUNC-DECL "event" "SomeModule::some_esp_message" {
     }
   }
   BODY {
+    LBRACE
     EXPR-STMT {
       CALL {
         IDENTIFIER "shuntit"
         ARGS {
+          LPAREN
           IDENTIFIER "c"
+          RPAREN
         }
       }
       SEMI
     }
+    RBRACE
   }
 }
 PREPROC "@endif"

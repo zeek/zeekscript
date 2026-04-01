@@ -1,8 +1,11 @@
 PRINT {
+  KEYWORD "print"
   CALL {
     IDENTIFIER "fmt"
     ARGS {
+      LPAREN
       CONSTANT "\"This is a really long string argument that cannot be broken up into smaller pieces\""
+      RPAREN
     }
   }
   SEMI

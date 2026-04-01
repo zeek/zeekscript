@@ -1,42 +1,61 @@
 FUNC-DECL "event" "some_evt" {
   PARAMS {
+    LPAREN
     PARAM "si" {
       TYPE-ATOM "SomeInfo"
     }
+    RPAREN
   }
   BODY {
+    LBRACE
     IF {
-      COND {
+      KEYWORD "if"
+      LPAREN
+      BINARY-OP "&&" {
         BINARY-OP "&&" {
-          BINARY-OP "&&" {
-            BINARY-OP ">" {
-              IDENTIFIER "coal_max_entries"
-              CONSTANT "0"
-            }
-            BINARY-OP ">=" {
-              UNARY-OP "|...|" {
-                IDENTIFIER "coalesced_state"
-              }
-              IDENTIFIER "coal_max_entries"
-            }
+          BINARY-OP ">" {
+            IDENTIFIER "coal_max_entries"
+            OP ">"
+            CONSTANT "0"
           }
-          BINARY-OP "!in" {
-            INDEX-LITERAL {
-              IDENTIFIER "server_name"
-              IDENTIFIER "server_subj"
-              IDENTIFIER "server_issuer"
-              IDENTIFIER "client_subj"
-              IDENTIFIER "client_issuer"
-              IDENTIFIER "ja3"
+          OP "&&"
+          BINARY-OP ">=" {
+            UNARY-OP "|...|" {
+              OP "|"
+              IDENTIFIER "coalesced_state"
+              OP "|"
             }
-            IDENTIFIER "coalesced_state"
+            OP ">="
+            IDENTIFIER "coal_max_entries"
           }
         }
+        OP "&&"
+        BINARY-OP "!in" {
+          INDEX-LITERAL {
+            LBRACKET
+            IDENTIFIER "server_name"
+            COMMA
+            IDENTIFIER "server_subj"
+            COMMA
+            IDENTIFIER "server_issuer"
+            COMMA
+            IDENTIFIER "client_subj"
+            COMMA
+            IDENTIFIER "client_issuer"
+            COMMA
+            IDENTIFIER "ja3"
+            RBRACKET
+          }
+          OP "!in"
+          IDENTIFIER "coalesced_state"
+        }
       }
+      RPAREN
       BODY {
         RETURN
         SEMI
       }
     }
+    RBRACE
   }
 }

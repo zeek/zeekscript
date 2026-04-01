@@ -1,12 +1,20 @@
 FUNC-DECL "function" "some_func" {
+  PARAMS {
+    LPAREN
+    RPAREN
+  }
+  COLON
   RETURNS {
     TYPE-ATOM "count"
   }
   BODY {
+    LBRACE
     RETURN {
+      KEYWORD "return"
       CONSTANT "42"
     }
     SEMI
     COMMENT-TRAILING "# the answer"
+    RBRACE
   }
 }

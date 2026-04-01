@@ -1,21 +1,33 @@
 FUNC-DECL "event" "zeek_init" {
+  PARAMS {
+    LPAREN
+    RPAREN
+  }
   BODY {
+    LBRACE
     EXPR-STMT {
       CALL {
         IDENTIFIER "SomeModule::some_register_fn"
         ARGS {
+          LPAREN
           IDENTIFIER "SomeModule::SOME_ANALYZER"
+          COMMA
           INDEX-LITERAL {
+            LBRACKET
             FIELD-ASSIGN "get_handle" {
               IDENTIFIER "SomeModule::get_handle"
             }
+            COMMA
             FIELD-ASSIGN "describe" {
               IDENTIFIER "SomeModule::describe_it"
             }
+            RBRACKET
           }
+          RPAREN
         }
       }
       SEMI
     }
+    RBRACE
   }
 }

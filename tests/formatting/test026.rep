@@ -1,15 +1,24 @@
 FUNC-DECL "function" "foo" {
+  PARAMS {
+    LPAREN
+    RPAREN
+  }
   BODY {
+    LBRACE
     EXPR-STMT {
       CALL {
         IDENTIFIER "call"
         ARGS {
+          LPAREN
           IDENTIFIER "arg1"
+          COMMA
           IDENTIFIER "arg2"
+          RPAREN
         }
         COMMENT-TRAILING "# with a comment"
       }
       SEMI
     }
+    RBRACE
   }
 }

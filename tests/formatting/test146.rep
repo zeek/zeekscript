@@ -1,28 +1,43 @@
 FUNC-DECL "function" "foo" {
+  PARAMS {
+    LPAREN
+    RPAREN
+  }
   BODY {
+    LBRACE
     IF {
-      COND {
-        CALL {
-          IDENTIFIER "Cluster::is_enabled"
+      KEYWORD "if"
+      LPAREN
+      CALL {
+        IDENTIFIER "Cluster::is_enabled"
+        ARGS {
+          LPAREN
+          RPAREN
         }
       }
+      RPAREN
       BODY {
         BLOCK {
+          LBRACE
           BLANK
           LOCAL-DECL "local" "pt" {
-            INIT "=" {
-              CALL {
-                IDENTIFIER "Cluster::rr_topic"
-                ARGS {
-                  IDENTIFIER "Cluster::proxy_pool"
-                  CONSTANT "\"application-identification\""
-                }
+            ASSIGN "="
+            CALL {
+              IDENTIFIER "Cluster::rr_topic"
+              ARGS {
+                LPAREN
+                IDENTIFIER "Cluster::proxy_pool"
+                COMMA
+                CONSTANT "\"application-identification\""
+                RPAREN
               }
             }
             SEMI
           }
+          RBRACE
         }
       }
     }
+    RBRACE
   }
 }

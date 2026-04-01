@@ -1,29 +1,43 @@
 FUNC-DECL "event" "zeek_init" {
+  PARAMS {
+    LPAREN
+    RPAREN
+  }
   BODY {
+    LBRACE
     EXPR-STMT {
       CALL {
         IDENTIFIER "register_handler"
         ARGS {
+          LPAREN
           LAMBDA {
             PARAMS {
+              LPAREN
               PARAM "h" {
                 TYPE-ATOM "addr"
               }
               PARAM "si" {
                 TYPE-ATOM "SomeInfo"
               }
+              RPAREN
             }
             BODY {
+              LBRACE
               PRINT {
+                KEYWORD "print"
                 IDENTIFIER "h"
                 SEMI
               }
+              RBRACE
             }
           }
+          COMMA
           CONSTANT "6.0"
+          RPAREN
         }
       }
       SEMI
     }
+    RBRACE
   }
 }

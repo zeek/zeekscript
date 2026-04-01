@@ -1,12 +1,13 @@
 EXPORT {
   GLOBAL-DECL "global" "some_evt" {
-    TYPE {
-      TYPE-FUNC "event" {
-        PARAMS {
-          PARAM "rec" {
-            TYPE-ATOM "Info"
-          }
+    COLON
+    TYPE-FUNC "event" {
+      PARAMS {
+        LPAREN
+        PARAM "rec" {
+          TYPE-ATOM "Info"
         }
+        RPAREN
       }
     }
     SEMI

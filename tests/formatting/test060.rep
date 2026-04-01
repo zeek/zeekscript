@@ -1,5 +1,6 @@
 FUNC-DECL "event" "some_handler" {
   PARAMS {
+    LPAREN
     PARAM "aa" {
       TYPE-ATOM "connection"
     }
@@ -30,7 +31,10 @@ FUNC-DECL "event" "some_handler" {
     PARAM "jj" {
       TYPE-ATOM "bool"
     }
+    RPAREN
   }
   BODY {
+    LBRACE
+    RBRACE
   }
 }

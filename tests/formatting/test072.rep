@@ -1,8 +1,11 @@
 EXPR-STMT {
   SLICE {
     IDENTIFIER "xs"
+    LBRACKET
     CONSTANT "0"
+    COLON
     CONSTANT "1"
+    RBRACKET
   }
   SEMI
 }

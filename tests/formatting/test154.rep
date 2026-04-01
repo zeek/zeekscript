@@ -1,50 +1,75 @@
 GLOBAL-DECL "const" "tbl" {
-  TYPE {
-    TYPE-PARAMETERIZED "table" {
-      TYPE-ATOM "count"
-      OF
-      TYPE-ATOM "string"
-    }
+  COLON
+  TYPE-PARAMETERIZED "table" {
+    LBRACKET
+    TYPE-ATOM "count"
+    RBRACKET
+    KEYWORD "of"
+    TYPE-ATOM "string"
   }
-  INIT "=" {
-    CONSTRUCTOR "table" {
-      BINARY-OP "=" {
-        INDEX-LITERAL {
-          CONSTANT "0x00"
-        }
-        CONSTANT "\"AAAA\""
+  ASSIGN "="
+  CONSTRUCTOR "table" {
+    LPAREN
+    BINARY-OP "=" {
+      INDEX-LITERAL {
+        LBRACKET
+        CONSTANT "0x00"
+        RBRACKET
       }
-      BINARY-OP "=" {
-        INDEX-LITERAL {
-          CONSTANT "0x01"
-        }
-        CONSTANT "\"BBBB\""
-      }
-      BINARY-OP "=" {
-        INDEX-LITERAL {
-          CONSTANT "0x02"
-        }
-        CONSTANT "\"CCCC\""
-      }
-      BINARY-OP "=" {
-        INDEX-LITERAL {
-          CONSTANT "0x03"
-        }
-        CONSTANT "\"DDDD\""
-      }
-      BINARY-OP "=" {
-        INDEX-LITERAL {
-          CONSTANT "0x04"
-        }
-        CONSTANT "\"EEEE\""
-      }
-      BINARY-OP "=" {
-        INDEX-LITERAL {
-          CONSTANT "0x05"
-        }
-        CONSTANT "\"FFFF\""
-      }
+      OP "="
+      CONSTANT "\"AAAA\""
     }
+    COMMA
+    BINARY-OP "=" {
+      INDEX-LITERAL {
+        LBRACKET
+        CONSTANT "0x01"
+        RBRACKET
+      }
+      OP "="
+      CONSTANT "\"BBBB\""
+    }
+    COMMA
+    BINARY-OP "=" {
+      INDEX-LITERAL {
+        LBRACKET
+        CONSTANT "0x02"
+        RBRACKET
+      }
+      OP "="
+      CONSTANT "\"CCCC\""
+    }
+    COMMA
+    BINARY-OP "=" {
+      INDEX-LITERAL {
+        LBRACKET
+        CONSTANT "0x03"
+        RBRACKET
+      }
+      OP "="
+      CONSTANT "\"DDDD\""
+    }
+    COMMA
+    BINARY-OP "=" {
+      INDEX-LITERAL {
+        LBRACKET
+        CONSTANT "0x04"
+        RBRACKET
+      }
+      OP "="
+      CONSTANT "\"EEEE\""
+    }
+    COMMA
+    BINARY-OP "=" {
+      INDEX-LITERAL {
+        LBRACKET
+        CONSTANT "0x05"
+        RBRACKET
+      }
+      OP "="
+      CONSTANT "\"FFFF\""
+    }
+    RPAREN
   }
   SEMI
 }

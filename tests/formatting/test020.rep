@@ -2,20 +2,26 @@ COMMENT-LEADING "#@ BEGIN-SKIP-TESTING"
 BLANK
 FUNC-DECL "function" "some_func" {
   PARAMS {
+    LPAREN
     PARAM "val" {
       TYPE-ATOM "string"
     }
+    RPAREN
   }
   BODY {
+    LBRACE
     EXPR-STMT {
       CALL {
         IDENTIFIER "some_call"
         ARGS {
+          LPAREN
           IDENTIFIER "val"
+          RPAREN
         }
       }
       SEMI
     }
+    RBRACE
   }
 }
 BLANK

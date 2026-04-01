@@ -1,35 +1,44 @@
 FUNC-DECL "function" "some_func" {
   PARAMS {
+    LPAREN
     PARAM "val" {
       TYPE-ATOM "string"
     }
+    RPAREN
   }
   BODY {
+    LBRACE
     IF {
-      COND {
-        BINARY-OP "==" {
-          IDENTIFIER "some_pattern"
-          IDENTIFIER "val"
-        }
+      KEYWORD "if"
+      LPAREN
+      BINARY-OP "==" {
+        IDENTIFIER "some_pattern"
+        OP "=="
+        IDENTIFIER "val"
       }
+      RPAREN
       BODY {
         EXPR-STMT {
           BINARY-OP "=" {
             IDENTIFIER "result"
+            OP "="
             CONSTANT "\"found\""
           }
           SEMI
         }
       }
       ELSE {
+        KEYWORD "else"
         EXPR-STMT {
           BINARY-OP "=" {
             IDENTIFIER "result"
+            OP "="
             CONSTANT "\"default\""
           }
           SEMI
         }
       }
     }
+    RBRACE
   }
 }

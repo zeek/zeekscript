@@ -1,46 +1,63 @@
 FUNC-DECL "function" "some_func" {
+  PARAMS {
+    LPAREN
+    RPAREN
+  }
   BODY {
+    LBRACE
     LOCAL-DECL "local" "val" {
-      INIT "=" {
-        CALL {
-          IDENTIFIER "some_long_func_name"
-          ARGS {
-            SLICE {
-              IDENTIFIER "data"
-              BINARY-OP "+" {
-                BINARY-OP "-" {
-                  FIELD-ACCESS {
-                    IDENTIFIER "some"
-                    IDENTIFIER "off"
-                  }
-                  CONSTANT "1"
-                }
-                CONSTANT "8"
-              }
+      ASSIGN "="
+      CALL {
+        IDENTIFIER "some_long_func_name"
+        ARGS {
+          LPAREN
+          SLICE {
+            IDENTIFIER "data"
+            LBRACKET
+            BINARY-OP "+" {
               BINARY-OP "-" {
-                BINARY-OP "+" {
-                  BINARY-OP "+" {
-                    BINARY-OP "-" {
-                      FIELD-ACCESS {
-                        IDENTIFIER "some"
-                        IDENTIFIER "off"
-                      }
-                      CONSTANT "1"
-                    }
-                    CONSTANT "10"
-                  }
-                  BINARY-OP "/" {
-                    CONSTANT "23"
-                    CONSTANT "15"
-                  }
+                FIELD-ACCESS {
+                  IDENTIFIER "some"
+                  IDENTIFIER "off"
                 }
-                CONSTANT "3"
+                OP "-"
+                CONSTANT "1"
               }
+              OP "+"
+              CONSTANT "8"
             }
+            COLON
+            BINARY-OP "-" {
+              BINARY-OP "+" {
+                BINARY-OP "+" {
+                  BINARY-OP "-" {
+                    FIELD-ACCESS {
+                      IDENTIFIER "some"
+                      IDENTIFIER "off"
+                    }
+                    OP "-"
+                    CONSTANT "1"
+                  }
+                  OP "+"
+                  CONSTANT "10"
+                }
+                OP "+"
+                BINARY-OP "/" {
+                  CONSTANT "23"
+                  OP "/"
+                  CONSTANT "15"
+                }
+              }
+              OP "-"
+              CONSTANT "3"
+            }
+            RBRACKET
           }
+          RPAREN
         }
       }
       SEMI
     }
+    RBRACE
   }
 }

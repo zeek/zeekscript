@@ -1,17 +1,23 @@
 RETURN {
+  KEYWORD "return"
   BINARY-OP "&&" {
     BINARY-OP "&&" {
       BINARY-OP "in" {
         IDENTIFIER "a_long_var_name"
+        OP "in"
         IDENTIFIER "subj"
       }
+      OP "&&"
       BINARY-OP "!in" {
         IDENTIFIER "b_long_var_name"
+        OP "!in"
         IDENTIFIER "subj"
       }
     }
+    OP "&&"
     BINARY-OP "!in" {
       IDENTIFIER "c_long_var_name"
+      OP "!in"
       IDENTIFIER "subj"
     }
   }

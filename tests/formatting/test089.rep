@@ -1,19 +1,25 @@
 FUNC-DECL "event" "some_evt" {
+  PARAMS {
+    LPAREN
+    RPAREN
+  }
   BODY {
+    LBRACE
     LOCAL-DECL "local" "some_services" {
-      INIT "=" {
-        BINARY-OP "|" {
-          FIELD-ACCESS {
-            IDENTIFIER "worker_si"
-            IDENTIFIER "some_entities"
-          }
-          FIELD-ACCESS {
-            IDENTIFIER "worker_si"
-            IDENTIFIER "other_entities"
-          }
+      ASSIGN "="
+      BINARY-OP "|" {
+        FIELD-ACCESS {
+          IDENTIFIER "worker_si"
+          IDENTIFIER "some_entities"
+        }
+        OP "|"
+        FIELD-ACCESS {
+          IDENTIFIER "worker_si"
+          IDENTIFIER "other_entities"
         }
       }
       SEMI
     }
+    RBRACE
   }
 }

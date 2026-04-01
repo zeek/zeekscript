@@ -1,61 +1,88 @@
 GLOBAL-DECL "const" "some_lookup" {
-  TYPE {
-    TYPE-PARAMETERIZED "table" {
-      TYPE-ATOM "string"
-      OF
-      TYPE-ATOM "string"
-    }
+  COLON
+  TYPE-PARAMETERIZED "table" {
+    LBRACKET
+    TYPE-ATOM "string"
+    RBRACKET
+    KEYWORD "of"
+    TYPE-ATOM "string"
   }
-  INIT "=" {
-    CONSTRUCTOR "table" {
-      BINARY-OP "=" {
-        INDEX-LITERAL {
-          CONSTANT "\"some-key-aa\""
-        }
-        CONSTANT "\"val-aa\""
+  ASSIGN "="
+  CONSTRUCTOR "table" {
+    LPAREN
+    BINARY-OP "=" {
+      INDEX-LITERAL {
+        LBRACKET
+        CONSTANT "\"some-key-aa\""
+        RBRACKET
       }
-      BINARY-OP "=" {
-        INDEX-LITERAL {
-          CONSTANT "\"some-key-bb\""
-        }
-        CONSTANT "\"val-bb\""
-      }
-      BINARY-OP "=" {
-        INDEX-LITERAL {
-          CONSTANT "\"some-key-cc\""
-        }
-        CONSTANT "\"val-cc\""
-      }
-      BINARY-OP "=" {
-        INDEX-LITERAL {
-          CONSTANT "\"some-key-dd\""
-        }
-        CONSTANT "\"val-dd\""
-      }
+      OP "="
+      CONSTANT "\"val-aa\""
     }
+    COMMA
+    BINARY-OP "=" {
+      INDEX-LITERAL {
+        LBRACKET
+        CONSTANT "\"some-key-bb\""
+        RBRACKET
+      }
+      OP "="
+      CONSTANT "\"val-bb\""
+    }
+    COMMA
+    BINARY-OP "=" {
+      INDEX-LITERAL {
+        LBRACKET
+        CONSTANT "\"some-key-cc\""
+        RBRACKET
+      }
+      OP "="
+      CONSTANT "\"val-cc\""
+    }
+    COMMA
+    BINARY-OP "=" {
+      INDEX-LITERAL {
+        LBRACKET
+        CONSTANT "\"some-key-dd\""
+        RBRACKET
+      }
+      OP "="
+      CONSTANT "\"val-dd\""
+    }
+    COMMA
+    RPAREN
   }
   ATTR-LIST {
     ATTR "&default" {
       LAMBDA {
         PARAMS {
+          LPAREN
           PARAM "n" {
             TYPE-ATOM "string"
           }
+          RPAREN
         }
+        COLON
         RETURNS {
           TYPE-ATOM "string"
         }
         BODY {
+          LBRACE
           RETURN {
+            KEYWORD "return"
             CALL {
               IDENTIFIER "fmt"
               ARGS {
+                LPAREN
                 CONSTANT "\"fixme-%s\""
+                COMMA
                 IDENTIFIER "n"
+                RPAREN
               }
             }
           }
           SEMI
+          RBRACE
         }
       }
     }

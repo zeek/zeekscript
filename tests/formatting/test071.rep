@@ -1,40 +1,54 @@
 FUNC-DECL "event" "some_handler" {
   PARAMS {
+    LPAREN
     PARAM "rec" {
       TYPE-ATOM "SomeModule::Info"
     }
+    RPAREN
   }
   BODY {
+    LBRACE
     ADD {
+      KEYWORD "add"
       INDEX {
         IDENTIFIER "some_long_cache"
         SUBSCRIPTS {
+          LBRACKET
           IDENTIFIER "aaa"
+          COMMA
           IDENTIFIER "bbb"
+          COMMA
           IDENTIFIER "ccc"
+          COMMA
           FIELD-ACCESS {
             IDENTIFIER "rec"
             IDENTIFIER "source_field"
           }
+          COMMA
           FIELD-ACCESS {
             IDENTIFIER "rec"
             IDENTIFIER "type_field"
           }
+          COMMA
           FIELD-ACCESS {
             IDENTIFIER "rec"
             IDENTIFIER "name_field"
           }
+          COMMA
           FIELD-ACCESS {
             IDENTIFIER "rec"
             IDENTIFIER "orig_flag"
           }
+          COMMA
           FIELD-ACCESS {
             IDENTIFIER "rec"
             IDENTIFIER "byte_count"
           }
+          RBRACKET
         }
       }
       SEMI
     }
+    RBRACE
   }
 }

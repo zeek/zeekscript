@@ -1,12 +1,15 @@
 GLOBAL-DECL "global" "some_state" {
-  TYPE {
-    TYPE-PARAMETERIZED "table" {
-      TYPE-ATOM "SomeModule::CertInfo"
-      TYPE-ATOM "SomeModule::AltNameInfo"
-      TYPE-ATOM "SomeModule::ConstraintInfo"
-      OF
-      TYPE-ATOM "count"
-    }
+  COLON
+  TYPE-PARAMETERIZED "table" {
+    LBRACKET
+    TYPE-ATOM "SomeModule::CertInfo"
+    COMMA
+    TYPE-ATOM "SomeModule::AltNameInfo"
+    COMMA
+    TYPE-ATOM "SomeModule::ConstraintInfo"
+    RBRACKET
+    KEYWORD "of"
+    TYPE-ATOM "count"
   }
   ATTR-LIST {
     ATTR "&default" {

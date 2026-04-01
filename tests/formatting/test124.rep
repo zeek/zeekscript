@@ -1,27 +1,44 @@
 FUNC-DECL "function" "f" {
+  PARAMS {
+    LPAREN
+    RPAREN
+  }
   BODY {
+    LBRACE
     FOR {
+      KEYWORD "for"
+      LPAREN
       VARS {
         IDENTIFIER "a"
+        COMMA
         IDENTIFIER "b"
       }
+      KEYWORD "in"
       ITERABLE {
         IDENTIFIER "tbl"
       }
+      RPAREN
       BODY {
         PRINT {
+          KEYWORD "print"
           IDENTIFIER "file_handle"
+          COMMA
           IDENTIFIER "some_variable"
+          COMMA
           INDEX {
             IDENTIFIER "another_table"
             SUBSCRIPTS {
+              LBRACKET
               IDENTIFIER "some_index"
+              RBRACKET
             }
           }
+          COMMA
           IDENTIFIER "final_value"
           SEMI
         }
       }
     }
+    RBRACE
   }
 }

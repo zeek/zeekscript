@@ -1,47 +1,66 @@
 FUNC-DECL "function" "some_func" {
+  PARAMS {
+    LPAREN
+    RPAREN
+  }
   BODY {
+    LBRACE
     IF {
-      COND {
-        BINARY-OP "?$" {
+      KEYWORD "if"
+      LPAREN
+      BINARY-OP "?$" {
+        BINARY-OP "||" {
           BINARY-OP "||" {
-            BINARY-OP "||" {
-              BINARY-OP "?$" {
-                UNARY-OP "!" {
-                  IDENTIFIER "aa"
-                }
-                IDENTIFIER "bb_chain"
+            BINARY-OP "?$" {
+              UNARY-OP "!" {
+                OP "!"
+                IDENTIFIER "aa"
               }
-              BINARY-OP "==" {
-                UNARY-OP "|...|" {
-                  FIELD-ACCESS {
-                    IDENTIFIER "aa"
-                    IDENTIFIER "bb_chain"
-                  }
-                }
-                CONSTANT "0"
-              }
+              OP "?$"
+              IDENTIFIER "bb_chain"
             }
-            UNARY-OP "!" {
-              INDEX {
+            OP "||"
+            BINARY-OP "==" {
+              UNARY-OP "|...|" {
+                OP "|"
                 FIELD-ACCESS {
                   IDENTIFIER "aa"
                   IDENTIFIER "bb_chain"
                 }
-                SUBSCRIPTS {
-                  CONSTANT "0"
-                }
+                OP "|"
+              }
+              OP "=="
+              CONSTANT "0"
+            }
+          }
+          OP "||"
+          UNARY-OP "!" {
+            OP "!"
+            INDEX {
+              FIELD-ACCESS {
+                IDENTIFIER "aa"
+                IDENTIFIER "bb_chain"
+              }
+              SUBSCRIPTS {
+                LBRACKET
+                CONSTANT "0"
+                RBRACKET
               }
             }
           }
-          IDENTIFIER "cc"
         }
+        OP "?$"
+        IDENTIFIER "cc"
       }
+      RPAREN
       BODY {
         RETURN {
+          KEYWORD "return"
           IDENTIFIER "dd"
         }
         SEMI
       }
     }
+    RBRACE
   }
 }

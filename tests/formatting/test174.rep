@@ -1,9 +1,14 @@
 EXPORT {
   TYPE-DECL "SomeInfo" {
+    KEYWORD "type"
+    COLON
     TYPE-RECORD {
       FIELD "some_field_name" {
+        COLON
         TYPE-PARAMETERIZED "set" {
+          LBRACKET
           TYPE-ATOM "string"
+          RBRACKET
         }
         ATTR-LIST {
           ATTR "&log"

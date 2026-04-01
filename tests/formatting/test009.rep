@@ -1,40 +1,51 @@
 FUNC-DECL "event" "some_event" {
   PARAMS {
+    LPAREN
     PARAM "some_arg" {
       TYPE-ATOM "string"
     }
+    RPAREN
   }
   BODY {
+    LBRACE
     IF {
-      COND {
-        CONSTANT "T"
-      }
+      KEYWORD "if"
+      LPAREN
+      CONSTANT "T"
+      RPAREN
       BODY {
         BLOCK {
+          LBRACE
           BLANK
           IF {
-            COND {
-              CONSTANT "T"
-            }
+            KEYWORD "if"
+            LPAREN
+            CONSTANT "T"
+            RPAREN
             BODY {
               BLOCK {
+                LBRACE
                 BLANK
                 LOCAL-DECL "local" "some_long_name" {
-                  INIT "=" {
-                    CALL {
-                      IDENTIFIER "SomeModule::some_function"
-                      ARGS {
-                        IDENTIFIER "some_really_long_argument"
-                      }
+                  ASSIGN "="
+                  CALL {
+                    IDENTIFIER "SomeModule::some_function"
+                    ARGS {
+                      LPAREN
+                      IDENTIFIER "some_really_long_argument"
+                      RPAREN
                     }
                   }
                   SEMI
                 }
+                RBRACE
               }
             }
           }
+          RBRACE
         }
       }
     }
+    RBRACE
   }
 }

@@ -1,8 +1,10 @@
 FUNC-DECL "event" "foo" {
   PARAMS {
+    LPAREN
     PARAM "c" {
       TYPE-ATOM "connection"
     }
+    RPAREN
   }
   ATTR-LIST {
     ATTR "&group" {
@@ -10,9 +12,12 @@ FUNC-DECL "event" "foo" {
     }
   }
   BODY {
+    LBRACE
     PRINT {
+      KEYWORD "print"
       IDENTIFIER "c"
       SEMI
     }
+    RBRACE
   }
 }

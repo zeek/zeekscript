@@ -253,6 +253,7 @@ class Emitter:
                 and len(kids) == 2):
             keyword = self._text(kids[0])
             self._open(f'KEYWORD-EXPR {_quote(keyword)}')
+            self._w(f'KEYWORD {_quote(keyword)}')
             self._emit_expr_child(kids[1])
             self._close()
             self._mark_content(node)
@@ -283,7 +284,9 @@ class Emitter:
             cond, then, els = [k for k in kids if k.is_named or k.type == "expr"]
             self._open('TERNARY')
             self._emit_expr(cond)
+            self._w('QUESTION')
             self._emit_expr(then)
+            self._w('COLON')
             self._emit_expr(els)
             self._close()
             return
@@ -294,7 +297,9 @@ class Emitter:
                 and self._text(kids[2]) == "|"
                 and kids[1].is_named):
             self._open('UNARY-OP "|...|"')
+            self._w('OP "|"')
             self._emit_expr_child(kids[1])
+            self._w('OP "|"')
             self._close()
             self._mark_content(node)
             return
@@ -305,6 +310,7 @@ class Emitter:
             op = bin_ops.pop()
             self._open(f'BINARY-OP {_quote(op)}')
             self._emit_expr_child(kids[0])
+            self._w(f'OP {_quote(op)}')
             self._emit_expr_child(kids[2])
             self._emit_extras_in(node)
             self._close()
@@ -317,6 +323,7 @@ class Emitter:
                 and not kids[2].is_named):
             self._open('BINARY-OP "!in"')
             self._emit_expr_child(kids[0])
+            self._w('OP "!in"')
             self._emit_expr_child(kids[3])
             self._emit_extras_in(node)
             self._close()
@@ -328,6 +335,7 @@ class Emitter:
             op_text = self._text(kids[0])
             if op_text in _UNARY_OPS:
                 self._open(f'UNARY-OP {_quote(op_text)}')
+                self._w(f'OP {_quote(op_text)}')
                 self._emit_expr_child(kids[1])
                 self._close()
                 self._mark_content(node)
@@ -349,10 +357,12 @@ class Emitter:
                     self._w(f'IDENTIFIER {_quote(callee_text)}')
                 else:
                     self._emit_expr_child(kids[0])
+                self._open('ARGS')
+                self._w('LPAREN')
                 if args:
-                    self._open('ARGS')
                     self._emit_expr_list(args[0])
-                    self._close()
+                self._w('RPAREN')
+                self._close()
                 self._emit_extras_in(node)
                 self._close()
                 self._mark_content(node)
@@ -363,7 +373,9 @@ class Emitter:
                 and len(kids) == 3
                 and not kids[0].is_named):
             self._open('PAREN')
+            self._w('LPAREN')
             self._emit_expr_child(kids[1])
+            self._w('RPAREN')
             self._close()
             self._mark_content(node)
             return
@@ -387,14 +399,17 @@ class Emitter:
                         if c.type == "expr"]
             self._open('SLICE')
             self._emit_expr_child(base)
+            self._w('LBRACKET')
             if lo_exprs:
                 self._emit_expr(lo_exprs[0])
             else:
                 self._w('CONSTANT ""')
+            self._w('COLON')
             if hi_exprs:
                 self._emit_expr(hi_exprs[0])
             else:
                 self._w('CONSTANT ""')
+            self._w('RBRACKET')
             self._emit_extras_in(node)
             self._close()
             self._mark_content(node)
@@ -406,6 +421,7 @@ class Emitter:
                 and self._text(kids[0]) == "["):
             args = [k for k in kids if k.type == "expr_list"]
             self._open('INDEX-LITERAL')
+            self._w('LBRACKET')
             if args:
                 self._emit_expr_list(args[0])
                 # Detect trailing comma in source.
@@ -414,6 +430,7 @@ class Emitter:
                         and not el_kids[-1].is_named
                         and self._text(el_kids[-1]) == ","):
                     self._w('TRAILING-COMMA')
+            self._w('RBRACKET')
             self._emit_extras_in(node)
             self._close()
             self._mark_content(node)
@@ -425,10 +442,12 @@ class Emitter:
             args = [k for k in kids if k.type == "expr_list"]
             self._open('INDEX')
             self._emit_expr_child(base)
+            self._open('SUBSCRIPTS')
+            self._w('LBRACKET')
             if args:
-                self._open('SUBSCRIPTS')
                 self._emit_expr_list(args[0])
-                self._close()
+            self._w('RBRACKET')
+            self._close()
             self._emit_extras_in(node)
             self._close()
             self._mark_content(node)
@@ -476,8 +495,10 @@ class Emitter:
             interval = [k for k in kids if k.is_named and k.type == "expr"]
             event_hdrs = [k for k in kids if k.type == "event_hdr"]
             self._open('SCHEDULE')
+            self._w('KEYWORD "schedule"')
             if interval:
                 self._emit_expr(interval[0])
+            self._w('LBRACE')
             if event_hdrs:
                 eh = event_hdrs[0]
                 eh_kids = self._children(eh)
@@ -490,11 +511,14 @@ class Emitter:
                         args = c
                 self._open(f'CALL')
                 self._w(f'IDENTIFIER {_quote(name)}')
+                self._open('ARGS')
+                self._w('LPAREN')
                 if args:
-                    self._open('ARGS')
                     self._emit_expr_list(args)
-                    self._close()
+                self._w('RPAREN')
                 self._close()
+                self._close()
+            self._w('RBRACE')
             self._close()
             self._mark_content(node)
             return
@@ -514,8 +538,10 @@ class Emitter:
                         if keyword == "table":
                             break
             self._open(f'CONSTRUCTOR {_quote(keyword)}')
+            self._w('LPAREN')
             if args:
                 self._emit_expr_list(args[0])
+            self._w('RPAREN')
             self._close()
             self._mark_content(node)
             return
@@ -551,12 +577,12 @@ class Emitter:
             self._emit_expr(node)
 
     def _emit_expr_list(self, node: tree_sitter.Node) -> None:
-        """Emit children of an expr_list, skipping commas."""
+        """Emit children of an expr_list, emitting COMMA tokens."""
         for child in self._iter_children(node):
             if child.type == "expr":
                 self._emit_expr(child)
             elif not child.is_named and self._text(child) == ",":
-                pass  # structural separator, C++ knows from context
+                self._w('COMMA')
             else:
                 self._emit_expr_child(child)
 
@@ -606,10 +632,14 @@ class Emitter:
             params = [k for i, k in enumerate(kids)
                       if k.type == "type" and i != of_idx]
             self._open(f'TYPE-PARAMETERIZED {_quote(first_text)}')
-            for p in params:
+            self._w('LBRACKET')
+            for j, p in enumerate(params):
+                if j > 0:
+                    self._w('COMMA')
                 self._emit_type(p)
+            self._w('RBRACKET')
             if of_type and of_type.type == "type":
-                self._w("OF")
+                self._w('KEYWORD "of"')
                 self._emit_type(of_type)
             self._close()
             return
@@ -623,7 +653,7 @@ class Emitter:
                     break
             if of_type:
                 self._open(f'TYPE-PARAMETERIZED "vector"')
-                self._w("OF")
+                self._w('KEYWORD "of"')
                 self._emit_type(of_type)
                 self._close()
             else:
@@ -643,9 +673,12 @@ class Emitter:
                     break
             if params:
                 self._open('PARAMS')
+                self._w('LPAREN')
                 self._emit_formal_args(params[0])
+                self._w('RPAREN')
                 self._close()
             if ret:
+                self._w('COLON')
                 self._open('RETURNS')
                 self._emit_type(ret)
                 self._close()
@@ -691,7 +724,10 @@ class Emitter:
                 break
         self._open(f'FIELD {_quote(name)}')
         for child in self._iter_children(node):
-            if child.type == "id":
+            if not child.is_named:
+                if self._text(child) == ":":
+                    self._w('COLON')
+            elif child.type == "id":
                 pass  # already extracted for tag
             elif child.type == "type":
                 self._emit_type(child)
@@ -788,15 +824,24 @@ class Emitter:
         """Extract and emit PARAMS, RETURNS, and ATTR-LIST from a begin_lambda or func_hdr child."""
         for child in self._iter_children(node):
             if child.type == "func_params":
+                formal = None
+                ret_type = None
                 for pk in self._iter_children(child):
                     if pk.type == "formal_args":
-                        self._open('PARAMS')
-                        self._emit_formal_args(pk)
-                        self._close()
+                        formal = pk
                     elif pk.type == "type":
-                        self._open('RETURNS')
-                        self._emit_type(pk)
-                        self._close()
+                        ret_type = pk
+                self._open('PARAMS')
+                self._w('LPAREN')
+                if formal:
+                    self._emit_formal_args(formal)
+                self._w('RPAREN')
+                self._close()
+                if ret_type:
+                    self._w('COLON')
+                    self._open('RETURNS')
+                    self._emit_type(ret_type)
+                    self._close()
             elif child.type == "attr_list":
                 self._emit_attr_list(child)
 
@@ -839,13 +884,11 @@ class Emitter:
 
         self._open(f'GLOBAL-DECL {_quote(keyword)} {_quote(name)}')
         if typ:
-            self._open('TYPE')
+            self._w('COLON')
             self._emit_type(typ)
-            self._close()
         if init_expr:
-            self._open(f'INIT {_quote(init_op)}')
+            self._w(f'ASSIGN {_quote(init_op)}')
             self._emit_init_expr(init_expr, typ)
-            self._close()
         if attrs:
             self._emit_attr_list(attrs)
         self._emit_extras_in(node)
@@ -865,8 +908,10 @@ class Emitter:
             if ctor_name in ("table", "set", "vector"):
                 args = [k for k in kids if k.type == "expr_list"]
                 self._open(f'CONSTRUCTOR {_quote(ctor_name)}')
+                self._w('LPAREN')
                 if args:
                     self._emit_expr_list(args[0])
+                self._w('RPAREN')
                 self._close()
                 return
         self._emit_expr(node)
@@ -909,8 +954,12 @@ class Emitter:
         for child in self._iter_children(node):
             if child.type == "stmt_list":
                 self._emit_stmt_list(child)
-            else:
-                # Track { and } for same-line comment detection.
+            elif not child.is_named:
+                text = self._text(child)
+                if text == "{":
+                    self._w('LBRACE')
+                elif text == "}":
+                    self._w('RBRACE')
                 self._mark_content(child)
         self._close()
 
@@ -941,7 +990,15 @@ class Emitter:
                 break
         self._open(f'TYPE-DECL {_quote(name)}')
         for child in self._iter_children(node):
-            if child.type == "id":
+            if not child.is_named:
+                text = self._text(child)
+                if text == "type":
+                    self._w('KEYWORD "type"')
+                elif text == ":":
+                    self._w('COLON')
+                elif text == "=":
+                    self._w('ASSIGN "="')
+            elif child.type == "id":
                 pass  # already extracted for tag
             elif child.type == "type" and child.is_named:
                 self._emit_type(child)
@@ -1034,7 +1091,7 @@ class Emitter:
             self._emit_add_delete(node, first_text)
             return
         if first_text in ("next", "break", "fallthrough"):
-            self._w(first_text.upper())
+            self._w(f'KEYWORD {_quote(first_text)}')
             self._w('SEMI')
             self._mark_content(node)
             return
@@ -1042,9 +1099,11 @@ class Emitter:
         # Brace block (standalone { stmt_list })
         if first_text == "{":
             self._open('BLOCK')
+            self._w('LBRACE')
             for k in kids:
                 if k.type == "stmt_list":
                     self._emit_stmt_list(k)
+            self._w('RBRACE')
             self._emit_extras_in(node)
             self._close()
             self._mark_content(node)
@@ -1094,13 +1153,11 @@ class Emitter:
 
         self._open(f'LOCAL-DECL {_quote(keyword)} {_quote(name)}')
         if typ:
-            self._open('TYPE')
+            self._w('COLON')
             self._emit_type(typ)
-            self._close()
         if init_expr:
-            self._open(f'INIT {_quote(init_op)}')
+            self._w(f'ASSIGN {_quote(init_op)}')
             self._emit_init_expr(init_expr, typ)
-            self._close()
         if attrs:
             self._emit_attr_list(attrs)
         self._emit_extras_in(node)
@@ -1159,10 +1216,11 @@ class Emitter:
                 else_body = k
 
         self._open('IF')
+        self._w('KEYWORD "if"')
         if cond:
-            self._open('COND')
+            self._w('LPAREN')
             self._emit_expr(cond)
-            self._close()
+            self._w('RPAREN')
 
         # Emit extras between cond and body (e.g. #@ annotation
         # after the closing paren of the condition).
@@ -1187,6 +1245,7 @@ class Emitter:
 
         if else_body:
             self._open('ELSE')
+            self._w('KEYWORD "else"')
             self._emit_stmt(else_body)
             self._close()
         self._close()
@@ -1196,22 +1255,31 @@ class Emitter:
         self._open('FOR')
         in_vars = False
         for child in self._iter_children(node):
-            if child.type == "id":
+            if not child.is_named:
+                text = self._text(child)
+                if text == "for":
+                    self._w('KEYWORD "for"')
+                elif text == "(":
+                    self._w('LPAREN')
+                elif text == ")":
+                    self._w('RPAREN')
+                elif text == "in":
+                    if in_vars:
+                        self._close()
+                        in_vars = False
+                    self._w('KEYWORD "in"')
+                elif text == ",":
+                    self._w('COMMA')
+            elif child.type == "id":
                 if not in_vars:
                     self._open('VARS')
                     in_vars = True
                 self._w(f'IDENTIFIER {_quote(self._text(child))}')
             elif child.type == "expr":
-                if in_vars:
-                    self._close()
-                    in_vars = False
                 self._open('ITERABLE')
                 self._emit_expr(child)
                 self._close()
             elif child.type == "stmt":
-                if in_vars:
-                    self._close()
-                    in_vars = False
                 self._open('BODY')
                 self._emit_stmt(child)
                 self._close()
@@ -1223,10 +1291,16 @@ class Emitter:
     def _emit_while(self, node: tree_sitter.Node) -> None:
         self._open('WHILE')
         for child in self._iter_children(node):
-            if child.type == "expr":
-                self._open('COND')
+            if not child.is_named:
+                text = self._text(child)
+                if text == "while":
+                    self._w('KEYWORD "while"')
+                elif text == "(":
+                    self._w('LPAREN')
+                elif text == ")":
+                    self._w('RPAREN')
+            elif child.type == "expr":
                 self._emit_expr(child)
-                self._close()
             elif child.type == "stmt":
                 self._open('BODY')
                 self._emit_stmt(child)
@@ -1240,6 +1314,7 @@ class Emitter:
             if child.type == "expr":
                 if not has_expr:
                     self._open('RETURN')
+                    self._w('KEYWORD "return"')
                     has_expr = True
                 self._emit_expr(child)
         if has_expr:
@@ -1251,6 +1326,7 @@ class Emitter:
 
     def _emit_print(self, node: tree_sitter.Node) -> None:
         self._open('PRINT')
+        self._w('KEYWORD "print"')
         for child in self._iter_children(node):
             if child.type == "expr_list":
                 self._emit_expr_list(child)
@@ -1273,13 +1349,16 @@ class Emitter:
                     name = self._text(k)
                     break
         self._open(f'EVENT-STMT {_quote(name)}')
+        self._w('KEYWORD "event"')
         if hdr:
             for child in self._iter_children(hdr):
                 if child.type == "id":
                     pass  # already extracted for tag
                 elif child.type == "expr_list":
                     self._open('ARGS')
+                    self._w('LPAREN')
                     self._emit_expr_list(child)
+                    self._w('RPAREN')
                     self._close()
         self._emit_extras_in(node)
         self._w('SEMI')
@@ -1288,11 +1367,20 @@ class Emitter:
 
     def _emit_switch(self, node: tree_sitter.Node) -> None:
         self._open('SWITCH')
+        self._w('KEYWORD "switch"')
         for child in self._iter_children(node):
-            if child.type == "expr":
-                self._open('EXPR')
+            if not child.is_named:
+                text = self._text(child)
+                if text == "(":
+                    self._w('LPAREN')
+                elif text == ")":
+                    self._w('RPAREN')
+                elif text == "{":
+                    self._w('LBRACE')
+                elif text == "}":
+                    self._w('RBRACE')
+            elif child.type == "expr":
                 self._emit_expr(child)
-                self._close()
             elif child.type == "case_list":
                 self._emit_case_list(child)
         self._close()
@@ -1312,10 +1400,12 @@ class Emitter:
                     i += 1
                 stmts = kids[i] if i < len(kids) and kids[i].type == "stmt_list" else None
                 self._open('CASE')
+                self._w('KEYWORD "case"')
                 if exprs:
                     self._open('VALUES')
                     self._emit_expr_list(exprs)
                     self._close()
+                self._w('COLON')
                 if stmts:
                     self._open('BODY')
                     self._emit_stmt_list(stmts)
@@ -1329,6 +1419,8 @@ class Emitter:
                     i += 1
                 stmts = kids[i] if i < len(kids) and kids[i].type == "stmt_list" else None
                 self._open('DEFAULT')
+                self._w('KEYWORD "default"')
+                self._w('COLON')
                 if stmts:
                     self._emit_stmt_list(stmts)
                     i += 1
@@ -1338,18 +1430,27 @@ class Emitter:
 
     def _emit_when(self, node: tree_sitter.Node) -> None:
         self._open('WHEN')
+        self._w('KEYWORD "when"')
         state = "init"
         in_timeout = False
         for child in self._iter_children(node):
-            text = self._text(child)
-            if text == "timeout":
-                state = "timeout"
+            if not child.is_named:
+                text = self._text(child)
+                if text == "timeout":
+                    self._w('KEYWORD "timeout"')
+                    state = "timeout"
+                elif text == "(":
+                    self._w('LPAREN')
+                elif text == ")":
+                    self._w('RPAREN')
+                elif text == "{":
+                    self._w('LBRACE')
+                elif text == "}":
+                    self._w('RBRACE')
                 continue
             if state == "init":
                 if child.type == "expr":
-                    self._open('COND')
                     self._emit_expr(child)
-                    self._close()
                 elif child.type == "stmt":
                     self._open('BODY')
                     self._emit_stmt(child)
@@ -1373,6 +1474,7 @@ class Emitter:
 
     def _emit_add_delete(self, node: tree_sitter.Node, keyword: str) -> None:
         self._open(keyword.upper())
+        self._w(f'KEYWORD {_quote(keyword)}')
         for child in self._iter_children(node):
             if child.type == "expr":
                 self._emit_expr(child)

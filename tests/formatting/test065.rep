@@ -1,5 +1,6 @@
 FUNC-DECL "event" "SomeModule::Geneve::some_filtered_option" {
   PARAMS {
+    LPAREN
     PARAM "inner_c" {
       TYPE-ATOM "connection"
     }
@@ -15,7 +16,10 @@ FUNC-DECL "event" "SomeModule::Geneve::some_filtered_option" {
     PARAM "opt" {
       TYPE-ATOM "SomeModule::Geneve::some_geneve_hdr_option"
     }
+    RPAREN
   }
   BODY {
+    LBRACE
+    RBRACE
   }
 }

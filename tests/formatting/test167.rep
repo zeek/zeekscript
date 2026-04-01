@@ -1,9 +1,16 @@
 FUNC-DECL "event" "some_evt" {
+  PARAMS {
+    LPAREN
+    RPAREN
+  }
   BODY {
+    LBRACE
     COMMENT-TRAILING "# Start tracking."
     PRINT {
+      KEYWORD "print"
       CONSTANT "1"
       SEMI
     }
+    RBRACE
   }
 }

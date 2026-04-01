@@ -1,38 +1,57 @@
 FUNC-DECL "function" "foo" {
+  PARAMS {
+    LPAREN
+    RPAREN
+  }
   BODY {
+    LBRACE
     FOR {
+      KEYWORD "for"
+      LPAREN
       VARS {
         IDENTIFIER "x"
       }
+      KEYWORD "in"
       ITERABLE {
         IDENTIFIER "xs"
       }
+      RPAREN
       BODY {
         FOR {
+          KEYWORD "for"
+          LPAREN
           VARS {
             IDENTIFIER "y"
           }
+          KEYWORD "in"
           ITERABLE {
             IDENTIFIER "ys"
           }
+          RPAREN
           BODY {
             EXPR-STMT {
               BINARY-OP "=" {
                 INDEX {
                   IDENTIFIER "some_long_table"
                   SUBSCRIPTS {
+                    LBRACKET
                     IDENTIFIER "some_key"
+                    RBRACKET
                   }
                 }
+                OP "="
                 CALL {
                   IDENTIFIER "SomeFunc"
                   ARGS {
+                    LPAREN
                     FIELD-ASSIGN "field_a" {
                       IDENTIFIER "val_a"
                     }
+                    COMMA
                     FIELD-ASSIGN "field_b" {
                       IDENTIFIER "val_b"
                     }
+                    RPAREN
                   }
                 }
               }
@@ -42,5 +61,6 @@ FUNC-DECL "function" "foo" {
         }
       }
     }
+    RBRACE
   }
 }

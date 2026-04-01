@@ -1,16 +1,24 @@
 FUNC-DECL "event" "some_evt" {
+  PARAMS {
+    LPAREN
+    RPAREN
+  }
   BODY {
+    LBRACE
     WHILE {
-      COND {
-        IDENTIFIER "some_flag"
-      }
+      KEYWORD "while"
+      LPAREN
+      IDENTIFIER "some_flag"
+      RPAREN
       COMMENT-TRAILING "# keep going"
       BODY {
         PRINT {
+          KEYWORD "print"
           CONSTANT "1"
           SEMI
         }
       }
     }
+    RBRACE
   }
 }

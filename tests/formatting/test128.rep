@@ -1,51 +1,75 @@
 FUNC-DECL "function" "some_fn" {
+  PARAMS {
+    LPAREN
+    RPAREN
+  }
   BODY {
+    LBRACE
     LOCAL-DECL "local" "info" {
-      INIT "=" {
-        CALL {
-          IDENTIFIER "SomeModule::SomeFn"
-          ARGS {
-            FIELD-ASSIGN "note" {
-              IDENTIFIER "Found"
-            }
-            FIELD-ASSIGN "uid" {
-              IDENTIFIER "uid"
-            }
-            FIELD-ASSIGN "msg" {
-              CALL {
-                IDENTIFIER "fmt"
-                ARGS {
-                  CONSTANT "\"%s found on %s entity using %s item.\""
-                  IDENTIFIER "usecase_desc"
-                  IDENTIFIER "orig_entity"
-                  IDENTIFIER "item"
-                }
-              }
-            }
-            FIELD-ASSIGN "sub" {
-              CALL {
-                IDENTIFIER "fmt"
-                ARGS {
-                  CONSTANT "\"Score: %s. Days: %s\""
-                  IDENTIFIER "item_score"
-                  IDENTIFIER "history_days"
-                }
-              }
-            }
-            FIELD-ASSIGN "identifier" {
-              CALL {
-                IDENTIFIER "cat"
-                ARGS {
-                  IDENTIFIER "orig_entity"
-                  IDENTIFIER "usecase"
-                  IDENTIFIER "item"
-                }
+      ASSIGN "="
+      CALL {
+        IDENTIFIER "SomeModule::SomeFn"
+        ARGS {
+          LPAREN
+          FIELD-ASSIGN "note" {
+            IDENTIFIER "Found"
+          }
+          COMMA
+          FIELD-ASSIGN "uid" {
+            IDENTIFIER "uid"
+          }
+          COMMA
+          FIELD-ASSIGN "msg" {
+            CALL {
+              IDENTIFIER "fmt"
+              ARGS {
+                LPAREN
+                CONSTANT "\"%s found on %s entity using %s item.\""
+                COMMA
+                IDENTIFIER "usecase_desc"
+                COMMA
+                IDENTIFIER "orig_entity"
+                COMMA
+                IDENTIFIER "item"
+                RPAREN
               }
             }
           }
+          COMMA
+          FIELD-ASSIGN "sub" {
+            CALL {
+              IDENTIFIER "fmt"
+              ARGS {
+                LPAREN
+                CONSTANT "\"Score: %s. Days: %s\""
+                COMMA
+                IDENTIFIER "item_score"
+                COMMA
+                IDENTIFIER "history_days"
+                RPAREN
+              }
+            }
+          }
+          COMMA
+          FIELD-ASSIGN "identifier" {
+            CALL {
+              IDENTIFIER "cat"
+              ARGS {
+                LPAREN
+                IDENTIFIER "orig_entity"
+                COMMA
+                IDENTIFIER "usecase"
+                COMMA
+                IDENTIFIER "item"
+                RPAREN
+              }
+            }
+          }
+          RPAREN
         }
       }
       SEMI
     }
+    RBRACE
   }
 }

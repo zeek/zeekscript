@@ -1,46 +1,63 @@
 FUNC-DECL "function" "some_func_bb" {
   PARAMS {
+    LPAREN
     PARAM "c" {
       TYPE-ATOM "connection"
     }
     PARAM "cnt" {
       TYPE-ATOM "count"
     }
+    RPAREN
   }
+  COLON
   RETURNS {
     TYPE-ATOM "interval"
   }
   BODY {
+    LBRACE
     IF {
-      COND {
-        BINARY-OP ">" {
-          IDENTIFIER "some_long_variable_a"
-          CONSTANT "0"
-        }
+      KEYWORD "if"
+      LPAREN
+      BINARY-OP ">" {
+        IDENTIFIER "some_long_variable_a"
+        OP ">"
+        CONSTANT "0"
       }
+      RPAREN
       BODY {
         BLOCK {
+          LBRACE
           EXPR-STMT {
             CALL {
               IDENTIFIER "SomeModule::some_long_function_name"
               ARGS {
+                LPAREN
                 IDENTIFIER "c"
+                COMMA
                 BINARY-OP "*" {
                   PAREN {
+                    LPAREN
                     BINARY-OP "+" {
                       IDENTIFIER "some_long_variable_a"
+                      OP "+"
                       CONSTANT "3"
                     }
+                    RPAREN
                   }
+                  OP "*"
                   IDENTIFIER "some_long_variable_bb"
                 }
+                COMMA
                 CONSTANT "F"
+                RPAREN
               }
             }
             SEMI
           }
+          RBRACE
         }
       }
     }
+    RBRACE
   }
 }

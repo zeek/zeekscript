@@ -1,46 +1,59 @@
 FUNC-DECL "function" "some_handler" {
   PARAMS {
+    LPAREN
     PARAM "c" {
       TYPE-ATOM "connection"
     }
+    RPAREN
   }
   BODY {
+    LBRACE
     IF {
-      COND {
-        IDENTIFIER "foo"
-      }
+      KEYWORD "if"
+      LPAREN
+      IDENTIFIER "foo"
+      RPAREN
       BODY {
         BLOCK {
+          LBRACE
           BLANK
           IF {
-            COND {
-              IDENTIFIER "bar"
-            }
+            KEYWORD "if"
+            LPAREN
+            IDENTIFIER "bar"
+            RPAREN
             BODY {
               BLOCK {
+                LBRACE
                 BLANK
                 IF {
-                  COND {
-                    IDENTIFIER "bletch"
-                  }
+                  KEYWORD "if"
+                  LPAREN
+                  IDENTIFIER "bletch"
+                  RPAREN
                   BODY {
                     EXPR-STMT {
                       CALL {
                         IDENTIFIER "other_function_abc"
                         ARGS {
+                          LPAREN
                           CONSTANT "\"Some kind of status message\""
+                          RPAREN
                         }
                       }
                       SEMI
                     }
                   }
                 }
+                RBRACE
                 COMMENT-TRAILING "#@ NOT-TESTED"
               }
             }
           }
+          RBRACE
         }
       }
     }
+    RBRACE
   }
 }

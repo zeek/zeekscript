@@ -1,38 +1,54 @@
 FUNC-DECL "function" "some_func" {
   PARAMS {
+    LPAREN
     PARAM "val" {
       TYPE-ATOM "string"
     }
+    RPAREN
   }
   BODY {
+    LBRACE
     IF {
-      COND {
-        CALL {
-          IDENTIFIER "SomeModule::check_ready"
+      KEYWORD "if"
+      LPAREN
+      CALL {
+        IDENTIFIER "SomeModule::check_ready"
+        ARGS {
+          LPAREN
+          RPAREN
         }
       }
+      RPAREN
       BODY {
         EXPR-STMT {
           CALL {
             IDENTIFIER "SomeModule::send_msg"
             ARGS {
+              LPAREN
               IDENTIFIER "pt"
+              COMMA
               IDENTIFIER "some_long_handler"
+              COMMA
               CALL {
                 IDENTIFIER "to_addr"
                 ARGS {
+                  LPAREN
                   FIELD-ACCESS {
                     IDENTIFIER "rec"
                     IDENTIFIER "some_field"
                   }
+                  RPAREN
                 }
               }
+              COMMA
               IDENTIFIER "p"
+              RPAREN
             }
           }
           SEMI
         }
       }
     }
+    RBRACE
   }
 }

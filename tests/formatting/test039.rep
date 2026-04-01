@@ -1,12 +1,15 @@
 GLOBAL-DECL "redef" "foo" {
-  INIT "+=" {
-    CALL {
-      IDENTIFIER "set"
-      ARGS {
-        CONSTANT "\"a\""
-        CONSTANT "\"b\""
-        CONSTANT "\"c\""
-      }
+  ASSIGN "+="
+  CALL {
+    IDENTIFIER "set"
+    ARGS {
+      LPAREN
+      CONSTANT "\"a\""
+      COMMA
+      CONSTANT "\"b\""
+      COMMA
+      CONSTANT "\"c\""
+      RPAREN
     }
   }
   SEMI

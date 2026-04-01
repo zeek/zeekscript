@@ -1,10 +1,11 @@
 LOCAL-DECL "local" "x" {
-  INIT "=" {
-    TERNARY {
-      IDENTIFIER "some_very_long_condition_expression_here"
-      IDENTIFIER "some_very_long_true_value_expression_here"
-      IDENTIFIER "some_long_false"
-    }
+  ASSIGN "="
+  TERNARY {
+    IDENTIFIER "some_very_long_condition_expression_here"
+    QUESTION
+    IDENTIFIER "some_very_long_true_value_expression_here"
+    COLON
+    IDENTIFIER "some_long_false"
   }
   SEMI
 }

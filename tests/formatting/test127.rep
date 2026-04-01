@@ -1,62 +1,84 @@
 FUNC-DECL "function" "some_fn" {
+  PARAMS {
+    LPAREN
+    RPAREN
+  }
   BODY {
+    LBRACE
     IF {
-      COND {
-        IDENTIFIER "some_condition"
-      }
+      KEYWORD "if"
+      LPAREN
+      IDENTIFIER "some_condition"
+      RPAREN
       BODY {
         BLOCK {
+          LBRACE
           BLANK
           LOCAL-DECL "local" "info" {
-            INIT "=" {
-              CALL {
-                IDENTIFIER "SomeLongModule::SomeFn"
-                ARGS {
-                  FIELD-ASSIGN "ts" {
-                    IDENTIFIER "ts"
-                  }
-                  FIELD-ASSIGN "uid" {
-                    IDENTIFIER "uid"
-                  }
-                  FIELD-ASSIGN "use_case" {
-                    IDENTIFIER "usecase"
-                  }
-                  FIELD-ASSIGN "use_case_description" {
-                    IDENTIFIER "usecase_desc"
-                  }
-                  FIELD-ASSIGN "entity_training_items" {
-                    IDENTIFIER "entity_training_items"
-                  }
-                  FIELD-ASSIGN "entity" {
-                    IDENTIFIER "entity"
-                  }
-                  FIELD-ASSIGN "original_entity" {
-                    IDENTIFIER "original_entity"
-                  }
-                  FIELD-ASSIGN "item" {
-                    IDENTIFIER "item"
-                  }
-                  FIELD-ASSIGN "first_seen_type" {
-                    INDEX {
-                      IDENTIFIER "some_enum_map"
-                      SUBSCRIPTS {
-                        IDENTIFIER "some_type"
-                      }
+            ASSIGN "="
+            CALL {
+              IDENTIFIER "SomeLongModule::SomeFn"
+              ARGS {
+                LPAREN
+                FIELD-ASSIGN "ts" {
+                  IDENTIFIER "ts"
+                }
+                COMMA
+                FIELD-ASSIGN "uid" {
+                  IDENTIFIER "uid"
+                }
+                COMMA
+                FIELD-ASSIGN "use_case" {
+                  IDENTIFIER "usecase"
+                }
+                COMMA
+                FIELD-ASSIGN "use_case_description" {
+                  IDENTIFIER "usecase_desc"
+                }
+                COMMA
+                FIELD-ASSIGN "entity_training_items" {
+                  IDENTIFIER "entity_training_items"
+                }
+                COMMA
+                FIELD-ASSIGN "entity" {
+                  IDENTIFIER "entity"
+                }
+                COMMA
+                FIELD-ASSIGN "original_entity" {
+                  IDENTIFIER "original_entity"
+                }
+                COMMA
+                FIELD-ASSIGN "item" {
+                  IDENTIFIER "item"
+                }
+                COMMA
+                FIELD-ASSIGN "first_seen_type" {
+                  INDEX {
+                    IDENTIFIER "some_enum_map"
+                    SUBSCRIPTS {
+                      LBRACKET
+                      IDENTIFIER "some_type"
+                      RBRACKET
                     }
                   }
-                  FIELD-ASSIGN "history_days" {
-                    IDENTIFIER "history_days"
-                  }
-                  FIELD-ASSIGN "history" {
-                    IDENTIFIER "history"
-                  }
                 }
+                COMMA
+                FIELD-ASSIGN "history_days" {
+                  IDENTIFIER "history_days"
+                }
+                COMMA
+                FIELD-ASSIGN "history" {
+                  IDENTIFIER "history"
+                }
+                RPAREN
               }
             }
             SEMI
           }
+          RBRACE
         }
       }
     }
+    RBRACE
   }
 }

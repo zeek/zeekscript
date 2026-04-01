@@ -1,17 +1,22 @@
 LOCAL-DECL "local" "x" {
-  INIT "=" {
-    INDEX-LITERAL {
-      FIELD-ASSIGN "msg" {
-        CALL {
-          IDENTIFIER "fmt"
-          ARGS {
-            CONSTANT "\"Host uses protocol version %s which is lower than the safe minimum %s\""
-            IDENTIFIER "some_string"
-            IDENTIFIER "other_string_a"
-          }
+  ASSIGN "="
+  INDEX-LITERAL {
+    LBRACKET
+    FIELD-ASSIGN "msg" {
+      CALL {
+        IDENTIFIER "fmt"
+        ARGS {
+          LPAREN
+          CONSTANT "\"Host uses protocol version %s which is lower than the safe minimum %s\""
+          COMMA
+          IDENTIFIER "some_string"
+          COMMA
+          IDENTIFIER "other_string_a"
+          RPAREN
         }
       }
     }
+    RBRACKET
   }
   SEMI
 }

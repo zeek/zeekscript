@@ -1,30 +1,40 @@
 LOCAL-DECL "local" "filter" {
-  INIT "=" {
-    CALL {
-      IDENTIFIER "Log::Filter"
-      ARGS {
-        FIELD-ASSIGN "name" {
-          CONSTANT "\"log-name\""
-        }
-        FIELD-ASSIGN "path" {
-          CONSTANT "\"log_path\""
-        }
-        FIELD-ASSIGN "include" {
-          CALL {
-            IDENTIFIER "set"
-            ARGS {
-              CONSTANT "\"id.orig_h\""
-              CONSTANT "\"id.orig_p\""
-              CONSTANT "\"id.resp_h\""
-              CONSTANT "\"id.resp_p\""
-              CONSTANT "\"app\""
-            }
+  ASSIGN "="
+  CALL {
+    IDENTIFIER "Log::Filter"
+    ARGS {
+      LPAREN
+      FIELD-ASSIGN "name" {
+        CONSTANT "\"log-name\""
+      }
+      COMMA
+      FIELD-ASSIGN "path" {
+        CONSTANT "\"log_path\""
+      }
+      COMMA
+      FIELD-ASSIGN "include" {
+        CALL {
+          IDENTIFIER "set"
+          ARGS {
+            LPAREN
+            CONSTANT "\"id.orig_h\""
+            COMMA
+            CONSTANT "\"id.orig_p\""
+            COMMA
+            CONSTANT "\"id.resp_h\""
+            COMMA
+            CONSTANT "\"id.resp_p\""
+            COMMA
+            CONSTANT "\"app\""
+            RPAREN
           }
         }
-        FIELD-ASSIGN "policy" {
-          IDENTIFIER "some_policy_fn"
-        }
       }
+      COMMA
+      FIELD-ASSIGN "policy" {
+        IDENTIFIER "some_policy_fn"
+      }
+      RPAREN
     }
   }
   SEMI

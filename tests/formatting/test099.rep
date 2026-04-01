@@ -1,20 +1,28 @@
 FUNC-DECL "function" "f" {
+  PARAMS {
+    LPAREN
+    RPAREN
+  }
   BODY {
+    LBRACE
     LOCAL-DECL "local" "info" {
-      INIT "=" {
-        CALL {
-          IDENTIFIER "SomeModule::SomeRecord"
-          ARGS {
-            FIELD-ASSIGN "field1" {
-              IDENTIFIER "some_very_long_value"
-            }
-            FIELD-ASSIGN "field2" {
-              IDENTIFIER "another_long_value"
-            }
+      ASSIGN "="
+      CALL {
+        IDENTIFIER "SomeModule::SomeRecord"
+        ARGS {
+          LPAREN
+          FIELD-ASSIGN "field1" {
+            IDENTIFIER "some_very_long_value"
           }
+          COMMA
+          FIELD-ASSIGN "field2" {
+            IDENTIFIER "another_long_value"
+          }
+          RPAREN
         }
       }
       SEMI
     }
+    RBRACE
   }
 }

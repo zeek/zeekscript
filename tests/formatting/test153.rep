@@ -1,18 +1,21 @@
 GLOBAL-DECL "const" "tbl" {
-  TYPE {
-    TYPE-PARAMETERIZED "table" {
-      TYPE-ATOM "count"
-      OF
-      TYPE-ATOM "string"
-    }
+  COLON
+  TYPE-PARAMETERIZED "table" {
+    LBRACKET
+    TYPE-ATOM "count"
+    RBRACKET
+    KEYWORD "of"
+    TYPE-ATOM "string"
   }
-  INIT "=" {
-    CONSTRUCTOR "table" {
-      BINARY-OP "=" {
-        CONSTANT "[1]"
-        CONSTANT "\"a\""
-      }
+  ASSIGN "="
+  CONSTRUCTOR "table" {
+    LPAREN
+    BINARY-OP "=" {
+      CONSTANT "[1]"
+      OP "="
+      CONSTANT "\"a\""
     }
+    RPAREN
   }
   SEMI
 }

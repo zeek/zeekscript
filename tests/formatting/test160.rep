@@ -1,24 +1,36 @@
 FUNC-DECL "event" "some_evt" {
+  PARAMS {
+    LPAREN
+    RPAREN
+  }
   BODY {
+    LBRACE
     ADD {
+      KEYWORD "add"
       INDEX {
         IDENTIFIER "some_set"
         SUBSCRIPTS {
+          LBRACKET
           IDENTIFIER "val"
+          RBRACKET
         }
       }
       SEMI
     }
     COMMENT-TRAILING "# track it"
     DELETE {
+      KEYWORD "delete"
       INDEX {
         IDENTIFIER "some_set"
         SUBSCRIPTS {
+          LBRACKET
           IDENTIFIER "val"
+          RBRACKET
         }
       }
       SEMI
     }
     COMMENT-TRAILING "# remove it"
+    RBRACE
   }
 }

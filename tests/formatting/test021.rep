@@ -1,48 +1,67 @@
 FUNC-DECL "event" "zeek_init" {
+  PARAMS {
+    LPAREN
+    RPAREN
+  }
   BODY {
+    LBRACE
     IF {
-      COND {
+      KEYWORD "if"
+      LPAREN
+      BINARY-OP "&&" {
         BINARY-OP "&&" {
           BINARY-OP "&&" {
             BINARY-OP "&&" {
               BINARY-OP "&&" {
-                BINARY-OP "&&" {
-                  BINARY-OP ">" {
-                    IDENTIFIER "alpha_val"
-                    IDENTIFIER "threshold"
-                  }
-                  BINARY-OP ">" {
-                    IDENTIFIER "beta_val"
-                    IDENTIFIER "threshold"
-                  }
-                }
                 BINARY-OP ">" {
-                  IDENTIFIER "gamma_val"
+                  IDENTIFIER "alpha_val"
+                  OP ">"
+                  IDENTIFIER "threshold"
+                }
+                OP "&&"
+                BINARY-OP ">" {
+                  IDENTIFIER "beta_val"
+                  OP ">"
                   IDENTIFIER "threshold"
                 }
               }
+              OP "&&"
               BINARY-OP ">" {
-                IDENTIFIER "delta_val"
+                IDENTIFIER "gamma_val"
+                OP ">"
                 IDENTIFIER "threshold"
               }
             }
+            OP "&&"
             BINARY-OP ">" {
-              IDENTIFIER "epsilon_val"
+              IDENTIFIER "delta_val"
+              OP ">"
               IDENTIFIER "threshold"
             }
           }
+          OP "&&"
           BINARY-OP ">" {
-            IDENTIFIER "zeta_val"
+            IDENTIFIER "epsilon_val"
+            OP ">"
             IDENTIFIER "threshold"
           }
         }
+        OP "&&"
+        BINARY-OP ">" {
+          IDENTIFIER "zeta_val"
+          OP ">"
+          IDENTIFIER "threshold"
+        }
       }
+      RPAREN
       BODY {
         PRINT {
+          KEYWORD "print"
           CONSTANT "\"yes\""
           SEMI
         }
       }
     }
+    RBRACE
   }
 }

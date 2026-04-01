@@ -1,19 +1,30 @@
 FUNC-DECL "event" "some_evt" {
+  PARAMS {
+    LPAREN
+    RPAREN
+  }
   BODY {
+    LBRACE
     FOR {
+      KEYWORD "for"
+      LPAREN
       VARS {
         IDENTIFIER "idx"
       }
+      KEYWORD "in"
       ITERABLE {
         IDENTIFIER "some_list"
       }
+      RPAREN
       COMMENT-TRAILING "# iterate items"
       BODY {
         PRINT {
+          KEYWORD "print"
           IDENTIFIER "idx"
           SEMI
         }
       }
     }
+    RBRACE
   }
 }

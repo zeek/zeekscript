@@ -1,14 +1,22 @@
 FUNC-DECL "event" "foo" {
+  PARAMS {
+    LPAREN
+    RPAREN
+  }
   BODY {
+    LBRACE
     EXPR-STMT {
       CALL {
         IDENTIFIER "SomeModule::seen"
         ARGS {
+          LPAREN
           INDEX-LITERAL {
+            LBRACKET
             FIELD-ASSIGN "some_field" {
               CALL {
                 IDENTIFIER "SomeModule::build_value"
                 ARGS {
+                  LPAREN
                   INDEX {
                     FIELD-ACCESS {
                       FIELD-ACCESS {
@@ -18,25 +26,34 @@ FUNC-DECL "event" "foo" {
                       IDENTIFIER "items"
                     }
                     SUBSCRIPTS {
+                      LBRACKET
                       IDENTIFIER "stream"
+                      RBRACKET
                     }
                   }
+                  RPAREN
                 }
               }
             }
+            COMMA
             FIELD-ASSIGN "some_type" {
               IDENTIFIER "SomeModule::URL"
             }
+            COMMA
             FIELD-ASSIGN "conn" {
               IDENTIFIER "c"
             }
+            COMMA
             FIELD-ASSIGN "where" {
               IDENTIFIER "SomeModule::IN_URL"
             }
+            RBRACKET
           }
+          RPAREN
         }
       }
       SEMI
     }
+    RBRACE
   }
 }

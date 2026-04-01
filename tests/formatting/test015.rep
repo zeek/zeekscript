@@ -1,10 +1,11 @@
 GLOBAL-DECL "global" "some_table" {
-  TYPE {
-    TYPE-PARAMETERIZED "table" {
-      TYPE-ATOM "string"
-      OF
-      TYPE-ATOM "count"
-    }
+  COLON
+  TYPE-PARAMETERIZED "table" {
+    LBRACKET
+    TYPE-ATOM "string"
+    RBRACKET
+    KEYWORD "of"
+    TYPE-ATOM "count"
   }
   ATTR-LIST {
     ATTR "&default" {

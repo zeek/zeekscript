@@ -3,18 +3,24 @@ BLANK
 MODULE "SomeMod"
 BLANK
 GLOBAL-DECL "const" "some_var" {
-  INIT "=" {
-    CONSTANT "\"some-value\""
-  }
+  ASSIGN "="
+  CONSTANT "\"some-value\""
   SEMI
 }
 BLANK
 FUNC-DECL "event" "zeek_init" {
+  PARAMS {
+    LPAREN
+    RPAREN
+  }
   BODY {
+    LBRACE
     PRINT {
+      KEYWORD "print"
       IDENTIFIER "some_var"
       SEMI
     }
+    RBRACE
   }
 }
 PREPROC "@endif"

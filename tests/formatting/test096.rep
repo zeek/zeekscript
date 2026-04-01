@@ -1,32 +1,47 @@
 FUNC-DECL "function" "foo" {
+  PARAMS {
+    LPAREN
+    RPAREN
+  }
   BODY {
+    LBRACE
     EXPR-STMT {
       CALL {
         IDENTIFIER "some_handler"
         ARGS {
+          LPAREN
           IDENTIFIER "opt_id"
+          COMMA
           LAMBDA {
             PARAMS {
+              LPAREN
               PARAM "id" {
                 TYPE-ATOM "string"
               }
               PARAM "val" {
                 TYPE-ATOM "bool"
               }
+              RPAREN
             }
+            COLON
             RETURNS {
               TYPE-ATOM "bool"
             }
             BODY {
+              LBRACE
               RETURN {
+                KEYWORD "return"
                 IDENTIFIER "val"
               }
               SEMI
+              RBRACE
             }
           }
+          RPAREN
         }
       }
       SEMI
     }
+    RBRACE
   }
 }

@@ -1,5 +1,6 @@
 FUNC-DECL "event" "some_handler" {
   PARAMS {
+    LPAREN
     PARAM "c" {
       TYPE-ATOM "connection"
     }
@@ -9,20 +10,26 @@ FUNC-DECL "event" "some_handler" {
     PARAM "payload" {
       TYPE-ATOM "string"
     }
+    RPAREN
   }
   BODY {
+    LBRACE
     ADD {
+      KEYWORD "add"
       INDEX {
         FIELD-ACCESS {
           IDENTIFIER "c"
           IDENTIFIER "app"
         }
         SUBSCRIPTS {
+          LBRACKET
           CONSTANT "\"test\""
+          RBRACKET
         }
       }
       SEMI
     }
+    RBRACE
   }
   COMMENT-TRAILING "#@ NOT-TESTED"
 }

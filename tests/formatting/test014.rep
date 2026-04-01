@@ -3,24 +3,30 @@ EXPR-STMT {
     INDEX {
       IDENTIFIER "some_table_variable_name"
       SUBSCRIPTS {
+        LBRACKET
         IDENTIFIER "some_key"
+        RBRACKET
       }
     }
+    OP "="
     CALL {
       IDENTIFIER "X509::Result"
       ARGS {
+        LPAREN
         FIELD-ASSIGN "result" {
           FIELD-ACCESS {
             IDENTIFIER "result"
             IDENTIFIER "result"
           }
         }
+        COMMA
         FIELD-ASSIGN "result_string" {
           FIELD-ACCESS {
             IDENTIFIER "result"
             IDENTIFIER "result_string"
           }
         }
+        RPAREN
       }
     }
   }

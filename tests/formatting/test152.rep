@@ -1,20 +1,31 @@
 FUNC-DECL "function" "f" {
+  PARAMS {
+    LPAREN
+    RPAREN
+  }
   BODY {
+    LBRACE
     SWITCH {
-      EXPR {
-        PAREN {
-          IDENTIFIER "val"
-        }
+      KEYWORD "switch"
+      PAREN {
+        LPAREN
+        IDENTIFIER "val"
+        RPAREN
       }
+      LBRACE
       CASE {
+        KEYWORD "case"
         VALUES {
           CONSTANT "0"
         }
+        COLON
         BODY {
-          BREAK
+          KEYWORD "break"
           SEMI
         }
       }
+      RBRACE
     }
+    RBRACE
   }
 }

@@ -1,15 +1,19 @@
 GLOBAL-DECL "const" "tbl" {
-  INIT "=" {
-    CONSTRUCTOR "table" {
-      BINARY-OP "=" {
-        CONSTANT "[1]"
-        CONSTANT "\"a\""
-      }
-      BINARY-OP "=" {
-        CONSTANT "[2]"
-        CONSTANT "\"b\""
-      }
+  ASSIGN "="
+  CONSTRUCTOR "table" {
+    LPAREN
+    BINARY-OP "=" {
+      CONSTANT "[1]"
+      OP "="
+      CONSTANT "\"a\""
     }
+    COMMA
+    BINARY-OP "=" {
+      CONSTANT "[2]"
+      OP "="
+      CONSTANT "\"b\""
+    }
+    RPAREN
   }
   SEMI
 }

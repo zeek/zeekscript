@@ -1,36 +1,52 @@
 FUNC-DECL "event" "some_event" {
+  PARAMS {
+    LPAREN
+    RPAREN
+  }
   BODY {
+    LBRACE
     IF {
-      COND {
-        IDENTIFIER "some_condition"
-      }
+      KEYWORD "if"
+      LPAREN
+      IDENTIFIER "some_condition"
+      RPAREN
       BODY {
         EXPR-STMT {
           CALL {
             IDENTIFIER "SomeModule::some_long_call"
             ARGS {
+              LPAREN
               IDENTIFIER "some_first_arg"
+              COMMA
               CALL {
                 IDENTIFIER "some_func"
                 ARGS {
+                  LPAREN
                   FIELD-ACCESS {
                     IDENTIFIER "aa"
                     IDENTIFIER "xx"
                   }
+                  COMMA
                   FIELD-ACCESS {
                     IDENTIFIER "aa"
                     IDENTIFIER "yy"
                   }
+                  RPAREN
                 }
               }
+              COMMA
               IDENTIFIER "some_other_arg"
+              COMMA
               IDENTIFIER "bb"
+              COMMA
               IDENTIFIER "cc"
+              RPAREN
             }
           }
           SEMI
         }
       }
     }
+    RBRACE
   }
 }

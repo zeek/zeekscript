@@ -1,21 +1,33 @@
 FUNC-DECL "function" "f" {
+  PARAMS {
+    LPAREN
+    RPAREN
+  }
   BODY {
+    LBRACE
     SWITCH {
-      EXPR {
-        IDENTIFIER "tag_type"
-      }
+      KEYWORD "switch"
+      IDENTIFIER "tag_type"
+      LBRACE
       CASE {
+        KEYWORD "case"
         VALUES {
           CONSTANT "\"some_analyzer_udp\""
+          COMMA
           CONSTANT "\"some_analyzer_udp_hmac_md5\""
+          COMMA
           CONSTANT "\"some_analyzer_udp_hmac_sha1\""
+          COMMA
           CONSTANT "\"some_analyzer_udp_hmac_sha256\""
         }
+        COLON
         BODY {
-          BREAK
+          KEYWORD "break"
           SEMI
         }
       }
+      RBRACE
     }
+    RBRACE
   }
 }

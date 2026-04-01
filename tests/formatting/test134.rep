@@ -1,24 +1,36 @@
 FUNC-DECL "event" "some_event" {
+  PARAMS {
+    LPAREN
+    RPAREN
+  }
   BODY {
+    LBRACE
     EXPR-STMT {
       CALL {
         IDENTIFIER "some_func"
         ARGS {
+          LPAREN
           INDEX-LITERAL {
+            LBRACKET
             FIELD-ASSIGN "aa" {
               IDENTIFIER "BB"
             }
+            COMMA
             FIELD-ASSIGN "cc" {
               IDENTIFIER "dd"
             }
+            COMMA
             COMMENT-TRAILING "#@ SOME-TAG"
             FIELD-ASSIGN "ee" {
               IDENTIFIER "ff"
             }
+            RBRACKET
           }
+          RPAREN
         }
       }
       SEMI
     }
+    RBRACE
   }
 }

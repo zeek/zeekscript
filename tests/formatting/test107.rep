@@ -1,29 +1,39 @@
 FUNC-DECL "function" "foo" {
+  PARAMS {
+    LPAREN
+    RPAREN
+  }
   BODY {
+    LBRACE
     LOCAL-DECL "local" "next_orig_multiplier" {
-      INIT "=" {
-        CALL {
-          IDENTIFIER "double_to_count"
-          ARGS {
-            CALL {
-              IDENTIFIER "floor"
-              ARGS {
-                BINARY-OP "/" {
+      ASSIGN "="
+      CALL {
+        IDENTIFIER "double_to_count"
+        ARGS {
+          LPAREN
+          CALL {
+            IDENTIFIER "floor"
+            ARGS {
+              LPAREN
+              BINARY-OP "/" {
+                FIELD-ACCESS {
                   FIELD-ACCESS {
-                    FIELD-ACCESS {
-                      IDENTIFIER "c"
-                      IDENTIFIER "orig"
-                    }
-                    IDENTIFIER "size"
+                    IDENTIFIER "c"
+                    IDENTIFIER "orig"
                   }
-                  IDENTIFIER "size_threshold_in_bytes"
+                  IDENTIFIER "size"
                 }
+                OP "/"
+                IDENTIFIER "size_threshold_in_bytes"
               }
+              RPAREN
             }
           }
+          RPAREN
         }
       }
       SEMI
     }
+    RBRACE
   }
 }

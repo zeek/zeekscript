@@ -1,5 +1,7 @@
 EXPORT {
   TYPE-DECL "AnomalyTypes" {
+    KEYWORD "type"
+    COLON
     TYPE-ENUM {
       ENUM-VALUE "ANOMALY"
       ENUM-VALUE "NEW_ENTITY"

@@ -1,13 +1,17 @@
 GLOBAL-DECL "global" "x" {
-  INIT "=" {
-    CONSTRUCTOR "table" {
-      BINARY-OP "=" {
-        INDEX-LITERAL {
-          CONSTANT "1"
-        }
-        CONSTANT "\"one\""
+  ASSIGN "="
+  CONSTRUCTOR "table" {
+    LPAREN
+    BINARY-OP "=" {
+      INDEX-LITERAL {
+        LBRACKET
+        CONSTANT "1"
+        RBRACKET
       }
+      OP "="
+      CONSTANT "\"one\""
     }
+    RPAREN
   }
   SEMI
 }

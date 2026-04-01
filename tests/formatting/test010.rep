@@ -1,39 +1,53 @@
 FUNC-DECL "function" "some_func" {
+  PARAMS {
+    LPAREN
+    RPAREN
+  }
+  COLON
   RETURNS {
     TYPE-ATOM "SomeModule::SomeType"
   }
   BODY {
+    LBRACE
     IF {
-      COND {
-        BINARY-OP "&&" {
-          IDENTIFIER "some_condition"
-          IDENTIFIER "some_other_condition"
-        }
+      KEYWORD "if"
+      LPAREN
+      BINARY-OP "&&" {
+        IDENTIFIER "some_condition"
+        OP "&&"
+        IDENTIFIER "some_other_condition"
       }
+      RPAREN
       BODY {
         EXPR-STMT {
           BINARY-OP "=" {
             INDEX {
               IDENTIFIER "some_long_variable_name"
               SUBSCRIPTS {
+                LBRACKET
                 IDENTIFIER "some_id"
+                RBRACKET
               }
             }
+            OP "="
             CALL {
               IDENTIFIER "SomeModule::SomeType"
               ARGS {
+                LPAREN
                 FIELD-ASSIGN "aa" {
                   FIELD-ACCESS {
                     IDENTIFIER "result"
                     IDENTIFIER "aa"
                   }
                 }
+                COMMA
                 FIELD-ASSIGN "bb_string" {
                   FIELD-ACCESS {
                     IDENTIFIER "result"
                     IDENTIFIER "bb_string"
                   }
                 }
+                RPAREN
               }
             }
           }
@@ -41,5 +55,6 @@ FUNC-DECL "function" "some_func" {
         }
       }
     }
+    RBRACE
   }
 }

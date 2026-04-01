@@ -1,5 +1,6 @@
 FUNC-DECL "function" "some_func" {
   PARAMS {
+    LPAREN
     PARAM "a" {
       TYPE-ATOM "count"
     }
@@ -9,16 +10,20 @@ FUNC-DECL "function" "some_func" {
     PARAM "rec" {
       TYPE-ATOM "SomeRec"
     }
+    RPAREN
   }
   BODY {
+    LBRACE
     COMMENT-LEADING "#@ BEGIN-SKIP-TESTING"
     IF {
-      COND {
-        BINARY-OP "in" {
-          IDENTIFIER "rec"
-          IDENTIFIER "did_check"
-        }
+      KEYWORD "if"
+      LPAREN
+      BINARY-OP "in" {
+        IDENTIFIER "rec"
+        OP "in"
+        IDENTIFIER "did_check"
       }
+      RPAREN
       BODY {
         RETURN
         SEMI
@@ -29,8 +34,13 @@ FUNC-DECL "function" "some_func" {
     EXPR-STMT {
       CALL {
         IDENTIFIER "next_thing"
+        ARGS {
+          LPAREN
+          RPAREN
+        }
       }
       SEMI
     }
+    RBRACE
   }
 }

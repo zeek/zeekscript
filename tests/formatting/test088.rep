@@ -1,11 +1,13 @@
 GLOBAL-DECL "global" "x" {
-  INIT "=" {
-    INDEX-LITERAL {
-      CONSTANT "1"
-      COMMENT-TRAILING "# Comment one"
-      CONSTANT "2"
-      COMMENT-TRAILING "# Comment two"
-    }
+  ASSIGN "="
+  INDEX-LITERAL {
+    LBRACKET
+    CONSTANT "1"
+    COMMA
+    COMMENT-TRAILING "# Comment one"
+    CONSTANT "2"
+    RBRACKET
+    COMMENT-TRAILING "# Comment two"
   }
   SEMI
 }

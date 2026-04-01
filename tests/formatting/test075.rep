@@ -1,11 +1,15 @@
 EXPR-STMT {
   SLICE {
     IDENTIFIER "data"
+    LBRACKET
     BINARY-OP "-" {
       CONSTANT "1"
+      OP "-"
       CONSTANT "1"
     }
+    COLON
     CONSTANT ""
+    RBRACKET
   }
   SEMI
 }

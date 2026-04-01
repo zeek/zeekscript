@@ -1,36 +1,49 @@
 FUNC-DECL "function" "f" {
+  PARAMS {
+    LPAREN
+    RPAREN
+  }
   BODY {
+    LBRACE
     FOR {
+      KEYWORD "for"
+      LPAREN
       VARS {
         IDENTIFIER "idx"
       }
+      KEYWORD "in"
       ITERABLE {
         FIELD-ACCESS {
           IDENTIFIER "result"
           IDENTIFIER "matches"
         }
       }
+      RPAREN
       BODY {
         FOR {
+          KEYWORD "for"
+          LPAREN
           VARS {
             IDENTIFIER "conn_idx"
           }
+          KEYWORD "in"
           ITERABLE {
             FIELD-ACCESS {
               IDENTIFIER "result"
               IDENTIFIER "some_uids_with_a_very_long_field_name_that_forces_wrapping"
             }
           }
+          RPAREN
           BODY {
             LOCAL-DECL "local" "x" {
-              INIT "=" {
-                CONSTANT "1"
-              }
+              ASSIGN "="
+              CONSTANT "1"
               SEMI
             }
           }
         }
       }
     }
+    RBRACE
   }
 }

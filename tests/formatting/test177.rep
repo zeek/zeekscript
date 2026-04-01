@@ -1,16 +1,18 @@
 GLOBAL-DECL "const" "xs" {
-  TYPE {
-    TYPE-PARAMETERIZED "vector" {
-      OF
-      TYPE-ATOM "count"
-    }
+  COLON
+  TYPE-PARAMETERIZED "vector" {
+    KEYWORD "of"
+    TYPE-ATOM "count"
   }
-  INIT "=" {
-    CONSTRUCTOR "vector" {
-      CONSTANT "1"
-      CONSTANT "2"
-      CONSTANT "3"
-    }
+  ASSIGN "="
+  CONSTRUCTOR "vector" {
+    LPAREN
+    CONSTANT "1"
+    COMMA
+    CONSTANT "2"
+    COMMA
+    CONSTANT "3"
+    RPAREN
   }
   SEMI
 }

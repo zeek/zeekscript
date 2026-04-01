@@ -1,5 +1,6 @@
 FUNC-DECL "event" "SomeModule::some_raised_evt" {
   PARAMS {
+    LPAREN
     PARAM "c" {
       TYPE-ATOM "connection"
     }
@@ -21,6 +22,7 @@ FUNC-DECL "event" "SomeModule::some_raised_evt" {
     PARAM "some_integ_tag" {
       TYPE-ATOM "string"
     }
+    RPAREN
   }
   ATTR-LIST {
     ATTR "&group" {
@@ -28,9 +30,12 @@ FUNC-DECL "event" "SomeModule::some_raised_evt" {
     }
   }
   BODY {
+    LBRACE
     PRINT {
+      KEYWORD "print"
       IDENTIFIER "c"
       SEMI
     }
+    RBRACE
   }
 }

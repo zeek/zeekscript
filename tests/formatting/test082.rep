@@ -1,6 +1,8 @@
 EXPR-STMT {
   INDEX-LITERAL {
+    LBRACKET
     CONSTANT "1"
+    RBRACKET
   }
   SEMI
 }

@@ -1,62 +1,81 @@
 FUNC-DECL "function" "some_function_name_aa" {
   PARAMS {
+    LPAREN
     PARAM "c" {
       TYPE-ATOM "connection"
     }
+    RPAREN
   }
+  COLON
   RETURNS {
     TYPE-ATOM "string"
   }
   BODY {
+    LBRACE
     IF {
-      COND {
+      KEYWORD "if"
+      LPAREN
+      BINARY-OP "&&" {
         BINARY-OP "&&" {
-          BINARY-OP "&&" {
-            BINARY-OP "?$" {
-              IDENTIFIER "c"
-              IDENTIFIER "tunnel"
-            }
-            BINARY-OP ">=" {
-              UNARY-OP "|...|" {
-                FIELD-ACCESS {
-                  IDENTIFIER "c"
-                  IDENTIFIER "tunnel"
-                }
-              }
-              CONSTANT "2"
-            }
+          BINARY-OP "?$" {
+            IDENTIFIER "c"
+            OP "?$"
+            IDENTIFIER "tunnel"
           }
-          BINARY-OP "==" {
-            FIELD-ACCESS {
-              INDEX {
-                FIELD-ACCESS {
-                  IDENTIFIER "c"
-                  IDENTIFIER "tunnel"
-                }
-                SUBSCRIPTS {
-                  BINARY-OP "-" {
-                    UNARY-OP "|...|" {
-                      FIELD-ACCESS {
-                        IDENTIFIER "c"
-                        IDENTIFIER "tunnel"
-                      }
-                    }
-                    CONSTANT "1"
-                  }
-                }
+          OP "&&"
+          BINARY-OP ">=" {
+            UNARY-OP "|...|" {
+              OP "|"
+              FIELD-ACCESS {
+                IDENTIFIER "c"
+                IDENTIFIER "tunnel"
               }
-              IDENTIFIER "tunnel_type"
+              OP "|"
             }
-            IDENTIFIER "Tunnel::VXLAN"
+            OP ">="
+            CONSTANT "2"
           }
         }
+        OP "&&"
+        BINARY-OP "==" {
+          FIELD-ACCESS {
+            INDEX {
+              FIELD-ACCESS {
+                IDENTIFIER "c"
+                IDENTIFIER "tunnel"
+              }
+              SUBSCRIPTS {
+                LBRACKET
+                BINARY-OP "-" {
+                  UNARY-OP "|...|" {
+                    OP "|"
+                    FIELD-ACCESS {
+                      IDENTIFIER "c"
+                      IDENTIFIER "tunnel"
+                    }
+                    OP "|"
+                  }
+                  OP "-"
+                  CONSTANT "1"
+                }
+                RBRACKET
+              }
+            }
+            IDENTIFIER "tunnel_type"
+          }
+          OP "=="
+          IDENTIFIER "Tunnel::VXLAN"
+        }
       }
+      RPAREN
       BODY {
         PRINT {
+          KEYWORD "print"
           CONSTANT "\"yep\""
           SEMI
         }
       }
     }
+    RBRACE
   }
 }

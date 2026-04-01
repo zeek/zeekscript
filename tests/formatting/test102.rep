@@ -1,6 +1,5 @@
 GLOBAL-DECL "const" "some_long_pattern_name" {
-  INIT "=" {
-    UNKNOWN-EXPR
-  }
+  ASSIGN "="
+  UNKNOWN-EXPR
   SEMI
 }

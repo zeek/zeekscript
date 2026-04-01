@@ -1,32 +1,45 @@
 FUNC-DECL "function" "some_func" {
+  PARAMS {
+    LPAREN
+    RPAREN
+  }
   BODY {
+    LBRACE
     IF {
-      COND {
-        IDENTIFIER "test"
-      }
+      KEYWORD "if"
+      LPAREN
+      IDENTIFIER "test"
+      RPAREN
       BODY {
         BLOCK {
+          LBRACE
           BLANK
           LOCAL-DECL "local" "some_val" {
-            INIT "=" {
-              CALL {
-                IDENTIFIER "some_long_func_name"
-                ARGS {
-                  INDEX {
-                    IDENTIFIER "result_chain"
-                    SUBSCRIPTS {
-                      CONSTANT "1"
-                    }
+            ASSIGN "="
+            CALL {
+              IDENTIFIER "some_long_func_name"
+              ARGS {
+                LPAREN
+                INDEX {
+                  IDENTIFIER "result_chain"
+                  SUBSCRIPTS {
+                    LBRACKET
+                    CONSTANT "1"
+                    RBRACKET
                   }
-                  CONSTANT "4"
                 }
+                COMMA
+                CONSTANT "4"
+                RPAREN
               }
             }
             SEMI
           }
+          RBRACE
           COMMENT-TRAILING "# HASH"
         }
       }
     }
+    RBRACE
   }
 }

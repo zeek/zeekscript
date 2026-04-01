@@ -1,17 +1,19 @@
 GLOBAL-DECL "const" "xs" {
-  TYPE {
-    TYPE-PARAMETERIZED "vector" {
-      OF
-      TYPE-ATOM "double"
-    }
+  COLON
+  TYPE-PARAMETERIZED "vector" {
+    KEYWORD "of"
+    TYPE-ATOM "double"
   }
-  INIT "=" {
-    CONSTRUCTOR "vector" {
-      CONSTANT "0.01"
-      CONSTANT "0.02"
-      COMMENT-TRAILING "# note"
-      CONSTANT "0.03"
-    }
+  ASSIGN "="
+  CONSTRUCTOR "vector" {
+    LPAREN
+    CONSTANT "0.01"
+    COMMA
+    CONSTANT "0.02"
+    COMMA
+    COMMENT-TRAILING "# note"
+    CONSTANT "0.03"
+    RPAREN
   }
   SEMI
 }

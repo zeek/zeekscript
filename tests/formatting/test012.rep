@@ -1,16 +1,23 @@
 FUNC-DECL "event" "some_evt" {
+  PARAMS {
+    LPAREN
+    RPAREN
+  }
   BODY {
+    LBRACE
     EXPR-STMT {
       BINARY-OP "=" {
         FIELD-ACCESS {
           IDENTIFIER "si"
           IDENTIFIER "successful_entities"
         }
+        OP "="
         BINARY-OP "|" {
           FIELD-ACCESS {
             IDENTIFIER "si"
             IDENTIFIER "successful_entities"
           }
+          OP "|"
           FIELD-ACCESS {
             IDENTIFIER "worker_si"
             IDENTIFIER "successful_entities"
@@ -19,5 +26,6 @@ FUNC-DECL "event" "some_evt" {
       }
       SEMI
     }
+    RBRACE
   }
 }

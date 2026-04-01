@@ -1,4 +1,6 @@
 TYPE-DECL "SomeEnumAA" {
+  KEYWORD "type"
+  COLON
   TYPE-ENUM {
     ENUM-VALUE "SE_DNS_A"
     ENUM-VALUE "SE_DNS_AAAA"

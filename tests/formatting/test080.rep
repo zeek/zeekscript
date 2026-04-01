@@ -1,10 +1,17 @@
 EXPR-STMT {
   SLICE {
     IDENTIFIER "data"
+    LBRACKET
     CALL {
       IDENTIFIER "f"
+      ARGS {
+        LPAREN
+        RPAREN
+      }
     }
+    COLON
     CONSTANT ""
+    RBRACKET
   }
   SEMI
 }

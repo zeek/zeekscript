@@ -1,39 +1,56 @@
 FUNC-DECL "function" "some_func" {
+  PARAMS {
+    LPAREN
+    RPAREN
+  }
   BODY {
+    LBRACE
     IF {
-      COND {
-        BINARY-OP "&&" {
-          BINARY-OP "?$" {
+      KEYWORD "if"
+      LPAREN
+      BINARY-OP "&&" {
+        BINARY-OP "?$" {
+          BINARY-OP "&&" {
             BINARY-OP "&&" {
-              BINARY-OP "&&" {
-                IDENTIFIER "some_long_var_aa"
-                BINARY-OP "==" {
-                  FIELD-ACCESS {
-                    IDENTIFIER "some_var"
-                    IDENTIFIER "some_field"
-                  }
-                  CONSTANT "\"ok\""
+              IDENTIFIER "some_long_var_aa"
+              OP "&&"
+              BINARY-OP "==" {
+                FIELD-ACCESS {
+                  IDENTIFIER "some_var"
+                  IDENTIFIER "some_field"
                 }
+                OP "=="
+                CONSTANT "\"ok\""
               }
+            }
+            OP "&&"
+            IDENTIFIER "other"
+          }
+          OP "?$"
+          IDENTIFIER "some_chain"
+        }
+        OP "&&"
+        BINARY-OP ">" {
+          UNARY-OP "|...|" {
+            OP "|"
+            FIELD-ACCESS {
               IDENTIFIER "other"
+              IDENTIFIER "some_chain"
             }
-            IDENTIFIER "some_chain"
+            OP "|"
           }
-          BINARY-OP ">" {
-            UNARY-OP "|...|" {
-              FIELD-ACCESS {
-                IDENTIFIER "other"
-                IDENTIFIER "some_chain"
-              }
-            }
-            CONSTANT "2"
-          }
+          OP ">"
+          CONSTANT "2"
         }
       }
+      RPAREN
       BODY {
         BLOCK {
+          LBRACE
+          RBRACE
         }
       }
     }
+    RBRACE
   }
 }

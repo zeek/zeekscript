@@ -1,14 +1,19 @@
 LOCAL-DECL "local" "x" {
-  INIT "=" {
-    CALL {
-      IDENTIFIER "set"
-      ARGS {
-        CONSTANT "\"a\""
-        CONSTANT "\"b\""
-        CONSTANT "\"c\""
-        CONSTANT "\"d\""
-        CONSTANT "\"e\""
-      }
+  ASSIGN "="
+  CALL {
+    IDENTIFIER "set"
+    ARGS {
+      LPAREN
+      CONSTANT "\"a\""
+      COMMA
+      CONSTANT "\"b\""
+      COMMA
+      CONSTANT "\"c\""
+      COMMA
+      CONSTANT "\"d\""
+      COMMA
+      CONSTANT "\"e\""
+      RPAREN
     }
   }
   SEMI

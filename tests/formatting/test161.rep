@@ -1,12 +1,19 @@
 FUNC-DECL "event" "some_evt" {
+  PARAMS {
+    LPAREN
+    RPAREN
+  }
   BODY {
+    LBRACE
     EXPR-STMT {
       BINARY-OP "==" {
         CONSTANT "1"
+        OP "=="
         CONSTANT "1"
       }
       SEMI
     }
     COMMENT-TRAILING "# sanity"
+    RBRACE
   }
 }

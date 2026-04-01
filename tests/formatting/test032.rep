@@ -1,21 +1,27 @@
 FUNC-DECL "function" "some_func" {
   PARAMS {
+    LPAREN
     PARAM "val" {
       TYPE-ATOM "string"
     }
+    RPAREN
   }
   BODY {
+    LBRACE
     IF {
-      COND {
-        BINARY-OP "==" {
-          IDENTIFIER "some_pattern"
-          IDENTIFIER "val"
-        }
+      KEYWORD "if"
+      LPAREN
+      BINARY-OP "==" {
+        IDENTIFIER "some_pattern"
+        OP "=="
+        IDENTIFIER "val"
       }
+      RPAREN
       BODY {
         EXPR-STMT {
           BINARY-OP "=" {
             IDENTIFIER "result"
+            OP "="
             CONSTANT "\"found\""
           }
           SEMI
@@ -25,24 +31,32 @@ FUNC-DECL "function" "some_func" {
       COMMENT-LEADING "# This handles the fallback case."
       COMMENT-LEADING "# Check secondary pattern too."
       ELSE {
+        KEYWORD "else"
         IF {
-          COND {
-            BINARY-OP "==" {
-              IDENTIFIER "other_pattern"
-              IDENTIFIER "val"
-            }
+          KEYWORD "if"
+          LPAREN
+          BINARY-OP "==" {
+            IDENTIFIER "other_pattern"
+            OP "=="
+            IDENTIFIER "val"
           }
+          RPAREN
           BODY {
             EXPR-STMT {
               BINARY-OP "=" {
                 IDENTIFIER "result"
+                OP "="
                 SLICE {
                   IDENTIFIER "val"
+                  LBRACKET
                   BINARY-OP "+" {
                     IDENTIFIER "idx"
+                    OP "+"
                     CONSTANT "1"
                   }
+                  COLON
                   CONSTANT ""
+                  RBRACKET
                 }
               }
               SEMI
@@ -51,5 +65,6 @@ FUNC-DECL "function" "some_func" {
         }
       }
     }
+    RBRACE
   }
 }

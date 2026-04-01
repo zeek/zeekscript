@@ -1,6 +1,9 @@
 TYPE-DECL "Foo" {
+  KEYWORD "type"
+  COLON
   TYPE-RECORD {
     FIELD "aa" {
+      COLON
       TYPE-ATOM "string"
       ATTR-LIST {
         ATTR "&default" {
@@ -9,6 +12,7 @@ TYPE-DECL "Foo" {
       }
     }
     FIELD "bb" {
+      COLON
       TYPE-ATOM "count"
       ATTR-LIST {
         ATTR "&default" {
@@ -19,9 +23,11 @@ TYPE-DECL "Foo" {
     COMMENT-TRAILING "# a comment"
     BLANK
     FIELD "cc" {
+      COLON
       TYPE-ATOM "bool"
     }
     FIELD "dd" {
+      COLON
       TYPE-ATOM "bool"
       ATTR-LIST {
         ATTR "&default" {

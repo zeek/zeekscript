@@ -1,39 +1,59 @@
 FUNC-DECL "function" "some_func" {
+  PARAMS {
+    LPAREN
+    RPAREN
+  }
   BODY {
+    LBRACE
     EXPR-STMT {
       CALL {
         IDENTIFIER "SOME_CALL"
         ARGS {
+          LPAREN
           INDEX-LITERAL {
+            LBRACKET
             FIELD-ASSIGN "field_a" {
               IDENTIFIER "Some_Enum_Val"
             }
+            COMMA
             FIELD-ASSIGN "field_b" {
               CALL {
                 IDENTIFIER "fmt"
                 ARGS {
+                  LPAREN
                   CONSTANT "\"total items: %d, associated ids: %s\""
+                  COMMA
                   IDENTIFIER "total_items"
+                  COMMA
                   IDENTIFIER "conn_ids"
+                  RPAREN
                 }
               }
             }
+            COMMA
             FIELD-ASSIGN "field_c" {
               IDENTIFIER "src_host"
             }
+            COMMA
             FIELD-ASSIGN "field_d" {
               CALL {
                 IDENTIFIER "cat"
                 ARGS {
+                  LPAREN
                   IDENTIFIER "src_host"
+                  COMMA
                   IDENTIFIER "bucket"
+                  RPAREN
                 }
               }
             }
+            RBRACKET
           }
+          RPAREN
         }
       }
       SEMI
     }
+    RBRACE
   }
 }

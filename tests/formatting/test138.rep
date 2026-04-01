@@ -1,42 +1,63 @@
 FUNC-DECL "event" "some_evt" {
+  PARAMS {
+    LPAREN
+    RPAREN
+  }
   BODY {
+    LBRACE
     EXPR-STMT {
       CALL {
         IDENTIFIER "SOME_CALL"
         ARGS {
+          LPAREN
           INDEX-LITERAL {
+            LBRACKET
             FIELD-ASSIGN "field_a" {
               IDENTIFIER "Some_Enum_Val"
             }
+            COMMA
             FIELD-ASSIGN "field_b" {
               CALL {
                 IDENTIFIER "fmt"
                 ARGS {
+                  LPAREN
                   CONSTANT "\"some format string with several placeholders %d items across %d groups within %s window\""
+                  COMMA
                   IDENTIFIER "val_one"
+                  COMMA
                   IDENTIFIER "val_two"
+                  COMMA
                   IDENTIFIER "val_three"
+                  RPAREN
                 }
               }
             }
+            COMMA
             FIELD-ASSIGN "field_c" {
               IDENTIFIER "endpoints"
             }
+            COMMA
             FIELD-ASSIGN "field_d" {
               IDENTIFIER "src_host"
             }
+            COMMA
             FIELD-ASSIGN "field_e" {
               CALL {
                 IDENTIFIER "cat"
                 ARGS {
+                  LPAREN
                   IDENTIFIER "src_host"
+                  RPAREN
                 }
               }
             }
+            RBRACKET
           }
+          RPAREN
         }
       }
       SEMI
     }
+    RBRACE
   }
 }

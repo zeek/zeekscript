@@ -1,7 +1,10 @@
 TYPE-DECL "SomeInfo" {
+  KEYWORD "type"
+  COLON
   TYPE-RECORD {
     COMMENT-LEADING "## A timestamp field."
     FIELD "ts" {
+      COLON
       TYPE-ATOM "time"
       ATTR-LIST {
         ATTR "&log"
@@ -10,6 +13,7 @@ TYPE-DECL "SomeInfo" {
     BLANK
     COMMENT-LEADING "## A unique identifier."
     FIELD "uid" {
+      COLON
       TYPE-ATOM "string"
       ATTR-LIST {
         ATTR "&log"
@@ -18,6 +22,7 @@ TYPE-DECL "SomeInfo" {
     BLANK
     COMMENT-LEADING "## A network address."
     FIELD "addr_field" {
+      COLON
       TYPE-ATOM "addr"
       ATTR-LIST {
         ATTR "&log"

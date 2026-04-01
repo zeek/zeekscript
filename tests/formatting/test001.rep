@@ -2,17 +2,25 @@ EXPR-STMT {
   CALL {
     IDENTIFIER "other_function_abc"
     ARGS {
+      LPAREN
       CALL {
         IDENTIFIER "fmt"
         ARGS {
+          LPAREN
           CONSTANT "\"tracking %s %s\""
+          COMMA
           IDENTIFIER "host"
+          COMMA
           IDENTIFIER "some_uid"
+          COMMA
           COMMENT-TRAILING "#@ NOT-TESTED"
           IDENTIFIER "some_dest"
+          COMMA
           IDENTIFIER "extra_data"
+          RPAREN
         }
       }
+      RPAREN
     }
   }
   SEMI

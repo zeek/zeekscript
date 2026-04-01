@@ -1,39 +1,55 @@
 FUNC-DECL "function" "f" {
+  PARAMS {
+    LPAREN
+    RPAREN
+  }
   BODY {
+    LBRACE
     IF {
-      COND {
-        IDENTIFIER "x"
-      }
+      KEYWORD "if"
+      LPAREN
+      IDENTIFIER "x"
+      RPAREN
       BODY {
         EXPR-STMT {
           CALL {
             IDENTIFIER "Input::add_event"
             ARGS {
+              LPAREN
               INDEX-LITERAL {
+                LBRACKET
                 FIELD-ASSIGN "source" {
                   IDENTIFIER "some_config_source_setting"
                 }
+                COMMA
                 FIELD-ASSIGN "name" {
                   IDENTIFIER "some_config_name_setting"
                 }
+                COMMA
                 FIELD-ASSIGN "fields" {
                   IDENTIFIER "SomeConfigRecord"
                 }
+                COMMA
                 FIELD-ASSIGN "mode" {
                   IDENTIFIER "Input::REREAD"
                 }
+                COMMA
                 FIELD-ASSIGN "want_record" {
                   CONSTANT "F"
                 }
+                COMMA
                 FIELD-ASSIGN "ev" {
                   IDENTIFIER "some_config_event_added"
                 }
+                RBRACKET
               }
+              RPAREN
             }
           }
           SEMI
         }
       }
     }
+    RBRACE
   }
 }

@@ -1,25 +1,28 @@
 GLOBAL-DECL "global" "some_event_decl" {
-  TYPE {
-    TYPE-FUNC "event" {
-      PARAMS {
-        PARAM "o" {
+  COLON
+  TYPE-FUNC "event" {
+    PARAMS {
+      LPAREN
+      PARAM "o" {
+        TYPE-ATOM "string"
+      }
+      PARAM "label" {
+        TYPE-ATOM "string"
+      }
+      PARAM "conf" {
+        TYPE-ATOM "score"
+      }
+      PARAM "sources" {
+        TYPE-PARAMETERIZED "set" {
+          LBRACKET
           TYPE-ATOM "string"
-        }
-        PARAM "label" {
-          TYPE-ATOM "string"
-        }
-        PARAM "conf" {
-          TYPE-ATOM "score"
-        }
-        PARAM "sources" {
-          TYPE-PARAMETERIZED "set" {
-            TYPE-ATOM "string"
-          }
-        }
-        PARAM "caller" {
-          TYPE-ATOM "string"
+          RBRACKET
         }
       }
+      PARAM "caller" {
+        TYPE-ATOM "string"
+      }
+      RPAREN
     }
   }
   SEMI

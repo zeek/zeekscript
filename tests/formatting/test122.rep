@@ -1,10 +1,17 @@
 FUNC-DECL "function" "foo" {
+  PARAMS {
+    LPAREN
+    RPAREN
+  }
   BODY {
+    LBRACE
     PREPROC "@if" "FOO"
     PRINT {
+      KEYWORD "print"
       CONSTANT "1"
       SEMI
     }
     PREPROC "@endif"
+    RBRACE
   }
 }

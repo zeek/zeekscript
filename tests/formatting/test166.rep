@@ -1,17 +1,27 @@
 FUNC-DECL "event" "some_evt" {
+  PARAMS {
+    LPAREN
+    RPAREN
+  }
   BODY {
+    LBRACE
     FOR {
+      KEYWORD "for"
+      LPAREN
       VARS {
         IDENTIFIER "val"
       }
+      KEYWORD "in"
       ITERABLE {
         IDENTIFIER "some_set"
       }
+      RPAREN
       BODY {
-        NEXT
+        KEYWORD "next"
         SEMI
       }
     }
     COMMENT-TRAILING "# skip it"
+    RBRACE
   }
 }

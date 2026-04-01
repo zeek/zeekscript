@@ -1,33 +1,49 @@
 FUNC-DECL "event" "some_evt" {
+  PARAMS {
+    LPAREN
+    RPAREN
+  }
   BODY {
+    LBRACE
     EXPR-STMT {
       CALL {
         IDENTIFIER "some_func"
         ARGS {
+          LPAREN
           INDEX-LITERAL {
+            LBRACKET
             FIELD-ASSIGN "aa" {
               IDENTIFIER "BB"
             }
+            COMMA
             FIELD-ASSIGN "cc" {
               CALL {
                 IDENTIFIER "fmt"
                 ARGS {
+                  LPAREN
                   CONSTANT "\"Host uses a weak certificate with %d bits\""
+                  COMMA
                   IDENTIFIER "key_len"
+                  RPAREN
                 }
               }
             }
+            COMMA
             FIELD-ASSIGN "dd" {
               IDENTIFIER "e"
             }
+            COMMA
             FIELD-ASSIGN "ff" {
               IDENTIFIER "SSL::some_suppression_interval"
             }
+            COMMA
             FIELD-ASSIGN "gg" {
               CALL {
                 IDENTIFIER "cat"
                 ARGS {
+                  LPAREN
                   IDENTIFIER "resp_h"
+                  COMMA
                   FIELD-ACCESS {
                     FIELD-ACCESS {
                       IDENTIFIER "c"
@@ -35,15 +51,21 @@ FUNC-DECL "event" "some_evt" {
                     }
                     IDENTIFIER "resp_p"
                   }
+                  COMMA
                   IDENTIFIER "hash"
+                  COMMA
                   IDENTIFIER "key_len"
+                  RPAREN
                 }
               }
             }
+            RBRACKET
           }
+          RPAREN
         }
       }
       SEMI
     }
+    RBRACE
   }
 }

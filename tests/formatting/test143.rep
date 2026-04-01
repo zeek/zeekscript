@@ -1,13 +1,26 @@
 FUNC-DECL "function" "f" {
+  PARAMS {
+    LPAREN
+    RPAREN
+  }
   BODY {
+    LBRACE
     EXPR-STMT {
       SCHEDULE {
+        KEYWORD "schedule"
         IDENTIFIER "some_time_interval"
+        LBRACE
         CALL {
           IDENTIFIER "SomeModule::some_very_long_event_name"
+          ARGS {
+            LPAREN
+            RPAREN
+          }
         }
+        RBRACE
       }
       SEMI
     }
+    RBRACE
   }
 }

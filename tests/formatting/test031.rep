@@ -1,11 +1,18 @@
 PREPROC "@ifdef" "SOME_FEATURE"
 BLANK
 FUNC-DECL "event" "zeek_init" {
+  PARAMS {
+    LPAREN
+    RPAREN
+  }
   BODY {
+    LBRACE
     PRINT {
+      KEYWORD "print"
       IDENTIFIER "some_var"
       SEMI
     }
+    RBRACE
   }
 }
 BLANK
@@ -13,11 +20,18 @@ COMMENT-LEADING "# Fallback path below."
 PREPROC "@else"
 BLANK
 FUNC-DECL "event" "zeek_init" {
+  PARAMS {
+    LPAREN
+    RPAREN
+  }
   BODY {
+    LBRACE
     PRINT {
+      KEYWORD "print"
       CONSTANT "\"other\""
       SEMI
     }
+    RBRACE
   }
 }
 BLANK

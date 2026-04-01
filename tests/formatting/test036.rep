@@ -1,29 +1,38 @@
 IF {
-  COND {
+  KEYWORD "if"
+  LPAREN
+  BINARY-OP "&&" {
     BINARY-OP "&&" {
       BINARY-OP "&&" {
-        BINARY-OP "&&" {
-          IDENTIFIER "first_condition"
-          IDENTIFIER "second_condition"
-        }
-        IDENTIFIER "third_condition"
+        IDENTIFIER "first_condition"
+        OP "&&"
+        IDENTIFIER "second_condition"
       }
-      BINARY-OP ">" {
-        FIELD-ACCESS {
-          IDENTIFIER "some_object"
-          IDENTIFIER "long_field"
-        }
-        FIELD-ACCESS {
-          IDENTIFIER "another_object"
-          IDENTIFIER "other_field"
-        }
+      OP "&&"
+      IDENTIFIER "third_condition"
+    }
+    OP "&&"
+    BINARY-OP ">" {
+      FIELD-ACCESS {
+        IDENTIFIER "some_object"
+        IDENTIFIER "long_field"
+      }
+      OP ">"
+      FIELD-ACCESS {
+        IDENTIFIER "another_object"
+        IDENTIFIER "other_field"
       }
     }
   }
+  RPAREN
   BODY {
     EXPR-STMT {
       CALL {
         IDENTIFIER "do_something"
+        ARGS {
+          LPAREN
+          RPAREN
+        }
       }
       SEMI
     }

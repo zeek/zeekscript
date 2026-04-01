@@ -1,29 +1,40 @@
 IF {
-  COND {
-    BINARY-OP ">=" {
-      IDENTIFIER "age"
-      INTERVAL "1" "day"
-    }
+  KEYWORD "if"
+  LPAREN
+  BINARY-OP ">=" {
+    IDENTIFIER "age"
+    OP ">="
+    INTERVAL "1" "day"
   }
+  RPAREN
   BODY {
     EXPR-STMT {
       BINARY-OP "=" {
         IDENTIFIER "age_d"
+        OP "="
         BINARY-OP "/" {
           CALL {
             IDENTIFIER "interval_to_double"
             ARGS {
+              LPAREN
               BINARY-OP "-" {
                 CALL {
                   IDENTIFIER "network_time"
+                  ARGS {
+                    LPAREN
+                    RPAREN
+                  }
                 }
+                OP "-"
                 FIELD-ACCESS {
                   IDENTIFIER "cert"
                   IDENTIFIER "not_valid_before"
                 }
               }
+              RPAREN
             }
           }
+          OP "/"
           CONSTANT "86400.0"
         }
       }

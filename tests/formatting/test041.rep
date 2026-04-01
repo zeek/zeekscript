@@ -1,13 +1,16 @@
 EXPORT {
   GLOBAL-DECL "option" "some_hosts" {
-    INIT "=" {
-      CALL {
-        IDENTIFIER "set"
-        ARGS {
-          CONSTANT "\"some.host.example.com\""
-          CONSTANT "\"another.longer.hostname.example.org\""
-          CONSTANT "\"yet.another.host.example.net\""
-        }
+    ASSIGN "="
+    CALL {
+      IDENTIFIER "set"
+      ARGS {
+        LPAREN
+        CONSTANT "\"some.host.example.com\""
+        COMMA
+        CONSTANT "\"another.longer.hostname.example.org\""
+        COMMA
+        CONSTANT "\"yet.another.host.example.net\""
+        RPAREN
       }
     }
     SEMI
