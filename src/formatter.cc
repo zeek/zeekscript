@@ -770,10 +770,10 @@ static Candidates FormatParen(const Node& node, const FmtContext& ctx)
 	if ( node.Children().empty() )
 		throw FormatError("PAREN node needs a child");
 
-	auto inner_cs = FormatExpr(*node.Children()[0], ctx.After(2));
+	auto inner_cs = FormatExpr(*node.Children()[0], ctx.After(1));
 	const auto& inner = Best(inner_cs);
 
-	return {Candidate("( ", ctx).Cat(inner).Cat(" )").In(ctx)};
+	return {Candidate("(", ctx).Cat(inner).Cat(")").In(ctx)};
 	}
 
 // ------------------------------------------------------------------
@@ -2088,11 +2088,22 @@ static Candidates FormatExport(const Node& node, const FmtContext& ctx)
 
 static Candidates FormatSwitch(const Node& node, const FmtContext& ctx)
 	{
-	// Format the expression.
+	// Format the expression.  If the source used parens, unwrap the
+	// PAREN node and apply Zeek-style ( expr ) spacing.
 	const Node* expr_node = FindChild(node, Tag::Expr);
 	std::string expr_text;
 	if ( expr_node && ! expr_node->Children().empty() )
-		expr_text = Best(FormatExpr(*expr_node->Children()[0], ctx)).Text();
+		{
+		const Node* inner = expr_node->Children()[0].get();
+		if ( inner->GetTag() == Tag::Paren &&
+		     ! inner->Children().empty() )
+			{
+			auto cs = FormatExpr(*inner->Children()[0], ctx);
+			expr_text = "( " + Best(cs).Text() + " )";
+			}
+		else
+			expr_text = Best(FormatExpr(*inner, ctx)).Text();
+		}
 
 	std::string head = "switch " + expr_text + " {";
 	std::string pad = LinePrefix(ctx.Indent(), ctx.Col());

@@ -30,7 +30,7 @@ test038 (needs LAMBDA support first)
 - test054: EVENT-STMT bare event without args
 - test056: TYPE-FUNC params not wrapping
 - test102: Pattern literal emits `/* UNKNOWN-EXPR */`
-- test115: Extra spaces inside PAREN
+- test115: Line-breaking (paren spacing now fixed)
 - test124: PRINT with multiple exprs (only first printed)
 - test161: ASSERT keyword not supported
 
@@ -239,3 +239,7 @@ entries chronological within a session date.
   - Formatter: FormatTypeDecl appends Arg(1) init value to enum value string
   - Updated baseline: test048 (multi-line layout acceptable)
   - Removed "Enum tweaks" category (both fixed)
+- After PAREN spacing fix: 141 pass, 30 fail
+  - FormatParen: no spaces for expression grouping parens: (expr) not ( expr )
+  - FormatSwitch: unwrap PAREN and apply ( expr ) spacing for switch conditions
+  - test115 paren spacing fixed; remaining failure is line-breaking
