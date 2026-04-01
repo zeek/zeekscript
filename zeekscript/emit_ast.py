@@ -23,9 +23,9 @@ Special markers:
     BLANK           Author's blank line (preserve it).
     COMMENT-TRAILING "text"   Comment on same line as preceding token.
     COMMENT-LEADING "text"    Own-line comment before following content.
-    COMMENT-PREV "text"       Comment attached to preceding stmt (##<, #@).
     RAW "text"                Verbatim text (NO-FORMAT region).
     SEMI                      Statement-ending semicolon.
+    TRAILING-COMMA            Preserve trailing comma in INDEX-LITERAL.
 
 If tree-sitter reports parse errors, the program exits with status 1.
 """
@@ -91,10 +91,6 @@ class Emitter:
         """Non-extra children."""
         return [c for c in node.children if not c.is_extra]
 
-    def _extras(self, node: tree_sitter.Node) -> list[tree_sitter.Node]:
-        """Extra children (comments, newlines)."""
-        return [c for c in node.children if c.is_extra]
-
     def _has_blank(self, start: int, end: int) -> bool:
         return self.source[start:end].count(b"\n") >= 2
 
@@ -131,9 +127,9 @@ class Emitter:
     def _iter_children(self, node: tree_sitter.Node):
         """Yield non-extra children, emitting extras inline in source order.
 
-        Use this instead of _children() + _emit_extras_in() for container
-        nodes (records, enums, expr lists, etc.) where trailing comments
-        must stay adjacent to the sibling they trail.
+        This is the primary mechanism for capturing interstitial comments.
+        Extras (comments) are classified and emitted as a side effect
+        during iteration, so callers just dispatch by child type.
         """
         last_non_extra = None
         for child in node.children:
@@ -152,6 +148,12 @@ class Emitter:
                 continue
             last_non_extra = child
             yield child
+
+    def _emit_children(self, node: tree_sitter.Node) -> None:
+        """Emit all children of node, handling extras and blank lines."""
+        for child in self._iter_children(node):
+            self._maybe_blank(child)
+            self._emit(child)
 
     # ------------------------------------------------------------------
     # Blank line between items
@@ -176,21 +178,7 @@ class Emitter:
         self._emit_source_file(self.root)
 
     def _emit_source_file(self, node: tree_sitter.Node) -> None:
-        for child in node.children:
-            if child.is_extra:
-                if child.type != "nl":
-                    self._maybe_blank(child)
-                    text = self._text(child)
-                    if (self._prev_content_line >= 0
-                          and child.start_point[0]
-                              == self._prev_content_line):
-                        self._w(f'COMMENT-TRAILING {_quote(text)}')
-                    else:
-                        self._w(f'COMMENT-LEADING {_quote(text)}')
-                    self._mark_content(child)
-                continue
-            self._maybe_blank(child)
-            self._emit(child)
+        self._emit_children(node)
 
     def _emit(self, node: tree_sitter.Node) -> None:
         """Dispatch a non-extra node to its semantic handler."""
@@ -696,23 +684,19 @@ class Emitter:
 
     def _emit_type_spec(self, node: tree_sitter.Node) -> None:
         """Emit a record field (type_spec): id : type [attrs] ;"""
-        kids = self._children(node)
         name = ""
-        typ = None
-        attrs = None
-        for k in kids:
-            if k.type == "id":
+        for k in node.children:
+            if not k.is_extra and k.type == "id":
                 name = self._text(k)
-            elif k.type == "type":
-                typ = k
-            elif k.type == "attr_list":
-                attrs = k
+                break
         self._open(f'FIELD {_quote(name)}')
-        if typ:
-            self._emit_type(typ)
-        if attrs:
-            self._emit_attr_list(attrs)
-        self._emit_extras_in(node)
+        for child in self._iter_children(node):
+            if child.type == "id":
+                pass  # already extracted for tag
+            elif child.type == "type":
+                self._emit_type(child)
+            elif child.type == "attr_list":
+                self._emit_attr_list(child)
         self._close()
 
     def _emit_enum_body(self, node: tree_sitter.Node) -> None:
@@ -907,23 +891,8 @@ class Emitter:
 
     def _emit_func_body(self, node: tree_sitter.Node) -> None:
         self._open('BODY')
-        # Emit extras in source order so comments before/after
-        # stmt_list land at the right position.
-        for child in node.children:
-            if child.is_extra:
-                if child.type == "nl":
-                    continue
-                self._maybe_blank(child)
-                text = self._text(child)
-                same_line = (self._prev_content_line >= 0
-                        and child.start_point[0]
-                            == self._prev_content_line)
-                if same_line:
-                    self._w(f'COMMENT-TRAILING {_quote(text)}')
-                else:
-                    self._w(f'COMMENT-LEADING {_quote(text)}')
-                self._mark_content(child)
-            elif child.type == "stmt_list":
+        for child in self._iter_children(node):
+            if child.type == "stmt_list":
                 self._emit_stmt_list(child)
             else:
                 # Track { and } for same-line comment detection.
@@ -931,17 +900,13 @@ class Emitter:
         self._close()
 
     def _emit_export_decl(self, node: tree_sitter.Node) -> None:
-        kids = self._children(node)
         self._open('EXPORT')
-        for k in kids:
-            if k.type == "decl":
-                inner = self._children(k)
+        for child in self._iter_children(node):
+            if child.type == "decl":
+                inner = self._children(child)
                 if inner:
                     self._maybe_blank(inner[0])
                     self._emit(inner[0])
-            elif k.is_extra and k.type != "nl":
-                self._w(f'COMMENT-LEADING {_quote(self._text(k))}')
-        self._emit_extras_in(node)
         self._close()
         self._mark_content(node)
 
@@ -954,26 +919,25 @@ class Emitter:
         self._mark_content(node)
 
     def _emit_type_decl(self, node: tree_sitter.Node) -> None:
-        kids = self._children(node)
         name = ""
-        typ = None
-        for k in kids:
-            if k.type == "id":
+        for k in node.children:
+            if not k.is_extra and k.type == "id":
                 name = self._text(k)
-            elif k.type == "type":
-                typ = k
+                break
         self._open(f'TYPE-DECL {_quote(name)}')
-        if typ:
-            self._emit_type(typ)
-        self._emit_extras_in(node)
+        for child in self._iter_children(node):
+            if child.type == "id":
+                pass  # already extracted for tag
+            elif child.type == "type":
+                self._emit_type(child)
         self._w('SEMI')
         self._close()
         self._mark_content(node)
 
     def _emit_redef_record_decl(self, node: tree_sitter.Node) -> None:
         name = ""
-        for k in self._children(node):
-            if k.type == "id":
+        for k in node.children:
+            if not k.is_extra and k.type == "id":
                 name = self._text(k)
                 break
         self._open(f'REDEF-RECORD {_quote(name)}')
@@ -986,16 +950,17 @@ class Emitter:
         self._mark_content(node)
 
     def _emit_redef_enum_decl(self, node: tree_sitter.Node) -> None:
-        kids = self._children(node)
         name = ""
-        for k in kids:
-            if k.type == "id":
+        for k in node.children:
+            if not k.is_extra and k.type == "id":
                 name = self._text(k)
+                break
         self._open(f'REDEF-ENUM {_quote(name)}')
-        for k in kids:
-            if k.type == "enum_body":
-                self._emit_enum_body(k)
-        self._emit_extras_in(node)
+        for child in self._iter_children(node):
+            if child.type == "id":
+                pass  # already extracted for tag
+            elif child.type == "enum_body":
+                self._emit_enum_body(child)
         self._w('SEMI')
         self._close()
         self._mark_content(node)
@@ -1005,21 +970,7 @@ class Emitter:
     # ------------------------------------------------------------------
 
     def _emit_stmt_list(self, node: tree_sitter.Node) -> None:
-        for child in node.children:
-            if child.is_extra:
-                if child.type != "nl":
-                    self._maybe_blank(child)
-                    text = self._text(child)
-                    if (self._prev_content_line >= 0
-                          and child.start_point[0]
-                              == self._prev_content_line):
-                        self._w(f'COMMENT-TRAILING {_quote(text)}')
-                    else:
-                        self._w(f'COMMENT-LEADING {_quote(text)}')
-                    self._mark_content(child)
-                continue
-            self._maybe_blank(child)
-            self._emit(child)
+        self._emit_children(node)
 
     def _emit_stmt(self, node: tree_sitter.Node) -> None:
         """Classify and emit a statement node."""
@@ -1284,32 +1235,29 @@ class Emitter:
         self._mark_content(node)
 
     def _emit_print(self, node: tree_sitter.Node) -> None:
-        kids = self._children(node)
-        elist = [k for k in kids if k.type == "expr_list"]
         self._open('PRINT')
-        if elist:
-            self._emit_expr_list(elist[0])
-        self._emit_extras_in(node)
+        for child in self._iter_children(node):
+            if child.type == "expr_list":
+                self._emit_expr_list(child)
         self._w('SEMI')
         self._close()
         self._mark_content(node)
 
     def _emit_event_stmt(self, node: tree_sitter.Node) -> None:
         """Event statement: event name(args);"""
-        kids = self._children(node)
         name = ""
-        args = None
-        for k in kids:
-            if k.type == "id":
+        for k in node.children:
+            if not k.is_extra and k.type == "id":
                 name = self._text(k)
-            elif k.type == "expr_list":
-                args = k
+                break
         self._open(f'EVENT-STMT {_quote(name)}')
-        if args:
-            self._open('ARGS')
-            self._emit_expr_list(args)
-            self._close()
-        self._emit_extras_in(node)
+        for child in self._iter_children(node):
+            if child.type == "id":
+                pass  # already extracted for tag
+            elif child.type == "expr_list":
+                self._open('ARGS')
+                self._emit_expr_list(child)
+                self._close()
         self._w('SEMI')
         self._close()
         self._mark_content(node)
