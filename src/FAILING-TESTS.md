@@ -1,11 +1,10 @@
-# C++ Formatter Failing Tests (145 pass, 26 fail as of 2026-03-31)
+# C++ Formatter Failing Tests (148 pass, 23 fail as of 2026-03-31)
 
 ## By category (sorted by count)
 
 ### Line-breaking / layout quality (9)
 Call args, assignments, binary ops not splitting at overflow.
 test{014,093,104,126,127,130,133,135,136}
-
 
 ### LAMBDA support (3)
 Lambda expressions emit placeholder.
@@ -15,21 +14,17 @@ test{094,095,096}
 Multi-element set/redef not formatted one-per-line with trailing commas.
 test{041,097,098}
 
-
-
-
-
 ### CONSTRUCTOR with LAMBDA attr (1)
 test038 (needs LAMBDA support first)
 
 ### Miscellaneous (1 each)
-- test021: Layout issue
 - test027: Switch case values not wrapping
 - test040: CALL wrapping (set() args should use indent, not alignment)
 - test056: TYPE-FUNC params not wrapping
 - test102: Pattern literal emits `/* UNKNOWN-EXPR */`
 - test124: PRINT with multiple exprs (only first printed)
 - test161: ASSERT keyword not supported
+- test176: TYPE-PARAMETERIZED continuation misaligned after `[`
 
 ## Notes
 - Some tests appear in multiple categories; listed under primary failure.
@@ -253,3 +248,12 @@ entries chronological within a session date.
   - Split after `/` still works as a break point
   - Updated baselines: test{002,004,005,013,035,100,103,107}
   - test005: `1000 / 1000` is a tree-sitter-zeek subnet literal bug (filed)
+- After boolean chain layout + condition trail reservation: 148 pass, 23 fail
+  - Fixed: test021 (boolean chain `&&`/`||` flattening + fill layout)
+  - FlattenBoolChain: collects operands of left-associative `&&`/`||`
+  - FormatBoolChain: flat when fits, fill-pack with wrap at operator
+  - FormatIf/FormatWhile: Reserve(2) for closing ` )` on condition
+  - FormatBoolChain: max_col accounts for trail reservation
+  - Updated baselines: test{066,072} (tab indent, slice spacing)
+  - Added test176 to failure list (continuation misalignment, was unlisted)
+  - Removed test021 from "Miscellaneous" (now passes)

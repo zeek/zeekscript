@@ -813,6 +813,120 @@ static Candidates FormatUnary(const Node& node, const FmtContext& ctx)
 	}
 
 // ------------------------------------------------------------------
+// Boolean chain: flatten left-associative && or || into operand list,
+// then pack with fill layout breaking at the boolean operator.
+// ------------------------------------------------------------------
+
+// Collect operands of a left-associative chain of the same boolean op.
+static void FlattenBoolChain(const Node& node, const std::string& op,
+                             std::vector<const Node*>& out)
+	{
+	if ( node.GetTag() == Tag::BinaryOp && node.Arg() == op &&
+	     node.Children().size() >= 2 )
+		{
+		FlattenBoolChain(*node.Children()[0], op, out);
+		out.push_back(node.Children()[1].get());
+		}
+	else
+		out.push_back(&node);
+	}
+
+static Candidates FormatBoolChain(const std::string& op,
+                                  const std::vector<const Node*>& operands,
+                                  const FmtContext& ctx)
+	{
+	std::string sep = " " + op + " ";
+	int sep_w = static_cast<int>(sep.size());
+
+	// Try flat.  Only use when every operand fits on one line.
+	std::string flat;
+	int flat_w = 0;
+	bool any_multiline = false;
+	for ( size_t i = 0; i < operands.size(); ++i )
+		{
+		auto cs = FormatExpr(*operands[i], ctx.After(flat_w));
+		const auto& best = Best(cs);
+		if ( best.Lines() > 1 )
+			any_multiline = true;
+		if ( i > 0 )
+			{
+			flat += sep;
+			flat_w += sep_w;
+			}
+		flat += best.Text();
+		flat_w += best.Width();
+		}
+
+	int flat_ovf = Ovf(flat_w, ctx);
+	if ( flat_ovf == 0 && ! any_multiline )
+		return {Candidate(flat, ctx)};
+
+	// Fill: pack operands with " op " separator, wrap at operator.
+	FmtContext cont_ctx = ctx.Col() == ctx.IndentCol() ?
+				ctx.Indented() : ctx.AtCol(ctx.Col());
+	std::string pad = LinePrefix(cont_ctx.Indent(), cont_ctx.Col());
+	int max_col = ctx.MaxCol() - ctx.Trail();
+
+	std::string text;
+	int cur_col = ctx.Col();
+	int lines = 1;
+	int total_overflow = 0;
+
+	for ( size_t i = 0; i < operands.size(); ++i )
+		{
+		FmtContext sub(cont_ctx.Indent(), cur_col,
+			max_col - cur_col);
+		auto cs = FormatExpr(*operands[i], sub);
+		const auto& best = Best(cs);
+		int w = best.Width();
+
+		if ( i == 0 )
+			{
+			text += best.Text();
+			cur_col += w;
+			}
+		else
+			{
+			int need = sep_w + w;
+			if ( best.Lines() > 1 )
+				need = max_col + 1;
+			if ( cur_col + need <= max_col )
+				{
+				text += sep + best.Text();
+				cur_col += need;
+				}
+			else
+				{
+				text += " " + op + "\n" + pad;
+				cur_col = cont_ctx.Col();
+				++lines;
+
+				FmtContext wrap_sub(cont_ctx.Indent(),
+					cur_col, max_col - cur_col);
+				auto wcs = FormatExpr(*operands[i], wrap_sub);
+				const auto& wb = Best(wcs);
+				text += wb.Text();
+				cur_col += wb.Width();
+				total_overflow += wb.Ovf();
+				}
+			}
+
+		if ( best.Lines() > 1 )
+			{
+			lines += best.Lines() - 1;
+			cur_col = LastLineLen(text);
+			}
+
+		total_overflow += best.Ovf();
+		}
+
+	int end_ovf = std::max(0, cur_col - max_col);
+	total_overflow += end_ovf;
+
+	return {{text, cur_col, lines, total_overflow, ctx.Col()}};
+	}
+
+// ------------------------------------------------------------------
 // Binary: lhs op rhs
 // ------------------------------------------------------------------
 
@@ -823,6 +937,14 @@ static Candidates FormatBinary(const Node& node, const FmtContext& ctx)
 
 	if ( kids.size() < 2 )
 		throw FormatError("BINARY-OP node needs 2 children");
+
+	// Boolean chains: flatten and fill-pack at && or ||.
+	if ( op == "&&" || op == "||" )
+		{
+		std::vector<const Node*> operands;
+		FlattenBoolChain(node, op, operands);
+		return FormatBoolChain(op, operands, ctx);
+		}
 
 	// ?$ binds without spaces, like field access.
 	// Reserve trail space so the LHS splits to leave room.
@@ -847,9 +969,6 @@ static Candidates FormatBinary(const Node& node, const FmtContext& ctx)
 		return {Candidate(text, ctx)};
 		}
 
-	auto lhs_cs = FormatExpr(*kids[0], ctx);
-	const auto& lhs = Best(lhs_cs);
-
 	// "/" with atomic RHS: no spaces (subnet masking heuristic).
 	// Division typically has a compound RHS; masking has a bare
 	// constant or identifier.
@@ -857,6 +976,9 @@ static Candidates FormatBinary(const Node& node, const FmtContext& ctx)
 	std::string lsep = tight ? "" : " ";
 	std::string rsep = tight ? "" : " ";
 	int op_w = static_cast<int>(op.size()) + (tight ? 0 : 2);
+
+	auto lhs_cs = FormatExpr(*kids[0], ctx);
+	const auto& lhs = Best(lhs_cs);
 
 	auto rhs_cs = FormatExpr(*kids[1], ctx.After(lhs.Width() + op_w));
 	const auto& rhs = Best(rhs_cs);
@@ -1232,9 +1354,11 @@ static void DeclNoInit(const DeclParts& d, Candidates& result,
 
 	if ( d.attrs_node )
 		{
+		std::string apad = LinePrefix(cont.Indent(),
+			cont.Col() + 1);
 		auto astrs = FormatAttrStrings(*d.attrs_node, ctx);
 		for ( const auto& a : astrs )
-			split += "\n" + pad + a;
+			split += "\n" + apad + a;
 		split += semi_str;
 		}
 
@@ -1979,7 +2103,8 @@ static Candidates FormatIf(const Node& node, const FmtContext& ctx)
 	std::string cond_text;
 	if ( cond_node && ! cond_node->Children().empty() )
 		{
-		auto cond_cs = FormatExpr(*cond_node->Children()[0], ctx.After(5));
+		auto cond_cs = FormatExpr(*cond_node->Children()[0],
+			ctx.After(5).Reserve(2));
 		cond_text = Best(cond_cs).Text();
 		}
 
@@ -2101,7 +2226,8 @@ static Candidates FormatWhile(const Node& node, const FmtContext& ctx)
 	std::string cond_text;
 	if ( cond_node && ! cond_node->Children().empty() )
 		{
-		auto cond_cs = FormatExpr(*cond_node->Children()[0], ctx.After(8));
+		auto cond_cs = FormatExpr(*cond_node->Children()[0],
+			ctx.After(8).Reserve(2));
 		cond_text = Best(cond_cs).Text();
 		}
 
