@@ -2180,33 +2180,40 @@ static Candidates FormatIf(const Node& node, const FmtContext& ctx)
 	const Node* body_node = FindChild(node, Tag::Body);
 	const Node* else_node = FindChild(node, Tag::Else);
 
-	// Find condition: first non-token, non-comment child that isn't
-	// BODY, ELSE, or a structural node.
+	// Collect tokens and condition from children.
+	std::string kw_text, lparen_text, rparen_text;
 	bool in_parens = false;
-	std::string rparen_text = ")";
 
 	for ( const auto& c : node.Children() )
 		{
 		Tag t = c->GetTag();
 
+		if ( t == Tag::Keyword )
+			{ kw_text = c->Text(); continue; }
 		if ( t == Tag::LParen )
-			{ in_parens = true; continue; }
+			{
+			lparen_text = c->Text();
+			in_parens = true;
+			continue;
+			}
 		if ( t == Tag::RParen )
 			{ rparen_text = c->Text(); in_parens = false; continue; }
 		if ( in_parens && ! is_token(t) && ! is_comment(t) )
 			cond_expr = c.get();
 		}
 
-	// Format condition.
 	std::string cond_text;
 	if ( cond_expr )
 		{
+		int prefix_w = static_cast<int>(kw_text.size()) + 1 +
+			static_cast<int>(lparen_text.size()) + 1;
 		auto cond_cs = FormatExpr(*cond_expr,
-			ctx.After(5).Reserve(2));
+			ctx.After(prefix_w).Reserve(2));
 		cond_text = Best(cond_cs).Text();
 		}
 
-	std::string head = "if ( " + cond_text + " " + rparen_text;
+	std::string head = kw_text + " " + lparen_text + " " +
+		cond_text + " " + rparen_text;
 
 	std::string result = head + FormatBodyText(body_node, ctx);
 
@@ -2291,6 +2298,24 @@ static Candidates FormatFor(const Node& node, const FmtContext& ctx)
 	const Node* iter_node = FindChild(node, Tag::Iterable);
 	const Node* body_node = FindChild(node, Tag::Body);
 
+	// Collect keyword and token text from children.
+	std::string for_text, lparen_text, in_text, rparen_text;
+	for ( const auto& c : node.Children() )
+		{
+		Tag t = c->GetTag();
+		if ( t == Tag::Keyword )
+			{
+			if ( for_text.empty() )
+				for_text = c->Text();
+			else
+				in_text = c->Text();
+			}
+		else if ( t == Tag::LParen )
+			lparen_text = c->Text();
+		else if ( t == Tag::RParen )
+			rparen_text = c->Text();
+		}
+
 	// Format vars (comma-separated identifiers).
 	std::string vars_text;
 	if ( vars_node )
@@ -2316,14 +2341,9 @@ static Candidates FormatFor(const Node& node, const FmtContext& ctx)
 				ctx)).Text();
 		}
 
-	// Get RPAREN text (includes any trailing comment).
-	std::string rparen_text = ")";
-	for ( const auto& c : node.Children() )
-		if ( c->GetTag() == Tag::RParen )
-			{ rparen_text = c->Text(); break; }
-
-	std::string head = "for ( " + vars_text + " in " +
-		iter_text + " " + rparen_text;
+	std::string head = for_text + " " + lparen_text + " " +
+		vars_text + " " + in_text + " " + iter_text + " " +
+		rparen_text;
 
 	return {Candidate(head + FormatBodyText(body_node, ctx), ctx)};
 	}
@@ -2336,17 +2356,23 @@ static Candidates FormatWhile(const Node& node, const FmtContext& ctx)
 	{
 	const Node* body_node = FindChild(node, Tag::Body);
 
-	// Find condition between LPAREN/RPAREN.
+	// Collect tokens and condition from children.
 	const Node* cond_expr = nullptr;
-	std::string rparen_text = ")";
+	std::string kw_text, lparen_text, rparen_text;
 	bool in_parens = false;
 
 	for ( const auto& c : node.Children() )
 		{
 		Tag t = c->GetTag();
 
+		if ( t == Tag::Keyword )
+			{ kw_text = c->Text(); continue; }
 		if ( t == Tag::LParen )
-			{ in_parens = true; continue; }
+			{
+			lparen_text = c->Text();
+			in_parens = true;
+			continue;
+			}
 		if ( t == Tag::RParen )
 			{ rparen_text = c->Text(); in_parens = false; continue; }
 		if ( in_parens && ! is_token(t) && ! is_comment(t) )
@@ -2356,12 +2382,15 @@ static Candidates FormatWhile(const Node& node, const FmtContext& ctx)
 	std::string cond_text;
 	if ( cond_expr )
 		{
+		int prefix_w = static_cast<int>(kw_text.size()) + 1 +
+			static_cast<int>(lparen_text.size()) + 1;
 		auto cond_cs = FormatExpr(*cond_expr,
-			ctx.After(8).Reserve(2));
+			ctx.After(prefix_w).Reserve(2));
 		cond_text = Best(cond_cs).Text();
 		}
 
-	std::string head = "while ( " + cond_text + " " + rparen_text;
+	std::string head = kw_text + " " + lparen_text + " " +
+		cond_text + " " + rparen_text;
 
 	return {Candidate(head + FormatBodyText(body_node, ctx), ctx)};
 	}
