@@ -2293,7 +2293,8 @@ static Candidates FormatSwitch(const Node& node, const FmtContext& ctx)
 				{
 				std::string body_text = FormatStmtList(
 					body->Children(), ctx.Indented());
-				if ( ! body_text.empty() && body_text.back() == '\n' )
+				if ( ! body_text.empty() &&
+				     body_text.back() == '\n' )
 					body_text.pop_back();
 				result += "\n" + body_text;
 				}
@@ -2307,16 +2308,42 @@ static Candidates FormatSwitch(const Node& node, const FmtContext& ctx)
 		std::string case_text = "case ";
 		if ( values )
 			{
-			bool first = true;
+			// Collect formatted values.
+			std::vector<std::string> vals;
 			for ( const auto& v : values->Children() )
 				{
 				if ( is_comment(v->GetTag()) )
 					continue;
+				vals.push_back(Best(FormatExpr(*v, ctx)).Text());
+				}
 
-				if ( ! first )
+			// Fill-pack values, wrapping at comma.
+			int case_col = ctx.Col() +
+				static_cast<int>(case_text.size());
+			std::string vpad = LinePrefix(ctx.Indent(), case_col);
+			int max_col = ctx.MaxCol();
+			int cur_col = case_col;
+
+			for ( size_t i = 0; i < vals.size(); ++i )
+				{
+				auto& vi = vals[i];
+				int need = static_cast<int>(vi.size());
+				if ( i > 0 )
+					need += 2;	// ", "
+
+				if ( i > 0 && cur_col + need > max_col )
+					{
+					case_text += ",\n" + vpad;
+					cur_col = case_col;
+					}
+				else if ( i > 0 )
+					{
 					case_text += ", ";
-				first = false;
-				case_text += Best(FormatExpr(*v, ctx)).Text();
+					cur_col += 2;
+					}
+
+				case_text += vi;
+				cur_col += static_cast<int>(vi.size());
 				}
 			}
 		case_text += ":";
@@ -2325,8 +2352,8 @@ static Candidates FormatSwitch(const Node& node, const FmtContext& ctx)
 
 		if ( body )
 			{
-			std::string body_text = FormatStmtList(
-				body->Children(), ctx.Indented());
+			std::string body_text = FormatStmtList(body->Children(),
+							ctx.Indented());
 			if ( ! body_text.empty() && body_text.back() == '\n' )
 				body_text.pop_back();
 			result += "\n" + body_text;

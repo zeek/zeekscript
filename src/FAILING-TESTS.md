@@ -1,4 +1,4 @@
-# C++ Formatter Failing Tests (148 pass, 23 fail as of 2026-03-31)
+# C++ Formatter Failing Tests (149 pass, 22 fail as of 2026-03-31)
 
 ## By category (sorted by count)
 
@@ -18,7 +18,6 @@ test{041,097,098}
 test038 (needs LAMBDA support first)
 
 ### Miscellaneous (1 each)
-- test027: Switch case values not wrapping
 - test040: CALL wrapping (set() args should use indent, not alignment)
 - test056: TYPE-FUNC params not wrapping
 - test102: Pattern literal emits `/* UNKNOWN-EXPR */`
@@ -257,3 +256,6 @@ entries chronological within a session date.
   - Updated baselines: test{066,072} (tab indent, slice spacing)
   - Added test176 to failure list (continuation misalignment, was unlisted)
   - Removed test021 from "Miscellaneous" (now passes)
+- After switch case value wrapping: 149 pass, 22 fail
+  - Fixed: test027 (case values fill-pack with wrap at comma)
+  - FormatSwitch: fill-pack case values aligned after `case `
