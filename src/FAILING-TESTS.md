@@ -249,3 +249,7 @@ entries chronological within a session date.
   - Fixed: test054 (event statement with name and args)
   - Emitter: _emit_event_stmt descends into event_hdr for name and expr_list
   - Formatter: new FormatEventStmt formats `event name(args);` using FlatOrFill
+- After tight `/` for subnet masking: 144 pass, 27 fail
+  - FormatBinary: no spaces around `/` when RHS is atomic (masking heuristic)
+  - Split after `/` still works as a break point
+  - Updated baselines: test{002,004,013,035,100,103,107}

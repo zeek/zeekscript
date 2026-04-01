@@ -850,14 +850,19 @@ static Candidates FormatBinary(const Node& node, const FmtContext& ctx)
 	auto lhs_cs = FormatExpr(*kids[0], ctx);
 	const auto& lhs = Best(lhs_cs);
 
-	// " op " costs op.size() + 2.
-	int op_w = static_cast<int>(op.size()) + 2;
+	// "/" with atomic RHS: no spaces (subnet masking heuristic).
+	// Division typically has a compound RHS; masking has a bare
+	// constant or identifier.
+	bool tight = (op == "/" && ! kids[1]->HasChildren());
+	std::string lsep = tight ? "" : " ";
+	std::string rsep = tight ? "" : " ";
+	int op_w = static_cast<int>(op.size()) + (tight ? 0 : 2);
 
 	auto rhs_cs = FormatExpr(*kids[1], ctx.After(lhs.Width() + op_w));
 	const auto& rhs = Best(rhs_cs);
 
 	// Candidate 1: flat - lhs op rhs
-	std::string flat = lhs.Text() + " " + op + " " + rhs.Text();
+	std::string flat = lhs.Text() + lsep + op + rsep + rhs.Text();
 	int flat_w = lhs.Width() + op_w + rhs.Width();
 	int flat_ovf = Ovf(flat_w, ctx);
 	bool need_split = flat_ovf > 0;
@@ -897,9 +902,10 @@ static Candidates FormatBinary(const Node& node, const FmtContext& ctx)
 
 	std::string cont_prefix = LinePrefix(cont_ctx.Indent(), cont_ctx.Col());
 
-	std::string split = lhs.Text() + " " + op + "\n" +
+	std::string split = lhs.Text() + lsep + op + "\n" +
 				cont_prefix + rhs2.Text();
-	int line1_w = lhs.Width() + 1 + static_cast<int>(op.size());
+	int line1_w = lhs.Width() + static_cast<int>(lsep.size()) +
+		static_cast<int>(op.size());
 	int line2_ovf = Ovf(rhs2.Width(), cont_ctx);
 	int split_ovf = OvfNoTrail(line1_w, ctx) + line2_ovf;
 
