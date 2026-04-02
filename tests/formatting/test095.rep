@@ -16,10 +16,12 @@ FUNC-DECL {
             PARAMS {
               LPAREN
               PARAM "h" {
+                COLON
                 TYPE-ATOM "addr"
               }
               COMMA
               PARAM "si" {
+                COLON
                 TYPE-ATOM "SomeInfo"
               }
               RPAREN

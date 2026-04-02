@@ -9,6 +9,7 @@ EXPORT {
       PARAMS {
         LPAREN
         PARAM "rec" {
+          COLON
           TYPE-ATOM "Info"
         }
         RPAREN

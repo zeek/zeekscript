@@ -4,6 +4,7 @@ FUNC-DECL {
   PARAMS {
     LPAREN
     PARAM "rec" {
+      COLON
       TYPE-ATOM "SomeModule::Info"
     }
     RPAREN

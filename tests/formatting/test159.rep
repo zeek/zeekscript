@@ -4,14 +4,17 @@ FUNC-DECL {
   PARAMS {
     LPAREN
     PARAM "host" {
+      COLON
       TYPE-ATOM "addr"
     }
     COMMA
     PARAM "svc" {
+      COLON
       TYPE-ATOM "string"
     }
     COMMA
     PARAM "region" {
+      COLON
       TYPE-ATOM "string"
     }
     RPAREN

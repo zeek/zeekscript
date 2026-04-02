@@ -6,18 +6,22 @@ GLOBAL-DECL {
     PARAMS {
       LPAREN
       PARAM "o" {
+        COLON
         TYPE-ATOM "string"
       }
       COMMA
       PARAM "label" {
+        COLON
         TYPE-ATOM "string"
       }
       COMMA
       PARAM "conf" {
+        COLON
         TYPE-ATOM "score"
       }
       COMMA
       PARAM "sources" {
+        COLON
         TYPE-PARAMETERIZED "set" {
           LBRACKET
           TYPE-ATOM "string"
@@ -26,6 +30,7 @@ GLOBAL-DECL {
       }
       COMMA
       PARAM "caller" {
+        COLON
         TYPE-ATOM "string"
       }
       RPAREN

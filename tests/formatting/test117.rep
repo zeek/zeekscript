@@ -4,6 +4,7 @@ FUNC-DECL {
   PARAMS {
     LPAREN
     PARAM "a" {
+      COLON
       TYPE-ATOM "int"
     }
     RPAREN

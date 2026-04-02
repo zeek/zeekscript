@@ -4,18 +4,22 @@ FUNC-DECL {
   PARAMS {
     LPAREN
     PARAM "c" {
+      COLON
       TYPE-ATOM "connection"
     }
     COMMA
     PARAM "is_client" {
+      COLON
       TYPE-ATOM "bool"
     }
     COMMA
     PARAM "code" {
+      COLON
       TYPE-ATOM "count"
     }
     COMMA
     PARAM "val" {
+      COLON
       TYPE-ATOM "string"
     }
     RPAREN

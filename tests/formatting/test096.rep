@@ -18,10 +18,12 @@ FUNC-DECL {
             PARAMS {
               LPAREN
               PARAM "id" {
+                COLON
                 TYPE-ATOM "string"
               }
               COMMA
               PARAM "val" {
+                COLON
                 TYPE-ATOM "bool"
               }
               RPAREN

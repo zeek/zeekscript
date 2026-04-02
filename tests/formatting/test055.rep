@@ -9,6 +9,7 @@ EXPORT {
       PARAMS {
         LPAREN
         PARAM "anomaly_data" {
+          COLON
           TYPE-ATOM "SomePredictions"
         }
         RPAREN

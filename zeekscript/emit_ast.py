@@ -823,7 +823,10 @@ class Emitter:
                 break
         self._open(f'PARAM {_quote(name)}')
         for child in self._iter_children(node):
-            if child.type == "id":
+            if not child.is_named:
+                if self._text(child) == ":":
+                    self._w('COLON')
+            elif child.type == "id":
                 pass  # already extracted for PARAM tag
             elif child.type == "type":
                 self._emit_type(child)

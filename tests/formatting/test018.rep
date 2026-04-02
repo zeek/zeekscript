@@ -4,18 +4,22 @@ FUNC-DECL {
   PARAMS {
     LPAREN
     PARAM "c" {
+      COLON
       TYPE-ATOM "connection"
     }
     COMMA
     PARAM "name" {
+      COLON
       TYPE-ATOM "string"
     }
     COMMA
     PARAM "value" {
+      COLON
       TYPE-ATOM "string"
     }
     COMMA
     PARAM "prefix" {
+      COLON
       TYPE-ATOM "string"
     }
     RPAREN

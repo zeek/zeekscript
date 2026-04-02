@@ -4,22 +4,27 @@ FUNC-DECL {
   PARAMS {
     LPAREN
     PARAM "inner_c" {
+      COLON
       TYPE-ATOM "connection"
     }
     COMMA
     PARAM "inner_hdr" {
+      COLON
       TYPE-ATOM "pkt_hdr"
     }
     COMMA
     PARAM "vni" {
+      COLON
       TYPE-ATOM "count"
     }
     COMMA
     PARAM "flags" {
+      COLON
       TYPE-ATOM "count"
     }
     COMMA
     PARAM "opt" {
+      COLON
       TYPE-ATOM "SomeModule::Geneve::some_geneve_hdr_option"
     }
     RPAREN

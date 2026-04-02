@@ -4,6 +4,7 @@ FUNC-DECL {
   PARAMS {
     LPAREN
     PARAM "c" {
+      COLON
       TYPE-ATOM "connection"
     }
     RPAREN

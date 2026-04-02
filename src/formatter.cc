@@ -1254,8 +1254,11 @@ static Candidates FormatTypeFunc(const Node& node, const FmtContext& ctx)
 		text += p->Arg();
 		const Node* ptype = FindTypeChild(*p);
 		if ( ptype )
-			text += ": " + Best(FormatExpr(*ptype,
-				ctx)).Text();
+			{
+			const Node* pcol = p->FindChild(Tag::Colon);
+			text += pcol->Text() + " " +
+				Best(FormatExpr(*ptype, ctx)).Text();
+			}
 		}
 
 	text += rp->Text();
@@ -1380,6 +1383,7 @@ struct DeclParts {
 	std::string type_str;	// ": type" or ""
 	std::string suffix;	// " &attr1 &attr2;" or ";" or ""
 	const Node* type_node;	// direct type child (after COLON)
+	const Node* colon_node;	// COLON before type
 	std::string assign_op;	// "=", "+=", or ""
 	const Node* init_val;	// direct init value (after ASSIGN)
 	const Node* attrs_node;
@@ -1456,7 +1460,7 @@ static void DeclNoInit(const DeclParts& d, Candidates& result,
 	FmtContext cont = ctx.Indented();
 	std::string tv = Best(FormatExpr(*d.type_node, cont)).Text();
 
-	std::string line1 = d.head + ":";
+	std::string line1 = d.head + d.colon_node->Text();
 	std::string pad = LinePrefix(cont.Indent(), cont.Col());
 
 	// Try type + suffix on one continuation line.
@@ -1573,7 +1577,7 @@ static void DeclTypeSplit(const DeclParts& d, Candidates& result,
 	FmtContext cont = ctx.Indented();
 	std::string bare_type = d.type_str.substr(2);
 
-	std::string line1 = d.head + ":";
+	std::string line1 = d.head + d.colon_node->Text();
 	std::string pad = LinePrefix(cont.Indent(), cont.Col());
 	std::string split = line1 + "\n" + pad + bare_type;
 
@@ -1605,6 +1609,7 @@ static Candidates FormatDecl(const Node& node, const FmtContext& ctx)
 	DeclParts d;
 	d.head = kw_node->Text() + " " + id_node->Text();
 	d.type_node = nullptr;
+	d.colon_node = nullptr;
 	d.init_val = nullptr;
 	d.attrs_node = node.FindOptChild(Tag::AttrList);
 	d.semi_node = node.FindOptChild(Tag::Semi);
@@ -1623,6 +1628,7 @@ static Candidates FormatDecl(const Node& node, const FmtContext& ctx)
 
 		if ( t == Tag::Colon )
 			{
+			d.colon_node = c.get();
 			expect_type = true;
 			continue;
 			}
@@ -1653,7 +1659,7 @@ static Candidates FormatDecl(const Node& node, const FmtContext& ctx)
 		{
 		std::string ts = Best(FormatExpr(*d.type_node, ctx)).Text();
 		if ( ! ts.empty() )
-			d.type_str = ": " + ts;
+			d.type_str = d.colon_node->Text() + " " + ts;
 		}
 
 	d.suffix = DeclSuffix(d.attrs_node, d.semi_node, ctx);
@@ -1684,19 +1690,27 @@ static Candidates FormatTernary(const Node& node, const FmtContext& ctx)
 	if ( content.size() < 3 )
 		throw FormatError("TERNARY node needs 3 children");
 
+	const Node* q = node.FindChild(Tag::Question);
+	const Node* col = node.FindChild(Tag::Colon);
+	std::string qs = " " + q->Text() + " ";
+	std::string cs = " " + col->Text() + " ";
+	int qw = static_cast<int>(qs.size());
+	int cw = static_cast<int>(cs.size());
+
 	auto cond_cs = FormatExpr(*content[0], ctx);
 	const auto& cond = Best(cond_cs);
 
-	int tv_col = ctx.Col() + cond.Width() + 3;  // after "cond ? "
-	auto tv_cs = FormatExpr(*content[1], ctx.After(cond.Width() + 3));
+	int tv_col = ctx.Col() + cond.Width() + qw;
+	auto tv_cs = FormatExpr(*content[1],
+		ctx.After(cond.Width() + qw));
 	const auto& tv = Best(tv_cs);
 
 	auto fv_cs = FormatExpr(*content[2],
-		ctx.After(cond.Width() + 3 + tv.Width() + 3));
+		ctx.After(cond.Width() + qw + tv.Width() + cw));
 	const auto& fv = Best(fv_cs);
 
-	std::string flat = cond.Text() + " ? " + tv.Text() +
-				" : " + fv.Text();
+	std::string flat = cond.Text() + qs + tv.Text() + cs +
+				fv.Text();
 	Candidate flat_c(flat, ctx);
 
 	Candidates result;
@@ -1711,8 +1725,9 @@ static Candidates FormatTernary(const Node& node, const FmtContext& ctx)
 	const auto& fv2 = Best(fv2_cs);
 
 	std::string fv_prefix = LinePrefix(fv_ctx.Indent(), tv_col);
-	std::string split_colon = cond.Text() + " ? " + tv.Text() +
-				" :\n" + fv_prefix + fv2.Text();
+	std::string split_colon = cond.Text() + qs + tv.Text() +
+				" " + col->Text() + "\n" +
+				fv_prefix + fv2.Text();
 	int last_w = fv2.Width();
 	int lines = 1 + fv2.Lines();
 	int ovf = Ovf(last_w, fv_ctx);
@@ -1725,13 +1740,15 @@ static Candidates FormatTernary(const Node& node, const FmtContext& ctx)
 	auto tv2_cs = FormatExpr(*content[1], cont_ctx);
 	const auto& tv2 = Best(tv2_cs);
 
-	auto fv3_cs = FormatExpr(*content[2], cont_ctx.After(tv2.Width() + 3));
+	auto fv3_cs = FormatExpr(*content[2],
+		cont_ctx.After(tv2.Width() + cw));
 	const auto& fv3 = Best(fv3_cs);
 
 	std::string cont_prefix = LinePrefix(cont_ctx.Indent(), ctx.Col());
-	std::string split_q = cond.Text() + " ?\n" + cont_prefix +
-				tv2.Text() + " : " + fv3.Text();
-	int q_last_w = tv2.Width() + 3 + fv3.Width();
+	std::string split_q = cond.Text() + " " + q->Text() + "\n" +
+				cont_prefix + tv2.Text() + cs +
+				fv3.Text();
+	int q_last_w = tv2.Width() + cw + fv3.Width();
 	int q_ovf = Ovf(q_last_w, cont_ctx);
 
 	result.push_back({split_q, q_last_w, 2, q_ovf, ctx.Col()});
@@ -2137,7 +2154,11 @@ static std::vector<ParamEntry> FormatParamEntries(const Node* params,
 
 		const Node* ptype = FindTypeChild(*p);
 		if ( ptype )
-			text += ": " + Best(FormatExpr(*ptype, ctx)).Text();
+			{
+			const Node* pcol = p->FindChild(Tag::Colon);
+			text += pcol->Text() + " " +
+				Best(FormatExpr(*ptype, ctx)).Text();
+			}
 
 		result.push_back({text, pending_comma});
 		pending_comma = nullptr;
@@ -2178,9 +2199,11 @@ static Candidates FormatFuncDecl(const Node& node, const FmtContext& ctx)
 	std::string ret_str;
 	if ( returns )
 		{
+		const Node* rcol = node.FindChild(Tag::Colon);
 		const Node* rt = FindTypeChild(*returns);
 		if ( rt )
-			ret_str = ": " + Best(FormatExpr(*rt, ctx)).Text();
+			ret_str = rcol->Text() + " " +
+				Best(FormatExpr(*rt, ctx)).Text();
 		}
 
 	// Attribute suffix.
@@ -2457,7 +2480,8 @@ static Candidates FormatSwitch(const Node& node, const FmtContext& ctx)
 static std::string FormatField(const Node& node, const std::string& suffix,
                                const FmtContext& ctx)
 	{
-	std::string head = node.Arg() + ": ";
+	const Node* fcol = node.FindChild(Tag::Colon);
+	std::string head = node.Arg() + fcol->Text() + " ";
 
 	const Node* tc = FindTypeChild(node);
 	std::string type_str;
@@ -2505,6 +2529,7 @@ static Candidates FormatTypeDecl(const Node& node, const FmtContext& ctx)
 	{
 	const Node* kw_node = node.FindChild(Tag::Keyword);
 	const Node* id_node = node.FindChild(Tag::Identifier);
+	const Node* colon = node.FindChild(Tag::Colon);
 	const Node* semi = node.FindChild(Tag::Semi);
 	std::string semi_str = semi->Text();
 
@@ -2514,7 +2539,7 @@ static Candidates FormatTypeDecl(const Node& node, const FmtContext& ctx)
 	const Node* base_type = FindTypeChild(node);
 	if ( base_type )
 		{
-		std::string text = prefix + ": " +
+		std::string text = prefix + colon->Text() + " " +
 			Best(FormatExpr(*base_type, ctx)).Text() + semi_str;
 		return {Candidate(text, ctx)};
 		}
@@ -2527,8 +2552,8 @@ static Candidates FormatTypeDecl(const Node& node, const FmtContext& ctx)
 		const Node* lb = enum_node->FindChild(Tag::LBrace);
 		const Node* rb = enum_node->FindChild(Tag::RBrace);
 
-		std::string head = prefix + ": " + ekw->Text() +
-			" " + lb->Text();
+		std::string head = prefix + colon->Text() + " " +
+			ekw->Text() + " " + lb->Text();
 
 		// Collect enum values and commas.
 		std::vector<std::string> values;
@@ -2580,8 +2605,8 @@ static Candidates FormatTypeDecl(const Node& node, const FmtContext& ctx)
 		const Node* lb = rec_node->FindChild(Tag::LBrace);
 		const Node* rb = rec_node->FindChild(Tag::RBrace);
 
-		std::string head = prefix + ": " + rkw->Text() +
-			" " + lb->Text();
+		std::string head = prefix + colon->Text() + " " +
+			rkw->Text() + " " + lb->Text();
 
 		int field_indent = ctx.Indent() + 1;
 		int field_col = field_indent * INDENT_WIDTH;

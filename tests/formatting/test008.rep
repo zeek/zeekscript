@@ -4,6 +4,7 @@ FUNC-DECL {
   PARAMS {
     LPAREN
     PARAM "some_arg" {
+      COLON
       TYPE-ATOM "string"
     }
     RPAREN

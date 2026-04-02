@@ -4,14 +4,17 @@ FUNC-DECL {
   PARAMS {
     LPAREN
     PARAM "c" {
+      COLON
       TYPE-ATOM "connection"
     }
     COMMA
     PARAM "is_orig" {
+      COLON
       TYPE-ATOM "bool"
     }
     COMMA
     PARAM "payload" {
+      COLON
       TYPE-ATOM "string"
     }
     RPAREN

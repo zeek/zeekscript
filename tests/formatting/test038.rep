@@ -61,6 +61,7 @@ GLOBAL-DECL {
         PARAMS {
           LPAREN
           PARAM "n" {
+            COLON
             TYPE-ATOM "string"
           }
           RPAREN
