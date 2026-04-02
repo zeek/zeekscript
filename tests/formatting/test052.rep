@@ -6,12 +6,15 @@ FUNC-DECL {
     PARAM "c" {
       TYPE-ATOM "connection"
     }
+    COMMA
     PARAM "is_client" {
       TYPE-ATOM "bool"
     }
+    COMMA
     PARAM "code" {
       TYPE-ATOM "count"
     }
+    COMMA
     PARAM "val" {
       TYPE-ATOM "string"
     }

@@ -6,15 +6,19 @@ FUNC-DECL {
     PARAM "inner_c" {
       TYPE-ATOM "connection"
     }
+    COMMA
     PARAM "inner_hdr" {
       TYPE-ATOM "pkt_hdr"
     }
+    COMMA
     PARAM "vni" {
       TYPE-ATOM "count"
     }
+    COMMA
     PARAM "flags" {
       TYPE-ATOM "count"
     }
+    COMMA
     PARAM "opt" {
       TYPE-ATOM "SomeModule::Geneve::some_geneve_hdr_option"
     }

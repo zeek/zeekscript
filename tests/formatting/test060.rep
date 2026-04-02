@@ -6,30 +6,39 @@ FUNC-DECL {
     PARAM "aa" {
       TYPE-ATOM "connection"
     }
+    COMMA
     PARAM "bb" {
       TYPE-ATOM "bool"
     }
+    COMMA
     PARAM "cc" {
       TYPE-ATOM "count"
     }
+    COMMA
     PARAM "dd" {
       TYPE-ATOM "string"
     }
+    COMMA
     PARAM "ee" {
       TYPE-ATOM "string"
     }
+    COMMA
     PARAM "ff" {
       TYPE-ATOM "string"
     }
+    COMMA
     PARAM "gg" {
       TYPE-ATOM "string"
     }
+    COMMA
     PARAM "hh" {
       TYPE-ATOM "string"
     }
+    COMMA
     PARAM "ii" {
       TYPE-ATOM "string"
     }
+    COMMA
     PARAM "jj" {
       TYPE-ATOM "bool"
     }

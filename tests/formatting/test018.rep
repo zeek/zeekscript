@@ -6,12 +6,15 @@ FUNC-DECL {
     PARAM "c" {
       TYPE-ATOM "connection"
     }
+    COMMA
     PARAM "name" {
       TYPE-ATOM "string"
     }
+    COMMA
     PARAM "value" {
       TYPE-ATOM "string"
     }
+    COMMA
     PARAM "prefix" {
       TYPE-ATOM "string"
     }

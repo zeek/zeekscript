@@ -6,9 +6,11 @@ FUNC-DECL {
     PARAM "host" {
       TYPE-ATOM "addr"
     }
+    COMMA
     PARAM "svc" {
       TYPE-ATOM "string"
     }
+    COMMA
     PARAM "region" {
       TYPE-ATOM "string"
     }

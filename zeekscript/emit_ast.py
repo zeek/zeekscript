@@ -666,25 +666,7 @@ class Emitter:
         # Function types: event(...), function(...): ret, hook(...)
         if first_text in ("event", "function", "hook"):
             self._open(f'TYPE-FUNC {_quote(first_text)}')
-            params = [k for k in kids if k.type == "formal_args"]
-            ret = None
-            # Return type after ':'
-            for i, k in enumerate(kids):
-                if not k.is_named and self._text(k) == ":":
-                    if i + 1 < len(kids) and kids[i + 1].type == "type":
-                        ret = kids[i + 1]
-                    break
-            if params:
-                self._open('PARAMS')
-                self._w('LPAREN')
-                self._emit_formal_args(params[0])
-                self._w('RPAREN')
-                self._close()
-            if ret:
-                self._w('COLON')
-                self._open('RETURNS')
-                self._emit_type(ret)
-                self._close()
+            self._emit_func_params_from(node)
             self._close()
             return
 
@@ -820,6 +802,8 @@ class Emitter:
         for child in self._iter_children(node):
             if child.type == "formal_arg":
                 self._emit_formal_arg(child)
+            elif not child.is_named and self._text(child) == ",":
+                self._w('COMMA')
 
     def _emit_formal_arg(self, node: tree_sitter.Node) -> None:
         # Need the name before opening the PARAM node, so
@@ -840,29 +824,45 @@ class Emitter:
         self._close()
 
     def _emit_func_params_from(self, node: tree_sitter.Node) -> None:
-        """Extract and emit PARAMS, RETURNS, and ATTR-LIST from a begin_lambda or func_hdr child."""
-        for child in self._iter_children(node):
-            if child.type == "func_params":
-                formal = None
-                ret_type = None
-                for pk in self._iter_children(child):
-                    if pk.type == "formal_args":
-                        formal = pk
-                    elif pk.type == "type":
-                        ret_type = pk
-                self._open('PARAMS')
-                self._w('LPAREN')
-                if formal:
-                    self._emit_formal_args(formal)
-                self._w('RPAREN')
-                self._close()
-                if ret_type:
-                    self._w('COLON')
-                    self._open('RETURNS')
-                    self._emit_type(ret_type)
+        """Extract and emit PARAMS, RETURNS, and ATTR-LIST from a func_hdr, type, or begin_lambda child."""
+        # func_params wraps formal_args + return type (function/hook decls).
+        # For event/hook types, formal_args and parens are direct children.
+        has_func_params = any(c.type == "func_params"
+                             for c in node.children if not c.is_extra)
+        if has_func_params:
+            for child in self._iter_children(node):
+                if child.type == "func_params":
+                    formal = None
+                    ret_type = None
+                    for pk in self._iter_children(child):
+                        if pk.type == "formal_args":
+                            formal = pk
+                        elif pk.type == "type":
+                            ret_type = pk
+                    self._open('PARAMS')
+                    self._w('LPAREN')
+                    if formal:
+                        self._emit_formal_args(formal)
+                    self._w('RPAREN')
                     self._close()
-            elif child.type == "attr_list":
-                self._emit_attr_list(child)
+                    if ret_type:
+                        self._w('COLON')
+                        self._open('RETURNS')
+                        self._emit_type(ret_type)
+                        self._close()
+                elif child.type == "attr_list":
+                    self._emit_attr_list(child)
+        else:
+            formal = None
+            for child in self._iter_children(node):
+                if child.type == "formal_args":
+                    formal = child
+            self._open('PARAMS')
+            self._w('LPAREN')
+            if formal:
+                self._emit_formal_args(formal)
+            self._w('RPAREN')
+            self._close()
 
     # ------------------------------------------------------------------
     # Declarations

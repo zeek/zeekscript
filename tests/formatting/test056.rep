@@ -8,12 +8,15 @@ GLOBAL-DECL {
       PARAM "o" {
         TYPE-ATOM "string"
       }
+      COMMA
       PARAM "label" {
         TYPE-ATOM "string"
       }
+      COMMA
       PARAM "conf" {
         TYPE-ATOM "score"
       }
+      COMMA
       PARAM "sources" {
         TYPE-PARAMETERIZED "set" {
           LBRACKET
@@ -21,6 +24,7 @@ GLOBAL-DECL {
           RBRACKET
         }
       }
+      COMMA
       PARAM "caller" {
         TYPE-ATOM "string"
       }

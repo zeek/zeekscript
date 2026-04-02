@@ -6,6 +6,7 @@ FUNC-DECL {
     PARAM "c" {
       TYPE-ATOM "connection"
     }
+    COMMA
     PARAM "cnt" {
       TYPE-ATOM "count"
     }

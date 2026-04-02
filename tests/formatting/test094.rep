@@ -20,6 +20,7 @@ FUNC-DECL {
               PARAM "h" {
                 TYPE-ATOM "addr"
               }
+              COMMA
               PARAM "si" {
                 TYPE-ATOM "SomeInfo"
               }

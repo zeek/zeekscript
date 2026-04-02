@@ -6,15 +6,19 @@ FUNC-DECL {
     PARAM "c" {
       TYPE-ATOM "connection"
     }
+    COMMA
     PARAM "is_orig" {
       TYPE-ATOM "bool"
     }
+    COMMA
     PARAM "some_record_vers" {
       TYPE-ATOM "count"
     }
+    COMMA
     PARAM "some_content_t" {
       TYPE-ATOM "count"
     }
+    COMMA
     PARAM "length" {
       TYPE-ATOM "count"
     }

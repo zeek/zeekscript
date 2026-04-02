@@ -6,9 +6,11 @@ FUNC-DECL {
     PARAM "a" {
       TYPE-ATOM "count"
     }
+    COMMA
     PARAM "b" {
       TYPE-ATOM "string"
     }
+    COMMA
     PARAM "rec" {
       TYPE-ATOM "SomeRec"
     }

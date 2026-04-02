@@ -1209,18 +1209,20 @@ static Candidates FormatTypeFunc(const Node& node, const FmtContext& ctx)
 	const Node* rp = params->FindChild(Tag::RParen);
 	std::string text = keyword + lp->Text();
 
-	bool first = true;
 	for ( const auto& p : params->Children() )
 		{
 		Tag t = p->GetTag();
+
+		if ( t == Tag::Comma )
+			{
+			text += p->Text() + " ";
+			continue;
+			}
+
 		if ( is_comment(t) || is_token(t) )
 			continue;
 		if ( t != Tag::Param )
 			continue;
-
-		if ( ! first )
-			text += ", ";
-		first = false;
 
 		text += p->Arg();
 		const Node* ptype = FindTypeChild(*p);
@@ -1233,9 +1235,11 @@ static Candidates FormatTypeFunc(const Node& node, const FmtContext& ctx)
 
 	if ( returns )
 		{
+		const Node* colon = node.FindChild(Tag::Colon);
 		const Node* rt = FindTypeChild(*returns);
 		if ( rt )
-			text += ": " + Best(FormatExpr(*rt, ctx)).Text();
+			text += colon->Text() + " " +
+				Best(FormatExpr(*rt, ctx)).Text();
 		}
 
 	return {Candidate(text, ctx)};
