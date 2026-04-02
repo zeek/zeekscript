@@ -21,6 +21,7 @@ public:
 	using NodeVec = std::vector<std::shared_ptr<Node>>;
 
 	Node(Tag tag) : tag(tag) {}
+	virtual ~Node() = default;
 
 	Tag GetTag() const { return tag; }
 	const std::vector<std::string>& Args() const
@@ -29,6 +30,15 @@ public:
 		{ return children; }
 	NodeVec& Children()
 		{ return children; }
+
+	// Find a child node by tag.  Returns nullptr if not found.
+	const Node* FindChild(Tag tag) const;
+
+	// Find a child by tag, starting after the given child.
+	const Node* FindChild(Tag tag, const Node* after) const;
+
+	// Collect non-token, non-comment children.
+	std::vector<const Node*> ContentChildren() const;
 
 	const std::string& TrailingComment() const
 		{ return trailing_comment; }
@@ -47,6 +57,10 @@ public:
 	// string + trailing comment; for atoms, the arg + trailing
 	// comment; for composite nodes, just the trailing comment.
 	std::string Text() const;
+
+	// Width of this node's text in columns.
+	int Width() const
+		{ return static_cast<int>(Text().size()); }
 
 	// True if a line break must follow this node (has a
 	// trailing comment).
@@ -69,3 +83,6 @@ private:
 	std::string trailing_comment;
 	bool has_block = false;
 };
+
+// Factory: creates the appropriate Node subclass based on tag.
+std::shared_ptr<Node> MakeNode(Tag tag);

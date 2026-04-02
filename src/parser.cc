@@ -50,7 +50,7 @@ std::shared_ptr<Node> Parser::ParseNode()
 		return nullptr;
 		}
 
-	auto node = std::make_shared<Node>(TagFromString(t));
+	auto node = MakeNode(TagFromString(t));
 
 	// Parse zero or more quoted-string arguments.
 	SkipWhitespace();

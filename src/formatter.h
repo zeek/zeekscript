@@ -151,7 +151,23 @@ std::string Format(const Node::NodeVec& nodes);
 // Format a single node in a given context, returning one or more candidates.
 Candidates FormatNode(const Node& node, const FmtContext& ctx);
 
+// Format an expression node, dispatching by tag.
+Candidates FormatExpr(const Node& node, const FmtContext& ctx);
+
+// Format a statement body (block or single statement).
+std::string FormatBodyText(const Node* body, const FmtContext& ctx);
+
+// Format a Whitesmith-style braced block.
+std::string FormatWhitesmithBlock(const Node* body, const FmtContext& ctx);
+
 // Emit a line prefix for a given indent level and starting column: tabs
 // for indent levels, then spaces to reach the target column.  This is the
 // *only* place tabs appear.
 std::string LinePrefix(int indent, int col);
+
+// Append a token node's text to head, followed by a line break
+// (if the token has a trailing comment) or a space.  Updates col
+// and indent to reflect the new position; break_indent is the
+// indent level to use when a break occurs.
+void AppendToken(const Node* node, std::string& head,
+                 int& col, int& indent, int break_indent);

@@ -1,4 +1,5 @@
 #include "node.h"
+#include "condition_block.h"
 
 #include <cstdio>
 #include <unordered_map>
@@ -7,6 +8,51 @@ const std::string& Node::Arg(size_t i) const
 	{
 	static const std::string empty;
 	return i < args.size() ? args[i] : empty;
+	}
+
+const Node* Node::FindChild(Tag t) const
+	{
+	for ( const auto& c : children )
+		if ( c->GetTag() == t )
+			return c.get();
+	return nullptr;
+	}
+
+const Node* Node::FindChild(Tag t, const Node* after) const
+	{
+	bool past = false;
+	for ( const auto& c : children )
+		{
+		if ( c.get() == after )
+			past = true;
+		else if ( past && c->GetTag() == t )
+			return c.get();
+		}
+	return nullptr;
+	}
+
+std::vector<const Node*> Node::ContentChildren() const
+	{
+	std::vector<const Node*> result;
+	for ( const auto& c : children )
+		{
+		Tag t = c->GetTag();
+		if ( ! is_token(t) && ! is_comment(t) && t != Tag::Semi &&
+		     t != Tag::Blank && t != Tag::TrailingComma )
+			result.push_back(c.get());
+		}
+	return result;
+	}
+
+std::shared_ptr<Node> MakeNode(Tag tag)
+	{
+	switch ( tag )
+		{
+		case Tag::If: return std::make_shared<IfNode>(tag);
+		case Tag::For: return std::make_shared<ForNode>(tag);
+		case Tag::While: return std::make_shared<WhileNode>(tag);
+		default: return std::make_shared<Node>(tag);
+		}
 	}
 
 static const std::unordered_map<Tag, const char*> token_syntax = {

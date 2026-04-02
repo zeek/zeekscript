@@ -1166,9 +1166,12 @@ class Emitter:
         self._mark_content(node)
 
     def _emit_if_extras(self, node, after_node, before_node,
-                         ref_node=None) -> None:
+                         ref_node=None,
+                         skip_trailing=False) -> None:
         """Emit extra children of `node` between `after_node` and
-        `before_node`.  `ref_node` is used for same-line detection."""
+        `before_node`.  `ref_node` is used for same-line detection.
+        If `skip_trailing`, same-line comments are skipped (already
+        captured inside the BODY node by the caller)."""
         past_after = after_node is None
         had_extras = False
         for child in node.children:
@@ -1187,6 +1190,8 @@ class Emitter:
             same_line = (ref_node is not None
                     and child.start_point[0]
                         == ref_node.end_point[0])
+            if same_line and skip_trailing:
+                continue
             if same_line:
                 self._w(f'COMMENT-TRAILING {_quote(text)}')
             else:
@@ -1229,13 +1234,30 @@ class Emitter:
         if body:
             self._open('BODY')
             self._emit_stmt(body)
+            # Capture same-line trailing comment inside BODY.
+            if else_kw:
+                for child in node.children:
+                    if not child.is_extra:
+                        continue
+                    if child.type == "nl":
+                        continue
+                    if child.start_point[0] != body.end_point[0]:
+                        continue
+                    if child.start_byte <= body.end_byte:
+                        continue
+                    if child.start_byte >= else_kw.start_byte:
+                        continue
+                    text = self._text(child)
+                    self._w(f'COMMENT-TRAILING {_quote(text)}')
+                    self._mark_content(child)
             self._close()
 
         # Emit extras between body and else, then check for a
         # blank line before the else keyword.
         if else_kw:
             had_extras = self._emit_if_extras(
-                node, body, else_body, ref_node=body)
+                node, body, else_body, ref_node=body,
+                skip_trailing=True)
             if had_extras:
                 self._maybe_blank(else_kw)
             elif (body is not None

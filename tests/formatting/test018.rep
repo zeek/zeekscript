@@ -46,8 +46,8 @@ FUNC-DECL "function" "some_func" {
           }
           SEMI
         }
+        COMMENT-TRAILING "#@ NOT-TESTED"
       }
-      COMMENT-TRAILING "#@ NOT-TESTED"
       BLANK
       ELSE {
         KEYWORD "else"

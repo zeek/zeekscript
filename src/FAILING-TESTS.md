@@ -259,3 +259,12 @@ entries chronological within a session date.
 - After switch case value wrapping: 149 pass, 22 fail
   - Fixed: test027 (case values fill-pack with wrap at comma)
   - FormatSwitch: fill-pack case values aligned after `case `
+
+## Session progress (2026-04-01)
+- Refactor if/for/while into ConditionBlockNode class hierarchy: 149 pass, 22 fail
+  - New condition_block.{h,cc}: ConditionBlockNode base with virtual BuildCondition/BuildFollowOn
+  - IfNode overrides BuildFollowOn (else clause), ForNode overrides BuildCondition (vars in iter)
+  - WhileNode uses defaults; MakeNode factory creates appropriate subclass
+  - Node gains FindChild, ContentChildren methods; formatter exposes FormatExpr etc.
+  - Emitter fix: trailing comment on single-stmt if-body now inside BODY block
+  - Pure refactor - no behavior changes
