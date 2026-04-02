@@ -1,4 +1,6 @@
-LOCAL-DECL "local" "x" {
+LOCAL-DECL {
+  KEYWORD "local"
+  IDENTIFIER "x"
   ASSIGN "="
   INDEX-LITERAL {
     LBRACKET

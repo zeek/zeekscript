@@ -1,4 +1,6 @@
-FUNC-DECL "function" "f" {
+FUNC-DECL {
+  KEYWORD "function"
+  IDENTIFIER "f"
   PARAMS {
     LPAREN
     RPAREN
@@ -35,7 +37,9 @@ FUNC-DECL "function" "f" {
           }
           RPAREN
           BODY {
-            LOCAL-DECL "local" "x" {
+            LOCAL-DECL {
+              KEYWORD "local"
+              IDENTIFIER "x"
               ASSIGN "="
               CONSTANT "1"
               SEMI

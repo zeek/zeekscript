@@ -1,4 +1,6 @@
-FUNC-DECL "event" "ssl_extension" {
+FUNC-DECL {
+  KEYWORD "event"
+  IDENTIFIER "ssl_extension"
   PARAMS {
     LPAREN
     PARAM "c" {

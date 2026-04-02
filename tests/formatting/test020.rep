@@ -1,6 +1,8 @@
 COMMENT-LEADING "#@ BEGIN-SKIP-TESTING"
 BLANK
-FUNC-DECL "function" "some_func" {
+FUNC-DECL {
+  KEYWORD "function"
+  IDENTIFIER "some_func"
   PARAMS {
     LPAREN
     PARAM "val" {

@@ -42,6 +42,25 @@ void AppendToken(const Node* node, std::string& head,
 	}
 
 // ------------------------------------------------------------------
+// Pre-comment / pre-marker emission
+// ------------------------------------------------------------------
+
+static std::string EmitPreComments(const Node& node,
+                                   const std::string& pad)
+	{
+	std::string result;
+
+	for ( const auto& pc : node.PreComments() )
+		result += pad + pc + "\n";
+
+	for ( const auto& pm : node.PreMarkers() )
+		if ( pm->GetTag() == Tag::Blank )
+			result += "\n";
+
+	return result;
+	}
+
+// ------------------------------------------------------------------
 // Candidate comparison
 // ------------------------------------------------------------------
 
@@ -238,15 +257,14 @@ struct ArgComment
 	};
 
 // Scan a node's children, pairing each non-comment child with
-// its trailing comment (from the node's TrailingComment field or
-// a COMMENT-PREV sibling) and any COMMENT-LEADING that precedes it.
+// its trailing comment and any pre-comments (leading comments
+// attached by the parser).
 // Returns the items and whether any comments were found.
 static std::pair<std::vector<ArgComment>, bool>
 CollectArgs(const Node::NodeVec& children)
 	{
 	std::vector<ArgComment> items;
 	bool has_comments = false;
-	std::vector<std::string> pending_leading;
 	const Node* pending_comma = nullptr;
 
 	for ( size_t i = 0; i < children.size(); ++i )
@@ -272,21 +290,22 @@ CollectArgs(const Node::NodeVec& children)
 			continue;
 			}
 
+		// Orphaned COMMENT-LEADING (end of block, no following
+		// sibling) - still appears as a standalone child.
 		if ( is_comment(t) )
 			{
-			if ( t == Tag::CommentLeading )
-				pending_leading.push_back(c->Arg());
-
 			has_comments = true;
 			continue;
 			}
 
-		if ( c->MustBreakAfter() )
+		if ( c->MustBreakAfter() || c->MustBreakBefore() )
 			has_comments = true;
 
+		std::vector<std::string> leading(c->PreComments().begin(),
+		                                 c->PreComments().end());
+
 		items.push_back({c.get(), c->TrailingComment(),
-		                 std::move(pending_leading), pending_comma});
-		pending_leading.clear();
+		                 std::move(leading), pending_comma});
 		pending_comma = nullptr;
 		}
 
@@ -1503,23 +1522,26 @@ static void DeclTypeSplit(const DeclParts& d, Candidates& result,
 
 static Candidates FormatDecl(const Node& node, const FmtContext& ctx)
 	{
-	const auto& keyword = node.Arg(0);
-	const auto& name = node.Arg(1);
+	const Node* kw_node = node.FindChild(Tag::Keyword);
+	const Node* id_node = node.FindChild(Tag::Identifier);
 
 	DeclParts d;
-	d.head = keyword + " " + name;
+	d.head = kw_node->Text() + " " + id_node->Text();
 	d.type_node = nullptr;
 	d.init_val = nullptr;
 	d.attrs_node = node.FindChild(Tag::AttrList);
 	d.has_semi = node.FindChild(Tag::Semi) != nullptr;
 
 	// Scan children sequentially: COLON precedes type, ASSIGN
-	// precedes init value.
+	// precedes init value.  Skip the head keyword and name nodes.
 	bool expect_type = false;
 	bool expect_init = false;
 
 	for ( const auto& c : node.Children() )
 		{
+		if ( c.get() == kw_node || c.get() == id_node )
+			continue;
+
 		Tag t = c->GetTag();
 
 		if ( t == Tag::Colon )
@@ -1825,6 +1847,8 @@ static std::string FormatStmtList(const Node::NodeVec& nodes,
 
 		seen_content = true;
 
+		result += EmitPreComments(node, pad);
+
 		// PREPROC directives: flow-control (@if etc.) at column 0,
 		// other directives (@load etc.) at current indentation.
 		if ( t == Tag::Preproc )
@@ -2048,15 +2072,15 @@ static std::vector<std::string> FormatParamStrings(const Node* params,
 
 static Candidates FormatFuncDecl(const Node& node, const FmtContext& ctx)
 	{
-	const auto& keyword = node.Arg(0);	// "event", "function", "hook"
-	const auto& name = node.Arg(1);
+	const Node* kw_node = node.FindChild(Tag::Keyword);
+	const Node* id_node = node.FindChild(Tag::Identifier);
 
 	const Node* params = node.FindChild(Tag::Params);
 	const Node* returns = node.FindChild(Tag::Returns);
 	const Node* body = node.FindChild(Tag::Body);
 	const Node* attrs = node.FindChild(Tag::AttrList);
 
-	std::string prefix = keyword + " " + name + "(";
+	std::string prefix = kw_node->Text() + " " + id_node->Text() + "(";
 	int align_col = ctx.Col() + static_cast<int>(prefix.size());
 
 	auto param_strs = FormatParamStrings(params, ctx);
@@ -2459,6 +2483,8 @@ static Candidates FormatTypeDecl(const Node& node, const FmtContext& ctx)
 
 			if ( t == Tag::Field )
 				{
+				body += EmitPreComments(*kids[i], field_pad);
+
 				std::string suffix = ";" +
 					kids[i]->TrailingComment();
 				std::string field_text =

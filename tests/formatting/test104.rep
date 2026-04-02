@@ -1,4 +1,6 @@
-LOCAL-DECL "local" "filter" {
+LOCAL-DECL {
+  KEYWORD "local"
+  IDENTIFIER "filter"
   ASSIGN "="
   CALL {
     IDENTIFIER "Log::Filter"

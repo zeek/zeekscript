@@ -1,4 +1,6 @@
-FUNC-DECL "function" "f" {
+FUNC-DECL {
+  KEYWORD "function"
+  IDENTIFIER "f"
   PARAMS {
     LPAREN
     RPAREN

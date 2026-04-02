@@ -1,4 +1,6 @@
-GLOBAL-DECL "global" "ftp_connections_cache" {
+GLOBAL-DECL {
+  KEYWORD "global"
+  IDENTIFIER "ftp_connections_cache"
   COLON
   TYPE-PARAMETERIZED "set" {
     LBRACKET

@@ -1,4 +1,6 @@
-FUNC-DECL "function" "f" {
+FUNC-DECL {
+  KEYWORD "function"
+  IDENTIFIER "f"
   PARAMS {
     LPAREN
     RPAREN
@@ -10,8 +12,8 @@ FUNC-DECL "function" "f" {
       LPAREN
       IDENTIFIER "x"
       RPAREN
-      COMMENT-LEADING "# comment before body"
       BODY {
+        COMMENT-LEADING "# comment before body"
         PRINT {
           KEYWORD "print"
           CONSTANT "\"done\""

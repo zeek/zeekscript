@@ -1,4 +1,6 @@
-GLOBAL-DECL "redef" "SomeModule::some_generic_packet_thresholds" {
+GLOBAL-DECL {
+  KEYWORD "redef"
+  IDENTIFIER "SomeModule::some_generic_packet_thresholds"
   ASSIGN "+="
   CALL {
     IDENTIFIER "set"

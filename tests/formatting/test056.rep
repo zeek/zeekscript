@@ -1,4 +1,6 @@
-GLOBAL-DECL "global" "some_event_decl" {
+GLOBAL-DECL {
+  KEYWORD "global"
+  IDENTIFIER "some_event_decl"
   COLON
   TYPE-FUNC "event" {
     PARAMS {

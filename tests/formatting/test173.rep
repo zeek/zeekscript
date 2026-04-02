@@ -1,4 +1,6 @@
-GLOBAL-DECL "global" "some_table_name_a" {
+GLOBAL-DECL {
+  KEYWORD "global"
+  IDENTIFIER "some_table_name_a"
   COLON
   TYPE-PARAMETERIZED "table" {
     LBRACKET

@@ -1,4 +1,6 @@
-FUNC-DECL "event" "SomeModule::Geneve::some_filtered_option" {
+FUNC-DECL {
+  KEYWORD "event"
+  IDENTIFIER "SomeModule::Geneve::some_filtered_option"
   PARAMS {
     LPAREN
     PARAM "inner_c" {

@@ -882,7 +882,9 @@ class Emitter:
             attrs = kids[i]
             i += 1
 
-        self._open(f'GLOBAL-DECL {_quote(keyword)} {_quote(name)}')
+        self._open('GLOBAL-DECL')
+        self._w(f'KEYWORD {_quote(keyword)}')
+        self._w(f'IDENTIFIER {_quote(name)}')
         if typ:
             self._w('COLON')
             self._emit_type(typ)
@@ -940,7 +942,9 @@ class Emitter:
             if len(hdr_kids) > 1 and hdr_kids[1].type == "id":
                 name = self._text(hdr_kids[1])
 
-        self._open(f'FUNC-DECL {_quote(kind)} {_quote(name)}')
+        self._open('FUNC-DECL')
+        self._w(f'KEYWORD {_quote(kind)}')
+        self._w(f'IDENTIFIER {_quote(name)}')
         if hdr_inner:
             self._emit_func_params_from(hdr_inner)
         if func_body:
@@ -1151,7 +1155,9 @@ class Emitter:
             attrs = kids[i]
             i += 1
 
-        self._open(f'LOCAL-DECL {_quote(keyword)} {_quote(name)}')
+        self._open('LOCAL-DECL')
+        self._w(f'KEYWORD {_quote(keyword)}')
+        self._w(f'IDENTIFIER {_quote(name)}')
         if typ:
             self._w('COLON')
             self._emit_type(typ)

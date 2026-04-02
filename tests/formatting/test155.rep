@@ -1,4 +1,6 @@
-GLOBAL-DECL "const" "tbl" {
+GLOBAL-DECL {
+  KEYWORD "const"
+  IDENTIFIER "tbl"
   ASSIGN "="
   CONSTRUCTOR "table" {
     LPAREN

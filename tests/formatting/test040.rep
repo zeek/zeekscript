@@ -1,4 +1,6 @@
-GLOBAL-DECL "redef" "some_hosts" {
+GLOBAL-DECL {
+  KEYWORD "redef"
+  IDENTIFIER "some_hosts"
   ASSIGN "+="
   CALL {
     IDENTIFIER "set"

@@ -100,7 +100,8 @@ static void PrintQuoted(const std::string& s)
 
 void Node::Dump(int indent) const
 	{
-	// Emit pre-comments as COMMENT-LEADING siblings before this node.
+	// Emit pre-comments as COMMENT-LEADING siblings, then any
+	// interleaved markers (BLANK etc.), before this node.
 	for ( const auto& pc : pre_comments )
 		{
 		for ( int i = 0; i < indent; ++i )
@@ -109,6 +110,9 @@ void Node::Dump(int indent) const
 		PrintQuoted(pc);
 		printf("\n");
 		}
+
+	for ( const auto& pm : pre_markers )
+		pm->Dump(indent);
 
 	for ( int i = 0; i < indent; ++i )
 		printf("  ");

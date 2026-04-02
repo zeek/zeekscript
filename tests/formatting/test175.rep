@@ -1,5 +1,7 @@
 EXPORT {
-  GLOBAL-DECL "const" "default_analyzer" {
+  GLOBAL-DECL {
+    KEYWORD "const"
+    IDENTIFIER "default_analyzer"
     COLON
     TYPE-ATOM "PacketAnalyzer::Tag"
     ASSIGN "="

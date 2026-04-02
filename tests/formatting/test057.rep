@@ -1,5 +1,7 @@
 EXPORT {
-  GLOBAL-DECL "global" "some_evt" {
+  GLOBAL-DECL {
+    KEYWORD "global"
+    IDENTIFIER "some_evt"
     COLON
     TYPE-FUNC "event" {
       PARAMS {

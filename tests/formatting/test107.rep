@@ -1,11 +1,15 @@
-FUNC-DECL "function" "foo" {
+FUNC-DECL {
+  KEYWORD "function"
+  IDENTIFIER "foo"
   PARAMS {
     LPAREN
     RPAREN
   }
   BODY {
     LBRACE
-    LOCAL-DECL "local" "next_orig_multiplier" {
+    LOCAL-DECL {
+      KEYWORD "local"
+      IDENTIFIER "next_orig_multiplier"
       ASSIGN "="
       CALL {
         IDENTIFIER "double_to_count"

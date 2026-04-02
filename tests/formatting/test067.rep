@@ -1,4 +1,6 @@
-FUNC-DECL "function" "some_func" {
+FUNC-DECL {
+  KEYWORD "function"
+  IDENTIFIER "some_func"
   PARAMS {
     LPAREN
     PARAM "c" {
@@ -12,7 +14,9 @@ FUNC-DECL "function" "some_func" {
   }
   BODY {
     LBRACE
-    LOCAL-DECL "local" "rec" {
+    LOCAL-DECL {
+      KEYWORD "local"
+      IDENTIFIER "rec"
       ASSIGN "="
       FIELD-ACCESS {
         IDENTIFIER "c"

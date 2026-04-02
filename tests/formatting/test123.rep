@@ -2,13 +2,17 @@ PREPROC "@ifdef" "SomeFeature"
 BLANK
 MODULE "SomeMod"
 BLANK
-GLOBAL-DECL "const" "some_var" {
+GLOBAL-DECL {
+  KEYWORD "const"
+  IDENTIFIER "some_var"
   ASSIGN "="
   CONSTANT "\"some-value\""
   SEMI
 }
 BLANK
-FUNC-DECL "event" "zeek_init" {
+FUNC-DECL {
+  KEYWORD "event"
+  IDENTIFIER "zeek_init"
   PARAMS {
     LPAREN
     RPAREN

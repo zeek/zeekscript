@@ -1,4 +1,6 @@
-GLOBAL-DECL "const" "some_lookup" {
+GLOBAL-DECL {
+  KEYWORD "const"
+  IDENTIFIER "some_lookup"
   COLON
   TYPE-PARAMETERIZED "table" {
     LBRACKET

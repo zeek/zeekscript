@@ -1,4 +1,6 @@
-FUNC-DECL "event" "some_event_abc" {
+FUNC-DECL {
+  KEYWORD "event"
+  IDENTIFIER "some_event_abc"
   PARAMS {
     LPAREN
     PARAM "host" {
@@ -14,7 +16,9 @@ FUNC-DECL "event" "some_event_abc" {
   }
   BODY {
     LBRACE
-    LOCAL-DECL "local" "endpoints" {
+    LOCAL-DECL {
+      KEYWORD "local"
+      IDENTIFIER "endpoints"
       ASSIGN "="
       TERNARY {
         BINARY-OP ">" {

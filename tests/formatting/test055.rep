@@ -1,5 +1,7 @@
 EXPORT {
-  GLOBAL-DECL "global" "SomeModule::some_long_handler" {
+  GLOBAL-DECL {
+    KEYWORD "global"
+    IDENTIFIER "SomeModule::some_long_handler"
     COLON
     TYPE-FUNC "event" {
       PARAMS {

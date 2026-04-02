@@ -1,4 +1,6 @@
-FUNC-DECL "event" "SomeModule::some_raised_evt" {
+FUNC-DECL {
+  KEYWORD "event"
+  IDENTIFIER "SomeModule::some_raised_evt"
   PARAMS {
     LPAREN
     PARAM "c" {

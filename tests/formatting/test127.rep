@@ -1,4 +1,6 @@
-FUNC-DECL "function" "some_fn" {
+FUNC-DECL {
+  KEYWORD "function"
+  IDENTIFIER "some_fn"
   PARAMS {
     LPAREN
     RPAREN
@@ -14,7 +16,9 @@ FUNC-DECL "function" "some_fn" {
         BLOCK {
           LBRACE
           BLANK
-          LOCAL-DECL "local" "info" {
+          LOCAL-DECL {
+            KEYWORD "local"
+            IDENTIFIER "info"
             ASSIGN "="
             CALL {
               IDENTIFIER "SomeLongModule::SomeFn"

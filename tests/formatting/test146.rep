@@ -1,4 +1,6 @@
-FUNC-DECL "function" "foo" {
+FUNC-DECL {
+  KEYWORD "function"
+  IDENTIFIER "foo"
   PARAMS {
     LPAREN
     RPAREN
@@ -20,7 +22,9 @@ FUNC-DECL "function" "foo" {
         BLOCK {
           LBRACE
           BLANK
-          LOCAL-DECL "local" "pt" {
+          LOCAL-DECL {
+            KEYWORD "local"
+            IDENTIFIER "pt"
             ASSIGN "="
             CALL {
               IDENTIFIER "Cluster::rr_topic"

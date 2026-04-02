@@ -1,4 +1,6 @@
-FUNC-DECL "event" "zeek_init" {
+FUNC-DECL {
+  KEYWORD "event"
+  IDENTIFIER "zeek_init"
   PARAMS {
     LPAREN
     RPAREN

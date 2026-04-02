@@ -1,4 +1,6 @@
-GLOBAL-DECL "const" "ss" {
+GLOBAL-DECL {
+  KEYWORD "const"
+  IDENTIFIER "ss"
   COLON
   TYPE-PARAMETERIZED "set" {
     LBRACKET

@@ -1,11 +1,15 @@
-FUNC-DECL "function" "f" {
+FUNC-DECL {
+  KEYWORD "function"
+  IDENTIFIER "f"
   PARAMS {
     LPAREN
     RPAREN
   }
   BODY {
     LBRACE
-    LOCAL-DECL "local" "info" {
+    LOCAL-DECL {
+      KEYWORD "local"
+      IDENTIFIER "info"
       ASSIGN "="
       CALL {
         IDENTIFIER "SomeModule::SomeRecord"

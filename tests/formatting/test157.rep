@@ -1,4 +1,6 @@
-LOCAL-DECL "local" "x" {
+LOCAL-DECL {
+  KEYWORD "local"
+  IDENTIFIER "x"
   ASSIGN "="
   TERNARY {
     IDENTIFIER "cond"

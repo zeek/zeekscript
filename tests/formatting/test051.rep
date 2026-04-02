@@ -1,4 +1,6 @@
-FUNC-DECL "event" "some_generic_packet_threshold_crossed" {
+FUNC-DECL {
+  KEYWORD "event"
+  IDENTIFIER "some_generic_packet_threshold_crossed"
   PARAMS {
     LPAREN
     PARAM "c" {

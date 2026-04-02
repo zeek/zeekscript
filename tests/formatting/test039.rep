@@ -1,4 +1,6 @@
-GLOBAL-DECL "redef" "foo" {
+GLOBAL-DECL {
+  KEYWORD "redef"
+  IDENTIFIER "foo"
   ASSIGN "+="
   CALL {
     IDENTIFIER "set"

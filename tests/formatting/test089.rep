@@ -1,11 +1,15 @@
-FUNC-DECL "event" "some_evt" {
+FUNC-DECL {
+  KEYWORD "event"
+  IDENTIFIER "some_evt"
   PARAMS {
     LPAREN
     RPAREN
   }
   BODY {
     LBRACE
-    LOCAL-DECL "local" "some_services" {
+    LOCAL-DECL {
+      KEYWORD "local"
+      IDENTIFIER "some_services"
       ASSIGN "="
       BINARY-OP "|" {
         FIELD-ACCESS {

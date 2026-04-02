@@ -1,5 +1,7 @@
 PREPROC "@ifdef" "SOME_FEATURE"
-FUNC-DECL "event" "SomeModule::some_esp_message" {
+FUNC-DECL {
+  KEYWORD "event"
+  IDENTIFIER "SomeModule::some_esp_message"
   PARAMS {
     LPAREN
     PARAM "c" {

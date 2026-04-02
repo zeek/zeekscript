@@ -28,28 +28,27 @@ Candidates ConditionBlockNode::Format(const FmtContext& ctx) const
 	const Node* body_node = FindChild(Tag::Body);
 	std::string result = head + FormatBodyText(body_node, ctx);
 
-	// Collect interstitial comments and blanks after the body
-	// (e.g., between if-body and else clause).
-	std::string comments;
+	// Check for blank lines after the body (e.g., before else).
 	bool has_blank = false;
-	std::string stmt_pad = LinePrefix(ctx.Indent(), ctx.Col());
 
 	for ( const auto& c : Children() )
-		{
-		Tag ct = c->GetTag();
-
-		if ( ct == Tag::Blank )
+		if ( c->GetTag() == Tag::Blank )
 			has_blank = true;
 
-		else if ( ct == Tag::CommentLeading )
+	// Collect pre-comments from the follow-on node (e.g., Else).
+	std::string comments;
+	std::string stmt_pad = LinePrefix(ctx.Indent(), ctx.Col());
+	const Node* else_node = FindChild(Tag::Else);
+
+	if ( else_node )
+		for ( const auto& pc : else_node->PreComments() )
 			{
 			if ( ! comments.empty() || has_blank )
 				comments += "\n";
 
-			comments += stmt_pad + c->Arg();
+			comments += stmt_pad + pc;
 			has_blank = false;
 			}
-		}
 
 	result += BuildFollowOn(ctx, comments, has_blank);
 

@@ -1,4 +1,6 @@
-GLOBAL-DECL "global" "some_long_cache_name" {
+GLOBAL-DECL {
+  KEYWORD "global"
+  IDENTIFIER "some_long_cache_name"
   COLON
   TYPE-PARAMETERIZED "set" {
     LBRACKET

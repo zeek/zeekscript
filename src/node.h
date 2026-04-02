@@ -52,6 +52,13 @@ public:
 	bool MustBreakBefore() const
 		{ return ! pre_comments.empty(); }
 
+	// Marker nodes (BLANK, etc.) that appeared between the
+	// pre-comments and this node - preserved for round-trip.
+	const Node::NodeVec& PreMarkers() const
+		{ return pre_markers; }
+	void AddPreMarker(std::shared_ptr<Node> m)
+		{ pre_markers.push_back(std::move(m)); }
+
 	void AddArg(std::string a)
 		{ args.push_back(std::move(a)); }
 	void AddChild(std::shared_ptr<Node> child)
@@ -89,6 +96,7 @@ private:
 	NodeVec children;
 	std::string trailing_comment;
 	std::vector<std::string> pre_comments;
+	NodeVec pre_markers;
 	bool has_block = false;
 };
 

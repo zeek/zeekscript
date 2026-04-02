@@ -2,10 +2,37 @@
 
 #include <cstdio>
 
-// Attach pending pre-comments to a node and clear the vector.
+// Attach pending pre-comments (and any held markers) to a node.
+// If the node is a container, push down to its first concrete
+// child so the formatter doesn't need special container logic.
 static void AttachPreComments(std::vector<std::string>& pending,
-                              Node& node)
+                              Node::NodeVec& markers, Node& node)
 	{
+	if ( pending.empty() )
+		return;
+
+	// Push through transparent containers (e.g. BODY) to
+	// the first concrete child inside them.
+	Tag nt = node.GetTag();
+	if ( nt == Tag::Body && node.HasChildren() )
+		{
+		for ( auto& c : node.Children() )
+			{
+			Tag t = c->GetTag();
+			if ( t != Tag::Blank && t != Tag::Semi &&
+			     t != Tag::TrailingComma &&
+			     t != Tag::LBrace && t != Tag::RBrace )
+				{
+				AttachPreComments(pending, markers, *c);
+				return;
+				}
+			}
+		}
+
+	for ( auto& m : markers )
+		node.AddPreMarker(std::move(m));
+	markers.clear();
+
 	for ( auto& c : pending )
 		node.AddPreComment(std::move(c));
 	pending.clear();
@@ -21,6 +48,7 @@ Node::NodeVec Parser::ParseFile()
 	{
 	Node::NodeVec nodes;
 	std::vector<std::string> pending_pre;
+	Node::NodeVec pending_nodes;
 
 	SkipWhitespace();
 
@@ -30,26 +58,38 @@ Node::NodeVec Parser::ParseFile()
 		if ( ! node )
 			return {};  // error already reported
 
+		Tag t = node->GetTag();
+
 		// Attach COMMENT-TRAILING to the preceding node.
-		if ( node->GetTag() == Tag::CommentTrailing &&
-		     ! nodes.empty() )
+		if ( t == Tag::CommentTrailing && ! nodes.empty() )
 			nodes.back()->SetTrailingComment(node->Arg());
 
 		// Save COMMENT-LEADING for the next node.
-		else if ( node->GetTag() == Tag::CommentLeading )
+		else if ( t == Tag::CommentLeading )
 			pending_pre.push_back(node->Arg());
+
+		// When pre-comments are pending, hold BLANK/SEMI/
+		// TrailingComma so they don't separate the comments
+		// from the node they belong to.
+		else if ( ! pending_pre.empty() &&
+		          (t == Tag::Blank || t == Tag::Semi ||
+		           t == Tag::TrailingComma) )
+			pending_nodes.push_back(std::move(node));
 
 		else
 			{
-			AttachPreComments(pending_pre, *node);
+			AttachPreComments(pending_pre, pending_nodes, *node);
 			nodes.push_back(std::move(node));
 			}
 
 		SkipWhitespace();
 		}
 
-	// Flush any trailing COMMENT-LEADING that had no
-	// following node - keep as standalone nodes.
+	// Flush any held markers and trailing comments that
+	// had no following node.
+	for ( auto& pn : pending_nodes )
+		nodes.push_back(std::move(pn));
+
 	for ( auto& c : pending_pre )
 		{
 		auto cn = MakeNode(Tag::CommentLeading);
@@ -97,6 +137,7 @@ std::shared_ptr<Node> Parser::ParseNode()
 		SkipWhitespace();
 
 		std::vector<std::string> pending_pre;
+		Node::NodeVec pending_children;
 
 		while ( ! AtEnd() && Peek() != '}' )
 			{
@@ -104,27 +145,39 @@ std::shared_ptr<Node> Parser::ParseNode()
 			if ( ! child )
 				return nullptr;
 
+			Tag ct = child->GetTag();
+
 			// Attach COMMENT-TRAILING to preceding child.
-			if ( child->GetTag() == Tag::CommentTrailing
+			if ( ct == Tag::CommentTrailing
 			     && node->HasChildren() )
 				node->Children().back()->SetTrailingComment(
 								child->Arg());
 
 			// Save COMMENT-LEADING for the next child.
-			else if ( child->GetTag() == Tag::CommentLeading )
+			else if ( ct == Tag::CommentLeading )
 				pending_pre.push_back(child->Arg());
+
+			// When pre-comments are pending, hold markers
+			// so they don't separate comments from their
+			// target node.
+			else if ( ! pending_pre.empty() &&
+			          (ct == Tag::Blank || ct == Tag::Semi ||
+			           ct == Tag::TrailingComma) )
+				pending_children.push_back(std::move(child));
 
 			else
 				{
-				AttachPreComments(pending_pre, *child);
+				AttachPreComments(pending_pre, pending_children, *child);
 				node->AddChild(std::move(child));
 				}
 
 			SkipWhitespace();
 			}
 
-		// Flush any trailing COMMENT-LEADING that had no
-		// following sibling - keep as standalone children.
+		// Flush any held markers and trailing comments.
+		for ( auto& pc : pending_children )
+			node->AddChild(std::move(pc));
+
 		for ( auto& c : pending_pre )
 			{
 			auto cn = MakeNode(Tag::CommentLeading);

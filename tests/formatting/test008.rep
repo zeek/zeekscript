@@ -1,4 +1,6 @@
-FUNC-DECL "event" "some_event" {
+FUNC-DECL {
+  KEYWORD "event"
+  IDENTIFIER "some_event"
   PARAMS {
     LPAREN
     PARAM "some_arg" {
@@ -8,7 +10,9 @@ FUNC-DECL "event" "some_event" {
   }
   BODY {
     LBRACE
-    LOCAL-DECL "local" "some_name" {
+    LOCAL-DECL {
+      KEYWORD "local"
+      IDENTIFIER "some_name"
       ASSIGN "="
       CALL {
         IDENTIFIER "some_func"

@@ -1,4 +1,6 @@
-FUNC-DECL "event" "some_event" {
+FUNC-DECL {
+  KEYWORD "event"
+  IDENTIFIER "some_event"
   PARAMS {
     LPAREN
     RPAREN

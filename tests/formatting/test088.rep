@@ -1,4 +1,6 @@
-GLOBAL-DECL "global" "x" {
+GLOBAL-DECL {
+  KEYWORD "global"
+  IDENTIFIER "x"
   ASSIGN "="
   INDEX-LITERAL {
     LBRACKET

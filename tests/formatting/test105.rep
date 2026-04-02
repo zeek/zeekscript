@@ -1,11 +1,15 @@
-FUNC-DECL "event" "zeek_init" {
+FUNC-DECL {
+  KEYWORD "event"
+  IDENTIFIER "zeek_init"
   PARAMS {
     LPAREN
     RPAREN
   }
   BODY {
     LBRACE
-    LOCAL-DECL "local" "filter" {
+    LOCAL-DECL {
+      KEYWORD "local"
+      IDENTIFIER "filter"
       ASSIGN "="
       CALL {
         IDENTIFIER "Log::Filter"
