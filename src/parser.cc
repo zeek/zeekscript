@@ -2,6 +2,15 @@
 
 #include <cstdio>
 
+// Attach pending pre-comments to a node and clear the vector.
+static void AttachPreComments(std::vector<std::string>& pending,
+                              Node& node)
+	{
+	for ( auto& c : pending )
+		node.AddPreComment(std::move(c));
+	pending.clear();
+	}
+
 Node::NodeVec Parser::Parse(const std::string& input)
 	{
 	Parser p(input);
@@ -11,6 +20,7 @@ Node::NodeVec Parser::Parse(const std::string& input)
 Node::NodeVec Parser::ParseFile()
 	{
 	Node::NodeVec nodes;
+	std::vector<std::string> pending_pre;
 
 	SkipWhitespace();
 
@@ -24,10 +34,27 @@ Node::NodeVec Parser::ParseFile()
 		if ( node->GetTag() == Tag::CommentTrailing &&
 		     ! nodes.empty() )
 			nodes.back()->SetTrailingComment(node->Arg());
+
+		// Save COMMENT-LEADING for the next node.
+		else if ( node->GetTag() == Tag::CommentLeading )
+			pending_pre.push_back(node->Arg());
+
 		else
+			{
+			AttachPreComments(pending_pre, *node);
 			nodes.push_back(std::move(node));
+			}
 
 		SkipWhitespace();
+		}
+
+	// Flush any trailing COMMENT-LEADING that had no
+	// following node - keep as standalone nodes.
+	for ( auto& c : pending_pre )
+		{
+		auto cn = MakeNode(Tag::CommentLeading);
+		cn->AddArg(std::move(c));
+		nodes.push_back(std::move(cn));
 		}
 
 	return nodes;
@@ -69,21 +96,40 @@ std::shared_ptr<Node> Parser::ParseNode()
 		Advance();  // consume '{'
 		SkipWhitespace();
 
+		std::vector<std::string> pending_pre;
+
 		while ( ! AtEnd() && Peek() != '}' )
 			{
 			auto child = ParseNode();
 			if ( ! child )
 				return nullptr;
 
-			// Attach COMMENT-TRAILING to the preceding child node.
+			// Attach COMMENT-TRAILING to preceding child.
 			if ( child->GetTag() == Tag::CommentTrailing
 			     && node->HasChildren() )
 				node->Children().back()->SetTrailingComment(
 								child->Arg());
+
+			// Save COMMENT-LEADING for the next child.
+			else if ( child->GetTag() == Tag::CommentLeading )
+				pending_pre.push_back(child->Arg());
+
 			else
+				{
+				AttachPreComments(pending_pre, *child);
 				node->AddChild(std::move(child));
+				}
 
 			SkipWhitespace();
+			}
+
+		// Flush any trailing COMMENT-LEADING that had no
+		// following sibling - keep as standalone children.
+		for ( auto& c : pending_pre )
+			{
+			auto cn = MakeNode(Tag::CommentLeading);
+			cn->AddArg(std::move(c));
+			node->AddChild(std::move(cn));
 			}
 
 		if ( AtEnd() )

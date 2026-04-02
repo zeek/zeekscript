@@ -28,7 +28,7 @@ void AppendToken(const Node* node, std::string& head,
 	head += node->Text();
 	col += static_cast<int>(node->Text().size());
 
-	if ( node->MustBreak() )
+	if ( node->MustBreakAfter() )
 		{
 		indent = break_indent;
 		col = indent * INDENT_WIDTH;
@@ -264,7 +264,7 @@ CollectArgs(const Node::NodeVec& children)
 			if ( t == Tag::Comma )
 				pending_comma = c.get();
 
-			if ( c->MustBreak() && ! items.empty() )
+			if ( c->MustBreakAfter() && ! items.empty() )
 				{
 				items.back().comment = c->TrailingComment();
 				has_comments = true;
@@ -281,7 +281,7 @@ CollectArgs(const Node::NodeVec& children)
 			continue;
 			}
 
-		if ( c->MustBreak() )
+		if ( c->MustBreakAfter() )
 			has_comments = true;
 
 		items.push_back({c.get(), c->TrailingComment(),

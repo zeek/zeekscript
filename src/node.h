@@ -45,6 +45,13 @@ public:
 	void SetTrailingComment(std::string c)
 		{ trailing_comment = " " + std::move(c); }
 
+	const std::vector<std::string>& PreComments() const
+		{ return pre_comments; }
+	void AddPreComment(std::string c)
+		{ pre_comments.push_back(std::move(c)); }
+	bool MustBreakBefore() const
+		{ return ! pre_comments.empty(); }
+
 	void AddArg(std::string a)
 		{ args.push_back(std::move(a)); }
 	void AddChild(std::shared_ptr<Node> child)
@@ -64,7 +71,7 @@ public:
 
 	// True if a line break must follow this node (has a
 	// trailing comment).
-	bool MustBreak() const
+	bool MustBreakAfter() const
 		{ return ! trailing_comment.empty(); }
 
 	bool HasBlock() const { return has_block; }
@@ -81,6 +88,7 @@ private:
 	std::vector<std::string> args;
 	NodeVec children;
 	std::string trailing_comment;
+	std::vector<std::string> pre_comments;
 	bool has_block = false;
 };
 

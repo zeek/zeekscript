@@ -100,6 +100,16 @@ static void PrintQuoted(const std::string& s)
 
 void Node::Dump(int indent) const
 	{
+	// Emit pre-comments as COMMENT-LEADING siblings before this node.
+	for ( const auto& pc : pre_comments )
+		{
+		for ( int i = 0; i < indent; ++i )
+			printf("  ");
+		printf("COMMENT-LEADING ");
+		PrintQuoted(pc);
+		printf("\n");
+		}
+
 	for ( int i = 0; i < indent; ++i )
 		printf("  ");
 
