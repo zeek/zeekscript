@@ -76,6 +76,7 @@ static const std::unordered_map<Tag, const char*> token_syntax = {
 	{Tag::Colon, ":"},
 	{Tag::Dollar, "$"},
 	{Tag::Question, "?"},
+	{Tag::Semi, ";"},
 };
 
 std::string Node::Text() const

@@ -13,6 +13,7 @@ TYPE-DECL "Foo" {
           CONSTANT "\"\""
         }
       }
+      SEMI
     }
     FIELD "bb" {
       COLON
@@ -22,12 +23,14 @@ TYPE-DECL "Foo" {
           CONSTANT "0"
         }
       }
+      SEMI
     }
     COMMENT-TRAILING "# a comment"
     BLANK
     FIELD "cc" {
       COLON
       TYPE-ATOM "bool"
+      SEMI
     }
     FIELD "dd" {
       COLON
@@ -37,6 +40,7 @@ TYPE-DECL "Foo" {
           CONSTANT "F"
         }
       }
+      SEMI
     }
     RBRACE
   }

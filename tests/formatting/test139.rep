@@ -19,6 +19,7 @@ EXPORT {
           ATTR "&log"
           ATTR "&optional"
         }
+        SEMI
       }
       COMMENT-TRAILING "# A set of associated strings"
       RBRACE

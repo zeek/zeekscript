@@ -732,6 +732,8 @@ class Emitter:
             if not child.is_named:
                 if self._text(child) == ":":
                     self._w('COLON')
+                elif self._text(child) == ";":
+                    self._w('SEMI')
             elif child.type == "id":
                 pass  # already extracted for tag
             elif child.type == "type":

@@ -1355,7 +1355,8 @@ static std::vector<std::string> FormatAttrStrings(const Node& node,
 // ------------------------------------------------------------------
 
 // Build the suffix: attrs + optional semicolon.
-static std::string DeclSuffix(const Node* attrs_node, bool has_semi,
+static std::string DeclSuffix(const Node* attrs_node,
+                              const Node* semi_node,
                               const FmtContext& ctx)
 	{
 	std::string suffix;
@@ -1367,8 +1368,8 @@ static std::string DeclSuffix(const Node* attrs_node, bool has_semi,
 			suffix += " " + as;
 		}
 
-	if ( has_semi )
-		suffix += ";";
+	if ( semi_node )
+		suffix += semi_node->Text();
 
 	return suffix;
 	}
@@ -1382,7 +1383,7 @@ struct DeclParts {
 	std::string assign_op;	// "=", "+=", or ""
 	const Node* init_val;	// direct init value (after ASSIGN)
 	const Node* attrs_node;
-	bool has_semi;
+	const Node* semi_node;
 };
 
 // Flat candidate + split-after-init for declarations with initializers.
@@ -1471,7 +1472,7 @@ static void DeclNoInit(const DeclParts& d, Candidates& result,
 		}
 
 	// Type alone, attrs on separate lines.
-	std::string semi_str = d.has_semi ? ";" : "";
+	std::string semi_str = d.semi_node ? d.semi_node->Text() : "";
 	std::string type_suffix = d.attrs_node ? "" : d.suffix;
 	std::string split = line1 + "\n" + pad + tv + type_suffix;
 
@@ -1517,7 +1518,7 @@ static void DeclWrappedAttrs(const DeclParts& d, Candidates& result,
 	int attr_col = static_cast<int>(d.head.size()) + 3;
 	std::string attr_pad = LinePrefix(ctx.Indent(), attr_col);
 	int max_col = ctx.MaxCol();
-	int semi_w = d.has_semi ? 1 : 0;
+	int semi_w = d.semi_node ? d.semi_node->Width() : 0;
 
 	// Check if all attrs fit on one continuation line.
 	std::string all_attrs;
@@ -1554,8 +1555,8 @@ static void DeclWrappedAttrs(const DeclParts& d, Candidates& result,
 			}
 		}
 
-	if ( d.has_semi )
-		wrapped += ";";
+	if ( d.semi_node )
+		wrapped += d.semi_node->Text();
 
 	int last_w = LastLineLen(wrapped);
 	int lines = CountLines(wrapped);
@@ -1606,7 +1607,7 @@ static Candidates FormatDecl(const Node& node, const FmtContext& ctx)
 	d.type_node = nullptr;
 	d.init_val = nullptr;
 	d.attrs_node = node.FindOptChild(Tag::AttrList);
-	d.has_semi = node.FindChild(Tag::Semi) != nullptr;
+	d.semi_node = node.FindOptChild(Tag::Semi);
 
 	// Scan children sequentially: COLON precedes type, ASSIGN
 	// precedes init value.  Skip the head keyword and name nodes.
@@ -1655,7 +1656,7 @@ static Candidates FormatDecl(const Node& node, const FmtContext& ctx)
 			d.type_str = ": " + ts;
 		}
 
-	d.suffix = DeclSuffix(d.attrs_node, d.has_semi, ctx);
+	d.suffix = DeclSuffix(d.attrs_node, d.semi_node, ctx);
 
 	Candidates result;
 
@@ -1750,8 +1751,8 @@ static Candidates FormatEventStmt(const Node& node, const FmtContext& ctx)
 	const Node* kw_node = node.FindChild(Tag::Keyword);
 	std::string name = node.Arg();
 	const Node* args_node = node.FindChild(Tag::Args);
-	bool has_semi = node.FindChild(Tag::Semi) != nullptr;
-	std::string semi_str = has_semi ? ";" : "";
+	const Node* semi = node.FindOptChild(Tag::Semi);
+	std::string semi_str = semi ? semi->Text() : "";
 
 	std::string prefix = kw_node->Text() + " " + name;
 
@@ -1767,7 +1768,8 @@ static Candidates FormatEventStmt(const Node& node, const FmtContext& ctx)
 	if ( ! args_node->TrailingComment().empty() )
 		has_comments = true;
 
-	FmtContext inner = has_semi ? ctx.Reserve(1) : ctx;
+	int semi_w = semi ? semi->Width() : 0;
+	FmtContext inner = semi ? ctx.Reserve(semi_w) : ctx;
 	auto cs = FlatOrFill(prefix, lp->Text(), rp->Text(), "",
 		items, has_comments, inner,
 		args_node->TrailingComment());
@@ -1776,7 +1778,7 @@ static Candidates FormatEventStmt(const Node& node, const FmtContext& ctx)
 	for ( auto& c : cs )
 		{
 		std::string text = c.Text() + semi_str;
-		int w = c.Width() + (has_semi ? 1 : 0);
+		int w = c.Width() + semi_w;
 		result.push_back({text, w, c.Lines(), c.Ovf(), ctx.Col()});
 		}
 
@@ -1788,43 +1790,34 @@ static Candidates FormatKeywordStmt(const Node& node, const FmtContext& ctx)
 	const Node* kw_node = node.FindChild(Tag::Keyword);
 	std::string keyword = kw_node->Text();
 	const Node* expr = nullptr;
-	bool has_semi = false;
+	const Node* semi = nullptr;
 
 	for ( const auto& c : node.Children() )
 		{
 		Tag t = c->GetTag();
 		if ( t == Tag::Semi )
-			has_semi = true;
+			semi = c.get();
 		else if ( ! is_comment(t) && ! is_token(t) && ! expr )
 			expr = c.get();
 		}
 
+	std::string semi_str = semi ? semi->Text() : "";
+	int semi_w = semi ? semi->Width() : 0;
+
 	if ( ! expr )
-		{
-		std::string text = keyword;
-		if ( has_semi )
-			text += ";";
-		return {Candidate(text, ctx)};
-		}
+		return {Candidate(keyword + semi_str, ctx)};
 
 	std::string prefix = keyword + " ";
 	int prefix_w = static_cast<int>(prefix.size());
-	int semi_cost = has_semi ? 1 : 0;
 
-	FmtContext expr_ctx = ctx.After(prefix_w).Reserve(semi_cost);
+	FmtContext expr_ctx = ctx.After(prefix_w).Reserve(semi_w);
 	auto expr_cs = FormatExpr(*expr, expr_ctx);
 
 	Candidates result;
 	for ( const auto& ec : expr_cs )
 		{
-		std::string text = prefix + ec.Text();
-		int w = prefix_w + ec.Width();
-
-		if ( has_semi )
-			{
-			text += ";";
-			++w;
-			}
+		std::string text = prefix + ec.Text() + semi_str;
+		int w = prefix_w + ec.Width() + semi_w;
 
 		int ovf = ec.Ovf();
 		if ( ec.Lines() == 1 )
@@ -1844,7 +1837,9 @@ static Candidates FormatModuleDecl(const Node& node, const FmtContext& ctx)
 	{
 	const Node* kw = node.FindChild(Tag::Keyword);
 	const Node* id = node.FindChild(Tag::Identifier);
-	return {Candidate(kw->Text() + " " + id->Text() + ";", ctx)};
+	const Node* semi = node.FindChild(Tag::Semi);
+	return {Candidate(kw->Text() + " " + id->Text() +
+		semi->Text(), ctx)};
 	}
 
 // ------------------------------------------------------------------
@@ -1965,20 +1960,21 @@ static std::string FormatStmtList(const Node::NodeVec& nodes,
 			}
 
 		// Consume a following SEMI sibling.
-		bool sibling_semi = false;
+		const Node* sibling_semi = nullptr;
 		if ( i + 1 < nodes.size() &&
 		     nodes[i + 1]->GetTag() == Tag::Semi )
 			{
-			sibling_semi = true;
+			sibling_semi = nodes[i + 1].get();
 			++i;
 			}
 
-		std::string semi_str = sibling_semi ? ";" : "";
+		std::string semi_str = sibling_semi
+			? sibling_semi->Text() : "";
 
 		// Check for trailing comment on the node or its SEMI.
 		std::string comment_text = node.TrailingComment();
 		if ( comment_text.empty() && sibling_semi )
-			comment_text = nodes[i]->TrailingComment();
+			comment_text = sibling_semi->TrailingComment();
 
 		int comment_w = static_cast<int>(comment_text.size());
 		int trail_w = static_cast<int>(semi_str.size()) + comment_w;
@@ -2509,7 +2505,8 @@ static Candidates FormatTypeDecl(const Node& node, const FmtContext& ctx)
 	{
 	const Node* kw_node = node.FindChild(Tag::Keyword);
 	const Node* id_node = node.FindChild(Tag::Identifier);
-	std::string semi_str = ";";
+	const Node* semi = node.FindChild(Tag::Semi);
+	std::string semi_str = semi->Text();
 
 	std::string prefix = kw_node->Text() + " " + id_node->Text();
 
@@ -2616,7 +2613,9 @@ static Candidates FormatTypeDecl(const Node& node, const FmtContext& ctx)
 				{
 				body += EmitPreComments(*ki, field_pad);
 
-				std::string suffix = ";" +
+				const Node* fsemi =
+					ki->FindChild(Tag::Semi);
+				std::string suffix = fsemi->Text() +
 					ki->TrailingComment();
 				std::string field_text =
 					FormatField(*ki, suffix, field_ctx);
@@ -2703,37 +2702,35 @@ static Candidates FormatExprStmt(const Node& node, const FmtContext& ctx)
 		throw FormatError("EXPR-STMT node needs children");
 
 	const Node* expr = nullptr;
-	bool has_semi = false;
+	const Node* semi = nullptr;
 
 	for ( const auto& c : kids )
 		{
 		Tag t = c->GetTag();
 		if ( t == Tag::Semi )
-			has_semi = true;
+			semi = c.get();
 
 		else if ( ! is_comment(t) && ! expr )
 			expr = c.get();
 		}
 
 	if ( ! expr )
-		return {Candidate(";", ctx)};
+		{
+		std::string st = semi ? semi->Text() : "";
+		return {Candidate(st, ctx)};
+		}
 
 	// Reserve trailing space for the semicolon.
-	int semi_cost = has_semi ? 1 : 0;
-	FmtContext expr_ctx = ctx.Reserve(semi_cost);
+	std::string semi_str = semi ? semi->Text() : "";
+	int semi_w = semi ? semi->Width() : 0;
+	FmtContext expr_ctx = ctx.Reserve(semi_w);
 	auto expr_cs = FormatExpr(*expr, expr_ctx);
 
 	Candidates result;
 	for ( const auto& ec : expr_cs )
 		{
-		std::string text = ec.Text();
-		int w = ec.Width();
-
-		if ( has_semi )
-			{
-			text += ";";
-			++w;
-			}
+		std::string text = ec.Text() + semi_str;
+		int w = ec.Width() + semi_w;
 
 		int ovf = ec.Ovf();
 		if ( ec.Lines() == 1 )
