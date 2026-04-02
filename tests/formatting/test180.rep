@@ -1,0 +1,24 @@
+FUNC-DECL "function" "f" {
+  PARAMS {
+    LPAREN
+    RPAREN
+  }
+  BODY {
+    LBRACE
+    IF {
+      KEYWORD "if"
+      LPAREN
+      IDENTIFIER "x"
+      RPAREN
+      COMMENT-LEADING "# comment before body"
+      BODY {
+        PRINT {
+          KEYWORD "print"
+          CONSTANT "\"done\""
+          SEMI
+        }
+      }
+    }
+    RBRACE
+  }
+}
