@@ -1,4 +1,7 @@
-PREPROC "@if" "FOO"
+PREPROC "@if" "FOO" {
+  LPAREN
+  RPAREN
+}
 PREPROC "@load" "foo"
 PREPROC "@else"
 PREPROC "@load" "bar"

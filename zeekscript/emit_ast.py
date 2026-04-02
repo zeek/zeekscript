@@ -1560,9 +1560,16 @@ class Emitter:
         kids = self._children(node)
         directive = self._text(kids[0]) if kids else "?"
         args = [k for k in kids[1:] if k.is_named]
+        has_parens = directive in ("@if", "@ifdef", "@ifndef")
         if args:
             arg_strs = " ".join(_quote(self._text(a)) for a in args)
-            self._w(f'PREPROC {_quote(directive)} {arg_strs}')
+            if has_parens:
+                self._open(f'PREPROC {_quote(directive)} {arg_strs}')
+                self._w('LPAREN')
+                self._w('RPAREN')
+                self._close()
+            else:
+                self._w(f'PREPROC {_quote(directive)} {arg_strs}')
         else:
             self._w(f'PREPROC {_quote(directive)}')
         self._mark_content(node)

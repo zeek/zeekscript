@@ -7,7 +7,10 @@ FUNC-DECL {
   }
   BODY {
     LBRACE
-    PREPROC "@if" "FOO"
+    PREPROC "@if" "FOO" {
+      LPAREN
+      RPAREN
+    }
     PRINT {
       KEYWORD "print"
       CONSTANT "1"

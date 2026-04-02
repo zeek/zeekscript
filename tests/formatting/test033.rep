@@ -1,4 +1,7 @@
-PREPROC "@ifdef" "SOME_FEATURE"
+PREPROC "@ifdef" "SOME_FEATURE" {
+  LPAREN
+  RPAREN
+}
 BLANK
 FUNC-DECL {
   KEYWORD "event"

@@ -1,4 +1,7 @@
-PREPROC "@ifdef" "SomeFeature"
+PREPROC "@ifdef" "SomeFeature" {
+  LPAREN
+  RPAREN
+}
 BLANK
 MODULE "SomeMod" {
   KEYWORD "module"

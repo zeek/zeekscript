@@ -1876,7 +1876,7 @@ static Candidates FormatModuleDecl(const Node& node, const FmtContext& ctx)
 // ------------------------------------------------------------------
 
 // Format a PREPROC directive.  Returns the text (always at column 0).
-// Directives with conditions get "( arg )" spacing.
+// Conditional directives have LPAREN/RPAREN children for "( arg )" spacing.
 static std::string FormatPreproc(const Node& node)
 	{
 	const auto& directive = node.Arg(0);
@@ -1885,10 +1885,12 @@ static std::string FormatPreproc(const Node& node)
 	if ( arg.empty() )
 		return directive;
 
-	// @if, @ifdef, @ifndef get "( arg )" spacing.
-	if ( directive == "@if" || directive == "@ifdef" ||
-	     directive == "@ifndef" )
-		return directive + " ( " + arg + " )";
+	// @if, @ifdef, @ifndef have LPAREN/RPAREN children.
+	const Node* lp = node.FindOptChild(Tag::LParen);
+	const Node* rp = node.FindOptChild(Tag::RParen);
+	if ( lp && rp )
+		return directive + " " + lp->Text() + " " + arg +
+			" " + rp->Text();
 
 	// @load, @load-sigs, etc. use space.
 	return directive + " " + arg;
