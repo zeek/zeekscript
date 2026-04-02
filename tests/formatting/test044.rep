@@ -39,8 +39,10 @@ FUNC-DECL {
                     FIELD-ACCESS {
                       FIELD-ACCESS {
                         IDENTIFIER "c"
+                        DOLLAR
                         IDENTIFIER "id"
                       }
+                      DOLLAR
                       IDENTIFIER "orig_h"
                     }
                     COMMA
@@ -54,13 +56,16 @@ FUNC-DECL {
                 FIELD-ACCESS {
                   FIELD-ACCESS {
                     IDENTIFIER "c"
+                    DOLLAR
                     IDENTIFIER "id"
                   }
+                  DOLLAR
                   IDENTIFIER "orig_h"
                 }
                 COMMA
                 FIELD-ACCESS {
                   IDENTIFIER "c"
+                  DOLLAR
                   IDENTIFIER "uid"
                 }
                 COMMA
@@ -68,6 +73,7 @@ FUNC-DECL {
                 COMMA
                 FIELD-ACCESS {
                   IDENTIFIER "conn"
+                  DOLLAR
                   IDENTIFIER "orig_bytes"
                 }
                 RPAREN

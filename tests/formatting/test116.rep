@@ -10,6 +10,7 @@ IF {
           BINARY-OP "==" {
             FIELD-ACCESS {
               IDENTIFIER "result"
+              DOLLAR
               IDENTIFIER "result_string"
             }
             OP "=="
@@ -28,6 +29,7 @@ IF {
         OP "|"
         FIELD-ACCESS {
           IDENTIFIER "result"
+          DOLLAR
           IDENTIFIER "chain_certs"
         }
         OP "|"

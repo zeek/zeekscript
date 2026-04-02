@@ -47,10 +47,14 @@ FUNC-DECL {
                   ARGS {
                     LPAREN
                     FIELD-ASSIGN "field_a" {
+                      DOLLAR
+                      ASSIGN "="
                       IDENTIFIER "val_a"
                     }
                     COMMA
                     FIELD-ASSIGN "field_b" {
+                      DOLLAR
+                      ASSIGN "="
                       IDENTIFIER "val_b"
                     }
                     RPAREN

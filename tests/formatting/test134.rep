@@ -15,15 +15,21 @@ FUNC-DECL {
           INDEX-LITERAL {
             LBRACKET
             FIELD-ASSIGN "aa" {
+              DOLLAR
+              ASSIGN "="
               IDENTIFIER "BB"
             }
             COMMA
             FIELD-ASSIGN "cc" {
+              DOLLAR
+              ASSIGN "="
               IDENTIFIER "dd"
             }
             COMMA
             COMMENT-TRAILING "#@ SOME-TAG"
             FIELD-ASSIGN "ee" {
+              DOLLAR
+              ASSIGN "="
               IDENTIFIER "ff"
             }
             RBRACKET

@@ -17,14 +17,20 @@ FUNC-DECL {
           INDEX-LITERAL {
             LBRACKET
             FIELD-ASSIGN "columns" {
+              DOLLAR
+              ASSIGN "="
               IDENTIFIER "Info"
             }
             COMMA
             FIELD-ASSIGN "path" {
+              DOLLAR
+              ASSIGN "="
               CONSTANT "\"some_path\""
             }
             COMMA
             FIELD-ASSIGN "policy" {
+              DOLLAR
+              ASSIGN "="
               IDENTIFIER "log_policy"
             }
             RBRACKET

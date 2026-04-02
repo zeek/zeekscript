@@ -23,6 +23,7 @@ FUNC-DECL {
       INDEX {
         FIELD-ACCESS {
           IDENTIFIER "c"
+          DOLLAR
           IDENTIFIER "app"
         }
         SUBSCRIPTS {

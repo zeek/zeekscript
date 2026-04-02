@@ -457,7 +457,6 @@ class Emitter:
 
         # Field assignment in record constructor: $field = expr
         if "$" in token_texts and not kids[0].is_named:
-            # $foo=expr pattern
             field_name = ""
             value_expr = None
             for k in kids:
@@ -467,10 +466,14 @@ class Emitter:
                     value_expr = k
             if value_expr:
                 self._open(f'FIELD-ASSIGN {_quote(field_name)}')
+                self._w('DOLLAR')
+                self._w('ASSIGN "="')
                 self._emit_expr(value_expr)
                 self._close()
             else:
-                self._w(f'FIELD-ASSIGN {_quote(field_name)}')
+                self._open(f'FIELD-ASSIGN {_quote(field_name)}')
+                self._w('DOLLAR')
+                self._close()
             self._mark_content(node)
             return
 
@@ -480,6 +483,7 @@ class Emitter:
             field = kids[-1]
             self._open('FIELD-ACCESS')
             self._emit_expr_child(base)
+            self._w('DOLLAR')
             self._w(f'IDENTIFIER {_quote(self._text(field))}')
             self._close()
             self._mark_content(node)

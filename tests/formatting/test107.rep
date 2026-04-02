@@ -23,8 +23,10 @@ FUNC-DECL {
                 FIELD-ACCESS {
                   FIELD-ACCESS {
                     IDENTIFIER "c"
+                    DOLLAR
                     IDENTIFIER "orig"
                   }
+                  DOLLAR
                   IDENTIFIER "size"
                 }
                 OP "/"

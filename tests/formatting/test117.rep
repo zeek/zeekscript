@@ -25,6 +25,7 @@ FUNC-DECL {
         OP "!in"
         FIELD-ACCESS {
           IDENTIFIER "SomeModule::other"
+          DOLLAR
           IDENTIFIER "nested_field"
         }
       }

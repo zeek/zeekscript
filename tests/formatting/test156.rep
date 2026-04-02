@@ -29,11 +29,13 @@ FUNC-DECL {
             TERNARY {
               FIELD-ACCESS {
                 IDENTIFIER "info"
+                DOLLAR
                 IDENTIFIER "source"
               }
               QUESTION
               FIELD-ACCESS {
                 IDENTIFIER "info"
+                DOLLAR
                 IDENTIFIER "source"
               }
               COLON
@@ -43,11 +45,13 @@ FUNC-DECL {
             TERNARY {
               FIELD-ACCESS {
                 IDENTIFIER "info"
+                DOLLAR
                 IDENTIFIER "mime"
               }
               QUESTION
               FIELD-ACCESS {
                 IDENTIFIER "info"
+                DOLLAR
                 IDENTIFIER "mime"
               }
               COLON
@@ -57,11 +61,13 @@ FUNC-DECL {
             TERNARY {
               FIELD-ACCESS {
                 IDENTIFIER "info"
+                DOLLAR
                 IDENTIFIER "md5"
               }
               QUESTION
               FIELD-ACCESS {
                 IDENTIFIER "info"
+                DOLLAR
                 IDENTIFIER "md5"
               }
               COLON

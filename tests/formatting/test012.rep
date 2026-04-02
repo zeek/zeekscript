@@ -11,17 +11,20 @@ FUNC-DECL {
       BINARY-OP "=" {
         FIELD-ACCESS {
           IDENTIFIER "si"
+          DOLLAR
           IDENTIFIER "successful_entities"
         }
         OP "="
         BINARY-OP "|" {
           FIELD-ACCESS {
             IDENTIFIER "si"
+            DOLLAR
             IDENTIFIER "successful_entities"
           }
           OP "|"
           FIELD-ACCESS {
             IDENTIFIER "worker_si"
+            DOLLAR
             IDENTIFIER "successful_entities"
           }
         }

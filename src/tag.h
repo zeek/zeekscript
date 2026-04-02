@@ -98,6 +98,7 @@ enum class Tag {
 	Keyword,
 	Op,
 	Assign,
+	Dollar,
 	Question,
 
 	// Markers

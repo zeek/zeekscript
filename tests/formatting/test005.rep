@@ -6,6 +6,8 @@ EXPR-STMT {
       INDEX-LITERAL {
         LBRACKET
         FIELD-ASSIGN "msg" {
+          DOLLAR
+          ASSIGN "="
           CALL {
             IDENTIFIER "fmt"
             ARGS {

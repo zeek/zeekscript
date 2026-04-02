@@ -30,6 +30,7 @@ FUNC-DECL {
               OP "|"
               FIELD-ACCESS {
                 IDENTIFIER "c"
+                DOLLAR
                 IDENTIFIER "tunnel"
               }
               OP "|"
@@ -44,6 +45,7 @@ FUNC-DECL {
             INDEX {
               FIELD-ACCESS {
                 IDENTIFIER "c"
+                DOLLAR
                 IDENTIFIER "tunnel"
               }
               SUBSCRIPTS {
@@ -53,6 +55,7 @@ FUNC-DECL {
                     OP "|"
                     FIELD-ACCESS {
                       IDENTIFIER "c"
+                      DOLLAR
                       IDENTIFIER "tunnel"
                     }
                     OP "|"
@@ -63,6 +66,7 @@ FUNC-DECL {
                 RBRACKET
               }
             }
+            DOLLAR
             IDENTIFIER "tunnel_type"
           }
           OP "=="

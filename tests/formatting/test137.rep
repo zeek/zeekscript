@@ -15,10 +15,14 @@ FUNC-DECL {
           INDEX-LITERAL {
             LBRACKET
             FIELD-ASSIGN "field_a" {
+              DOLLAR
+              ASSIGN "="
               IDENTIFIER "Some_Enum_Val"
             }
             COMMA
             FIELD-ASSIGN "field_b" {
+              DOLLAR
+              ASSIGN "="
               CALL {
                 IDENTIFIER "fmt"
                 ARGS {
@@ -34,10 +38,14 @@ FUNC-DECL {
             }
             COMMA
             FIELD-ASSIGN "field_c" {
+              DOLLAR
+              ASSIGN "="
               IDENTIFIER "src_host"
             }
             COMMA
             FIELD-ASSIGN "field_d" {
+              DOLLAR
+              ASSIGN "="
               CALL {
                 IDENTIFIER "cat"
                 ARGS {

@@ -18,6 +18,8 @@ GLOBAL-DECL {
         ARGS {
           LPAREN
           FIELD-ASSIGN "field" {
+            DOLLAR
+            ASSIGN "="
             IDENTIFIER "val"
           }
           RPAREN

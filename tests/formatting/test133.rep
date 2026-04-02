@@ -15,10 +15,14 @@ FUNC-DECL {
           INDEX-LITERAL {
             LBRACKET
             FIELD-ASSIGN "aa" {
+              DOLLAR
+              ASSIGN "="
               IDENTIFIER "BB"
             }
             COMMA
             FIELD-ASSIGN "cc" {
+              DOLLAR
+              ASSIGN "="
               CALL {
                 IDENTIFIER "fmt"
                 ARGS {
@@ -32,14 +36,20 @@ FUNC-DECL {
             }
             COMMA
             FIELD-ASSIGN "dd" {
+              DOLLAR
+              ASSIGN "="
               IDENTIFIER "e"
             }
             COMMA
             FIELD-ASSIGN "ff" {
+              DOLLAR
+              ASSIGN "="
               IDENTIFIER "SSL::some_suppression_interval"
             }
             COMMA
             FIELD-ASSIGN "gg" {
+              DOLLAR
+              ASSIGN "="
               CALL {
                 IDENTIFIER "cat"
                 ARGS {
@@ -49,8 +59,10 @@ FUNC-DECL {
                   FIELD-ACCESS {
                     FIELD-ACCESS {
                       IDENTIFIER "c"
+                      DOLLAR
                       IDENTIFIER "id"
                     }
+                    DOLLAR
                     IDENTIFIER "resp_p"
                   }
                   COMMA

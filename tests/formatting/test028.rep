@@ -17,10 +17,14 @@ FUNC-DECL {
           INDEX-LITERAL {
             LBRACKET
             FIELD-ASSIGN "get_handle" {
+              DOLLAR
+              ASSIGN "="
               IDENTIFIER "SomeModule::get_handle"
             }
             COMMA
             FIELD-ASSIGN "describe" {
+              DOLLAR
+              ASSIGN "="
               IDENTIFIER "SomeModule::describe_it"
             }
             RBRACKET

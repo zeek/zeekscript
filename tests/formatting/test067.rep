@@ -20,6 +20,7 @@ FUNC-DECL {
       ASSIGN "="
       FIELD-ACCESS {
         IDENTIFIER "c"
+        DOLLAR
         IDENTIFIER "some_rec"
       }
       SEMI
@@ -44,6 +45,7 @@ FUNC-DECL {
                 OP "|"
                 FIELD-ACCESS {
                   IDENTIFIER "rec"
+                  DOLLAR
                   IDENTIFIER "some_field"
                 }
                 OP "|"
@@ -58,6 +60,7 @@ FUNC-DECL {
             INDEX {
               FIELD-ACCESS {
                 IDENTIFIER "rec"
+                DOLLAR
                 IDENTIFIER "some_field"
               }
               SUBSCRIPTS {

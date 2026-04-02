@@ -19,6 +19,7 @@ FUNC-DECL {
               BINARY-OP "==" {
                 FIELD-ACCESS {
                   IDENTIFIER "some_var"
+                  DOLLAR
                   IDENTIFIER "some_field"
                 }
                 OP "=="
@@ -37,6 +38,7 @@ FUNC-DECL {
             OP "|"
             FIELD-ACCESS {
               IDENTIFIER "other"
+              DOLLAR
               IDENTIFIER "some_chain"
             }
             OP "|"

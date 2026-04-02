@@ -17,6 +17,7 @@ FUNC-DECL {
       ITERABLE {
         FIELD-ACCESS {
           IDENTIFIER "result"
+          DOLLAR
           IDENTIFIER "matches"
         }
       }
@@ -32,6 +33,7 @@ FUNC-DECL {
           ITERABLE {
             FIELD-ACCESS {
               IDENTIFIER "result"
+              DOLLAR
               IDENTIFIER "some_uids_with_a_very_long_field_name_that_forces_wrapping"
             }
           }

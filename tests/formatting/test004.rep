@@ -28,6 +28,7 @@ IF {
                 OP "-"
                 FIELD-ACCESS {
                   IDENTIFIER "cert"
+                  DOLLAR
                   IDENTIFIER "not_valid_before"
                 }
               }

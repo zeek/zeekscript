@@ -16,14 +16,20 @@ FUNC-DECL {
         ARGS {
           LPAREN
           FIELD-ASSIGN "note" {
+            DOLLAR
+            ASSIGN "="
             IDENTIFIER "Found"
           }
           COMMA
           FIELD-ASSIGN "uid" {
+            DOLLAR
+            ASSIGN "="
             IDENTIFIER "uid"
           }
           COMMA
           FIELD-ASSIGN "msg" {
+            DOLLAR
+            ASSIGN "="
             CALL {
               IDENTIFIER "fmt"
               ARGS {
@@ -41,6 +47,8 @@ FUNC-DECL {
           }
           COMMA
           FIELD-ASSIGN "sub" {
+            DOLLAR
+            ASSIGN "="
             CALL {
               IDENTIFIER "fmt"
               ARGS {
@@ -56,6 +64,8 @@ FUNC-DECL {
           }
           COMMA
           FIELD-ASSIGN "identifier" {
+            DOLLAR
+            ASSIGN "="
             CALL {
               IDENTIFIER "cat"
               ARGS {

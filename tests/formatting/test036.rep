@@ -15,11 +15,13 @@ IF {
     BINARY-OP ">" {
       FIELD-ACCESS {
         IDENTIFIER "some_object"
+        DOLLAR
         IDENTIFIER "long_field"
       }
       OP ">"
       FIELD-ACCESS {
         IDENTIFIER "another_object"
+        DOLLAR
         IDENTIFIER "other_field"
       }
     }

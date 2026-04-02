@@ -37,15 +37,21 @@ FUNC-DECL {
               ARGS {
                 LPAREN
                 FIELD-ASSIGN "aa" {
+                  DOLLAR
+                  ASSIGN "="
                   FIELD-ACCESS {
                     IDENTIFIER "result"
+                    DOLLAR
                     IDENTIFIER "aa"
                   }
                 }
                 COMMA
                 FIELD-ASSIGN "bb_string" {
+                  DOLLAR
+                  ASSIGN "="
                   FIELD-ACCESS {
                     IDENTIFIER "result"
+                    DOLLAR
                     IDENTIFIER "bb_string"
                   }
                 }

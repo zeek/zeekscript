@@ -74,6 +74,7 @@ static const std::unordered_map<Tag, const char*> token_syntax = {
 	{Tag::LBracket, "["},
 	{Tag::RBracket, "]"},
 	{Tag::Colon, ":"},
+	{Tag::Dollar, "$"},
 	{Tag::Question, "?"},
 };
 

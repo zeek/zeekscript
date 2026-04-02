@@ -14,15 +14,21 @@ EXPR-STMT {
       ARGS {
         LPAREN
         FIELD-ASSIGN "result" {
+          DOLLAR
+          ASSIGN "="
           FIELD-ACCESS {
             IDENTIFIER "result"
+            DOLLAR
             IDENTIFIER "result"
           }
         }
         COMMA
         FIELD-ASSIGN "result_string" {
+          DOLLAR
+          ASSIGN "="
           FIELD-ACCESS {
             IDENTIFIER "result"
+            DOLLAR
             IDENTIFIER "result_string"
           }
         }

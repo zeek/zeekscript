@@ -16,10 +16,14 @@ FUNC-DECL {
         ARGS {
           LPAREN
           FIELD-ASSIGN "field1" {
+            DOLLAR
+            ASSIGN "="
             IDENTIFIER "some_very_long_value"
           }
           COMMA
           FIELD-ASSIGN "field2" {
+            DOLLAR
+            ASSIGN "="
             IDENTIFIER "another_long_value"
           }
           RPAREN

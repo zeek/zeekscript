@@ -27,6 +27,7 @@ FUNC-DECL {
                 OP "|"
                 FIELD-ACCESS {
                   IDENTIFIER "aa"
+                  DOLLAR
                   IDENTIFIER "bb_chain"
                 }
                 OP "|"
@@ -41,6 +42,7 @@ FUNC-DECL {
             INDEX {
               FIELD-ACCESS {
                 IDENTIFIER "aa"
+                DOLLAR
                 IDENTIFIER "bb_chain"
               }
               SUBSCRIPTS {

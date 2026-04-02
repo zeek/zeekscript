@@ -26,11 +26,13 @@ FUNC-DECL {
                   LPAREN
                   FIELD-ACCESS {
                     IDENTIFIER "aa"
+                    DOLLAR
                     IDENTIFIER "xx"
                   }
                   COMMA
                   FIELD-ACCESS {
                     IDENTIFIER "aa"
+                    DOLLAR
                     IDENTIFIER "yy"
                   }
                   RPAREN

@@ -215,13 +215,16 @@ static Candidates FormatFieldAccess(const Node& node, const FmtContext& ctx)
 	if ( content.size() < 2 )
 		throw FormatError("FIELD-ACCESS node needs 2 children");
 
+	const Node* dollar = node.FindChild(Tag::Dollar);
+
 	auto lhs_cs = FormatExpr(*content[0], ctx);
 	const auto& lhs = Best(lhs_cs);
 
-	auto rhs_cs = FormatExpr(*content[1], ctx.After(lhs.Width() + 1));
+	int dw = dollar->Width();
+	auto rhs_cs = FormatExpr(*content[1], ctx.After(lhs.Width() + dw));
 	const auto& rhs = Best(rhs_cs);
 
-	return {lhs.Cat("$").Cat(rhs).In(ctx)};
+	return {lhs.Cat(dollar->Text()).Cat(rhs).In(ctx)};
 	}
 
 // ------------------------------------------------------------------
@@ -230,16 +233,20 @@ static Candidates FormatFieldAccess(const Node& node, const FmtContext& ctx)
 
 static Candidates FormatFieldAssign(const Node& node, const FmtContext& ctx)
 	{
-	Candidate prefix("$" + node.Arg() + "=", ctx);
+	const Node* dollar = node.FindChild(Tag::Dollar);
+	const Node* assign = node.FindChild(Tag::Assign);
+
+	std::string prefix = dollar->Text() + node.Arg() + assign->Text();
 
 	auto content = node.ContentChildren();
 	if ( content.empty() )
 		throw FormatError("FIELD-ASSIGN node needs a value child");
 
-	auto val_cs = FormatExpr(*content[0], ctx.After(prefix.Width()));
+	int pw = static_cast<int>(prefix.size());
+	auto val_cs = FormatExpr(*content[0], ctx.After(pw));
 	const auto& val = Best(val_cs);
 
-	return {prefix.Cat(val).In(ctx)};
+	return {Candidate(prefix + val.Text(), ctx)};
 	}
 
 // ------------------------------------------------------------------

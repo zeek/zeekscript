@@ -15,6 +15,8 @@ FUNC-DECL {
           INDEX-LITERAL {
             LBRACKET
             FIELD-ASSIGN "some_field" {
+              DOLLAR
+              ASSIGN "="
               CALL {
                 IDENTIFIER "SomeModule::build_value"
                 ARGS {
@@ -23,8 +25,10 @@ FUNC-DECL {
                     FIELD-ACCESS {
                       FIELD-ACCESS {
                         IDENTIFIER "c"
+                        DOLLAR
                         IDENTIFIER "some_data"
                       }
+                      DOLLAR
                       IDENTIFIER "items"
                     }
                     SUBSCRIPTS {
@@ -39,14 +43,20 @@ FUNC-DECL {
             }
             COMMA
             FIELD-ASSIGN "some_type" {
+              DOLLAR
+              ASSIGN "="
               IDENTIFIER "SomeModule::URL"
             }
             COMMA
             FIELD-ASSIGN "conn" {
+              DOLLAR
+              ASSIGN "="
               IDENTIFIER "c"
             }
             COMMA
             FIELD-ASSIGN "where" {
+              DOLLAR
+              ASSIGN "="
               IDENTIFIER "SomeModule::IN_URL"
             }
             RBRACKET

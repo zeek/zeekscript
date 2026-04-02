@@ -37,6 +37,7 @@ FUNC-DECL {
                   LPAREN
                   FIELD-ACCESS {
                     IDENTIFIER "rec"
+                    DOLLAR
                     IDENTIFIER "some_field"
                   }
                   RPAREN

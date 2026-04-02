@@ -18,27 +18,35 @@ FUNC-DECL {
           INDEX-LITERAL {
             LBRACKET
             FIELD-ASSIGN "note" {
+              DOLLAR
+              ASSIGN "="
               IDENTIFIER "Some_Notice"
             }
             COMMA
             FIELD-ASSIGN "conn" {
+              DOLLAR
+              ASSIGN "="
               IDENTIFIER "c"
             }
             COMMA
             COMMENT-LEADING "# This is a comment about the next field."
             COMMENT-LEADING "# Another comment line."
             FIELD-ASSIGN "identifier" {
+              DOLLAR
+              ASSIGN "="
               CALL {
                 IDENTIFIER "cat"
                 ARGS {
                   LPAREN
                   FIELD-ACCESS {
                     IDENTIFIER "id"
+                    DOLLAR
                     IDENTIFIER "orig_h"
                   }
                   COMMA
                   FIELD-ACCESS {
                     IDENTIFIER "id"
+                    DOLLAR
                     IDENTIFIER "resp_h"
                   }
                   RPAREN
