@@ -54,8 +54,10 @@ FUNC-DECL {
       }
       RPAREN
       BODY {
-        RETURN
-        SEMI
+        RETURN {
+          KEYWORD "return"
+          SEMI
+        }
       }
     }
     RBRACE

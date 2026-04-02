@@ -79,8 +79,8 @@ FUNC-DECL {
         RETURN {
           KEYWORD "return"
           IDENTIFIER "ci"
+          SEMI
         }
-        SEMI
       }
     }
     RBRACE

@@ -1,4 +1,6 @@
 EXPORT {
+  KEYWORD "export"
+  LBRACE
   GLOBAL-DECL {
     KEYWORD "const"
     IDENTIFIER "default_analyzer"
@@ -11,4 +13,5 @@ EXPORT {
     }
     SEMI
   }
+  RBRACE
 }

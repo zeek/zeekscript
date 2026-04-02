@@ -29,8 +29,10 @@ FUNC-DECL {
       }
       RPAREN
       BODY {
-        RETURN
-        SEMI
+        RETURN {
+          KEYWORD "return"
+          SEMI
+        }
       }
     }
     COMMENT-LEADING "#@ END-SKIP-TESTING"

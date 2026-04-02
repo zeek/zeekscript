@@ -1,4 +1,6 @@
 EXPORT {
+  KEYWORD "export"
+  LBRACE
   GLOBAL-DECL {
     KEYWORD "global"
     IDENTIFIER "SomeModule::some_long_handler"
@@ -14,4 +16,5 @@ EXPORT {
     }
     SEMI
   }
+  RBRACE
 }

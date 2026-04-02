@@ -35,8 +35,8 @@ FUNC-DECL {
               RETURN {
                 KEYWORD "return"
                 IDENTIFIER "val"
+                SEMI
               }
-              SEMI
               RBRACE
             }
           }

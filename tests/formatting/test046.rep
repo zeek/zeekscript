@@ -1,4 +1,6 @@
 EXPORT {
+  KEYWORD "export"
+  LBRACE
   TYPE-DECL "AnomalyTypes" {
     KEYWORD "type"
     IDENTIFIER "AnomalyTypes"
@@ -16,4 +18,5 @@ EXPORT {
     }
     SEMI
   }
+  RBRACE
 }

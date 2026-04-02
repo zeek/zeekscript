@@ -1,4 +1,6 @@
 EXPORT {
+  KEYWORD "export"
+  LBRACE
   GLOBAL-DECL {
     KEYWORD "option"
     IDENTIFIER "some_hosts"
@@ -17,4 +19,5 @@ EXPORT {
     }
     SEMI
   }
+  RBRACE
 }

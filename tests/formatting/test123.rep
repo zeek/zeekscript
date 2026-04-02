@@ -1,6 +1,10 @@
 PREPROC "@ifdef" "SomeFeature"
 BLANK
-MODULE "SomeMod"
+MODULE "SomeMod" {
+  KEYWORD "module"
+  IDENTIFIER "SomeMod"
+  SEMI
+}
 BLANK
 GLOBAL-DECL {
   KEYWORD "const"

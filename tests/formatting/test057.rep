@@ -1,4 +1,6 @@
 EXPORT {
+  KEYWORD "export"
+  LBRACE
   GLOBAL-DECL {
     KEYWORD "global"
     IDENTIFIER "some_evt"
@@ -17,4 +19,5 @@ EXPORT {
   BLANK
   COMMENT-LEADING "## Some trailing comment"
   COMMENT-LEADING "## Another trailing comment"
+  RBRACE
 }

@@ -1,3 +1,7 @@
-MODULE "SomeMod"
+MODULE "SomeMod" {
+  KEYWORD "module"
+  IDENTIFIER "SomeMod"
+  SEMI
+}
 BLANK
 PREPROC "@load" "./const"

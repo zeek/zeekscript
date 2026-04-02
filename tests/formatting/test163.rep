@@ -29,8 +29,10 @@ FUNC-DECL {
       RPAREN
       COMMENT-TRAILING "#@ BEGIN-SKIP-TESTING"
       BODY {
-        RETURN
-        SEMI
+        RETURN {
+          KEYWORD "return"
+          SEMI
+        }
       }
     }
     RBRACE

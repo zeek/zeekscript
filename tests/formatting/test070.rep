@@ -13,5 +13,5 @@ RETURN {
       IDENTIFIER "yet_another_thing"
     }
   }
+  SEMI
 }
-SEMI

@@ -1,4 +1,6 @@
 EXPORT {
+  KEYWORD "export"
+  LBRACE
   GLOBAL-DECL {
     KEYWORD "const"
     IDENTIFIER "cert_hygiene_server_wl_source"
@@ -9,4 +11,5 @@ EXPORT {
     }
     SEMI
   }
+  RBRACE
 }

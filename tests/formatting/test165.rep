@@ -1,2 +1,6 @@
-MODULE "SomeMod"
+MODULE "SomeMod" {
+  KEYWORD "module"
+  IDENTIFIER "SomeMod"
+  SEMI
+}
 COMMENT-TRAILING "# main module"

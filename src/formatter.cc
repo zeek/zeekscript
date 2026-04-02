@@ -658,21 +658,30 @@ static Candidates FormatCall(const Node& node, const FmtContext& ctx)
 
 static Candidates FormatSchedule(const Node& node, const FmtContext& ctx)
 	{
+	const Node* kw = node.FindChild(Tag::Keyword);
+	const Node* lb = node.FindChild(Tag::LBrace);
+	const Node* rb = node.FindChild(Tag::RBrace);
+
 	auto content = node.ContentChildren();
 	if ( content.size() < 2 )
 		throw FormatError("SCHEDULE node needs 2 content children");
 
+	std::string prefix = kw->Text() + " ";
+	int pw = static_cast<int>(prefix.size());
+
 	// First content child: interval expression.
-	auto interval_cs = FormatExpr(*content[0], ctx.After(9));
+	auto interval_cs = FormatExpr(*content[0], ctx.After(pw));
 	const auto& interval = Best(interval_cs);
 
 	// Second content child: event call.
-	int after_brace = 9 + interval.Width() + 3;
-	auto event_cs = FormatExpr(*content[1], ctx.After(after_brace + 2));
+	std::string mid = " " + lb->Text() + " ";
+	int after_brace = pw + interval.Width() +
+		static_cast<int>(mid.size());
+	auto event_cs = FormatExpr(*content[1], ctx.After(after_brace));
 	const auto& event = Best(event_cs);
 
-	std::string text = "schedule " + interval.Text() + " { " +
-		event.Text() + " }";
+	std::string text = prefix + interval.Text() + mid +
+		event.Text() + " " + rb->Text();
 	return {Candidate(text, ctx)};
 	}
 
@@ -1723,14 +1732,6 @@ static Candidates FormatTernary(const Node& node, const FmtContext& ctx)
 // delete expr
 // ------------------------------------------------------------------
 
-static const std::unordered_map<Tag, const char*> keyword_for_tag = {
-	{Tag::Return, "return"},
-	{Tag::Print, "print"},
-	{Tag::Add, "add"},
-	{Tag::Delete, "delete"},
-	{Tag::EventStmt, "event"},
-};
-
 // Format a keyword statement with an optional expression child.
 // SEMI is handled by the caller (top-level or block).
 static Candidates FormatEventStmt(const Node& node, const FmtContext& ctx)
@@ -1773,8 +1774,8 @@ static Candidates FormatEventStmt(const Node& node, const FmtContext& ctx)
 
 static Candidates FormatKeywordStmt(const Node& node, const FmtContext& ctx)
 	{
-	// Find keyword text from KEYWORD child or keyword_for_tag.
-	std::string keyword;
+	const Node* kw_node = node.FindChild(Tag::Keyword);
+	std::string keyword = kw_node->Text();
 	const Node* expr = nullptr;
 	bool has_semi = false;
 
@@ -1783,14 +1784,9 @@ static Candidates FormatKeywordStmt(const Node& node, const FmtContext& ctx)
 		Tag t = c->GetTag();
 		if ( t == Tag::Semi )
 			has_semi = true;
-		else if ( t == Tag::Keyword )
-			keyword = c->Arg();
 		else if ( ! is_comment(t) && ! is_token(t) && ! expr )
 			expr = c.get();
 		}
-
-	if ( keyword.empty() )
-		keyword = keyword_for_tag.at(node.GetTag());
 
 	if ( ! expr )
 		{
@@ -1835,8 +1831,9 @@ static Candidates FormatKeywordStmt(const Node& node, const FmtContext& ctx)
 
 static Candidates FormatModuleDecl(const Node& node, const FmtContext& ctx)
 	{
-	std::string text = "module " + node.Arg() + ";";
-	return {Candidate(text, ctx)};
+	const Node* kw = node.FindChild(Tag::Keyword);
+	const Node* id = node.FindChild(Tag::Identifier);
+	return {Candidate(kw->Text() + " " + id->Text() + ";", ctx)};
 	}
 
 // ------------------------------------------------------------------
@@ -2264,10 +2261,25 @@ static Candidates FormatCondBlock(const Node& node, const FmtContext& ctx)
 
 static Candidates FormatExport(const Node& node, const FmtContext& ctx)
 	{
-	std::string body_text = FormatStmtList(node.Children(), ctx.Indented());
-	std::string pad = LinePrefix(ctx.Indent(), ctx.Col());
+	const Node* kw = node.FindChild(Tag::Keyword);
+	const Node* lb = node.FindChild(Tag::LBrace);
+	const Node* rb = node.FindChild(Tag::RBrace);
 
-	return {Candidate("export {\n" + body_text + pad + "}", ctx)};
+	// Collect non-token children for the body.
+	Node::NodeVec body;
+	for ( const auto& c : node.Children() )
+		if ( ! is_token(c->GetTag()) )
+			body.push_back(c);
+
+	std::string body_text = FormatStmtList(body, ctx.Indented());
+	std::string pad = LinePrefix(ctx.Indent(), ctx.Col());
+	std::string inner_pad = LinePrefix(ctx.Indent() + 1,
+		(ctx.Indent() + 1) * INDENT_WIDTH);
+	std::string close = EmitPreComments(*rb, inner_pad) +
+		pad + rb->Text();
+
+	return {Candidate(kw->Text() + " " + lb->Text() + "\n" +
+		body_text + close, ctx)};
 	}
 
 // ------------------------------------------------------------------
@@ -2276,22 +2288,17 @@ static Candidates FormatExport(const Node& node, const FmtContext& ctx)
 
 static Candidates FormatSwitch(const Node& node, const FmtContext& ctx)
 	{
-	// Find the switch expression: first non-token, non-structural
-	// child (between KEYWORD "switch" and LBRACE).
-	const Node* switch_expr = nullptr;
-	bool past_keyword = false;
+	const Node* sw_kw = node.FindChild(Tag::Keyword);
+	const Node* lb = node.FindChild(Tag::LBrace);
+	const Node* rb = node.FindChild(Tag::RBrace);
 
+	// Find the switch expression: first content child.
+	const Node* switch_expr = nullptr;
 	for ( const auto& c : node.Children() )
 		{
 		Tag t = c->GetTag();
-
-		if ( t == Tag::Keyword )
-			{ past_keyword = true; continue; }
-		if ( t == Tag::LBrace )
-			break;
-
-		if ( past_keyword && ! is_token(t) && ! is_comment(t) )
-			switch_expr = c.get();
+		if ( ! is_token(t) && ! is_comment(t) )
+			{ switch_expr = c.get(); break; }
 		}
 
 	// Format the expression.  If the source used parens, unwrap
@@ -2312,7 +2319,7 @@ static Candidates FormatSwitch(const Node& node, const FmtContext& ctx)
 			expr_text = Best(FormatExpr(*switch_expr, ctx)).Text();
 		}
 
-	std::string head = "switch " + expr_text + " {";
+	std::string head = sw_kw->Text() + " " + expr_text + " " + lb->Text();
 	std::string pad = LinePrefix(ctx.Indent(), ctx.Col());
 
 	std::string result = head;
@@ -2325,7 +2332,9 @@ static Candidates FormatSwitch(const Node& node, const FmtContext& ctx)
 
 		if ( c->GetTag() == Tag::Default )
 			{
-			result += "\n" + pad + "default:";
+			const Node* dkw = c->FindChild(Tag::Keyword);
+			const Node* dcol = c->FindChild(Tag::Colon);
+			result += "\n" + pad + dkw->Text() + dcol->Text();
 
 			const Node* body = c->FindOptChild(Tag::Body);
 			if ( body )
@@ -2341,10 +2350,12 @@ static Candidates FormatSwitch(const Node& node, const FmtContext& ctx)
 			}
 
 		// CASE: KEYWORD "case" VALUES {...} COLON BODY {...}
+		const Node* ckw = c->FindChild(Tag::Keyword);
+		const Node* ccol = c->FindChild(Tag::Colon);
 		const Node* values = c->FindChild(Tag::Values);
 		const Node* body = c->FindOptChild(Tag::Body);
 
-		std::string case_text = "case ";
+		std::string case_text = ckw->Text() + " ";
 
 		// Collect formatted values (skip COMMA tokens).
 		auto val_content = values->ContentChildren();
@@ -2382,7 +2393,7 @@ static Candidates FormatSwitch(const Node& node, const FmtContext& ctx)
 			cur_col += static_cast<int>(vi.size());
 			}
 
-		case_text += ":";
+		case_text += ccol->Text();
 
 		result += "\n" + pad + case_text;
 
@@ -2397,7 +2408,7 @@ static Candidates FormatSwitch(const Node& node, const FmtContext& ctx)
 			}
 		}
 
-	result += "\n" + pad + "}";
+	result += "\n" + pad + rb->Text();
 
 	return {Candidate(result, ctx)};
 	}

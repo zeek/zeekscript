@@ -994,7 +994,15 @@ class Emitter:
     def _emit_export_decl(self, node: tree_sitter.Node) -> None:
         self._open('EXPORT')
         for child in self._iter_children(node):
-            if child.type == "decl":
+            if not child.is_named:
+                text = self._text(child)
+                if text == "export":
+                    self._w('KEYWORD "export"')
+                elif text == "{":
+                    self._w('LBRACE')
+                elif text == "}":
+                    self._w('RBRACE')
+            elif child.type == "decl":
                 inner = self._children(child)
                 if inner:
                     self._maybe_blank(inner[0])
@@ -1007,7 +1015,11 @@ class Emitter:
         for child in self._iter_children(node):
             if child.type == "id":
                 name = self._text(child)
-        self._w(f'MODULE {_quote(name)}')
+        self._open(f'MODULE {_quote(name)}')
+        self._w('KEYWORD "module"')
+        self._w(f'IDENTIFIER {_quote(name)}')
+        self._w('SEMI')
+        self._close()
         self._mark_content(node)
 
     def _emit_type_decl(self, node: tree_sitter.Node) -> None:
@@ -1361,19 +1373,13 @@ class Emitter:
         self._mark_content(node)
 
     def _emit_return(self, node: tree_sitter.Node) -> None:
-        has_expr = False
+        self._open('RETURN')
+        self._w('KEYWORD "return"')
         for child in self._iter_children(node):
             if child.type == "expr":
-                if not has_expr:
-                    self._open('RETURN')
-                    self._w('KEYWORD "return"')
-                    has_expr = True
                 self._emit_expr(child)
-        if has_expr:
-            self._close()
-        else:
-            self._w('RETURN')
         self._w('SEMI')
+        self._close()
         self._mark_content(node)
 
     def _emit_print(self, node: tree_sitter.Node) -> None:

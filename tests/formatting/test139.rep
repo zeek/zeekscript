@@ -1,4 +1,6 @@
 EXPORT {
+  KEYWORD "export"
+  LBRACE
   TYPE-DECL "SomeAttrs" {
     KEYWORD "type"
     IDENTIFIER "SomeAttrs"
@@ -23,4 +25,5 @@ EXPORT {
     }
     SEMI
   }
+  RBRACE
 }

@@ -14,8 +14,8 @@ FUNC-DECL {
     RETURN {
       KEYWORD "return"
       CONSTANT "42"
+      SEMI
     }
-    SEMI
     COMMENT-TRAILING "# the answer"
     RBRACE
   }
