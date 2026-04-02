@@ -2053,9 +2053,10 @@ std::string FormatWhitesmithBlock(const Node* body,
 
 	// Extract the children between LBRACE and RBRACE, reading
 	// trailing comments from the brace tokens themselves.
+	const Node* lb = body->FindChild(Tag::LBrace);
+	const Node* rb = body->FindChild(Tag::RBrace);
 	const auto& kids = body->Children();
-	std::string open_trail;
-	std::string close_trail;
+	std::string close_trail = rb->TrailingComment();
 	Node::NodeVec inner;
 
 	bool past_open = false;
@@ -2065,36 +2066,39 @@ std::string FormatWhitesmithBlock(const Node* body,
 
 		if ( t == Tag::LBrace )
 			{
-			open_trail = c->TrailingComment();
 			past_open = true;
 			continue;
 			}
 
 		if ( t == Tag::RBrace )
-			{
-			close_trail = c->TrailingComment();
 			continue;
-			}
 
 		if ( past_open )
 			inner.push_back(c);
 		}
 
-	if ( inner.empty() && open_trail.empty() )
-		return "\n" + brace_pad + "{ }" + close_trail;
+	if ( inner.empty() && ! lb->MustBreakAfter() )
+		return "\n" + brace_pad + lb->Text() + " " +
+			rb->Text();
 
 	std::string body_text =
 		FormatStmtList(inner, block_ctx, true);
 
-	// If the closing brace has a trailing comment, it
-	// belongs on the last statement line, not on the '}'.
+	// If the closing brace has a trailing comment, move it
+	// to the last statement line, not the '}' itself.
+	std::string rb_text = rb->Text();
 	if ( ! close_trail.empty() && ! body_text.empty() &&
 	     body_text.back() == '\n' )
+		{
 		body_text = body_text.substr(0, body_text.size() - 1)
 			+ close_trail + "\n";
+		// Already relocated - use bare brace.
+		rb_text = rb_text.substr(0,
+			rb_text.size() - close_trail.size());
+		}
 
-	return "\n" + brace_pad + "{" + open_trail + "\n" +
-		body_text + brace_pad + "}";
+	return "\n" + brace_pad + lb->Text() + "\n" +
+		body_text + brace_pad + rb_text;
 	}
 
 // Format a single-statement body (no braces, indented one level).
