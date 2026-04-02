@@ -13,6 +13,7 @@ GLOBAL-DECL {
   }
   ATTR-LIST {
     ATTR "&default_insert" {
+      ASSIGN "="
       CALL {
         IDENTIFIER "TrackingRec"
         ARGS {
@@ -27,6 +28,7 @@ GLOBAL-DECL {
       }
     }
     ATTR "&create_expire" {
+      ASSIGN "="
       INTERVAL "10" "sec"
     }
     ATTR "&redef"

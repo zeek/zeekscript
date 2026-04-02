@@ -16,6 +16,7 @@ FUNC-DECL {
   }
   ATTR-LIST {
     ATTR "&group" {
+      ASSIGN "="
       IDENTIFIER "MyPkg_SomeUnknownprotos_EvtGroup"
     }
   }

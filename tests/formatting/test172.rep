@@ -13,6 +13,7 @@ GLOBAL-DECL {
   }
   ATTR-LIST {
     ATTR "&read_expire" {
+      ASSIGN "="
       IDENTIFIER "cache_interval"
     }
   }

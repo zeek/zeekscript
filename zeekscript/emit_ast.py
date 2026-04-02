@@ -792,7 +792,12 @@ class Emitter:
                 break
         has_expr = False
         for child in self._iter_children(node):
-            if child.type == "expr":
+            if not child.is_named and self._text(child) == "=":
+                if not has_expr:
+                    self._open(f'ATTR {_quote(name)}')
+                    has_expr = True
+                self._w('ASSIGN "="')
+            elif child.type == "expr":
                 if not has_expr:
                     self._open(f'ATTR {_quote(name)}')
                     has_expr = True

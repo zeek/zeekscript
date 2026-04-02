@@ -31,6 +31,7 @@ FUNC-DECL {
   }
   ATTR-LIST {
     ATTR "&group" {
+      ASSIGN "="
       CONSTANT "\"some-group\""
     }
   }

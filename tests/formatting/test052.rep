@@ -26,6 +26,7 @@ FUNC-DECL {
   }
   ATTR-LIST {
     ATTR "&group" {
+      ASSIGN "="
       CONSTANT "\"doh-generic\""
     }
   }

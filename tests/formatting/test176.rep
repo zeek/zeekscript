@@ -15,6 +15,7 @@ GLOBAL-DECL {
   }
   ATTR-LIST {
     ATTR "&default" {
+      ASSIGN "="
       CONSTANT "0"
     }
   }

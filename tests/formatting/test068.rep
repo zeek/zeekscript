@@ -22,6 +22,7 @@ FUNC-DECL {
   }
   ATTR-LIST {
     ATTR "&group" {
+      ASSIGN "="
       IDENTIFIER "MyPkg_SomeEvtGroup"
     }
   }

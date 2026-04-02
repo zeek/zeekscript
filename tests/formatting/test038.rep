@@ -57,6 +57,7 @@ GLOBAL-DECL {
   }
   ATTR-LIST {
     ATTR "&default" {
+      ASSIGN "="
       LAMBDA {
         PARAMS {
           LPAREN

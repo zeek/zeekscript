@@ -1287,12 +1287,17 @@ static bool AttrListNeedsSpaces(const Node& node, const FmtContext& ctx)
 		{
 		if ( attr->GetTag() != Tag::Attr )
 			continue;
-		if ( attr->Children().empty() )
+
+		// Find the value expression (first non-token child).
+		const Node* val = nullptr;
+		for ( const auto& c : attr->Children() )
+			if ( ! is_token(c->GetTag()) )
+				{ val = c.get(); break; }
+		if ( ! val )
 			continue;
 
-		auto val_cs = FormatExpr(*attr->Children()[0], ctx);
-		const auto& val = Best(val_cs);
-		if ( val.Text().find(' ') != std::string::npos )
+		auto val_cs = FormatExpr(*val, ctx);
+		if ( Best(val_cs).Text().find(' ') != std::string::npos )
 			return true;
 		}
 
@@ -1305,11 +1310,18 @@ static std::string FormatOneAttr(const Node& attr, bool spaced,
 	{
 	std::string text = attr.Arg();
 
-	if ( ! attr.Children().empty() )
+	const Node* eq = attr.FindOptChild(Tag::Assign);
+	if ( eq )
 		{
-		auto val_cs = FormatExpr(*attr.Children()[0], ctx);
-		std::string eq = spaced ? " = " : "=";
-		text += eq + Best(val_cs).Text();
+		const Node* val = nullptr;
+		for ( const auto& c : attr.Children() )
+			if ( ! is_token(c->GetTag()) )
+				{ val = c.get(); break; }
+
+		std::string sep = spaced ? " " : "";
+		text += sep + eq->Text() + sep;
+		if ( val )
+			text += Best(FormatExpr(*val, ctx)).Text();
 		}
 
 	return text;

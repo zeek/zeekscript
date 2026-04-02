@@ -11,6 +11,7 @@ GLOBAL-DECL {
   }
   ATTR-LIST {
     ATTR "&default" {
+      ASSIGN "="
       IDENTIFIER "some_long_default_expression_here"
     }
     ATTR "&redef"
