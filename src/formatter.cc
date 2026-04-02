@@ -227,12 +227,14 @@ static Candidates FormatFieldAssign(const Node& node, const FmtContext& ctx)
 // Arg lists with trailing comments
 // ------------------------------------------------------------------
 
-// An argument paired with its trailing comment (if any).
+// An argument paired with its trailing comment (if any)
+// and the comma token that precedes it (nullptr for first item).
 struct ArgComment
 	{
 	const Node* arg;
 	std::string comment;	// trailing: empty or " # ..."
 	std::vector<std::string> leading;	// leading comments before item
+	const Node* comma = nullptr;	// preceding COMMA token, if any
 	};
 
 // Scan a node's children, pairing each non-comment child with
@@ -245,6 +247,7 @@ CollectArgs(const Node::NodeVec& children)
 	std::vector<ArgComment> items;
 	bool has_comments = false;
 	std::vector<std::string> pending_leading;
+	const Node* pending_comma = nullptr;
 
 	for ( size_t i = 0; i < children.size(); ++i )
 		{
@@ -258,6 +261,9 @@ CollectArgs(const Node::NodeVec& children)
 		// trailing comments attached by the parser.
 		if ( is_token(t) )
 			{
+			if ( t == Tag::Comma )
+				pending_comma = c.get();
+
 			if ( c->MustBreak() && ! items.empty() )
 				{
 				items.back().comment = c->TrailingComment();
@@ -279,21 +285,12 @@ CollectArgs(const Node::NodeVec& children)
 			has_comments = true;
 
 		items.push_back({c.get(), c->TrailingComment(),
-		                 std::move(pending_leading)});
+		                 std::move(pending_leading), pending_comma});
 		pending_leading.clear();
+		pending_comma = nullptr;
 		}
 
 	return {items, has_comments};
-	}
-
-// Extract just the Node pointers from an ArgComment vector.
-static std::vector<const Node*> ArgNodes(const std::vector<ArgComment>& items)
-	{
-	std::vector<const Node*> nodes;
-	nodes.reserve(items.size());
-	for ( const auto& ac : items )
-		nodes.push_back(ac.arg);
-	return nodes;
 	}
 
 // ------------------------------------------------------------------
@@ -301,21 +298,23 @@ static std::vector<const Node*> ArgNodes(const std::vector<ArgComment>& items)
 // ------------------------------------------------------------------
 
 // Format a comma-separated arg list on one line.
-static Candidate FormatArgsFlat(const std::vector<const Node*>& args,
+static Candidate FormatArgsFlat(const std::vector<ArgComment>& items,
 				const FmtContext& ctx)
 	{
 	std::string text;
 	int w = 0;
 
-	for ( size_t i = 0; i < args.size(); ++i )
+	for ( size_t i = 0; i < items.size(); ++i )
 		{
-		if ( i > 0 )
+		auto& it = items[i];
+
+		if ( it.comma )
 			{
-			text += ", ";
-			w += 2;
+			text += it.comma->Text() + " ";
+			w += it.comma->Width() + 1;
 			}
 
-		auto cs = FormatExpr(*args[i], ctx.After(w));
+		auto cs = FormatExpr(*it.arg, ctx.After(w));
 		const auto& best = Best(cs);
 		text += best.Text();
 		w += best.Width();
@@ -505,8 +504,7 @@ static Candidates FlatOrFill(const std::string& prefix,
 	// forces a line break, so flat would lose it).
 	if ( ! has_comments )
 		{
-		auto nodes = ArgNodes(items);
-		auto flat_args = FormatArgsFlat(nodes, inner_ctx);
+		auto flat_args = FormatArgsFlat(items, inner_ctx);
 		std::string flat_text = prefix + ob + flat_args.Text() +
 			cb + suffix;
 		Candidate flat_c(flat_text, ctx);
@@ -663,7 +661,7 @@ static Candidates FormatConstructor(const Node& node, const FmtContext& ctx)
 		int kw_len = static_cast<int>(keyword.size());
 		FmtContext args_ctx(ctx.Indent(), ctx.Col() + kw_len + 1,
 		                    ctx.Width() - kw_len - 2);
-		auto flat_args = FormatArgsFlat(ArgNodes(items), args_ctx);
+		auto flat_args = FormatArgsFlat(items, args_ctx);
 		auto flat_c = Candidate(keyword + "(" + flat_args.Text() + ")",
 		                        ctx);
 		result.push_back(flat_c);
@@ -1084,8 +1082,9 @@ static Candidates FormatTypeParam(const Node& node, const FmtContext& ctx)
 
 	// Collect bracketed type args (between LBRACKET/RBRACKET)
 	// and "of" type (after KEYWORD "of").
-	std::vector<const Node*> bracket_types;
+	std::vector<ArgComment> bt_items;
 	const Node* of_type = nullptr;
+	const Node* pending_comma = nullptr;
 	bool in_brackets = false;
 	bool past_of = false;
 
@@ -1099,13 +1098,18 @@ static Candidates FormatTypeParam(const Node& node, const FmtContext& ctx)
 			{ in_brackets = false; continue; }
 		if ( t == Tag::Keyword && c->Arg() == "of" )
 			{ past_of = true; continue; }
+		if ( t == Tag::Comma )
+			{ pending_comma = c.get(); continue; }
 		if ( is_token(t) || is_comment(t) )
 			continue;
 
 		if ( past_of )
 			of_type = c.get();
 		else if ( in_brackets )
-			bracket_types.push_back(c.get());
+			{
+			bt_items.push_back({c.get(), "", {}, pending_comma});
+			pending_comma = nullptr;
+			}
 		}
 
 	std::string suffix;
@@ -1113,12 +1117,8 @@ static Candidates FormatTypeParam(const Node& node, const FmtContext& ctx)
 	if ( of_type )
 		suffix = " of " + Best(FormatExpr(*of_type, ctx)).Text();
 
-	if ( bracket_types.empty() )
+	if ( bt_items.empty() )
 		return {Candidate(keyword + suffix, ctx)};
-
-	std::vector<ArgComment> bt_items;
-	for ( const auto* n : bracket_types )
-		bt_items.push_back({n, "", {}});
 
 	return FlatOrFill(keyword, '[', ']', suffix, bt_items, false, ctx);
 	}
