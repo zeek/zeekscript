@@ -19,8 +19,7 @@ static void AttachPreComments(std::vector<std::string>& pending,
 		for ( auto& c : node.Children() )
 			{
 			Tag t = c->GetTag();
-			if ( t != Tag::Blank && t != Tag::Semi &&
-			     t != Tag::TrailingComma &&
+			if ( ! is_marker(t) &&
 			     t != Tag::LBrace && t != Tag::RBrace )
 				{
 				AttachPreComments(pending, markers, *c);
@@ -71,9 +70,7 @@ Node::NodeVec Parser::ParseFile()
 		// When pre-comments are pending, hold BLANK/SEMI/
 		// TrailingComma so they don't separate the comments
 		// from the node they belong to.
-		else if ( ! pending_pre.empty() &&
-		          (t == Tag::Blank || t == Tag::Semi ||
-		           t == Tag::TrailingComma) )
+		else if ( ! pending_pre.empty() && is_marker(t) )
 			pending_nodes.push_back(std::move(node));
 
 		else
@@ -160,9 +157,7 @@ std::shared_ptr<Node> Parser::ParseNode()
 			// When pre-comments are pending, hold markers
 			// so they don't separate comments from their
 			// target node.
-			else if ( ! pending_pre.empty() &&
-			          (ct == Tag::Blank || ct == Tag::Semi ||
-			           ct == Tag::TrailingComma) )
+			else if ( ! pending_pre.empty() && is_marker(ct) )
 				pending_children.push_back(std::move(child));
 
 			else

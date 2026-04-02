@@ -134,4 +134,10 @@ inline bool is_type_tag(Tag t)
 		t == Tag::TypeFunc;
 	}
 
+// Marker nodes: separators and whitespace that are not content.
+inline bool is_marker(Tag t)
+	{
+	return t == Tag::Blank || t == Tag::Semi || t == Tag::TrailingComma;
+	}
+
 bool is_token(Tag t);
