@@ -2369,11 +2369,14 @@ static Candidates FormatSwitch(const Node& node, const FmtContext& ctx)
 		{
 		if ( switch_expr->GetTag() == Tag::Paren )
 			{
+			const Node* lp = switch_expr->FindChild(Tag::LParen);
+			const Node* rp = switch_expr->FindChild(Tag::RParen);
 			auto paren_content = switch_expr->ContentChildren();
 			if ( ! paren_content.empty() )
 				{
 				auto cs = FormatExpr(*paren_content[0], ctx);
-				expr_text = "( " + Best(cs).Text() + " )";
+				expr_text = lp->Text() + " " +
+					Best(cs).Text() + " " + rp->Text();
 				}
 			}
 		else
