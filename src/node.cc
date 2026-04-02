@@ -2,6 +2,7 @@
 #include "condition_block.h"
 
 #include <cstdio>
+#include <stdexcept>
 #include <unordered_map>
 
 const std::string& Node::Arg(size_t i) const
@@ -10,12 +11,22 @@ const std::string& Node::Arg(size_t i) const
 	return i < args.size() ? args[i] : empty;
 	}
 
-const Node* Node::FindChild(Tag t) const
+const Node* Node::FindOptChild(Tag t) const
 	{
 	for ( const auto& c : children )
 		if ( c->GetTag() == t )
 			return c.get();
 	return nullptr;
+	}
+
+const Node* Node::FindChild(Tag t) const
+	{
+	const Node* n = FindOptChild(t);
+	if ( ! n )
+		throw std::runtime_error(std::string("internal error: ") +
+					TagToString(tag) + " has no " +
+					TagToString(t) + " child");
+	return n;
 	}
 
 const Node* Node::FindChild(Tag t, const Node* after) const

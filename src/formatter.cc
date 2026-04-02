@@ -275,17 +275,20 @@ CollectArgs(const Node::NodeVec& children)
 		if ( t == Tag::TrailingComma )
 			continue;
 
-		// Token children (COMMA, LPAREN, etc.) may carry
-		// trailing comments attached by the parser.
 		if ( is_token(t) )
 			{
 			if ( t == Tag::Comma )
+				{
 				pending_comma = c.get();
 
-			if ( c->MustBreakAfter() && ! items.empty() )
-				{
-				items.back().comment = c->TrailingComment();
-				has_comments = true;
+				// A trailing comment on COMMA belongs
+				// to the preceding item (e.g., "x, # note").
+				if ( c->MustBreakAfter() && ! items.empty() )
+					{
+					items.back().comment =
+						c->TrailingComment();
+					has_comments = true;
+					}
 				}
 			continue;
 			}
@@ -499,7 +502,8 @@ static Candidate FormatArgsFill(const std::vector<ArgComment>& items,
 // open/close: bracket characters
 // suffix: text after close bracket (e.g. " of type", usually empty)
 static Candidates FlatOrFill(const std::string& prefix,
-                             char open, char close,
+                             const std::string& open,
+                             const std::string& close,
                              const std::string& suffix,
                              const std::vector<ArgComment>& items,
                              bool has_comments,
@@ -508,14 +512,16 @@ static Candidates FlatOrFill(const std::string& prefix,
                              const std::string& close_prefix = "")
 	{
 	int prefix_w = static_cast<int>(prefix.size());
+	int open_w = static_cast<int>(open.size());
+	int close_w = static_cast<int>(close.size());
 	int close_extra = static_cast<int>(close_prefix.size());
 	int suffix_w = static_cast<int>(suffix.size());
-	int open_col = ctx.Col() + prefix_w + 1;
-	int inner_w = ctx.MaxCol() - open_col - close_extra - 1 - suffix_w;
+	int open_col = ctx.Col() + prefix_w + open_w;
+	int inner_w = ctx.MaxCol() - open_col - close_extra
+		- close_w - suffix_w;
 	FmtContext inner_ctx(ctx.Indent(), open_col, inner_w);
 
-	std::string ob(1, open);
-	std::string cb = close_prefix + std::string(1, close);
+	std::string cb = close_prefix + close;
 
 	Candidates result;
 
@@ -524,7 +530,7 @@ static Candidates FlatOrFill(const std::string& prefix,
 	if ( ! has_comments )
 		{
 		auto flat_args = FormatArgsFlat(items, inner_ctx);
-		std::string flat_text = prefix + ob + flat_args.Text() +
+		std::string flat_text = prefix + open + flat_args.Text() +
 			cb + suffix;
 		Candidate flat_c(flat_text, ctx);
 		result.push_back(flat_c);
@@ -544,9 +550,9 @@ static Candidates FlatOrFill(const std::string& prefix,
 		}
 
 	auto fill = FormatArgsFill(items, open_col, ctx.Indent(), inner_ctx);
-	std::string fill_text = prefix + ob + fill_prefix +
+	std::string fill_text = prefix + open + fill_prefix +
 		fill.Text() + cb + suffix;
-	int flast_w = fill.Width() + close_extra + 1 + suffix_w;
+	int flast_w = fill.Width() + close_extra + close_w + suffix_w;
 	int fill_lines = fill.Lines() + (open_comment.empty() ? 0 : 1);
 	result.push_back({fill_text, flast_w, fill_lines,
 	                  fill.Ovf(), ctx.Col()});
@@ -621,18 +627,22 @@ static Candidates FormatCall(const Node& node, const FmtContext& ctx)
 	if ( ! args_node )
 		return {func.Cat("()").In(ctx)};
 
+	const Node* lp = args_node->FindChild(Tag::LParen);
+	const Node* rp = args_node->FindChild(Tag::RParen);
+
 	auto [items, has_comments] = CollectArgs(args_node->Children());
 
 	if ( items.empty() )
-		return {func.Cat("()").In(ctx)};
+		return {func.Cat(lp->Text() + rp->Text()).In(ctx)};
 
 	// Trailing comment on ARGS acts as an open-bracket comment
 	// (goes after the open paren, with args on the next line).
 	if ( ! args_node->TrailingComment().empty() )
 		has_comments = true;
 
-	return FlatOrFill(func.Text(), '(', ')', "", items,
-		has_comments, ctx, args_node->TrailingComment());
+	return FlatOrFill(func.Text(), lp->Text(), rp->Text(), "",
+		items, has_comments, ctx,
+		args_node->TrailingComment());
 	}
 
 // ------------------------------------------------------------------
@@ -665,23 +675,29 @@ static Candidates FormatSchedule(const Node& node, const FmtContext& ctx)
 
 static Candidates FormatConstructor(const Node& node, const FmtContext& ctx)
 	{
-	const auto& keyword = node.Arg();	// "table", "set", "vector"
+	const Node* kw_node = node.FindChild(Tag::Keyword);
+	const Node* lp_node = node.FindChild(Tag::LParen);
+	const Node* rp_node = node.FindChild(Tag::RParen);
+	std::string kw = kw_node->Text();
+	std::string lp = lp_node->Text();
+	std::string rp = rp_node->Text();
 
 	auto [items, has_comments] = CollectArgs(node.Children());
 
 	if ( items.empty() )
-		return {Candidate(keyword + "()", ctx)};
+		return {Candidate(kw + lp + rp, ctx)};
 
 	Candidates result;
 
 	// Candidate 1: flat (only when no comments).
 	if ( ! has_comments )
 		{
-		int kw_len = static_cast<int>(keyword.size());
-		FmtContext args_ctx(ctx.Indent(), ctx.Col() + kw_len + 1,
-		                    ctx.Width() - kw_len - 2);
+		int open_w = static_cast<int>(kw.size() + lp.size());
+		FmtContext args_ctx(ctx.Indent(), ctx.Col() + open_w,
+		                    ctx.Width() - open_w
+		                    - static_cast<int>(rp.size()));
 		auto flat_args = FormatArgsFlat(items, args_ctx);
-		auto flat_c = Candidate(keyword + "(" + flat_args.Text() + ")",
+		auto flat_c = Candidate(kw + lp + flat_args.Text() + rp,
 		                        ctx);
 		result.push_back(flat_c);
 
@@ -690,7 +706,7 @@ static Candidates FormatConstructor(const Node& node, const FmtContext& ctx)
 		}
 
 	// Candidate 2: one element per line, indented body.
-	result.push_back(FormatArgsVertical(keyword + "(", ")",
+	result.push_back(FormatArgsVertical(kw + lp, rp,
 	                                    items, ctx));
 
 	return result;
@@ -713,24 +729,30 @@ static Candidates FormatIndex(const Node& node, const FmtContext& ctx)
 	if ( ! subs_node )
 		return {base.Cat("[]").In(ctx)};
 
+	const Node* lb = subs_node->FindChild(Tag::LBracket);
+	const Node* rb = subs_node->FindChild(Tag::RBracket);
+
 	auto subs_content = subs_node->ContentChildren();
 	if ( subs_content.empty() )
-		return {base.Cat("[]").In(ctx)};
+		return {base.Cat(lb->Text() + rb->Text()).In(ctx)};
 
 	if ( subs_content.size() == 1 )
 		{
-		int sub_col = ctx.Col() + base.Width() + 1;
+		int lb_w = lb->Width();
+		int rb_w = rb->Width();
+		int sub_col = ctx.Col() + base.Width() + lb_w;
 		FmtContext bracket_ctx(ctx.Indent(), sub_col,
-		                       ctx.Width() - base.Width() - 2);
+			ctx.Width() - base.Width() - lb_w - rb_w);
 		auto sub_cs = FormatExpr(*subs_content[0], bracket_ctx);
 		const auto& sub = Best(sub_cs);
-		return {base.Cat("[").Cat(sub).Cat("]").In(ctx)};
+		return {base.Cat(lb->Text()).Cat(sub)
+			.Cat(rb->Text()).In(ctx)};
 		}
 
 	// Multiple subscripts: format as comma-separated list.
 	auto [items, has_comments] = CollectArgs(subs_node->Children());
-	return FlatOrFill(base.Text(), '[', ']', "", items,
-		has_comments, ctx);
+	return FlatOrFill(base.Text(), lb->Text(), rb->Text(), "",
+		items, has_comments, ctx);
 	}
 
 // ------------------------------------------------------------------
@@ -739,13 +761,18 @@ static Candidates FormatIndex(const Node& node, const FmtContext& ctx)
 
 static Candidates FormatIndexLiteral(const Node& node, const FmtContext& ctx)
 	{
+	const Node* lb = node.FindChild(Tag::LBracket);
+	const Node* rb = node.FindChild(Tag::RBracket);
+	std::string lbt = lb->Text();
+	std::string rbt = rb->Text();
+
 	auto [items, has_comments] = CollectArgs(node.Children());
 
 	if ( items.empty() )
-		return {Candidate("[]", ctx)};
+		return {Candidate(lbt + rbt, ctx)};
 
 	bool has_trailing_comma =
-		node.FindChild(Tag::TrailingComma) != nullptr;
+		node.FindOptChild(Tag::TrailingComma) != nullptr;
 	std::string close_pfx = has_trailing_comma ? ", " : "";
 
 	// When every item has a trailing comment, use vertical indented
@@ -759,11 +786,11 @@ static Candidates FormatIndexLiteral(const Node& node, const FmtContext& ctx)
 				all_trailing = false;
 
 		if ( all_trailing )
-			return {FormatArgsVertical("[", "]", items, ctx,
+			return {FormatArgsVertical(lbt, rbt, items, ctx,
 				has_trailing_comma)};
 		}
 
-	return FlatOrFill("", '[', ']', "", items, has_comments, ctx,
+	return FlatOrFill("", lbt, rbt, "", items, has_comments, ctx,
 		"", close_pfx);
 	}
 
@@ -777,27 +804,34 @@ static Candidates FormatSlice(const Node& node, const FmtContext& ctx)
 	if ( content.size() < 3 )
 		throw FormatError("SLICE node needs 3 content children");
 
+	const Node* lb = node.FindChild(Tag::LBracket);
+	const Node* rb = node.FindChild(Tag::RBracket);
+	const Node* colon = node.FindChild(Tag::Colon);
+	std::string lbt = lb->Text();
+	std::string rbt = rb->Text();
+
 	auto base_cs = FormatExpr(*content[0], ctx);
 	const auto& base = Best(base_cs);
 
 	std::string lo = Best(FormatExpr(*content[1], ctx)).Text();
 	std::string hi = Best(FormatExpr(*content[2], ctx)).Text();
 
-	std::string sep = (! lo.empty() && ! hi.empty()) ? " : " : ":";
-	Candidate flat = base.Cat("[" + lo + sep + hi + "]").In(ctx);
+	std::string sep = (! lo.empty() && ! hi.empty())
+		? " " + colon->Text() + " " : colon->Text();
+	Candidate flat = base.Cat(lbt + lo + sep + hi + rbt).In(ctx);
 
 	if ( flat.Fits() || lo.empty() || hi.empty() )
 		return {flat};
 
 	// Split after ":" - continuation aligns after "[".
-	int bracket_col = ctx.Col() + base.Width() + 1;
+	int bracket_col = ctx.Col() + base.Width() + lb->Width();
 	FmtContext hi_ctx = ctx.AtCol(bracket_col);
 	std::string hi2 = Best(FormatExpr(*content[2], hi_ctx)).Text();
 
 	std::string prefix = LinePrefix(hi_ctx.Indent(), bracket_col);
-	std::string split = base.Text() + "[" + lo + " :\n" +
-				prefix + hi2 + "]";
-	int last_w = static_cast<int>(hi2.size()) + 1;  // +1 for "]"
+	std::string split = base.Text() + lbt + lo + " " +
+		colon->Text() + "\n" + prefix + hi2 + rbt;
+	int last_w = static_cast<int>(hi2.size()) + rb->Width();
 	int split_ovf = Ovf(last_w, hi_ctx);
 	int lines = 1 + CountLines(hi2);
 
@@ -814,10 +848,15 @@ static Candidates FormatParen(const Node& node, const FmtContext& ctx)
 	if ( content.empty() )
 		throw FormatError("PAREN node needs a child");
 
-	auto inner_cs = FormatExpr(*content[0], ctx.After(1));
+	const Node* lp = node.FindChild(Tag::LParen);
+	const Node* rp = node.FindChild(Tag::RParen);
+
+	auto inner_cs = FormatExpr(*content[0],
+		ctx.After(lp->Width()));
 	const auto& inner = Best(inner_cs);
 
-	return {Candidate("(", ctx).Cat(inner).Cat(")").In(ctx)};
+	return {Candidate(lp->Text(), ctx).Cat(inner)
+		.Cat(rp->Text()).In(ctx)};
 	}
 
 // ------------------------------------------------------------------
@@ -1099,6 +1138,10 @@ static Candidates FormatTypeParam(const Node& node, const FmtContext& ctx)
 	{
 	const auto& keyword = node.Arg();	// "table", "set", "vector"
 
+	const Node* lb = node.FindOptChild(Tag::LBracket);
+	const Node* rb = node.FindOptChild(Tag::RBracket);
+	const Node* of_kw = node.FindOptChild(Tag::Keyword);
+
 	// Collect bracketed type args (between LBRACKET/RBRACKET)
 	// and "of" type (after KEYWORD "of").
 	std::vector<ArgComment> bt_items;
@@ -1115,7 +1158,7 @@ static Candidates FormatTypeParam(const Node& node, const FmtContext& ctx)
 			{ in_brackets = true; continue; }
 		if ( t == Tag::RBracket )
 			{ in_brackets = false; continue; }
-		if ( t == Tag::Keyword && c->Arg() == "of" )
+		if ( t == Tag::Keyword )
 			{ past_of = true; continue; }
 		if ( t == Tag::Comma )
 			{ pending_comma = c.get(); continue; }
@@ -1134,12 +1177,14 @@ static Candidates FormatTypeParam(const Node& node, const FmtContext& ctx)
 	std::string suffix;
 
 	if ( of_type )
-		suffix = " of " + Best(FormatExpr(*of_type, ctx)).Text();
+		suffix = " " + of_kw->Text() + " " +
+			Best(FormatExpr(*of_type, ctx)).Text();
 
 	if ( bt_items.empty() )
 		return {Candidate(keyword + suffix, ctx)};
 
-	return FlatOrFill(keyword, '[', ']', suffix, bt_items, false, ctx);
+	return FlatOrFill(keyword, lb->Text(), rb->Text(), suffix,
+		bt_items, false, ctx);
 	}
 
 // Find the first type child (TypeAtom, TypeParameterized, TypeFunc).
@@ -1156,35 +1201,35 @@ static const Node* FindTypeChild(const Node& node)
 static Candidates FormatTypeFunc(const Node& node, const FmtContext& ctx)
 	{
 	const auto& keyword = node.Arg();	// "event", "function", "hook"
-	std::string text = keyword + "(";
 
 	const Node* params = node.FindChild(Tag::Params);
-	const Node* returns = node.FindChild(Tag::Returns);
+	const Node* returns = node.FindOptChild(Tag::Returns);
 
-	if ( params )
+	const Node* lp = params->FindChild(Tag::LParen);
+	const Node* rp = params->FindChild(Tag::RParen);
+	std::string text = keyword + lp->Text();
+
+	bool first = true;
+	for ( const auto& p : params->Children() )
 		{
-		bool first = true;
-		for ( const auto& p : params->Children() )
-			{
-			Tag t = p->GetTag();
-			if ( is_comment(t) || is_token(t) )
-				continue;
-			if ( t != Tag::Param )
-				continue;
+		Tag t = p->GetTag();
+		if ( is_comment(t) || is_token(t) )
+			continue;
+		if ( t != Tag::Param )
+			continue;
 
-			if ( ! first )
-				text += ", ";
-			first = false;
+		if ( ! first )
+			text += ", ";
+		first = false;
 
-			text += p->Arg();
-			const Node* ptype = FindTypeChild(*p);
-			if ( ptype )
-				text += ": " + Best(FormatExpr(*ptype,
-					ctx)).Text();
-			}
+		text += p->Arg();
+		const Node* ptype = FindTypeChild(*p);
+		if ( ptype )
+			text += ": " + Best(FormatExpr(*ptype,
+				ctx)).Text();
 		}
 
-	text += ")";
+	text += rp->Text();
 
 	if ( returns )
 		{
@@ -1529,7 +1574,7 @@ static Candidates FormatDecl(const Node& node, const FmtContext& ctx)
 	d.head = kw_node->Text() + " " + id_node->Text();
 	d.type_node = nullptr;
 	d.init_val = nullptr;
-	d.attrs_node = node.FindChild(Tag::AttrList);
+	d.attrs_node = node.FindOptChild(Tag::AttrList);
 	d.has_semi = node.FindChild(Tag::Semi) != nullptr;
 
 	// Scan children sequentially: COLON precedes type, ASSIGN
@@ -1679,27 +1724,30 @@ static const std::unordered_map<Tag, const char*> keyword_for_tag = {
 // SEMI is handled by the caller (top-level or block).
 static Candidates FormatEventStmt(const Node& node, const FmtContext& ctx)
 	{
+	const Node* kw_node = node.FindChild(Tag::Keyword);
 	std::string name = node.Arg();
 	const Node* args_node = node.FindChild(Tag::Args);
 	bool has_semi = node.FindChild(Tag::Semi) != nullptr;
 	std::string semi_str = has_semi ? ";" : "";
 
-	std::string prefix = "event " + name;
+	std::string prefix = kw_node->Text() + " " + name;
 
-	if ( ! args_node )
-		return {Candidate(prefix + "()" + semi_str, ctx)};
+	const Node* lp = args_node->FindChild(Tag::LParen);
+	const Node* rp = args_node->FindChild(Tag::RParen);
 
 	auto [items, has_comments] = CollectArgs(args_node->Children());
 
 	if ( items.empty() )
-		return {Candidate(prefix + "()" + semi_str, ctx)};
+		return {Candidate(prefix + lp->Text() + rp->Text() +
+			semi_str, ctx)};
 
 	if ( ! args_node->TrailingComment().empty() )
 		has_comments = true;
 
 	FmtContext inner = has_semi ? ctx.Reserve(1) : ctx;
-	auto cs = FlatOrFill(prefix, '(', ')', "", items,
-		has_comments, inner, args_node->TrailingComment());
+	auto cs = FlatOrFill(prefix, lp->Text(), rp->Text(), "",
+		items, has_comments, inner,
+		args_node->TrailingComment());
 
 	Candidates result;
 	for ( auto& c : cs )
@@ -2076,11 +2124,14 @@ static Candidates FormatFuncDecl(const Node& node, const FmtContext& ctx)
 	const Node* id_node = node.FindChild(Tag::Identifier);
 
 	const Node* params = node.FindChild(Tag::Params);
-	const Node* returns = node.FindChild(Tag::Returns);
+	const Node* returns = node.FindOptChild(Tag::Returns);
 	const Node* body = node.FindChild(Tag::Body);
-	const Node* attrs = node.FindChild(Tag::AttrList);
+	const Node* attrs = node.FindOptChild(Tag::AttrList);
 
-	std::string prefix = kw_node->Text() + " " + id_node->Text() + "(";
+	const Node* lp = params->FindChild(Tag::LParen);
+	const Node* rp = params->FindChild(Tag::RParen);
+
+	std::string prefix = kw_node->Text() + " " + id_node->Text() + lp->Text();
 	int align_col = ctx.Col() + static_cast<int>(prefix.size());
 
 	auto param_strs = FormatParamStrings(params, ctx);
@@ -2114,13 +2165,13 @@ static Candidates FormatFuncDecl(const Node& node, const FmtContext& ctx)
 
 	// Trailing comment on the func decl (attached to body).
 	std::string trail_str;
-	if ( body && ! body->TrailingComment().empty() )
+	if ( ! body->TrailingComment().empty() )
 		trail_str = body->TrailingComment();
 
 	std::string block = FormatWhitesmithBlock(body, ctx);
 
 	// --- Candidate 1: flat signature ---
-	std::string sig = prefix + flat_params + ")" + ret_str +
+	std::string sig = prefix + flat_params + rp->Text() + ret_str +
 		attr_str + trail_str;
 	Candidates result;
 	result.push_back(Candidate(sig + block, ctx));
@@ -2163,7 +2214,7 @@ static Candidates FormatFuncDecl(const Node& node, const FmtContext& ctx)
 			}
 		}
 
-	wrapped += ")" + ret_str;
+	wrapped += rp->Text() + ret_str;
 
 	// Put attrs on their own continuation line if present.
 	// Use param alignment column, but shift left if that overflows
@@ -2265,7 +2316,7 @@ static Candidates FormatSwitch(const Node& node, const FmtContext& ctx)
 			{
 			result += "\n" + pad + "default:";
 
-			const Node* body = c->FindChild(Tag::Body);
+			const Node* body = c->FindOptChild(Tag::Body);
 			if ( body )
 				{
 				std::string body_text = FormatStmtList(
@@ -2280,47 +2331,46 @@ static Candidates FormatSwitch(const Node& node, const FmtContext& ctx)
 
 		// CASE: KEYWORD "case" VALUES {...} COLON BODY {...}
 		const Node* values = c->FindChild(Tag::Values);
-		const Node* body = c->FindChild(Tag::Body);
+		const Node* body = c->FindOptChild(Tag::Body);
 
 		std::string case_text = "case ";
-		if ( values )
+
+		// Collect formatted values (skip COMMA tokens).
+		auto val_content = values->ContentChildren();
+		std::vector<std::string> vals;
+		for ( const auto* v : val_content )
+			vals.push_back(
+				Best(FormatExpr(*v, ctx)).Text());
+
+		// Fill-pack values, wrapping at comma.
+		int case_col = ctx.Col() +
+			static_cast<int>(case_text.size());
+		std::string vpad = LinePrefix(ctx.Indent(), case_col);
+		int max_col = ctx.MaxCol();
+		int cur_col = case_col;
+
+		for ( size_t i = 0; i < vals.size(); ++i )
 			{
-			// Collect formatted values (skip COMMA tokens).
-			auto val_content = values->ContentChildren();
-			std::vector<std::string> vals;
-			for ( const auto* v : val_content )
-				vals.push_back(
-					Best(FormatExpr(*v, ctx)).Text());
+			auto& vi = vals[i];
+			int need = static_cast<int>(vi.size());
+			if ( i > 0 )
+				need += 2;
 
-			// Fill-pack values, wrapping at comma.
-			int case_col = ctx.Col() +
-				static_cast<int>(case_text.size());
-			std::string vpad = LinePrefix(ctx.Indent(), case_col);
-			int max_col = ctx.MaxCol();
-			int cur_col = case_col;
-
-			for ( size_t i = 0; i < vals.size(); ++i )
+			if ( i > 0 && cur_col + need > max_col )
 				{
-				auto& vi = vals[i];
-				int need = static_cast<int>(vi.size());
-				if ( i > 0 )
-					need += 2;
-
-				if ( i > 0 && cur_col + need > max_col )
-					{
-					case_text += ",\n" + vpad;
-					cur_col = case_col;
-					}
-				else if ( i > 0 )
-					{
-					case_text += ", ";
-					cur_col += 2;
-					}
-
-				case_text += vi;
-				cur_col += static_cast<int>(vi.size());
+				case_text += ",\n" + vpad;
+				cur_col = case_col;
 				}
+			else if ( i > 0 )
+				{
+				case_text += ", ";
+				cur_col += 2;
+				}
+
+			case_text += vi;
+			cur_col += static_cast<int>(vi.size());
 			}
+
 		case_text += ":";
 
 		result += "\n" + pad + case_text;
@@ -2358,7 +2408,7 @@ static std::string FormatField(const Node& node, const std::string& suffix,
 	if ( tc )
 		type_str = Best(FormatExpr(*tc, ctx)).Text();
 
-	const Node* attrs = node.FindChild(Tag::AttrList);
+	const Node* attrs = node.FindOptChild(Tag::AttrList);
 	std::string attr_str;
 	if ( attrs )
 		{
@@ -2411,7 +2461,7 @@ static Candidates FormatTypeDecl(const Node& node, const FmtContext& ctx)
 		}
 
 	// Enum type.
-	const Node* enum_node = node.FindChild(Tag::TypeEnum);
+	const Node* enum_node = node.FindOptChild(Tag::TypeEnum);
 	if ( enum_node )
 		{
 		std::string head = "type " + name + ": enum {";
@@ -2451,7 +2501,7 @@ static Candidates FormatTypeDecl(const Node& node, const FmtContext& ctx)
 		}
 
 	// Record type.
-	const Node* rec_node = node.FindChild(Tag::TypeRecord);
+	const Node* rec_node = node.FindOptChild(Tag::TypeRecord);
 	if ( rec_node )
 		{
 		std::string head = "type " + name + ": record {";

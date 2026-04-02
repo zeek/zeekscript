@@ -2,7 +2,8 @@ GLOBAL-DECL {
   KEYWORD "global"
   IDENTIFIER "x"
   ASSIGN "="
-  CONSTRUCTOR "table" {
+  CONSTRUCTOR {
+    KEYWORD "table"
     LPAREN
     BINARY-OP "=" {
       INDEX-LITERAL {

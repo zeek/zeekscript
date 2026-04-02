@@ -4,6 +4,7 @@
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 EMITTER="$SCRIPT_DIR/../zeekscript/emit_ast.py"
+FORMATTER="$SCRIPT_DIR/../src/zeek-format"
 FMT_DIR="$SCRIPT_DIR/formatting"
 
 count=0
@@ -15,6 +16,13 @@ for f in "$FMT_DIR"/test*.zeek; do
 
     rep="${f%.zeek}.rep"
     if python3.11 "$EMITTER" "$f" > "$rep" 2>/dev/null; then
+        # Normalize through a parse-dump cycle so the .rep
+        # matches the parser's internal representation
+        # (e.g., pre-comment push-down into BODY).
+        if [ -x "$FORMATTER" ]; then
+            "$FORMATTER" --dump "$rep" > "$rep.tmp" 2>/dev/null \
+                && mv "$rep.tmp" "$rep"
+        fi
         count=$((count + 1))
     else
         echo "FAIL: $f" >&2

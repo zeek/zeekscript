@@ -2,7 +2,8 @@ LOCAL-DECL {
   KEYWORD "local"
   IDENTIFIER "x"
   ASSIGN "="
-  CONSTRUCTOR "set" {
+  CONSTRUCTOR {
+    KEYWORD "set"
     LPAREN
     RPAREN
   }

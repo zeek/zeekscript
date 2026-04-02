@@ -8,8 +8,8 @@ GLOBAL-DECL {
     COMMA
     COMMENT-TRAILING "# Comment one"
     CONSTANT "2"
-    RBRACKET
     COMMENT-TRAILING "# Comment two"
+    RBRACKET
   }
   SEMI
 }

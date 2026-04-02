@@ -38,7 +38,7 @@ Candidates ConditionBlockNode::Format(const FmtContext& ctx) const
 	// Collect pre-comments from the follow-on node (e.g., Else).
 	std::string comments;
 	std::string stmt_pad = LinePrefix(ctx.Indent(), ctx.Col());
-	const Node* else_node = FindChild(Tag::Else);
+	const Node* else_node = FindOptChild(Tag::Else);
 
 	if ( else_node )
 		for ( const auto& pc : else_node->PreComments() )
@@ -74,28 +74,22 @@ std::string ForNode::BuildCondition(const FmtContext& cond_ctx) const
 
 	// Format vars (comma-separated identifiers).
 	std::string vars_text;
-	if ( vars_node )
+	auto vars_content = vars_node->ContentChildren();
+	bool first = true;
+	for ( const auto* v : vars_content )
 		{
-		auto vars_content = vars_node->ContentChildren();
-		bool first = true;
-		for ( const auto* v : vars_content )
-			{
-			if ( ! first )
-				vars_text += ", ";
-			first = false;
-			vars_text += Best(FormatExpr(*v, cond_ctx)).Text();
-			}
+		if ( ! first )
+			vars_text += ", ";
+		first = false;
+		vars_text += Best(FormatExpr(*v, cond_ctx)).Text();
 		}
 
 	// Format iterable.
 	std::string iter_text;
-	if ( iter_node )
-		{
-		auto iter_content = iter_node->ContentChildren();
-		if ( ! iter_content.empty() )
-			iter_text = Best(FormatExpr(
-				*iter_content[0], cond_ctx)).Text();
-		}
+	auto iter_content = iter_node->ContentChildren();
+	if ( ! iter_content.empty() )
+		iter_text = Best(FormatExpr(
+			*iter_content[0], cond_ctx)).Text();
 
 	return vars_text + " " + in_node->Text() + " " + iter_text;
 	}
@@ -107,7 +101,7 @@ std::string ForNode::BuildCondition(const FmtContext& cond_ctx) const
 std::string IfNode::BuildFollowOn(const FmtContext& ctx,
 	const std::string& comments, bool has_blank) const
 	{
-	const Node* else_node = FindChild(Tag::Else);
+	const Node* else_node = FindOptChild(Tag::Else);
 
 	if ( ! else_node )
 		return "";

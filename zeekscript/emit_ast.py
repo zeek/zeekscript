@@ -419,21 +419,23 @@ class Emitter:
         if ("[" in token_texts and "]" in token_texts
                 and not kids[0].is_named
                 and self._text(kids[0]) == "["):
-            args = [k for k in kids if k.type == "expr_list"]
             self._open('INDEX-LITERAL')
-            self._w('LBRACKET')
-            if args:
-                self._emit_expr_list(args[0])
-                # Detect trailing comma in source.
-                el_kids = args[0].children
-                if (el_kids
-                        and not el_kids[-1].is_named
-                        and self._text(el_kids[-1]) == ","):
-                    self._w('TRAILING-COMMA')
-            self._w('RBRACKET')
-            self._emit_extras_in(node)
+            for child in self._iter_children(node):
+                text = self._text(child)
+                if not child.is_named and text == "[":
+                    self._w('LBRACKET')
+                elif not child.is_named and text == "]":
+                    self._w('RBRACKET')
+                elif child.type == "expr_list":
+                    self._emit_expr_list(child)
+                    # Detect trailing comma in source.
+                    el_kids = child.children
+                    if (el_kids
+                            and not el_kids[-1].is_named
+                            and self._text(el_kids[-1]) == ","):
+                        self._w('TRAILING-COMMA')
+                self._mark_content(child)
             self._close()
-            self._mark_content(node)
             return
 
         # Index: expr [ expr_list ]
@@ -537,7 +539,8 @@ class Emitter:
                                 break
                         if keyword == "table":
                             break
-            self._open(f'CONSTRUCTOR {_quote(keyword)}')
+            self._open('CONSTRUCTOR')
+            self._w(f'KEYWORD {_quote(keyword)}')
             self._w('LPAREN')
             if args:
                 self._emit_expr_list(args[0])
@@ -909,7 +912,8 @@ class Emitter:
             ctor_name = self._text(type_kids[0]) if type_kids else None
             if ctor_name in ("table", "set", "vector"):
                 args = [k for k in kids if k.type == "expr_list"]
-                self._open(f'CONSTRUCTOR {_quote(ctor_name)}')
+                self._open('CONSTRUCTOR')
+                self._w(f'KEYWORD {_quote(ctor_name)}')
                 self._w('LPAREN')
                 if args:
                     self._emit_expr_list(args[0])

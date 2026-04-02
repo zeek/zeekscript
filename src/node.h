@@ -31,7 +31,10 @@ public:
 	NodeVec& Children()
 		{ return children; }
 
-	// Find a child node by tag.  Returns nullptr if not found.
+	// Find a child node by tag, or nullptr if absent.
+	const Node* FindOptChild(Tag tag) const;
+
+	// Find a required child node by tag.  Aborts if not found.
 	const Node* FindChild(Tag tag) const;
 
 	// Find a child by tag, starting after the given child.

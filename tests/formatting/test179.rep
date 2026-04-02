@@ -7,7 +7,8 @@ GLOBAL-DECL {
     TYPE-ATOM "double"
   }
   ASSIGN "="
-  CONSTRUCTOR "vector" {
+  CONSTRUCTOR {
+    KEYWORD "vector"
     LPAREN
     CONSTANT "0.01"
     COMMA

@@ -10,7 +10,8 @@ GLOBAL-DECL {
     TYPE-ATOM "string"
   }
   ASSIGN "="
-  CONSTRUCTOR "table" {
+  CONSTRUCTOR {
+    KEYWORD "table"
     LPAREN
     BINARY-OP "=" {
       CONSTANT "[1]"
