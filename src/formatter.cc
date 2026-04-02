@@ -287,15 +287,8 @@ CollectArgs(const Node::NodeVec& children)
 			if ( t == Tag::Comma )
 				{
 				pending_comma = c.get();
-
-				// A trailing comment on COMMA belongs
-				// to the preceding item (e.g., "x, # note").
-				if ( c->MustBreakAfter() && ! items.empty() )
-					{
-					items.back().comment =
-						c->TrailingComment();
+				if ( c->MustBreakAfter() )
 					has_comments = true;
-					}
 				}
 			continue;
 			}
@@ -352,22 +345,30 @@ static Candidate FormatArgsFlat(const std::vector<ArgComment>& items,
 	return {text, static_cast<int>(text.size()), 1, 0};
 	}
 
-// Append a trailing comment to the current fill line.  Emits a comma
-// before the comment unless this is the last item.
-static void AppendTrailing(const ArgComment& it, bool is_last,
+// Append trailing material after an item in a fill layout.  Handles
+// the item's own trailing comment and the next comma (which may carry
+// a trailing comment that forces a wrap).
+static void AppendTrailing(const ArgComment& it,
+                           const Node* next_comma,
                            std::string& text, int& cur_col,
                            bool& force_wrap)
 	{
-	if ( it.comment.empty() )
-		return;
-	if ( ! is_last )
+	// The item's own trailing comment (rare for non-last items).
+	if ( ! it.comment.empty() )
 		{
-		text += ",";
-		++cur_col;
+		text += it.comment;
+		cur_col += static_cast<int>(it.comment.size());
+		force_wrap = true;
 		}
-	text += it.comment;
-	cur_col += static_cast<int>(it.comment.size());
-	force_wrap = true;
+
+	// The comma between this item and the next may carry a
+	// trailing comment (e.g., "x, # note").
+	if ( next_comma && next_comma->MustBreakAfter() )
+		{
+		text += next_comma->Text();
+		cur_col += next_comma->Width();
+		force_wrap = true;
+		}
 	}
 
 // Format an arg at the current column, appending to text and
@@ -412,15 +413,16 @@ static Candidate FormatArgsFill(const std::vector<ArgComment>& items,
 		{
 		auto& it = items[i];
 		bool is_last = (i + 1 == items.size());
+		const Node* nc = is_last ? nullptr : items[i + 1].comma;
 
 		// Leading comments force a wrap and appear on their
 		// own lines before the item.
 		if ( ! it.leading.empty() )
 			{
-			if ( i > 0 )
+			if ( it.comma )
 				{
-				text += ",";
-				++cur_col;
+				text += it.comma->Text();
+				cur_col += it.comma->Width();
 				}
 
 			for ( const auto& lc : it.leading )
@@ -436,7 +438,7 @@ static Candidate FormatArgsFill(const std::vector<ArgComment>& items,
 
 			FormatFillArg(*it.arg, indent, max_col,
 			              text, cur_col, lines, total_overflow);
-			AppendTrailing(it, is_last, text, cur_col, force_wrap);
+			AppendTrailing(it, nc, text, cur_col, force_wrap);
 			continue;
 			}
 
@@ -459,7 +461,7 @@ static Candidate FormatArgsFill(const std::vector<ArgComment>& items,
 			FormatFillArg(*it.arg, indent, max_col,
 			              text, cur_col, lines, total_overflow);
 			++lines;
-			AppendTrailing(it, is_last, text, cur_col, force_wrap);
+			AppendTrailing(it, nc, text, cur_col, force_wrap);
 			continue;
 			}
 		else
@@ -471,19 +473,18 @@ static Candidate FormatArgsFill(const std::vector<ArgComment>& items,
 				need = max_col + 1;
 			if ( cur_col + need <= max_col )
 				{
-				text += ", " + best.Text();
+				text += it.comma->Text() + " " + best.Text();
 				cur_col += need;
 				}
 			else
 				{
-				text += ",\n" + pad;
+				text += it.comma->Text() + "\n" + pad;
 				cur_col = align_col;
 
 				FormatFillArg(*it.arg, indent, max_col, text,
 						cur_col, lines, total_overflow);
 				++lines;
-				AppendTrailing(it, is_last, text, cur_col,
-				               force_wrap);
+				AppendTrailing(it, nc, text, cur_col, force_wrap);
 				continue;
 				}
 			}
@@ -495,7 +496,7 @@ static Candidate FormatArgsFill(const std::vector<ArgComment>& items,
 			}
 
 		total_overflow += best.Ovf();
-		AppendTrailing(it, is_last, text, cur_col, force_wrap);
+		AppendTrailing(it, nc, text, cur_col, force_wrap);
 		}
 
 	int end_ovf = std::max(0, cur_col - max_col);
@@ -596,10 +597,13 @@ static Candidate FormatArgsVertical(const std::string& open,
 
 		int line_w = body_col + best.Width();
 
-		if ( i + 1 < items.size() || trailing_comma )
+		const Node* nc = (i + 1 < items.size())
+			? items[i + 1].comma : nullptr;
+		if ( nc || trailing_comma )
 			{
-			text += ",";
-			++line_w;
+			std::string ct = nc ? nc->Text() : ",";
+			text += ct;
+			line_w += static_cast<int>(ct.size());
 			}
 
 		text += it.comment;
@@ -797,9 +801,16 @@ static Candidates FormatIndexLiteral(const Node& node, const FmtContext& ctx)
 	if ( has_comments )
 		{
 		bool all_trailing = true;
-		for ( const auto& it : items )
-			if ( it.comment.empty() )
+		for ( size_t i = 0; i < items.size(); ++i )
+			{
+			auto& it = items[i];
+			const Node* nc = (i + 1 < items.size())
+				? items[i + 1].comma : nullptr;
+			bool has_trail = ! it.comment.empty() ||
+				(nc && nc->MustBreakAfter());
+			if ( ! has_trail )
 				all_trailing = false;
+			}
 
 		if ( all_trailing )
 			return {FormatArgsVertical(lbt, rbt, items, ctx,
@@ -2098,17 +2109,29 @@ std::string FormatBodyText(const Node* body, const FmtContext& ctx)
 // ------------------------------------------------------------------
 
 // Format individual parameters as strings.
-static std::vector<std::string> FormatParamStrings(const Node* params,
+struct ParamEntry
+	{
+	std::string text;
+	const Node* comma = nullptr;	// COMMA before this param
+	};
+
+static std::vector<ParamEntry> FormatParamEntries(const Node* params,
                                                    const FmtContext& ctx)
 	{
-	std::vector<std::string> result;
+	std::vector<ParamEntry> result;
 
 	if ( ! params )
 		return result;
 
+	const Node* pending_comma = nullptr;
 	for ( const auto& p : params->Children() )
 		{
 		Tag t = p->GetTag();
+		if ( t == Tag::Comma )
+			{
+			pending_comma = p.get();
+			continue;
+			}
 		if ( is_comment(t) || is_token(t) )
 			continue;
 		if ( t != Tag::Param )
@@ -2120,7 +2143,8 @@ static std::vector<std::string> FormatParamStrings(const Node* params,
 		if ( ptype )
 			text += ": " + Best(FormatExpr(*ptype, ctx)).Text();
 
-		result.push_back(text);
+		result.push_back({text, pending_comma});
+		pending_comma = nullptr;
 		}
 
 	return result;
@@ -2142,15 +2166,16 @@ static Candidates FormatFuncDecl(const Node& node, const FmtContext& ctx)
 	std::string prefix = kw_node->Text() + " " + id_node->Text() + lp->Text();
 	int align_col = ctx.Col() + static_cast<int>(prefix.size());
 
-	auto param_strs = FormatParamStrings(params, ctx);
+	auto pentries = FormatParamEntries(params, ctx);
 
 	// Build flat param list.
 	std::string flat_params;
-	for ( size_t i = 0; i < param_strs.size(); ++i )
+	for ( size_t i = 0; i < pentries.size(); ++i )
 		{
-		if ( i > 0 )
-			flat_params += ", ";
-		flat_params += param_strs[i];
+		auto& pe = pentries[i];
+		if ( pe.comma )
+			flat_params += pe.comma->Text() + " ";
+		flat_params += pe.text;
 		}
 
 	// Return type suffix.
@@ -2193,30 +2218,31 @@ static Candidates FormatFuncDecl(const Node& node, const FmtContext& ctx)
 	std::string wrapped = prefix;
 	int cur_col = ctx.Col() + static_cast<int>(prefix.size());
 
-	for ( size_t i = 0; i < param_strs.size(); ++i )
+	for ( size_t i = 0; i < pentries.size(); ++i )
 		{
-		int pw = static_cast<int>(param_strs[i].size());
+		auto& pe = pentries[i];
+		int pw = static_cast<int>(pe.text.size());
 
 		if ( i == 0 )
 			{
-			wrapped += param_strs[i];
+			wrapped += pe.text;
 			cur_col += pw;
 			}
 		else
 			{
-			// Would ", param" fit on this line?
-			int need = 2 + pw;	// ", " + param
+			std::string sep = pe.comma->Text();
+			int need = static_cast<int>(sep.size()) + 1 + pw;
 			if ( cur_col + need <= max_col )
 				{
-				wrapped += ", " + param_strs[i];
+				wrapped += sep + " " + pe.text;
 				cur_col += need;
 				}
 			else
 				{
-				int suffix = (i == param_strs.size() - 1) ? 1 : 0;
+				int suffix = (i == pentries.size() - 1) ? 1 : 0;
 				int pcol = FitCol(align_col, pw + suffix, max_col);
 				std::string ppad = LinePrefix(ctx.Indent(), pcol);
-				wrapped += ",\n" + ppad + param_strs[i];
+				wrapped += sep + "\n" + ppad + pe.text;
 				cur_col = pcol + pw;
 				}
 			}
@@ -2357,12 +2383,24 @@ static Candidates FormatSwitch(const Node& node, const FmtContext& ctx)
 
 		std::string case_text = ckw->Text() + " ";
 
-		// Collect formatted values (skip COMMA tokens).
-		auto val_content = values->ContentChildren();
+		// Collect formatted values and commas.
 		std::vector<std::string> vals;
-		for ( const auto* v : val_content )
-			vals.push_back(
-				Best(FormatExpr(*v, ctx)).Text());
+		std::vector<const Node*> vcommas;
+		const Node* vpending = nullptr;
+		for ( const auto& vc : values->Children() )
+			{
+			Tag vt = vc->GetTag();
+			if ( vt == Tag::Comma )
+				vpending = vc.get();
+			else if ( ! is_token(vt) && ! is_comment(vt) &&
+			          ! is_marker(vt) )
+				{
+				vals.push_back(
+					Best(FormatExpr(*vc, ctx)).Text());
+				vcommas.push_back(vpending);
+				vpending = nullptr;
+				}
+			}
 
 		// Fill-pack values, wrapping at comma.
 		int case_col = ctx.Col() +
@@ -2380,12 +2418,12 @@ static Candidates FormatSwitch(const Node& node, const FmtContext& ctx)
 
 			if ( i > 0 && cur_col + need > max_col )
 				{
-				case_text += ",\n" + vpad;
+				case_text += vcommas[i]->Text() + "\n" + vpad;
 				cur_col = case_col;
 				}
 			else if ( i > 0 )
 				{
-				case_text += ", ";
+				case_text += vcommas[i]->Text() + " ";
 				cur_col += 2;
 				}
 
@@ -2495,9 +2533,11 @@ static Candidates FormatTypeDecl(const Node& node, const FmtContext& ctx)
 		std::string head = prefix + ": " + ekw->Text() +
 			" " + lb->Text();
 
-		// Collect enum values.
+		// Collect enum values and commas.
 		std::vector<std::string> values;
+		std::vector<const Node*> commas;
 		bool has_trailing_comma = false;
+		const Node* pending_comma = nullptr;
 		for ( const auto& c : enum_node->Children() )
 			{
 			if ( c->GetTag() == Tag::EnumValue )
@@ -2506,7 +2546,11 @@ static Candidates FormatTypeDecl(const Node& node, const FmtContext& ctx)
 				if ( ! c->Arg(1).empty() )
 					v += " " + c->Arg(1);
 				values.push_back(v);
+				commas.push_back(pending_comma);
+				pending_comma = nullptr;
 				}
+			else if ( c->GetTag() == Tag::Comma )
+				pending_comma = c.get();
 			else if ( c->GetTag() == Tag::TrailingComma )
 				has_trailing_comma = true;
 			}
@@ -2518,8 +2562,10 @@ static Candidates FormatTypeDecl(const Node& node, const FmtContext& ctx)
 		for ( size_t i = 0; i < values.size(); ++i )
 			{
 			body += pad + values[i];
-			if ( i + 1 < values.size() || has_trailing_comma )
-				body += ",";
+			const Node* nc = (i + 1 < commas.size())
+				? commas[i + 1] : nullptr;
+			if ( nc || has_trailing_comma )
+				body += nc ? nc->Text() : ",";
 			body += "\n";
 			}
 

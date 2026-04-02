@@ -760,6 +760,8 @@ class Emitter:
             elif child.type == "id":
                 self._w(f'ENUM-VALUE {_quote(self._text(child))}')
                 self._mark_content(child)
+            elif not child.is_named and self._text(child) == ",":
+                self._w('COMMA')
 
         # Detect trailing comma in source.
         kids = node.children

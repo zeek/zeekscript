@@ -6,8 +6,11 @@ TYPE-DECL "score" {
     KEYWORD "enum"
     LBRACE
     ENUM-VALUE "NOT" "= 0"
+    COMMA
     ENUM-VALUE "LOW" "= 1"
+    COMMA
     ENUM-VALUE "MED" "= 2"
+    COMMA
     ENUM-VALUE "HIGH" "= 3"
     RBRACE
   }

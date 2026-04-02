@@ -9,10 +9,15 @@ EXPORT {
       KEYWORD "enum"
       LBRACE
       ENUM-VALUE "ANOMALY"
+      COMMA
       ENUM-VALUE "NEW_ENTITY"
+      COMMA
       ENUM-VALUE "NEW_ITEM"
+      COMMA
       ENUM-VALUE "NEW_ENTITY_NEW_ITEM"
+      COMMA
       ENUM-VALUE "NEW_ENTITY_ITEM_PAIR"
+      COMMA
       ENUM-VALUE "UNKNOWN"
       RBRACE
     }
