@@ -692,7 +692,15 @@ class Emitter:
         if first_text == "record":
             self._open('TYPE-RECORD')
             for k in self._iter_children(node):
-                if k.type == "type_spec":
+                if not k.is_named:
+                    text = self._text(k)
+                    if text == "record":
+                        self._w('KEYWORD "record"')
+                    elif text == "{":
+                        self._w('LBRACE')
+                    elif text == "}":
+                        self._w('RBRACE')
+                elif k.type == "type_spec":
                     self._maybe_blank(k)
                     self._emit_type_spec(k)
             self._close()
@@ -701,8 +709,16 @@ class Emitter:
         # Enum type
         if first_text == "enum":
             self._open('TYPE-ENUM')
-            for k in kids:
-                if k.type == "enum_body":
+            for k in self._iter_children(node):
+                if not k.is_named:
+                    text = self._text(k)
+                    if text == "enum":
+                        self._w('KEYWORD "enum"')
+                    elif text == "{":
+                        self._w('LBRACE')
+                    elif text == "}":
+                        self._w('RBRACE')
+                elif k.type == "enum_body":
                     self._emit_enum_body(k)
             self._close()
             return
@@ -1007,7 +1023,7 @@ class Emitter:
                 elif text == "=":
                     self._w('ASSIGN "="')
             elif child.type == "id":
-                pass  # already extracted for tag
+                self._w(f'IDENTIFIER {_quote(self._text(child))}')
             elif child.type == "type" and child.is_named:
                 self._emit_type(child)
         self._w('SEMI')

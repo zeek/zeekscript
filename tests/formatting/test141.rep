@@ -1,7 +1,10 @@
 TYPE-DECL "SomeInfo" {
   KEYWORD "type"
+  IDENTIFIER "SomeInfo"
   COLON
   TYPE-RECORD {
+    KEYWORD "record"
+    LBRACE
     COMMENT-LEADING "## A timestamp field."
     FIELD "ts" {
       COLON
@@ -28,6 +31,7 @@ TYPE-DECL "SomeInfo" {
         ATTR "&log"
       }
     }
+    RBRACE
   }
   SEMI
 }

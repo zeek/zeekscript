@@ -2447,15 +2447,17 @@ static std::string FormatField(const Node& node, const std::string& suffix,
 
 static Candidates FormatTypeDecl(const Node& node, const FmtContext& ctx)
 	{
-	const auto& name = node.Arg();
-	bool has_semi = node.FindChild(Tag::Semi) != nullptr;
-	std::string semi_str = has_semi ? ";" : "";
+	const Node* kw_node = node.FindChild(Tag::Keyword);
+	const Node* id_node = node.FindChild(Tag::Identifier);
+	std::string semi_str = ";";
+
+	std::string prefix = kw_node->Text() + " " + id_node->Text();
 
 	// Simple type alias: type name: basetype;
 	const Node* base_type = FindTypeChild(node);
 	if ( base_type )
 		{
-		std::string text = "type " + name + ": " +
+		std::string text = prefix + ": " +
 			Best(FormatExpr(*base_type, ctx)).Text() + semi_str;
 		return {Candidate(text, ctx)};
 		}
@@ -2464,7 +2466,12 @@ static Candidates FormatTypeDecl(const Node& node, const FmtContext& ctx)
 	const Node* enum_node = node.FindOptChild(Tag::TypeEnum);
 	if ( enum_node )
 		{
-		std::string head = "type " + name + ": enum {";
+		const Node* ekw = enum_node->FindChild(Tag::Keyword);
+		const Node* lb = enum_node->FindChild(Tag::LBrace);
+		const Node* rb = enum_node->FindChild(Tag::RBrace);
+
+		std::string head = prefix + ": " + ekw->Text() +
+			" " + lb->Text();
 
 		// Collect enum values.
 		std::vector<std::string> values;
@@ -2495,8 +2502,8 @@ static Candidates FormatTypeDecl(const Node& node, const FmtContext& ctx)
 			}
 
 		std::string close_pad = LinePrefix(ctx.Indent(), ctx.Col());
-		std::string text = head + "\n" + body + close_pad + "}" +
-					semi_str;
+		std::string text = head + "\n" + body + close_pad +
+					rb->Text() + semi_str;
 		return {Candidate(text, ctx)};
 		}
 
@@ -2504,7 +2511,12 @@ static Candidates FormatTypeDecl(const Node& node, const FmtContext& ctx)
 	const Node* rec_node = node.FindOptChild(Tag::TypeRecord);
 	if ( rec_node )
 		{
-		std::string head = "type " + name + ": record {";
+		const Node* rkw = rec_node->FindChild(Tag::Keyword);
+		const Node* lb = rec_node->FindChild(Tag::LBrace);
+		const Node* rb = rec_node->FindChild(Tag::RBrace);
+
+		std::string head = prefix + ": " + rkw->Text() +
+			" " + lb->Text();
 
 		int field_indent = ctx.Indent() + 1;
 		int field_col = field_indent * INDENT_WIDTH;
@@ -2517,7 +2529,8 @@ static Candidates FormatTypeDecl(const Node& node, const FmtContext& ctx)
 		const auto& kids = rec_node->Children();
 		for ( size_t i = 0; i < kids.size(); ++i )
 			{
-			Tag t = kids[i]->GetTag();
+			auto& ki = kids[i];
+			Tag t = ki->GetTag();
 
 			if ( t == Tag::Blank )
 				{
@@ -2527,31 +2540,31 @@ static Candidates FormatTypeDecl(const Node& node, const FmtContext& ctx)
 
 			if ( is_comment(t) )
 				{
-				body += field_pad + kids[i]->Arg() + "\n";
+				body += field_pad + ki->Arg() + "\n";
 				continue;
 				}
 
 			if ( t == Tag::Field )
 				{
-				body += EmitPreComments(*kids[i], field_pad);
+				body += EmitPreComments(*ki, field_pad);
 
 				std::string suffix = ";" +
-					kids[i]->TrailingComment();
+					ki->TrailingComment();
 				std::string field_text =
-					FormatField(*kids[i], suffix, field_ctx);
+					FormatField(*ki, suffix, field_ctx);
 
 				body += field_pad + field_text + "\n";
 				}
 			}
 
 		std::string close_pad = LinePrefix(ctx.Indent(), ctx.Col());
-		std::string text = head + "\n" + body + close_pad + "}" +
-					semi_str;
+		std::string text = head + "\n" + body + close_pad +
+					rb->Text() + semi_str;
 		return {Candidate(text, ctx)};
 		}
 
 	// Fallback.
-	return {Candidate("type " + name + semi_str, ctx)};
+	return {Candidate(prefix + semi_str, ctx)};
 	}
 
 // ------------------------------------------------------------------

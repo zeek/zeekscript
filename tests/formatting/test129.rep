@@ -1,7 +1,10 @@
 TYPE-DECL "Foo" {
   KEYWORD "type"
+  IDENTIFIER "Foo"
   COLON
   TYPE-RECORD {
+    KEYWORD "record"
+    LBRACE
     FIELD "aa" {
       COLON
       TYPE-ATOM "string"
@@ -35,6 +38,7 @@ TYPE-DECL "Foo" {
         }
       }
     }
+    RBRACE
   }
   SEMI
 }

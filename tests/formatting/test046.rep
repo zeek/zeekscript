@@ -1,14 +1,18 @@
 EXPORT {
   TYPE-DECL "AnomalyTypes" {
     KEYWORD "type"
+    IDENTIFIER "AnomalyTypes"
     COLON
     TYPE-ENUM {
+      KEYWORD "enum"
+      LBRACE
       ENUM-VALUE "ANOMALY"
       ENUM-VALUE "NEW_ENTITY"
       ENUM-VALUE "NEW_ITEM"
       ENUM-VALUE "NEW_ENTITY_NEW_ITEM"
       ENUM-VALUE "NEW_ENTITY_ITEM_PAIR"
       ENUM-VALUE "UNKNOWN"
+      RBRACE
     }
     SEMI
   }

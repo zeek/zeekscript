@@ -1,8 +1,11 @@
 EXPORT {
   TYPE-DECL "SomeInfo" {
     KEYWORD "type"
+    IDENTIFIER "SomeInfo"
     COLON
     TYPE-RECORD {
+      KEYWORD "record"
+      LBRACE
       FIELD "some_field_name" {
         COLON
         TYPE-PARAMETERIZED "set" {
@@ -16,6 +19,7 @@ EXPORT {
         }
       }
       COMMENT-TRAILING "# A trailing comment here"
+      RBRACE
     }
     SEMI
   }

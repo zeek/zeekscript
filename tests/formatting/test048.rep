@@ -1,11 +1,15 @@
 TYPE-DECL "score" {
   KEYWORD "type"
+  IDENTIFIER "score"
   COLON
   TYPE-ENUM {
+    KEYWORD "enum"
+    LBRACE
     ENUM-VALUE "NOT" "= 0"
     ENUM-VALUE "LOW" "= 1"
     ENUM-VALUE "MED" "= 2"
     ENUM-VALUE "HIGH" "= 3"
+    RBRACE
   }
   SEMI
 }

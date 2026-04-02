@@ -1,8 +1,11 @@
 EXPORT {
   TYPE-DECL "SomeAttrs" {
     KEYWORD "type"
+    IDENTIFIER "SomeAttrs"
     COLON
     TYPE-RECORD {
+      KEYWORD "record"
+      LBRACE
       FIELD "some_strings" {
         COLON
         TYPE-PARAMETERIZED "set" {
@@ -16,6 +19,7 @@ EXPORT {
         }
       }
       COMMENT-TRAILING "# A set of associated strings"
+      RBRACE
     }
     SEMI
   }
