@@ -8,7 +8,7 @@
 
 class ConditionBlockNode : public Node {
 public:
-	using Node::Node;
+	ConditionBlockNode(Tag t) : Node(t) { }
 
 	Candidates Format(const FmtContext& ctx) const;
 
@@ -28,7 +28,7 @@ protected:
 
 class IfNode : public ConditionBlockNode {
 public:
-	using ConditionBlockNode::ConditionBlockNode;
+	IfNode() : ConditionBlockNode(Tag::If) { }
 
 protected:
 	std::string BuildFollowOn(const FmtContext& ctx,
@@ -37,7 +37,7 @@ protected:
 
 class ForNode : public ConditionBlockNode {
 public:
-	using ConditionBlockNode::ConditionBlockNode;
+	ForNode() : ConditionBlockNode(Tag::For) { }
 
 protected:
 	std::string BuildCondition(
@@ -46,5 +46,5 @@ protected:
 
 class WhileNode : public ConditionBlockNode {
 public:
-	using ConditionBlockNode::ConditionBlockNode;
+	WhileNode() : ConditionBlockNode(Tag::While) { }
 };

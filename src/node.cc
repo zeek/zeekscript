@@ -58,9 +58,9 @@ std::shared_ptr<Node> MakeNode(Tag tag)
 	{
 	switch ( tag )
 		{
-		case Tag::If: return std::make_shared<IfNode>(tag);
-		case Tag::For: return std::make_shared<ForNode>(tag);
-		case Tag::While: return std::make_shared<WhileNode>(tag);
+		case Tag::If: return std::make_shared<IfNode>();
+		case Tag::For: return std::make_shared<ForNode>();
+		case Tag::While: return std::make_shared<WhileNode>();
 		default: return std::make_shared<Node>(tag);
 		}
 	}
