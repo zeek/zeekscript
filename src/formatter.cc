@@ -423,7 +423,7 @@ CollectArgs(const Node::NodeVec& children)
 		auto& c = children[i];
 		Tag t = c->GetTag();
 
-		if ( t == Tag::TrailingComma )
+		if ( is_marker(t) )
 			continue;
 
 		if ( is_token(t) )
@@ -1969,6 +1969,42 @@ static Candidates FormatKeywordStmt(const Node& node, const FmtContext& ctx)
 	}
 
 // ------------------------------------------------------------------
+// Print statement: print expr, expr, ...
+// ------------------------------------------------------------------
+
+static Candidates FormatPrint(const Node& node, const FmtContext& ctx)
+	{
+	const Node* kw_node = node.FindChild(Tag::Keyword);
+	const Node* semi = node.FindChild(Tag::Semi);
+	std::string semi_str = semi->Text();
+	std::string prefix = kw_node->Text();
+
+	auto [items, has_comments] = CollectArgs(node.Children());
+
+	if ( items.empty() )
+		return {Candidate(prefix + semi_str, ctx)};
+
+	if ( items.size() == 1 )
+		return BuildLayout({prefix, SoftSp, items[0].arg,
+			semi_str}, ctx);
+
+	int semi_w = semi->Width();
+	FmtContext inner = ctx.Reserve(semi_w);
+	auto cs = FlatOrFill(prefix + " ", "", "", "", items,
+		has_comments, inner);
+
+	Candidates result;
+	for ( auto& c : cs )
+		{
+		std::string text = c.Text() + semi_str;
+		int w = c.Width() + semi_w;
+		result.push_back({text, w, c.Lines(), c.Ovf(), ctx.Col()});
+		}
+
+	return result;
+	}
+
+// ------------------------------------------------------------------
 // Module declaration: module SomeName;
 // ------------------------------------------------------------------
 
@@ -2813,7 +2849,7 @@ static const std::unordered_map<Tag, FormatFunc>& FormatDispatch()
 		{Tag::ModuleDecl, FormatModuleDecl},
 		{Tag::ExprStmt, FormatExprStmt},
 		{Tag::Return, FormatKeywordStmt},
-		{Tag::Print, FormatKeywordStmt},
+		{Tag::Print, FormatPrint},
 		{Tag::Add, FormatKeywordStmt},
 		{Tag::Delete, FormatKeywordStmt},
 		{Tag::Assert, FormatKeywordStmt},

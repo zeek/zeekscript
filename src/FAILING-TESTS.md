@@ -1,4 +1,4 @@
-# C++ Formatter Failing Tests (149 pass, 22 fail as of 2026-03-31)
+# C++ Formatter Failing Tests (153 pass, 20 fail as of 2026-04-02)
 
 ## By category (sorted by count)
 
@@ -17,12 +17,10 @@ test{041,097,098}
 ### CONSTRUCTOR with LAMBDA attr (1)
 test038 (needs LAMBDA support first)
 
-### Miscellaneous (1 each)
+### Miscellaneous
 - test040: CALL wrapping (set() args should use indent, not alignment)
 - test056: TYPE-FUNC params not wrapping
 - test102: Pattern literal emits `/* UNKNOWN-EXPR */`
-- test124: PRINT with multiple exprs (only first printed)
-- test161: ASSERT keyword not supported
 - test176: TYPE-PARAMETERIZED continuation misaligned after `[`
 
 ## Notes
@@ -268,3 +266,24 @@ entries chronological within a session date.
   - Node gains FindChild, ContentChildren methods; formatter exposes FormatExpr etc.
   - Emitter fix: trailing comment on single-stmt if-body now inside BODY block
   - Pure refactor - no behavior changes
+
+## Session progress (2026-04-02)
+- After FormatSchedule BuildLayout + trail reservation fixes: 150 pass, 22 fail
+  - Fixed: test143 (schedule baseline updated after BuildLayout conversion)
+  - BuildLayout trail_after: scan past SoftSp items, always add ctx.Trail()
+  - BuildLayout Candidate width: single-line uses text length, not absolute column
+- After condition_block BuildLayout + Tok() helper: 150 pass, 22 fail
+  - Converted condition_block head to BuildLayout with Tok() for forced breaks
+  - Tok() creates Lit from Node->Text() with MustBreakAfter for trailing comments
+  - Pure refactor - no behavior changes
+- After cleanup: 150 pass, 22 fail
+  - Removed dead AppendToken, deduplicated FormatSwitch case/default body,
+    consolidated FormatAttrList onto FormatAttrStrings, removed stale comments
+- After ASSERT support: 151 pass, 21 fail
+  - Fixed: test161 (assert keyword statement)
+  - Added Tag::Assert, emitter _emit_assert, dispatch to FormatKeywordStmt
+- After FormatPrint + CollectArgs marker fix: 153 pass, 20 fail
+  - Fixed: test124 (print with multiple expressions)
+  - FormatPrint: uses FlatOrFill for multi-expression print, reserves semi width
+  - CollectArgs: skip all markers (is_marker) not just TrailingComma - fixes
+    crash when SEMI collected as content arg with null comma
