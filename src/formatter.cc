@@ -415,7 +415,7 @@ static std::pair<std::vector<ArgComment>, bool>
 CollectArgs(const Node::NodeVec& children)
 	{
 	std::vector<ArgComment> items;
-	bool has_comments = false;
+	bool has_breaks = false;
 	const Node* pending_comma = nullptr;
 
 	for ( size_t i = 0; i < children.size(); ++i )
@@ -432,7 +432,7 @@ CollectArgs(const Node::NodeVec& children)
 				{
 				pending_comma = c.get();
 				if ( c->MustBreakAfter() )
-					has_comments = true;
+					has_breaks = true;
 				}
 			continue;
 			}
@@ -441,12 +441,12 @@ CollectArgs(const Node::NodeVec& children)
 		// sibling) - still appears as a standalone child.
 		if ( is_comment(t) )
 			{
-			has_comments = true;
+			has_breaks = true;
 			continue;
 			}
 
 		if ( c->MustBreakAfter() || c->MustBreakBefore() )
-			has_comments = true;
+			has_breaks = true;
 
 		std::vector<std::string> leading(c->PreComments().begin(),
 		                                 c->PreComments().end());
@@ -456,7 +456,7 @@ CollectArgs(const Node::NodeVec& children)
 		pending_comma = nullptr;
 		}
 
-	return {items, has_comments};
+	return {items, has_breaks};
 	}
 
 // ------------------------------------------------------------------
@@ -658,7 +658,7 @@ static Candidates FlatOrFill(const std::string& prefix,
                              const std::string& close,
                              const std::string& suffix,
                              const std::vector<ArgComment>& items,
-                             bool has_comments,
+                             bool has_breaks,
                              const FmtContext& ctx,
                              const std::string& open_comment = "",
                              const std::string& close_prefix = "")
@@ -679,7 +679,7 @@ static Candidates FlatOrFill(const std::string& prefix,
 
 	// Try flat (only when no comments - a trailing comment
 	// forces a line break, so flat would lose it).
-	if ( ! has_comments )
+	if ( ! has_breaks )
 		{
 		auto flat_args = FormatArgsFlat(items, inner_ctx);
 		std::string flat_text = prefix + open + flat_args.Text() +
@@ -785,7 +785,7 @@ static Candidates FormatCall(const Node& node, const FmtContext& ctx)
 	const Node* lp = args_node->FindChild(Tag::LParen);
 	const Node* rp = args_node->FindChild(Tag::RParen);
 
-	auto [items, has_comments] = CollectArgs(args_node->Children());
+	auto [items, has_breaks] = CollectArgs(args_node->Children());
 
 	if ( items.empty() )
 		return {func.Cat(lp->Text() + rp->Text()).In(ctx)};
@@ -793,10 +793,10 @@ static Candidates FormatCall(const Node& node, const FmtContext& ctx)
 	// Trailing comment on ARGS acts as an open-bracket comment
 	// (goes after the open paren, with args on the next line).
 	if ( ! args_node->TrailingComment().empty() )
-		has_comments = true;
+		has_breaks = true;
 
 	return FlatOrFill(func.Text(), lp->Text(), rp->Text(), "",
-		items, has_comments, ctx,
+		items, has_breaks, ctx,
 		args_node->TrailingComment());
 	}
 
@@ -832,7 +832,7 @@ static Candidates FormatConstructor(const Node& node, const FmtContext& ctx)
 	std::string lp = lp_node->Text();
 	std::string rp = rp_node->Text();
 
-	auto [items, has_comments] = CollectArgs(node.Children());
+	auto [items, has_breaks] = CollectArgs(node.Children());
 
 	if ( items.empty() )
 		return {Candidate(kw + lp + rp, ctx)};
@@ -840,7 +840,7 @@ static Candidates FormatConstructor(const Node& node, const FmtContext& ctx)
 	Candidates result;
 
 	// Candidate 1: flat (only when no comments).
-	if ( ! has_comments )
+	if ( ! has_breaks )
 		{
 		int open_w = static_cast<int>(kw.size() + lp.size());
 		FmtContext args_ctx(ctx.Indent(), ctx.Col() + open_w,
@@ -900,9 +900,9 @@ static Candidates FormatIndex(const Node& node, const FmtContext& ctx)
 		}
 
 	// Multiple subscripts: format as comma-separated list.
-	auto [items, has_comments] = CollectArgs(subs_node->Children());
+	auto [items, has_breaks] = CollectArgs(subs_node->Children());
 	return FlatOrFill(base.Text(), lb->Text(), rb->Text(), "",
-		items, has_comments, ctx);
+		items, has_breaks, ctx);
 	}
 
 // ------------------------------------------------------------------
@@ -916,7 +916,7 @@ static Candidates FormatIndexLiteral(const Node& node, const FmtContext& ctx)
 	std::string lbt = lb->Text();
 	std::string rbt = rb->Text();
 
-	auto [items, has_comments] = CollectArgs(node.Children());
+	auto [items, has_breaks] = CollectArgs(node.Children());
 
 	if ( items.empty() )
 		return {Candidate(lbt + rbt, ctx)};
@@ -928,7 +928,7 @@ static Candidates FormatIndexLiteral(const Node& node, const FmtContext& ctx)
 	// When every item has a trailing comment, use vertical indented
 	// layout (each item on its own line).  Otherwise use fill, which
 	// packs items and wraps after any trailing comment.
-	if ( has_comments )
+	if ( has_breaks )
 		{
 		bool all_trailing = true;
 		for ( size_t i = 0; i < items.size(); ++i )
@@ -947,7 +947,7 @@ static Candidates FormatIndexLiteral(const Node& node, const FmtContext& ctx)
 				has_trailing_comma)};
 		}
 
-	return FlatOrFill("", lbt, rbt, "", items, has_comments, ctx,
+	return FlatOrFill("", lbt, rbt, "", items, has_breaks, ctx,
 		"", close_pfx);
 	}
 
@@ -1918,19 +1918,19 @@ static Candidates FormatEventStmt(const Node& node, const FmtContext& ctx)
 	const Node* lp = args_node->FindChild(Tag::LParen);
 	const Node* rp = args_node->FindChild(Tag::RParen);
 
-	auto [items, has_comments] = CollectArgs(args_node->Children());
+	auto [items, has_breaks] = CollectArgs(args_node->Children());
 
 	if ( items.empty() )
 		return {Candidate(prefix + lp->Text() + rp->Text() +
 			semi_str, ctx)};
 
 	if ( ! args_node->TrailingComment().empty() )
-		has_comments = true;
+		has_breaks = true;
 
 	int semi_w = semi ? semi->Width() : 0;
 	FmtContext inner = semi ? ctx.Reserve(semi_w) : ctx;
 	auto cs = FlatOrFill(prefix, lp->Text(), rp->Text(), "",
-		items, has_comments, inner,
+		items, has_breaks, inner,
 		args_node->TrailingComment());
 
 	Candidates result;
@@ -1979,7 +1979,7 @@ static Candidates FormatPrint(const Node& node, const FmtContext& ctx)
 	std::string semi_str = semi->Text();
 	std::string prefix = kw_node->Text();
 
-	auto [items, has_comments] = CollectArgs(node.Children());
+	auto [items, has_breaks] = CollectArgs(node.Children());
 
 	if ( items.empty() )
 		return {Candidate(prefix + semi_str, ctx)};
@@ -1991,7 +1991,7 @@ static Candidates FormatPrint(const Node& node, const FmtContext& ctx)
 	int semi_w = semi->Width();
 	FmtContext inner = ctx.Reserve(semi_w);
 	auto cs = FlatOrFill(prefix + " ", "", "", "", items,
-		has_comments, inner);
+		has_breaks, inner);
 
 	Candidates result;
 	for ( auto& c : cs )
