@@ -81,6 +81,17 @@ Candidates FormatCall(const Node& node, const FmtContext& ctx)
 	if ( items.empty() )
 		return {func.Cat(lp->Text() + rp->Text()).In(ctx)};
 
+	// Trailing comma signals one-per-line intent.
+	bool has_trailing_comma =
+		args_node->FindOptChild(Tag::TrailingComma) != nullptr;
+
+	if ( has_trailing_comma )
+		{
+		std::string open = func.Text() + lp->Text();
+		return {FormatArgsVertical(open, rp->Text(),
+		                           items, ctx, true)};
+		}
+
 	return FlatOrFill(func.Text(), lp->Text(), rp->Text(), "",
 		items, ctx, args_node->TrailingComment());
 	}

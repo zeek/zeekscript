@@ -13,6 +13,7 @@ GLOBAL-DECL {
       COMMA
       CONSTANT "\"yet.another.host.example.net\""
       COMMA
+      TRAILING-COMMA
       RPAREN
     }
   }

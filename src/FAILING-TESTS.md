@@ -1,4 +1,4 @@
-# C++ Formatter Failing Tests (157 pass, 16 fail as of 2026-04-03)
+# C++ Formatter Failing Tests (158 pass, 15 fail as of 2026-04-03)
 
 ## By category (sorted by count)
 
@@ -11,7 +11,6 @@ Multi-element set/redef not formatted one-per-line with trailing commas.
 test{041,097,098}
 
 ### Miscellaneous
-- test040: CALL wrapping (set() args should use indent, not alignment)
 - test102: Pattern literal emits `/* UNKNOWN-EXPR */`
 - test176: TYPE-PARAMETERIZED continuation misaligned after `[`
 
