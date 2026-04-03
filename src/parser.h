@@ -22,8 +22,7 @@ public:
 	static Node::NodeVec Parse(const std::string& input);
 
 private:
-	Parser(const std::string& input)
-		: input(input) {}
+	Parser(const std::string& input) : input(input) {}
 
 	Node::NodeVec ParseFile();
 	std::shared_ptr<Node> ParseNode();
@@ -32,10 +31,8 @@ private:
 
 	void SkipWhitespace();
 
-	bool AtEnd() const
-		{ return pos >= input.size(); }
-	char Peek() const
-		{ return input[pos]; }
+	bool AtEnd() const { return pos >= input.size(); }
+	char Peek() const { return input[pos]; }
 	char Advance();
 
 	void Error(const char* msg) const;

@@ -2,8 +2,7 @@
 
 #include <string>
 
-// Semantic node tags — one per distinct node type in
-// the .rep format.
+// Semantic node tags - one per distinct node type in the .rep format.
 enum class Tag {
 	// Expressions
 	BinaryOp,
