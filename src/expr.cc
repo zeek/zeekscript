@@ -2,203 +2,149 @@
 
 #include "fmt_internal.h"
 
-// ------------------------------------------------------------------
-// Atoms
-// ------------------------------------------------------------------
-
 Candidates FormatAtom(const Node& node, const FmtContext& ctx)
 	{
 	return {Candidate(node.Arg(), ctx)};
 	}
 
-// ------------------------------------------------------------------
 // Field access: rec$field
-// ------------------------------------------------------------------
-
 Candidates FormatFieldAccess(const Node& node, const FmtContext& ctx)
 	{
-	auto content = node.ContentChildren();
-	if ( content.size() < 2 )
-		throw FormatError("FIELD-ACCESS node needs 2 children");
-
-	const Node* dollar = node.FindChild(Tag::Dollar);
+	auto content = node.ContentChildren("FIELD-ACCESS", 2);
 
 	auto lhs_cs = FormatExpr(*content[0], ctx);
 	const auto& lhs = Best(lhs_cs);
 
+	auto dollar = node.FindChild(Tag::Dollar);
 	int dw = dollar->Width();
 	auto rhs_cs = FormatExpr(*content[1], ctx.After(lhs.Width() + dw));
-	const auto& rhs = Best(rhs_cs);
+	auto rhs = Best(rhs_cs);
 
 	return {lhs.Cat(dollar->Text()).Cat(rhs).In(ctx)};
 	}
 
-// ------------------------------------------------------------------
 // Field assign: $field=expr
-// ------------------------------------------------------------------
-
 Candidates FormatFieldAssign(const Node& node, const FmtContext& ctx)
 	{
-	const Node* dollar = node.FindChild(Tag::Dollar);
-	const Node* assign = node.FindChild(Tag::Assign);
-
-	std::string prefix = dollar->Text() + node.Arg() + assign->Text();
-
-	auto content = node.ContentChildren();
-	if ( content.empty() )
-		throw FormatError("FIELD-ASSIGN node needs a value child");
-
+	auto dollar = node.FindChild(Tag::Dollar)->Text();
+	auto assign = node.FindChild(Tag::Assign)->Text();
+	auto prefix = dollar + node.Arg() + assign;
 	int pw = static_cast<int>(prefix.size());
+
+	auto content = node.ContentChildren("FIELD-ASSIGN", 1);
 	auto val_cs = FormatExpr(*content[0], ctx.After(pw));
-	const auto& val = Best(val_cs);
+	auto val = Best(val_cs);
 
 	return {Candidate(prefix + val.Text(), ctx)};
 	}
 
-// ------------------------------------------------------------------
 // Call: func(args)
-// ------------------------------------------------------------------
-
 Candidates FormatCall(const Node& node, const FmtContext& ctx)
 	{
-	auto content = node.ContentChildren();
-	if ( content.empty() )
-		throw FormatError("CALL node needs children");
-
+	auto content = node.ContentChildren("CALL", 1);
 	auto func_cs = FormatExpr(*content[0], ctx);
 	const auto& func = Best(func_cs);
 
-	const Node* args_node = node.FindChild(Tag::Args);
-
+	auto args_node = node.FindChild(Tag::Args);
 	if ( ! args_node )
 		return {func.Cat("()").In(ctx)};
 
-	const Node* lp = args_node->FindChild(Tag::LParen);
-	const Node* rp = args_node->FindChild(Tag::RParen);
-
+	auto lp = args_node->FindChild(Tag::LParen)->Text();
+	auto rp = args_node->FindChild(Tag::RParen)->Text();
 	auto items = CollectArgs(args_node->Children());
 
 	if ( items.empty() )
-		return {func.Cat(lp->Text() + rp->Text()).In(ctx)};
+		return {func.Cat(lp + rp).In(ctx)};
 
 	// Trailing comma signals one-per-line intent.
-	bool has_trailing_comma =
-		args_node->FindOptChild(Tag::TrailingComma) != nullptr;
-
-	if ( has_trailing_comma )
-		{
-		std::string open = func.Text() + lp->Text();
-		return {FormatArgsVertical(open, rp->Text(),
+	if ( args_node->FindOptChild(Tag::TrailingComma) )
+		return {FormatArgsVertical(func.Text() + lp, rp,
 		                           items, ctx, true)};
-		}
 
-	return FlatOrFill(func.Text(), lp->Text(), rp->Text(), "",
-		items, ctx, args_node->TrailingComment());
+	return FlatOrFill(func.Text(), lp, rp, "", items, ctx,
+				args_node->TrailingComment());
 	}
 
-// ------------------------------------------------------------------
 // Schedule: schedule interval { event() }
-// ------------------------------------------------------------------
-
 Candidates FormatSchedule(const Node& node, const FmtContext& ctx)
 	{
-	const Node* kw = node.FindChild(Tag::Keyword);
-	const Node* lb = node.FindChild(Tag::LBrace);
-	const Node* rb = node.FindChild(Tag::RBrace);
+	auto kw = node.FindChild(Tag::Keyword)->Text();
+	auto lb = node.FindChild(Tag::LBrace)->Text();
+	auto rb = node.FindChild(Tag::RBrace)->Text();
+	auto content = node.ContentChildren("SCHEDULE", 2);
 
-	auto content = node.ContentChildren();
-	if ( content.size() < 2 )
-		throw FormatError("SCHEDULE node needs 2 content children");
-
-	return BuildLayout({kw->Text(), SoftSp, content[0],
-		SoftSp, lb->Text(), SoftSp, content[1],
-		SoftSp, rb->Text()}, ctx);
+	return BuildLayout({kw, SoftSp, content[0], SoftSp, lb,
+				SoftSp, content[1], SoftSp, rb}, ctx);
 	}
 
-// ------------------------------------------------------------------
 // Lambda: function[captures](params): ret { body }
-// ------------------------------------------------------------------
-
 Candidates FormatLambda(const Node& node, const FmtContext& ctx)
 	{
-	const Node* kw = node.FindChild(Tag::Keyword);
-	const Node* params = node.FindChild(Tag::Params);
-	const Node* body = node.FindChild(Tag::Body);
-	const Node* returns = node.FindOptChild(Tag::Returns);
-
 	// Build prefix: function[captures]
-	std::string prefix = kw->Text();
+	std::string prefix = node.FindChild(Tag::Keyword)->Text();
 
-	const Node* captures = node.FindOptChild(Tag::Captures);
-	if ( captures )
+	if ( auto captures = node.FindOptChild(Tag::Captures) )
 		{
-		const Node* clb = captures->FindChild(Tag::LBracket);
-		const Node* crb = captures->FindChild(Tag::RBracket);
+		auto clb = captures->FindChild(Tag::LBracket)->Text();
+		auto crb = captures->FindChild(Tag::RBracket)->Text();
 		auto cap_items = CollectArgs(captures->Children());
 		if ( cap_items.empty() )
-			prefix += clb->Text() + crb->Text();
+			prefix += clb + crb;
 		else
 			{
-			auto cs = FlatOrFill(prefix, clb->Text(),
-				crb->Text(), "", cap_items, ctx);
+			auto cs = FlatOrFill(prefix, clb, crb, "",
+						cap_items, ctx);
 			prefix = Best(cs).Text();
 			}
 		}
 
-	// Params and return type.
-	const Node* lp = params->FindChild(Tag::LParen);
-	const Node* rp = params->FindChild(Tag::RParen);
-	auto items = CollectArgs(params->Children());
-
+	// Return type and params.
 	std::string ret_str;
-	if ( returns )
+	if ( auto returns = node.FindOptChild(Tag::Returns) )
 		{
-		const Node* rcol = node.FindChild(Tag::Colon);
-		const Node* rt = FindTypeChild(*returns);
-		if ( rt )
-			ret_str = rcol->Text() + " " +
+		auto rcol = node.FindChild(Tag::Colon)->Text();
+		if ( auto rt = FindTypeChild(*returns) )
+			ret_str = rcol + " " +
 				Best(FormatExpr(*rt, ctx)).Text();
 		}
 
+	auto params = node.FindChild(Tag::Params);
+	auto lp = params->FindChild(Tag::LParen)->Text();
+	auto rp = params->FindChild(Tag::RParen)->Text();
+	auto items = CollectArgs(params->Children());
 	std::string sig;
+
 	if ( items.empty() )
-		sig = prefix + lp->Text() + rp->Text() + ret_str;
+		sig = prefix + lp + rp + ret_str;
 	else
 		{
-		auto cs = FlatOrFill(prefix, lp->Text(),
-			rp->Text(), ret_str, items, ctx);
+		auto cs = FlatOrFill(prefix, lp, rp, ret_str, items, ctx);
 		sig = Best(cs).Text();
 		}
 
 	// Format body with indent level based on the lambda's column
 	// position, so the Whitesmith block aligns to the next tab stop.
 	int lambda_indent = ctx.Col() / INDENT_WIDTH;
-	FmtContext body_ctx(lambda_indent, ctx.Col(),
-		ctx.MaxCol() - ctx.Col());
-	std::string block = FormatWhitesmithBlock(body, body_ctx);
+	FmtContext body_ctx(lambda_indent, ctx.Col(), ctx.MaxCol() - ctx.Col());
+	auto body = node.FindChild(Tag::Body);
+	auto block = FormatWhitesmithBlock(body, body_ctx);
 
-	std::string text = sig + block;
+	auto text = sig + block;
 	int last_w = LastLineLen(text);
 	int lines = CountLines(text);
 	int ovf = TextOverflow(text, ctx.Col(), ctx.MaxCol());
+
 	return {{text, last_w, lines, ovf, ctx.Col()}};
 	}
 
-// ------------------------------------------------------------------
 // Constructor: table(...), set(...), vector(...)
-// ------------------------------------------------------------------
-
 Candidates FormatConstructor(const Node& node, const FmtContext& ctx)
 	{
-	const Node* kw_node = node.FindChild(Tag::Keyword);
-	const Node* lp_node = node.FindChild(Tag::LParen);
-	const Node* rp_node = node.FindChild(Tag::RParen);
-	std::string kw = kw_node->Text();
-	std::string lp = lp_node->Text();
-	std::string rp = rp_node->Text();
+	auto kw = node.FindChild(Tag::Keyword)->Text();
+	auto lp = node.FindChild(Tag::LParen)->Text();
+	auto rp = node.FindChild(Tag::RParen)->Text();
 
 	auto items = CollectArgs(node.Children());
-
 	if ( items.empty() )
 		return {Candidate(kw + lp + rp, ctx)};
 
@@ -209,11 +155,10 @@ Candidates FormatConstructor(const Node& node, const FmtContext& ctx)
 		{
 		int open_w = static_cast<int>(kw.size() + lp.size());
 		FmtContext args_ctx(ctx.Indent(), ctx.Col() + open_w,
-		                    ctx.Width() - open_w
-		                    - static_cast<int>(rp.size()));
+		                    ctx.Width() - open_w -
+					static_cast<int>(rp.size()));
 		auto flat_args = FormatArgsFlat(items, args_ctx);
-		auto flat_c = Candidate(kw + lp + flat_args.Text() + rp,
-		                        ctx);
+		auto flat_c = Candidate(kw + lp + flat_args.Text() + rp, ctx);
 		result.push_back(flat_c);
 
 		if ( flat_c.Ovf() == 0 )
@@ -221,31 +166,24 @@ Candidates FormatConstructor(const Node& node, const FmtContext& ctx)
 		}
 
 	// Candidate 2: one element per line, indented body.
-	result.push_back(FormatArgsVertical(kw + lp, rp,
-	                                    items, ctx));
+	result.push_back(FormatArgsVertical(kw + lp, rp, items, ctx));
 
 	return result;
 	}
 
-// ------------------------------------------------------------------
 // Index: expr[subscripts]
-// ------------------------------------------------------------------
-
 Candidates FormatIndex(const Node& node, const FmtContext& ctx)
 	{
-	auto content = node.ContentChildren();
-	if ( content.empty() )
-		throw FormatError("INDEX node needs children");
-
+	auto content = node.ContentChildren("INDEX", 1);
 	auto base_cs = FormatExpr(*content[0], ctx);
 	const auto& base = Best(base_cs);
 
-	const Node* subs_node = node.FindChild(Tag::Subscripts);
+	auto subs_node = node.FindChild(Tag::Subscripts);
 	if ( ! subs_node )
 		return {base.Cat("[]").In(ctx)};
 
-	const Node* lb = subs_node->FindChild(Tag::LBracket);
-	const Node* rb = subs_node->FindChild(Tag::RBracket);
+	auto lb = subs_node->FindChild(Tag::LBracket);
+	auto rb = subs_node->FindChild(Tag::RBracket);
 
 	auto subs_content = subs_node->ContentChildren();
 	if ( subs_content.empty() )
@@ -257,34 +195,27 @@ Candidates FormatIndex(const Node& node, const FmtContext& ctx)
 		int rb_w = rb->Width();
 		int sub_col = ctx.Col() + base.Width() + lb_w;
 		FmtContext bracket_ctx(ctx.Indent(), sub_col,
-			ctx.Width() - base.Width() - lb_w - rb_w);
+					ctx.Width() - base.Width() -
+						lb_w - rb_w);
 		auto sub_cs = FormatExpr(*subs_content[0], bracket_ctx);
-		const auto& sub = Best(sub_cs);
-		return {base.Cat(lb->Text()).Cat(sub)
-			.Cat(rb->Text()).In(ctx)};
+		auto sub = Best(sub_cs);
+		return {base.Cat(lb->Text()).Cat(sub).Cat(rb->Text()).In(ctx)};
 		}
 
 	// Multiple subscripts: format as comma-separated list.
 	auto items = CollectArgs(subs_node->Children());
-	return FlatOrFill(base.Text(), lb->Text(), rb->Text(), "",
-		items, ctx);
+	return FlatOrFill(base.Text(), lb->Text(), rb->Text(), "", items, ctx);
 	}
 
-// ------------------------------------------------------------------
 // Index literal: [$field=expr, ...]
-// ------------------------------------------------------------------
-
 Candidates FormatIndexLiteral(const Node& node, const FmtContext& ctx)
 	{
-	const Node* lb = node.FindChild(Tag::LBracket);
-	const Node* rb = node.FindChild(Tag::RBracket);
-	std::string lbt = lb->Text();
-	std::string rbt = rb->Text();
+	auto lb = node.FindChild(Tag::LBracket)->Text();
+	auto rb = node.FindChild(Tag::RBracket)->Text();
 
 	auto items = CollectArgs(node.Children());
-
 	if ( items.empty() )
-		return {Candidate(lbt + rbt, ctx)};
+		return {Candidate(lb + rb, ctx)};
 
 	bool has_trailing_comma =
 		node.FindOptChild(Tag::TrailingComma) != nullptr;
@@ -299,20 +230,20 @@ Candidates FormatIndexLiteral(const Node& node, const FmtContext& ctx)
 		for ( size_t i = 0; i < items.size(); ++i )
 			{
 			auto& it = items[i];
-			const Node* nc = (i + 1 < items.size())
-				? items[i + 1].comma : nullptr;
+			auto nc = (i + 1 < items.size()) ?
+					items[i + 1].comma : nullptr;
 			bool has_trail = ! it.comment.empty() ||
-				(nc && nc->MustBreakAfter());
+						(nc && nc->MustBreakAfter());
 			if ( ! has_trail )
 				all_trailing = false;
 			}
 
 		if ( all_trailing )
-			return {FormatArgsVertical(lbt, rbt, items, ctx,
+			return {FormatArgsVertical(lb, rb, items, ctx,
 				has_trailing_comma)};
 		}
 
-	return FlatOrFill("", lbt, rbt, "", items, ctx, "", close_pfx);
+	return FlatOrFill("", lb, rb, "", items, ctx, "", close_pfx);
 	}
 
 // ------------------------------------------------------------------
