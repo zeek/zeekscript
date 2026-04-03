@@ -1,5 +1,6 @@
 TYPE-DECL "val" {
   KEYWORD "type"
+  SP
   IDENTIFIER "val"
   COLON
   SP

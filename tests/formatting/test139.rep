@@ -1,8 +1,10 @@
 EXPORT {
   KEYWORD "export"
+  SP
   LBRACE
   TYPE-DECL "SomeAttrs" {
     KEYWORD "type"
+    SP
     IDENTIFIER "SomeAttrs"
     COLON
     SP

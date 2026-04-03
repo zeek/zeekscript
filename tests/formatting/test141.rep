@@ -1,5 +1,6 @@
 TYPE-DECL "SomeInfo" {
   KEYWORD "type"
+  SP
   IDENTIFIER "SomeInfo"
   COLON
   SP

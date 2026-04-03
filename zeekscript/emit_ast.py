@@ -1010,6 +1010,7 @@ class Emitter:
                 text = self._text(child)
                 if text == "export":
                     self._w('KEYWORD "export"')
+                    self._w('SP')
                 elif text == "{":
                     self._w('LBRACE')
                 elif text == "}":
@@ -1029,6 +1030,7 @@ class Emitter:
                 name = self._text(child)
         self._open(f'MODULE {_quote(name)}')
         self._w('KEYWORD "module"')
+        self._w('SP')
         self._w(f'IDENTIFIER {_quote(name)}')
         self._w('SEMI')
         self._close()
@@ -1046,6 +1048,7 @@ class Emitter:
                 text = self._text(child)
                 if text == "type":
                     self._w('KEYWORD "type"')
+                    self._w('SP')
                 elif text == ":":
                     self._w('COLON')
                     self._w('SP')

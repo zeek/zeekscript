@@ -41,13 +41,6 @@ void AppendToken(const Node* node, std::string& head,
 		}
 	}
 
-// Conditional space: returns " " unless prev forced a line break
-// (e.g. due to a trailing comment).  Pairs with SP tokens in .rep.
-static std::string SpAfter(const Node* prev)
-	{
-	return prev->MustBreakAfter() ? "" : " ";
-	}
-
 // ------------------------------------------------------------------
 // Pre-comment / pre-marker emission
 // ------------------------------------------------------------------
@@ -202,6 +195,146 @@ static Candidates FormatExprStmt(const Node& node, const FmtContext& ctx);
 // Forward declaration for dispatch table (used by FormatStmtList).
 using FormatFunc = Candidates (*)(const Node&, const FmtContext&);
 static const std::unordered_map<Tag, FormatFunc>& FormatDispatch();
+
+// ------------------------------------------------------------------
+// Layout combinator
+// ------------------------------------------------------------------
+
+// A component in a layout specification.  Implicit constructors
+// let callers mix strings, node pointers, and SP markers freely:
+//   BuildLayout({prefix, colon->Text(), SoftSp, base_type, semi}, ctx)
+struct LayoutItem
+	{
+	enum class Kind { Lit, Fmt, Sp } kind;
+	std::string text;
+	const Node* node;
+
+	// Literal string.
+	LayoutItem(const std::string& s)
+		: kind(Kind::Lit), text(s), node(nullptr) {}
+	LayoutItem(const char* s)
+		: kind(Kind::Lit), text(s), node(nullptr) {}
+
+	// Node to format (produces candidates).
+	LayoutItem(const Node* n)
+		: kind(Kind::Fmt), node(n) {}
+
+	// Soft space (private; use SoftSp constant).
+	LayoutItem(Kind k) : kind(k), node(nullptr) {}
+	};
+
+static const LayoutItem SoftSp{LayoutItem::Kind::Sp};
+
+// Build layout candidates from a sequence of components using
+// beam search.  At each Fmt node, all of its candidates are tried;
+// at each SoftSp, both "space" and "break + indent" are tried.
+// The beam is pruned to the best BEAM_WIDTH partials at each step.
+static Candidates BuildLayout(
+	std::initializer_list<LayoutItem> items,
+	const FmtContext& ctx)
+	{
+	static constexpr int BEAM_WIDTH = 4;
+
+	struct Partial
+		{
+		std::string text;
+		int col;      // current column (end of last line)
+		int lines;
+		int overflow;
+		};
+
+	auto ovf_at = [&](int c)
+		{ return std::max(0, c - ctx.MaxCol()); };
+
+	std::vector<Partial> beam = {{"", ctx.Col(), 1, 0}};
+
+	for ( const auto& item : items )
+		{
+		std::vector<Partial> next;
+
+		for ( auto& p : beam )
+			{
+			switch ( item.kind )
+				{
+			case LayoutItem::Kind::Lit:
+				{
+				Partial np = p;
+				np.text += item.text;
+				np.col += static_cast<int>(item.text.size());
+				np.overflow += ovf_at(np.col);
+				next.push_back(std::move(np));
+				break;
+				}
+
+			case LayoutItem::Kind::Fmt:
+				{
+				int avail = ctx.MaxCol() - p.col;
+				FmtContext sub(ctx.Indent(), p.col, avail);
+				auto cs = FormatExpr(*item.node, sub);
+				for ( const auto& c : cs )
+					{
+					Partial np = p;
+					np.text += c.Text();
+					np.overflow += c.Ovf();
+					if ( c.Lines() > 1 )
+						{
+						np.lines += c.Lines() - 1;
+						np.col = c.Width();
+						}
+					else
+						np.col += c.Width();
+					next.push_back(std::move(np));
+					}
+				break;
+				}
+
+			case LayoutItem::Kind::Sp:
+				{
+				// Option 1: space.
+				Partial sp = p;
+				sp.text += " ";
+				++sp.col;
+				next.push_back(std::move(sp));
+
+				// Option 2: break + indent.
+				FmtContext brk = ctx.Indented();
+				std::string pad = "\n" +
+					LinePrefix(brk.Indent(),
+					           brk.IndentCol());
+				Partial bp = p;
+				bp.text += pad;
+				bp.col = brk.IndentCol();
+				++bp.lines;
+				next.push_back(std::move(bp));
+				break;
+				}
+				}
+			}
+
+		// Prune to best BEAM_WIDTH using same priority as
+		// Candidate::BetterThan: overflow > lines > spread.
+		if ( static_cast<int>(next.size()) > BEAM_WIDTH )
+			{
+			std::sort(next.begin(), next.end(),
+				[](const Partial& a, const Partial& b)
+					{
+					if ( a.overflow != b.overflow )
+						return a.overflow < b.overflow;
+					return a.lines < b.lines;
+					});
+			next.resize(BEAM_WIDTH);
+			}
+
+		beam = std::move(next);
+		}
+
+	// Convert partials to Candidates.
+	Candidates result;
+	for ( auto& p : beam )
+		result.push_back({std::move(p.text), p.col, p.lines,
+		                  p.overflow, ctx.Col()});
+	return result;
+	}
 
 // ------------------------------------------------------------------
 // Atoms
@@ -1880,8 +2013,8 @@ static Candidates FormatModuleDecl(const Node& node, const FmtContext& ctx)
 	const Node* kw = node.FindChild(Tag::Keyword);
 	const Node* id = node.FindChild(Tag::Identifier);
 	const Node* semi = node.FindChild(Tag::Semi);
-	return {Candidate(kw->Text() + " " + id->Text() +
-		semi->Text(), ctx)};
+	return BuildLayout({kw->Text(), SoftSp, id->Text(),
+		semi->Text()}, ctx);
 	}
 
 // ------------------------------------------------------------------
@@ -2354,8 +2487,9 @@ static Candidates FormatExport(const Node& node, const FmtContext& ctx)
 	std::string close = EmitPreComments(*rb, inner_pad) +
 		pad + rb->Text();
 
-	return {Candidate(kw->Text() + " " + lb->Text() + "\n" +
-		body_text + close, ctx)};
+	std::string head = Best(BuildLayout({kw->Text(), SoftSp,
+		lb->Text()}, ctx)).Text();
+	return {Candidate(head + "\n" + body_text + close, ctx)};
 	}
 
 // ------------------------------------------------------------------
@@ -2565,19 +2699,15 @@ static Candidates FormatTypeDecl(const Node& node, const FmtContext& ctx)
 	const Node* id_node = node.FindChild(Tag::Identifier);
 	const Node* colon = node.FindChild(Tag::Colon);
 	const Node* semi = node.FindChild(Tag::Semi);
+	std::string kw = kw_node->Text();
+	std::string id = id_node->Text();
 	std::string semi_str = semi->Text();
-
-	std::string prefix = kw_node->Text() + " " + id_node->Text();
 
 	// Simple type alias: type name: basetype;
 	const Node* base_type = FindTypeChild(node);
 	if ( base_type )
-		{
-		std::string text = prefix + colon->Text() +
-			SpAfter(colon) +
-			Best(FormatExpr(*base_type, ctx)).Text() + semi_str;
-		return {Candidate(text, ctx)};
-		}
+		return BuildLayout({kw, SoftSp, id, colon->Text(),
+			SoftSp, base_type, semi_str}, ctx);
 
 	// Enum type.
 	const Node* enum_node = node.FindOptChild(Tag::TypeEnum);
@@ -2587,8 +2717,9 @@ static Candidates FormatTypeDecl(const Node& node, const FmtContext& ctx)
 		const Node* lb = enum_node->FindChild(Tag::LBrace);
 		const Node* rb = enum_node->FindChild(Tag::RBrace);
 
-		std::string head = prefix + colon->Text() +
-			SpAfter(colon) + ekw->Text() + " " + lb->Text();
+		std::string head = Best(BuildLayout({kw, SoftSp, id,
+			colon->Text(), SoftSp,
+			ekw->Text() + " " + lb->Text()}, ctx)).Text();
 
 		// Collect enum values and commas.
 		std::vector<std::string> values;
@@ -2640,8 +2771,9 @@ static Candidates FormatTypeDecl(const Node& node, const FmtContext& ctx)
 		const Node* lb = rec_node->FindChild(Tag::LBrace);
 		const Node* rb = rec_node->FindChild(Tag::RBrace);
 
-		std::string head = prefix + colon->Text() +
-			SpAfter(colon) + rkw->Text() + " " + lb->Text();
+		std::string head = Best(BuildLayout({kw, SoftSp, id,
+			colon->Text(), SoftSp,
+			rkw->Text() + " " + lb->Text()}, ctx)).Text();
 
 		int field_indent = ctx.Indent() + 1;
 		int field_col = field_indent * INDENT_WIDTH;
@@ -2691,7 +2823,7 @@ static Candidates FormatTypeDecl(const Node& node, const FmtContext& ctx)
 		}
 
 	// Fallback.
-	return {Candidate(prefix + semi_str, ctx)};
+	return BuildLayout({kw, SoftSp, id, semi_str}, ctx);
 	}
 
 // ------------------------------------------------------------------

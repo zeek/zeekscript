@@ -1,5 +1,6 @@
 TYPE-DECL "score" {
   KEYWORD "type"
+  SP
   IDENTIFIER "score"
   COLON
   SP

@@ -5,6 +5,7 @@ PREPROC "@ifdef" "SomeFeature" {
 BLANK
 MODULE "SomeMod" {
   KEYWORD "module"
+  SP
   IDENTIFIER "SomeMod"
   SEMI
 }
