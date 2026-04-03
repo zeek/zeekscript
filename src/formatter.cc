@@ -901,9 +901,13 @@ static Candidates FormatUnary(const Node& node, const FmtContext& ctx)
 	// Cardinality/absolute value: |expr|
 	if ( op == "|...|" )
 		{
-		auto operand_cs = FormatExpr(*content[0], ctx.After(2));
+		const Node* lp = node.FindChild(Tag::Op);
+		const Node* rp = node.FindChild(Tag::Op, lp);
+		auto operand_cs = FormatExpr(*content[0],
+			ctx.After(lp->Width()));
 		const auto& operand = Best(operand_cs);
-		return {Candidate("|", ctx).Cat(operand).Cat("|").In(ctx)};
+		return {Candidate(lp->Text(), ctx).Cat(operand)
+			.Cat(rp->Text()).In(ctx)};
 		}
 
 	// Zeek style: space after "!".
@@ -1057,14 +1061,16 @@ static Candidates FormatBinary(const Node& node, const FmtContext& ctx)
 	// Reserve trail space so the LHS splits to leave room.
 	if ( op == "?$" )
 		{
+		const Node* op_node = node.FindChild(Tag::Op);
 		std::string rhs_text =
 			Best(FormatExpr(*content[1], ctx)).Text();
-		int suffix_w = 2 + static_cast<int>(rhs_text.size());
+		int suffix_w = op_node->Width() +
+			static_cast<int>(rhs_text.size());
 
 		auto lhs_cs = FormatExpr(*content[0], ctx.Reserve(suffix_w));
 		const auto& lhs = Best(lhs_cs);
 
-		std::string text = lhs.Text() + "?$" + rhs_text;
+		std::string text = lhs.Text() + op_node->Text() + rhs_text;
 
 		if ( lhs.Lines() > 1 )
 			{
