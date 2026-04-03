@@ -103,6 +103,7 @@ Candidates FormatInterval(const Node& node, const FmtContext& ctx);
 Candidates FormatTernary(const Node& node, const FmtContext& ctx);
 
 // type.cc
+Candidates FormatParam(const Node& node, const FmtContext& ctx);
 Candidates FormatTypeParam(const Node& node, const FmtContext& ctx);
 Candidates FormatTypeFunc(const Node& node, const FmtContext& ctx);
 const Node* FindTypeChild(const Node& node);

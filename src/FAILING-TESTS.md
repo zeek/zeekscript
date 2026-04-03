@@ -1,4 +1,4 @@
-# C++ Formatter Failing Tests (153 pass, 20 fail as of 2026-04-02)
+# C++ Formatter Failing Tests (154 pass, 19 fail as of 2026-04-03)
 
 ## By category (sorted by count)
 
@@ -19,7 +19,6 @@ test038 (needs LAMBDA support first)
 
 ### Miscellaneous
 - test040: CALL wrapping (set() args should use indent, not alignment)
-- test056: TYPE-FUNC params not wrapping
 - test102: Pattern literal emits `/* UNKNOWN-EXPR */`
 - test176: TYPE-PARAMETERIZED continuation misaligned after `[`
 
@@ -287,3 +286,6 @@ entries chronological within a session date.
   - FormatPrint: uses FlatOrFill for multi-expression print, reserves semi width
   - CollectArgs: skip all markers (is_marker) not just TrailingComma - fixes
     crash when SEMI collected as content arg with null comma
+- After TYPE-FUNC param wrapping: 154 pass, 19 fail
+  - Fixed: test056 (event type params now greedy-fill at overflow)
+  - FormatTypeFunc: flat + greedy-fill candidates, aligned after "("

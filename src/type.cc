@@ -73,54 +73,49 @@ const Node* FindTypeChild(const Node& node)
 // TYPE-FUNC: event(params), function(params): rettype
 // ------------------------------------------------------------------
 
+// Format a single parameter: name[: type]
+Candidates FormatParam(const Node& node, const FmtContext& ctx)
+	{
+	std::string text = node.Arg();
+	const Node* ptype = FindTypeChild(node);
+	if ( ptype )
+		{
+		const Node* pcol = node.FindChild(Tag::Colon);
+		text += pcol->Text() + " " +
+			Best(FormatExpr(*ptype, ctx)).Text();
+		}
+	return {Candidate(text, ctx)};
+	}
+
 Candidates FormatTypeFunc(const Node& node, const FmtContext& ctx)
 	{
-	const auto& keyword = node.Arg();	// "event", "function", "hook"
+	const auto& keyword = node.Arg();
 
 	const Node* params = node.FindChild(Tag::Params);
 	const Node* returns = node.FindOptChild(Tag::Returns);
 
 	const Node* lp = params->FindChild(Tag::LParen);
 	const Node* rp = params->FindChild(Tag::RParen);
-	std::string text = keyword + lp->Text();
 
-	for ( const auto& p : params->Children() )
-		{
-		Tag t = p->GetTag();
-
-		if ( t == Tag::Comma )
-			{
-			text += p->Text() + " ";
-			continue;
-			}
-
-		if ( is_comment(t) || is_token(t) )
-			continue;
-		if ( t != Tag::Param )
-			continue;
-
-		text += p->Arg();
-		const Node* ptype = FindTypeChild(*p);
-		if ( ptype )
-			{
-			const Node* pcol = p->FindChild(Tag::Colon);
-			text += pcol->Text() + " " +
-				Best(FormatExpr(*ptype, ctx)).Text();
-			}
-		}
-
-	text += rp->Text();
-
+	// Return type suffix.
+	std::string ret_str;
 	if ( returns )
 		{
 		const Node* colon = node.FindChild(Tag::Colon);
 		const Node* rt = FindTypeChild(*returns);
 		if ( rt )
-			text += colon->Text() + " " +
+			ret_str = colon->Text() + " " +
 				Best(FormatExpr(*rt, ctx)).Text();
 		}
 
-	return {Candidate(text, ctx)};
+	auto items = CollectArgs(params->Children());
+
+	if ( items.empty() )
+		return {Candidate(keyword + lp->Text() + rp->Text() +
+			ret_str, ctx)};
+
+	return FlatOrFill(keyword, lp->Text(), rp->Text(), ret_str,
+		items, ctx);
 	}
 
 // ------------------------------------------------------------------
