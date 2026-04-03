@@ -1148,6 +1148,9 @@ class Emitter:
         if first_text in ("add", "delete"):
             self._emit_add_delete(node, first_text)
             return
+        if first_text == "assert":
+            self._emit_assert(node)
+            return
         if first_text in ("next", "break", "fallthrough"):
             self._w(f'KEYWORD {_quote(first_text)}')
             self._w('SEMI')
@@ -1551,6 +1554,16 @@ class Emitter:
     def _emit_add_delete(self, node: tree_sitter.Node, keyword: str) -> None:
         self._open(keyword.upper())
         self._kw(keyword)
+        for child in self._iter_children(node):
+            if child.type == "expr":
+                self._emit_expr(child)
+        self._w('SEMI')
+        self._close()
+        self._mark_content(node)
+
+    def _emit_assert(self, node: tree_sitter.Node) -> None:
+        self._open('ASSERT')
+        self._kw("assert")
         for child in self._iter_children(node):
             if child.type == "expr":
                 self._emit_expr(child)

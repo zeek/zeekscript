@@ -60,6 +60,7 @@ static const std::unordered_map<std::string, TagEntry> tag_map = {
 	{"EVENT-STMT", {Tag::EventStmt, false}},
 	{"ADD", {Tag::Add, false}},
 	{"DELETE", {Tag::Delete, false}},
+	{"ASSERT", {Tag::Assert, false}},
 	{"BLOCK", {Tag::Block, false}},
 
 	// Statement/declaration parts

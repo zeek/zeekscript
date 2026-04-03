@@ -2816,6 +2816,7 @@ static const std::unordered_map<Tag, FormatFunc>& FormatDispatch()
 		{Tag::Print, FormatKeywordStmt},
 		{Tag::Add, FormatKeywordStmt},
 		{Tag::Delete, FormatKeywordStmt},
+		{Tag::Assert, FormatKeywordStmt},
 		{Tag::EventStmt, FormatEventStmt},
 		{Tag::FuncDecl, FormatFuncDecl},
 		{Tag::If, FormatCondBlock},

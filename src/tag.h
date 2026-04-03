@@ -57,6 +57,7 @@ enum class Tag {
 	EventStmt,
 	Add,
 	Delete,
+	Assert,
 	Block,
 
 	// Statement/declaration parts
