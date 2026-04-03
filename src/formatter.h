@@ -165,13 +165,6 @@ std::string FormatWhitesmithBlock(const Node* body, const FmtContext& ctx);
 // *only* place tabs appear.
 std::string LinePrefix(int indent, int col);
 
-// Append a token node's text to head, followed by a line break
-// (if the token has a trailing comment) or a space.  Updates col
-// and indent to reflect the new position; break_indent is the
-// indent level to use when a break occurs.
-void AppendToken(const Node* node, std::string& head,
-                 int& col, int& indent, int break_indent);
-
 // ------------------------------------------------------------------
 // Layout combinator
 // ------------------------------------------------------------------

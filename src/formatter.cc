@@ -22,25 +22,6 @@ std::string LinePrefix(int indent, int col)
 	return s;
 	}
 
-void AppendToken(const Node* node, std::string& head,
-                 int& col, int& indent, int break_indent)
-	{
-	head += node->Text();
-	col += static_cast<int>(node->Text().size());
-
-	if ( node->MustBreakAfter() )
-		{
-		indent = break_indent;
-		col = indent * INDENT_WIDTH;
-		head += "\n" + LinePrefix(indent, col);
-		}
-	else
-		{
-		head += " ";
-		++col;
-		}
-	}
-
 // ------------------------------------------------------------------
 // Pre-comment / pre-marker emission
 // ------------------------------------------------------------------
@@ -1482,26 +1463,6 @@ static std::string FormatOneAttr(const Node& attr, bool spaced,
 	return text;
 	}
 
-// Format all attrs as a single flat string: "&a=x &b".
-static std::string FormatAttrList(const Node& node, const FmtContext& ctx)
-	{
-	bool spaced = AttrListNeedsSpaces(node, ctx);
-	std::string text;
-
-	for ( const auto& attr : node.Children() )
-		{
-		if ( attr->GetTag() != Tag::Attr )
-			continue;
-
-		if ( ! text.empty() )
-			text += " ";
-
-		text += FormatOneAttr(*attr, spaced, ctx);
-		}
-
-	return text;
-	}
-
 // Collect individual attr strings.
 static std::vector<std::string> FormatAttrStrings(const Node& node,
                                                   const FmtContext& ctx)
@@ -1518,6 +1479,20 @@ static std::vector<std::string> FormatAttrStrings(const Node& node,
 		}
 
 	return result;
+	}
+
+// Format all attrs as a single flat string: "&a=x &b".
+static std::string FormatAttrList(const Node& node, const FmtContext& ctx)
+	{
+	auto strs = FormatAttrStrings(node, ctx);
+	std::string text;
+	for ( const auto& s : strs )
+		{
+		if ( ! text.empty() )
+			text += " ";
+		text += s;
+		}
+	return text;
 	}
 
 // ------------------------------------------------------------------
@@ -2064,7 +2039,6 @@ static std::string FormatStmtList(const Node::NodeVec& nodes,
 		const auto& node = *nodes[i];
 		Tag t = node.GetTag();
 
-
 		if ( t == Tag::Blank )
 			{
 			if ( skip_leading_blanks && ! seen_content )
@@ -2485,6 +2459,19 @@ static Candidates FormatExport(const Node& node, const FmtContext& ctx)
 // Switch statement: switch expr { case val: body ... }
 // ------------------------------------------------------------------
 
+// Append a case/default body to result.
+static void AppendCaseBody(const Node* body, std::string& result,
+                           const FmtContext& ctx)
+	{
+	if ( ! body )
+		return;
+
+	std::string text = FormatStmtList(body->Children(), ctx.Indented());
+	if ( ! text.empty() && text.back() == '\n' )
+		text.pop_back();
+	result += "\n" + text;
+	}
+
 static Candidates FormatSwitch(const Node& node, const FmtContext& ctx)
 	{
 	const Node* sw_kw = node.FindChild(Tag::Keyword);
@@ -2537,17 +2524,8 @@ static Candidates FormatSwitch(const Node& node, const FmtContext& ctx)
 			const Node* dkw = c->FindChild(Tag::Keyword);
 			const Node* dcol = c->FindChild(Tag::Colon);
 			result += "\n" + pad + dkw->Text() + dcol->Text();
-
-			const Node* body = c->FindOptChild(Tag::Body);
-			if ( body )
-				{
-				std::string body_text = FormatStmtList(
-					body->Children(), ctx.Indented());
-				if ( ! body_text.empty() &&
-				     body_text.back() == '\n' )
-					body_text.pop_back();
-				result += "\n" + body_text;
-				}
+			AppendCaseBody(c->FindOptChild(Tag::Body),
+				result, ctx);
 			continue;
 			}
 
@@ -2610,16 +2588,7 @@ static Candidates FormatSwitch(const Node& node, const FmtContext& ctx)
 		case_text += ccol->Text();
 
 		result += "\n" + pad + case_text;
-
-		if ( body )
-			{
-			std::string body_text = FormatStmtList(
-				body->Children(), ctx.Indented());
-			if ( ! body_text.empty() &&
-			     body_text.back() == '\n' )
-				body_text.pop_back();
-			result += "\n" + body_text;
-			}
+		AppendCaseBody(body, result, ctx);
 		}
 
 	result += "\n" + pad + rb->Text();
@@ -2631,7 +2600,6 @@ static Candidates FormatSwitch(const Node& node, const FmtContext& ctx)
 // Type declarations: type name: enum/record/basetype ;
 // ------------------------------------------------------------------
 
-// Format a record field: "name: type attrs"
 // Format a record field.  suffix includes ";" and any trailing
 // comment so we can measure overflow and wrap attrs if needed.
 static std::string FormatField(const Node& node, const std::string& suffix,
