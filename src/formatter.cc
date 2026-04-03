@@ -229,11 +229,15 @@ static const LayoutItem SoftSp{LayoutItem::Kind::Sp};
 // beam search.  At each Fmt node, all of its candidates are tried;
 // at each SoftSp, both "space" and "break + indent" are tried.
 // The beam is pruned to the best BEAM_WIDTH partials at each step.
+// Trailing literal width after a Fmt node is automatically reserved
+// so the formatted expression accounts for what follows it.
 static Candidates BuildLayout(
-	std::initializer_list<LayoutItem> items,
+	std::initializer_list<LayoutItem> items_init,
 	const FmtContext& ctx)
 	{
 	static constexpr int BEAM_WIDTH = 4;
+
+	std::vector<LayoutItem> items(items_init);
 
 	struct Partial
 		{
@@ -246,10 +250,25 @@ static Candidates BuildLayout(
 	auto ovf_at = [&](int c)
 		{ return std::max(0, c - ctx.MaxCol()); };
 
+	// Compute trailing literal width after position i.
+	auto trail_after = [&](size_t i) -> int
+		{
+		int w = 0;
+		for ( size_t j = i + 1; j < items.size(); ++j )
+			{
+			if ( items[j].kind == LayoutItem::Kind::Lit )
+				w += static_cast<int>(items[j].text.size());
+			else
+				break;
+			}
+		return w;
+		};
+
 	std::vector<Partial> beam = {{"", ctx.Col(), 1, 0}};
 
-	for ( const auto& item : items )
+	for ( size_t i = 0; i < items.size(); ++i )
 		{
+		const auto& item = items[i];
 		std::vector<Partial> next;
 
 		for ( auto& p : beam )
@@ -268,8 +287,10 @@ static Candidates BuildLayout(
 
 			case LayoutItem::Kind::Fmt:
 				{
+				int trail = trail_after(i);
 				int avail = ctx.MaxCol() - p.col;
-				FmtContext sub(ctx.Indent(), p.col, avail);
+				FmtContext sub(ctx.Indent(), p.col, avail,
+					trail);
 				auto cs = FormatExpr(*item.node, sub);
 				for ( const auto& c : cs )
 					{
@@ -1977,31 +1998,11 @@ static Candidates FormatKeywordStmt(const Node& node, const FmtContext& ctx)
 		}
 
 	std::string semi_str = semi ? semi->Text() : "";
-	int semi_w = semi ? semi->Width() : 0;
 
 	if ( ! expr )
 		return {Candidate(keyword + semi_str, ctx)};
 
-	std::string prefix = keyword + " ";
-	int prefix_w = static_cast<int>(prefix.size());
-
-	FmtContext expr_ctx = ctx.After(prefix_w).Reserve(semi_w);
-	auto expr_cs = FormatExpr(*expr, expr_ctx);
-
-	Candidates result;
-	for ( const auto& ec : expr_cs )
-		{
-		std::string text = prefix + ec.Text() + semi_str;
-		int w = prefix_w + ec.Width() + semi_w;
-
-		int ovf = ec.Ovf();
-		if ( ec.Lines() == 1 )
-			ovf = Ovf(w, ctx);
-
-		result.push_back({text, w, ec.Lines(), ovf, ctx.Col()});
-		}
-
-	return result;
+	return BuildLayout({keyword, SoftSp, expr, semi_str}, ctx);
 	}
 
 // ------------------------------------------------------------------
