@@ -1,0 +1,20 @@
+TYPE-DECL "some_very_long_type_name_aaaaa" {
+  KEYWORD "type"
+  IDENTIFIER "some_very_long_type_name_aaaaa"
+  COLON
+  SP
+  TYPE-PARAMETERIZED "table" {
+    LBRACKET
+    TYPE-ATOM "addr"
+    COMMA
+    TYPE-ATOM "port"
+    COMMA
+    TYPE-ATOM "subnet"
+    COMMA
+    TYPE-ATOM "string"
+    RBRACKET
+    KEYWORD "of"
+    TYPE-ATOM "string"
+  }
+  SEMI
+}
