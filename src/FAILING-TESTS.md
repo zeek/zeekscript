@@ -1,4 +1,4 @@
-# C++ Formatter Failing Tests (158 pass, 15 fail as of 2026-04-03)
+# C++ Formatter Failing Tests (159 pass, 14 fail as of 2026-04-03)
 
 ## By category (sorted by count)
 
@@ -10,8 +10,7 @@ test{014,093,104,126,127,130,133,135,136}
 Multi-element set/redef not formatted one-per-line with trailing commas.
 test{041,097,098}
 
-### Miscellaneous
-- test102: Pattern literal emits `/* UNKNOWN-EXPR */`
+### Miscellaneous (1)
 - test176: TYPE-PARAMETERIZED continuation misaligned after `[`
 
 ## Notes
@@ -292,3 +291,12 @@ entries chronological within a session date.
   - FlatOrFill: close bracket on new line when last arg is lambda;
     AppendTrailing consumes comma after lambda and forces wrap
   - Removed "LAMBDA support" and "CONSTRUCTOR with LAMBDA attr" categories
+- After CALL trailing comma support: 158 pass, 15 fail
+  - Fixed: test040 (set() args with trailing comma use vertical layout)
+  - Emitter: detect trailing comma in CALL args, emit TRAILING-COMMA marker
+  - Formatter: FormatCall uses FormatArgsVertical when TRAILING-COMMA present
+  - Removed test040 from "Miscellaneous" category
+- After pattern literal support: 159 pass, 14 fail
+  - Fixed: test102 (pattern /regex/ was emitted as UNKNOWN-EXPR)
+  - Emitter: recognize tree-sitter "pattern" node type, emit as CONSTANT
+  - Removed test102 from "Miscellaneous" category
