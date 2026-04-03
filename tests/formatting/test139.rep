@@ -5,6 +5,7 @@ EXPORT {
     KEYWORD "type"
     IDENTIFIER "SomeAttrs"
     COLON
+    SP
     TYPE-RECORD {
       KEYWORD "record"
       LBRACE

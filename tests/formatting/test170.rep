@@ -2,6 +2,7 @@ TYPE-DECL "val" {
   KEYWORD "type"
   IDENTIFIER "val"
   COLON
+  SP
   TYPE-ATOM "count"
   SEMI
 }

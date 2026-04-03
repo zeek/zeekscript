@@ -103,6 +103,7 @@ static const std::unordered_map<std::string, TagEntry> tag_map = {
 	{"ASSIGN", {Tag::Assign, true}},
 	{"DOLLAR", {Tag::Dollar, true}},
 	{"QUESTION", {Tag::Question, true}},
+	{"SP", {Tag::Sp, true}},
 
 	// Markers
 	{"SEMI", {Tag::Semi, false}},

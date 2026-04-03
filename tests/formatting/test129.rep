@@ -2,6 +2,7 @@ TYPE-DECL "Foo" {
   KEYWORD "type"
   IDENTIFIER "Foo"
   COLON
+  SP
   TYPE-RECORD {
     KEYWORD "record"
     LBRACE

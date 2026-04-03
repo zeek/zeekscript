@@ -5,6 +5,7 @@ EXPORT {
     KEYWORD "type"
     IDENTIFIER "AnomalyTypes"
     COLON
+    SP
     TYPE-ENUM {
       KEYWORD "enum"
       LBRACE

@@ -41,6 +41,13 @@ void AppendToken(const Node* node, std::string& head,
 		}
 	}
 
+// Conditional space: returns " " unless prev forced a line break
+// (e.g. due to a trailing comment).  Pairs with SP tokens in .rep.
+static std::string SpAfter(const Node* prev)
+	{
+	return prev->MustBreakAfter() ? "" : " ";
+	}
+
 // ------------------------------------------------------------------
 // Pre-comment / pre-marker emission
 // ------------------------------------------------------------------
@@ -2566,7 +2573,8 @@ static Candidates FormatTypeDecl(const Node& node, const FmtContext& ctx)
 	const Node* base_type = FindTypeChild(node);
 	if ( base_type )
 		{
-		std::string text = prefix + colon->Text() + " " +
+		std::string text = prefix + colon->Text() +
+			SpAfter(colon) +
 			Best(FormatExpr(*base_type, ctx)).Text() + semi_str;
 		return {Candidate(text, ctx)};
 		}
@@ -2579,8 +2587,8 @@ static Candidates FormatTypeDecl(const Node& node, const FmtContext& ctx)
 		const Node* lb = enum_node->FindChild(Tag::LBrace);
 		const Node* rb = enum_node->FindChild(Tag::RBrace);
 
-		std::string head = prefix + colon->Text() + " " +
-			ekw->Text() + " " + lb->Text();
+		std::string head = prefix + colon->Text() +
+			SpAfter(colon) + ekw->Text() + " " + lb->Text();
 
 		// Collect enum values and commas.
 		std::vector<std::string> values;
@@ -2632,8 +2640,8 @@ static Candidates FormatTypeDecl(const Node& node, const FmtContext& ctx)
 		const Node* lb = rec_node->FindChild(Tag::LBrace);
 		const Node* rb = rec_node->FindChild(Tag::RBrace);
 
-		std::string head = prefix + colon->Text() + " " +
-			rkw->Text() + " " + lb->Text();
+		std::string head = prefix + colon->Text() +
+			SpAfter(colon) + rkw->Text() + " " + lb->Text();
 
 		int field_indent = ctx.Indent() + 1;
 		int field_col = field_indent * INDENT_WIDTH;

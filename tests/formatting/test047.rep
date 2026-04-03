@@ -2,6 +2,7 @@ TYPE-DECL "SomeEnumAA" {
   KEYWORD "type"
   IDENTIFIER "SomeEnumAA"
   COLON
+  SP
   TYPE-ENUM {
     KEYWORD "enum"
     LBRACE

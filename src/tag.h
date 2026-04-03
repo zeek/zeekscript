@@ -100,6 +100,7 @@ enum class Tag {
 	Assign,
 	Dollar,
 	Question,
+	Sp,
 
 	// Markers
 	Semi,

@@ -2,6 +2,7 @@ TYPE-DECL "score" {
   KEYWORD "type"
   IDENTIFIER "score"
   COLON
+  SP
   TYPE-ENUM {
     KEYWORD "enum"
     LBRACE

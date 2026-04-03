@@ -1048,6 +1048,7 @@ class Emitter:
                     self._w('KEYWORD "type"')
                 elif text == ":":
                     self._w('COLON')
+                    self._w('SP')
                 elif text == "=":
                     self._w('ASSIGN "="')
             elif child.type == "id":
