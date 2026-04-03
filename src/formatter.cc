@@ -250,7 +250,11 @@ static Candidates BuildLayout(
 	auto ovf_at = [&](int c)
 		{ return std::max(0, c - ctx.MaxCol()); };
 
-	// Compute trailing literal width after position i.
+	// Compute trailing literal width after position i, assuming
+	// SoftSp items resolve to a single space.  If the trailing
+	// items extend to the end of the layout, include the outer
+	// context's trail reservation (e.g. a ";" appended by the
+	// caller after the whole layout).
 	auto trail_after = [&](size_t i) -> int
 		{
 		int w = 0;
@@ -258,9 +262,12 @@ static Candidates BuildLayout(
 			{
 			if ( items[j].kind == LayoutItem::Kind::Lit )
 				w += static_cast<int>(items[j].text.size());
+			else if ( items[j].kind == LayoutItem::Kind::Sp )
+				++w;  // space in the flat case
 			else
 				break;
 			}
+		w += ctx.Trail();
 		return w;
 		};
 
@@ -349,11 +356,17 @@ static Candidates BuildLayout(
 		beam = std::move(next);
 		}
 
-	// Convert partials to Candidates.
+	// Convert partials to Candidates.  Width is relative to the
+	// start column so callers can combine it with other text.
 	Candidates result;
 	for ( auto& p : beam )
-		result.push_back({std::move(p.text), p.col, p.lines,
+		{
+		int w = (p.lines == 1)
+			? static_cast<int>(p.text.size())
+			: p.col;
+		result.push_back({std::move(p.text), w, p.lines,
 		                  p.overflow, ctx.Col()});
+		}
 	return result;
 	}
 
@@ -831,23 +844,9 @@ static Candidates FormatSchedule(const Node& node, const FmtContext& ctx)
 	if ( content.size() < 2 )
 		throw FormatError("SCHEDULE node needs 2 content children");
 
-	std::string prefix = kw->Text() + " ";
-	int pw = static_cast<int>(prefix.size());
-
-	// First content child: interval expression.
-	auto interval_cs = FormatExpr(*content[0], ctx.After(pw));
-	const auto& interval = Best(interval_cs);
-
-	// Second content child: event call.
-	std::string mid = " " + lb->Text() + " ";
-	int after_brace = pw + interval.Width() +
-		static_cast<int>(mid.size());
-	auto event_cs = FormatExpr(*content[1], ctx.After(after_brace));
-	const auto& event = Best(event_cs);
-
-	std::string text = prefix + interval.Text() + mid +
-		event.Text() + " " + rb->Text();
-	return {Candidate(text, ctx)};
+	return BuildLayout({kw->Text(), SoftSp, content[0],
+		SoftSp, lb->Text(), SoftSp, content[1],
+		SoftSp, rb->Text()}, ctx);
 	}
 
 // ------------------------------------------------------------------
