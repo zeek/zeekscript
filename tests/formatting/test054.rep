@@ -1,5 +1,6 @@
 FUNC-DECL {
   KEYWORD "function"
+  SP
   IDENTIFIER "some_func_a"
   PARAMS {
     LPAREN
@@ -9,12 +10,14 @@ FUNC-DECL {
     LBRACE
     IF {
       KEYWORD "if"
+      SP
       LPAREN
       IDENTIFIER "foo"
       RPAREN
       BODY {
         EVENT-STMT "SomeModule::some_raised_evt" {
           KEYWORD "event"
+          SP
           ARGS {
             LPAREN
             IDENTIFIER "o"

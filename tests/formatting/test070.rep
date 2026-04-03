@@ -1,5 +1,6 @@
 RETURN {
   KEYWORD "return"
+  SP
   BINARY-OP "&&" {
     BINARY-OP "in" {
       IDENTIFIER "some_very_long_variable_name"

@@ -1,5 +1,6 @@
 GLOBAL-DECL {
   KEYWORD "redef"
+  SP
   IDENTIFIER "foo"
   ASSIGN "+="
   CALL {

@@ -1,5 +1,6 @@
 FUNC-DECL {
   KEYWORD "function"
+  SP
   IDENTIFIER "some_func"
   PARAMS {
     LPAREN
@@ -24,6 +25,7 @@ FUNC-DECL {
     COMMENT-LEADING "#@ BEGIN-SKIP-TESTING"
     IF {
       KEYWORD "if"
+      SP
       LPAREN
       BINARY-OP "in" {
         IDENTIFIER "rec"
@@ -34,6 +36,7 @@ FUNC-DECL {
       BODY {
         RETURN {
           KEYWORD "return"
+          SP
           SEMI
         }
       }

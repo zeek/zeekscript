@@ -1,5 +1,6 @@
 FUNC-DECL {
   KEYWORD "event"
+  SP
   IDENTIFIER "some_generic_packet_threshold_crossed"
   PARAMS {
     LPAREN
@@ -24,6 +25,7 @@ FUNC-DECL {
     LBRACE
     PRINT {
       KEYWORD "print"
+      SP
       IDENTIFIER "c"
       SEMI
     }

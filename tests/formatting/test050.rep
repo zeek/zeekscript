@@ -1,5 +1,6 @@
 FUNC-DECL {
   KEYWORD "event"
+  SP
   IDENTIFIER "foo"
   PARAMS {
     LPAREN
@@ -19,6 +20,7 @@ FUNC-DECL {
     LBRACE
     PRINT {
       KEYWORD "print"
+      SP
       IDENTIFIER "c"
       SEMI
     }

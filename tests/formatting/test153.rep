@@ -1,5 +1,6 @@
 GLOBAL-DECL {
   KEYWORD "const"
+  SP
   IDENTIFIER "tbl"
   COLON
   TYPE-PARAMETERIZED "table" {
@@ -7,6 +8,7 @@ GLOBAL-DECL {
     TYPE-ATOM "count"
     RBRACKET
     KEYWORD "of"
+    SP
     TYPE-ATOM "string"
   }
   ASSIGN "="

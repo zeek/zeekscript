@@ -1,5 +1,6 @@
 GLOBAL-DECL {
   KEYWORD "const"
+  SP
   IDENTIFIER "tbl"
   ASSIGN "="
   CONSTRUCTOR {

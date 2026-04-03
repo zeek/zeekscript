@@ -1,5 +1,6 @@
 GLOBAL-DECL {
   KEYWORD "global"
+  SP
   IDENTIFIER "ftp_connections_cache"
   COLON
   TYPE-PARAMETERIZED "set" {

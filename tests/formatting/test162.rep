@@ -1,5 +1,6 @@
 FUNC-DECL {
   KEYWORD "event"
+  SP
   IDENTIFIER "some_evt"
   PARAMS {
     LPAREN
@@ -9,11 +10,13 @@ FUNC-DECL {
     LBRACE
     FOR {
       KEYWORD "for"
+      SP
       LPAREN
       VARS {
         IDENTIFIER "idx"
       }
       KEYWORD "in"
+      SP
       ITERABLE {
         IDENTIFIER "some_list"
       }
@@ -22,6 +25,7 @@ FUNC-DECL {
       BODY {
         PRINT {
           KEYWORD "print"
+          SP
           IDENTIFIER "idx"
           SEMI
         }

@@ -6,8 +6,8 @@
 
 Candidates ConditionBlockNode::Format(const FmtContext& ctx) const
 	{
-	const Node* kw_node = Children()[0].get();
-	const Node* lparen_node = Children()[1].get();
+	const Node* kw_node = FindChild(Tag::Keyword);
+	const Node* lparen_node = FindChild(Tag::LParen);
 	const Node* rparen_node = FindChild(Tag::RParen);
 
 	// Build the head, inserting line breaks when a token has
@@ -58,8 +58,9 @@ Candidates ConditionBlockNode::Format(const FmtContext& ctx) const
 // Default: format the single expression between parens.
 std::string ConditionBlockNode::BuildCondition(const FmtContext& cond_ctx) const
 	{
-	// Children are: KEYWORD, LPAREN, cond_expr, RPAREN, ...
-	return Best(FormatExpr(*Children()[2], cond_ctx)).Text();
+	// First content child is the condition expression.
+	auto content = ContentChildren();
+	return Best(FormatExpr(*content[0], cond_ctx)).Text();
 	}
 
 // ------------------------------------------------------------------
@@ -69,7 +70,8 @@ std::string ConditionBlockNode::BuildCondition(const FmtContext& cond_ctx) const
 std::string ForNode::BuildCondition(const FmtContext& cond_ctx) const
 	{
 	const Node* vars_node = FindChild(Tag::Vars);
-	const Node* in_node = FindChild(Tag::Keyword, Children()[0].get());
+	const Node* for_kw = FindChild(Tag::Keyword);
+	const Node* in_node = FindChild(Tag::Keyword, for_kw);
 	const Node* iter_node = FindChild(Tag::Iterable);
 
 	// Format vars (comma-separated identifiers).

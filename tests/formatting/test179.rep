@@ -1,9 +1,11 @@
 GLOBAL-DECL {
   KEYWORD "const"
+  SP
   IDENTIFIER "xs"
   COLON
   TYPE-PARAMETERIZED "vector" {
     KEYWORD "of"
+    SP
     TYPE-ATOM "double"
   }
   ASSIGN "="

@@ -1,5 +1,6 @@
 GLOBAL-DECL {
   KEYWORD "const"
+  SP
   IDENTIFIER "some_lookup"
   COLON
   TYPE-PARAMETERIZED "table" {
@@ -7,6 +8,7 @@ GLOBAL-DECL {
     TYPE-ATOM "string"
     RBRACKET
     KEYWORD "of"
+    SP
     TYPE-ATOM "string"
   }
   ASSIGN "="
@@ -75,6 +77,7 @@ GLOBAL-DECL {
           LBRACE
           RETURN {
             KEYWORD "return"
+            SP
             CALL {
               IDENTIFIER "fmt"
               ARGS {

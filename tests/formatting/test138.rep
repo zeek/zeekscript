@@ -1,5 +1,6 @@
 FUNC-DECL {
   KEYWORD "event"
+  SP
   IDENTIFIER "some_evt"
   PARAMS {
     LPAREN

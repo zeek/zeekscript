@@ -1,5 +1,6 @@
 FUNC-DECL {
   KEYWORD "event"
+  SP
   IDENTIFIER "zeek_init"
   PARAMS {
     LPAREN
@@ -9,6 +10,7 @@ FUNC-DECL {
     LBRACE
     IF {
       KEYWORD "if"
+      SP
       LPAREN
       BINARY-OP "&&" {
         BINARY-OP "&&" {
@@ -59,6 +61,7 @@ FUNC-DECL {
       BODY {
         PRINT {
           KEYWORD "print"
+          SP
           CONSTANT "\"yes\""
           SEMI
         }

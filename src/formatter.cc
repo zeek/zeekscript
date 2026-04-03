@@ -2274,9 +2274,9 @@ std::string FormatBodyText(const Node* body, const FmtContext& ctx)
 	if ( ! body || body->Children().empty() )
 		return "";
 
-	const auto& first = body->Children()[0];
-	if ( first->GetTag() == Tag::Block )
-		return FormatWhitesmithBlock(first.get(), ctx);
+	auto content = body->ContentChildren();
+	if ( ! content.empty() && content[0]->GetTag() == Tag::Block )
+		return FormatWhitesmithBlock(content[0], ctx);
 
 	return "\n" + FormatSingleStmtBody(body, ctx);
 	}

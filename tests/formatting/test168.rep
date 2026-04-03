@@ -1,5 +1,6 @@
 PRINT {
   KEYWORD "print"
+  SP
   CONSTANT "\"hello\""
   SEMI
 }

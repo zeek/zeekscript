@@ -1,5 +1,6 @@
 FUNC-DECL {
   KEYWORD "function"
+  SP
   IDENTIFIER "f"
   PARAMS {
     LPAREN
@@ -9,11 +10,13 @@ FUNC-DECL {
     LBRACE
     FOR {
       KEYWORD "for"
+      SP
       LPAREN
       VARS {
         IDENTIFIER "idx"
       }
       KEYWORD "in"
+      SP
       ITERABLE {
         FIELD-ACCESS {
           IDENTIFIER "result"
@@ -25,11 +28,13 @@ FUNC-DECL {
       BODY {
         FOR {
           KEYWORD "for"
+          SP
           LPAREN
           VARS {
             IDENTIFIER "conn_idx"
           }
           KEYWORD "in"
+          SP
           ITERABLE {
             FIELD-ACCESS {
               IDENTIFIER "result"
@@ -41,6 +46,7 @@ FUNC-DECL {
           BODY {
             LOCAL-DECL {
               KEYWORD "local"
+              SP
               IDENTIFIER "x"
               ASSIGN "="
               CONSTANT "1"

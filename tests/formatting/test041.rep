@@ -4,6 +4,7 @@ EXPORT {
   LBRACE
   GLOBAL-DECL {
     KEYWORD "option"
+    SP
     IDENTIFIER "some_hosts"
     ASSIGN "="
     CALL {

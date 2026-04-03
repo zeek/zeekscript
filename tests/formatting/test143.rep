@@ -1,5 +1,6 @@
 FUNC-DECL {
   KEYWORD "function"
+  SP
   IDENTIFIER "f"
   PARAMS {
     LPAREN
@@ -10,6 +11,7 @@ FUNC-DECL {
     EXPR-STMT {
       SCHEDULE {
         KEYWORD "schedule"
+        SP
         IDENTIFIER "some_time_interval"
         LBRACE
         CALL {

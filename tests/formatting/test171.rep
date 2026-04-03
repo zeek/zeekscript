@@ -1,5 +1,6 @@
 FUNC-DECL {
   KEYWORD "event"
+  SP
   IDENTIFIER "some_evt"
   PARAMS {
     LPAREN
@@ -9,6 +10,7 @@ FUNC-DECL {
     LBRACE
     WHILE {
       KEYWORD "while"
+      SP
       LPAREN
       IDENTIFIER "some_flag"
       RPAREN
@@ -16,6 +18,7 @@ FUNC-DECL {
       BODY {
         PRINT {
           KEYWORD "print"
+          SP
           CONSTANT "1"
           SEMI
         }

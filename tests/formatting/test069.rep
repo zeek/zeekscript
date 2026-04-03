@@ -1,5 +1,6 @@
 RETURN {
   KEYWORD "return"
+  SP
   BINARY-OP "&&" {
     BINARY-OP "&&" {
       BINARY-OP "in" {

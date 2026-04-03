@@ -1,5 +1,6 @@
 FUNC-DECL {
   KEYWORD "function"
+  SP
   IDENTIFIER "some_func"
   PARAMS {
     LPAREN
@@ -13,6 +14,7 @@ FUNC-DECL {
     LBRACE
     IF {
       KEYWORD "if"
+      SP
       LPAREN
       BINARY-OP "==" {
         IDENTIFIER "some_pattern"
@@ -33,6 +35,7 @@ FUNC-DECL {
       BLANK
       ELSE {
         KEYWORD "else"
+        SP
         EXPR-STMT {
           BINARY-OP "=" {
             IDENTIFIER "result"

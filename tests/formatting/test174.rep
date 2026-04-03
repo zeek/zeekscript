@@ -10,6 +10,7 @@ EXPORT {
     SP
     TYPE-RECORD {
       KEYWORD "record"
+      SP
       LBRACE
       FIELD "some_field_name" {
         COLON

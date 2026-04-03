@@ -1,5 +1,6 @@
 FUNC-DECL {
   KEYWORD "event"
+  SP
   IDENTIFIER "some_event"
   PARAMS {
     LPAREN
@@ -13,6 +14,7 @@ FUNC-DECL {
     LBRACE
     LOCAL-DECL {
       KEYWORD "local"
+      SP
       IDENTIFIER "some_name"
       ASSIGN "="
       CALL {

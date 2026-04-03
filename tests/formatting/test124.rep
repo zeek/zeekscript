@@ -1,5 +1,6 @@
 FUNC-DECL {
   KEYWORD "function"
+  SP
   IDENTIFIER "f"
   PARAMS {
     LPAREN
@@ -9,6 +10,7 @@ FUNC-DECL {
     LBRACE
     FOR {
       KEYWORD "for"
+      SP
       LPAREN
       VARS {
         IDENTIFIER "a"
@@ -16,6 +18,7 @@ FUNC-DECL {
         IDENTIFIER "b"
       }
       KEYWORD "in"
+      SP
       ITERABLE {
         IDENTIFIER "tbl"
       }
@@ -23,6 +26,7 @@ FUNC-DECL {
       BODY {
         PRINT {
           KEYWORD "print"
+          SP
           IDENTIFIER "file_handle"
           COMMA
           IDENTIFIER "some_variable"

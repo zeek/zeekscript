@@ -1,5 +1,6 @@
 FUNC-DECL {
   KEYWORD "function"
+  SP
   IDENTIFIER "foo"
   PARAMS {
     LPAREN
@@ -13,6 +14,7 @@ FUNC-DECL {
     }
     PRINT {
       KEYWORD "print"
+      SP
       CONSTANT "1"
       SEMI
     }

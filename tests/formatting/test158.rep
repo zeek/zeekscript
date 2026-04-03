@@ -1,5 +1,6 @@
 LOCAL-DECL {
   KEYWORD "local"
+  SP
   IDENTIFIER "x"
   ASSIGN "="
   TERNARY {

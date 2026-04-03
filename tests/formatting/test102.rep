@@ -1,5 +1,6 @@
 GLOBAL-DECL {
   KEYWORD "const"
+  SP
   IDENTIFIER "some_long_pattern_name"
   ASSIGN "="
   UNKNOWN-EXPR

@@ -1,5 +1,6 @@
 FUNC-DECL {
   KEYWORD "event"
+  SP
   IDENTIFIER "some_evt"
   PARAMS {
     LPAREN
@@ -10,6 +11,7 @@ FUNC-DECL {
     COMMENT-TRAILING "# Start tracking."
     PRINT {
       KEYWORD "print"
+      SP
       CONSTANT "1"
       SEMI
     }

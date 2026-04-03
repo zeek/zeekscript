@@ -1,5 +1,6 @@
 FUNC-DECL {
   KEYWORD "function"
+  SP
   IDENTIFIER "foo"
   PARAMS {
     LPAREN
@@ -36,6 +37,7 @@ FUNC-DECL {
               LBRACE
               RETURN {
                 KEYWORD "return"
+                SP
                 IDENTIFIER "val"
                 SEMI
               }

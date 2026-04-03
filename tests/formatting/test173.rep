@@ -1,5 +1,6 @@
 GLOBAL-DECL {
   KEYWORD "global"
+  SP
   IDENTIFIER "some_table_name_a"
   COLON
   TYPE-PARAMETERIZED "table" {
@@ -9,6 +10,7 @@ GLOBAL-DECL {
     TYPE-ATOM "string"
     RBRACKET
     KEYWORD "of"
+    SP
     TYPE-ATOM "TrackingRec"
   }
   ATTR-LIST {

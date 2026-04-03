@@ -6,6 +6,7 @@ TYPE-DECL "SomeInfo" {
   SP
   TYPE-RECORD {
     KEYWORD "record"
+    SP
     LBRACE
     COMMENT-LEADING "## A timestamp field."
     FIELD "ts" {

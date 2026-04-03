@@ -4,6 +4,7 @@ EXPORT {
   LBRACE
   GLOBAL-DECL {
     KEYWORD "global"
+    SP
     IDENTIFIER "some_evt"
     COLON
     TYPE-FUNC "event" {

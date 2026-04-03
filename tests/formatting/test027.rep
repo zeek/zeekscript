@@ -1,5 +1,6 @@
 FUNC-DECL {
   KEYWORD "function"
+  SP
   IDENTIFIER "f"
   PARAMS {
     LPAREN
@@ -9,10 +10,12 @@ FUNC-DECL {
     LBRACE
     SWITCH {
       KEYWORD "switch"
+      SP
       IDENTIFIER "tag_type"
       LBRACE
       CASE {
         KEYWORD "case"
+        SP
         VALUES {
           CONSTANT "\"some_analyzer_udp\""
           COMMA

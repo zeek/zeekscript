@@ -4,6 +4,7 @@ PREPROC "@if" "FOO" {
 }
 PRINT {
   KEYWORD "print"
+  SP
   CONSTANT "1"
   SEMI
 }

@@ -5,6 +5,7 @@ PREPROC "@ifdef" "SOME_FEATURE" {
 BLANK
 FUNC-DECL {
   KEYWORD "event"
+  SP
   IDENTIFIER "zeek_init"
   PARAMS {
     LPAREN
@@ -14,6 +15,7 @@ FUNC-DECL {
     LBRACE
     PRINT {
       KEYWORD "print"
+      SP
       IDENTIFIER "some_var"
       SEMI
     }

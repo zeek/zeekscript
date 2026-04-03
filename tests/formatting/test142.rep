@@ -1,5 +1,6 @@
 GLOBAL-DECL {
   KEYWORD "redef"
+  SP
   IDENTIFIER "SomeModule::some_generic_packet_thresholds"
   ASSIGN "+="
   CALL {

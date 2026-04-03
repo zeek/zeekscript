@@ -1,5 +1,6 @@
 IF {
   KEYWORD "if"
+  SP
   LPAREN
   BINARY-OP ">=" {
     IDENTIFIER "age"

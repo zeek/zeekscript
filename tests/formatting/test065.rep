@@ -1,5 +1,6 @@
 FUNC-DECL {
   KEYWORD "event"
+  SP
   IDENTIFIER "SomeModule::Geneve::some_filtered_option"
   PARAMS {
     LPAREN

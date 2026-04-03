@@ -1,5 +1,6 @@
 FUNC-DECL {
   KEYWORD "function"
+  SP
   IDENTIFIER "foo"
   PARAMS {
     LPAREN
@@ -9,6 +10,7 @@ FUNC-DECL {
     LBRACE
     PRINT {
       KEYWORD "print"
+      SP
       BINARY-OP "+" {
         BINARY-OP "+" {
           CONSTANT "\"Lovely patio around the fountain. \""

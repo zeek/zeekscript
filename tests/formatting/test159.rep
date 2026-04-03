@@ -1,5 +1,6 @@
 FUNC-DECL {
   KEYWORD "event"
+  SP
   IDENTIFIER "some_event_abc"
   PARAMS {
     LPAREN
@@ -23,6 +24,7 @@ FUNC-DECL {
     LBRACE
     LOCAL-DECL {
       KEYWORD "local"
+      SP
       IDENTIFIER "endpoints"
       ASSIGN "="
       TERNARY {

@@ -1,5 +1,6 @@
 GLOBAL-DECL {
   KEYWORD "const"
+  SP
   IDENTIFIER "ss"
   ASSIGN "="
   CONSTRUCTOR {

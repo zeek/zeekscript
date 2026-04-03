@@ -1,5 +1,6 @@
 GLOBAL-DECL {
   KEYWORD "global"
+  SP
   IDENTIFIER "some_state"
   COLON
   TYPE-PARAMETERIZED "table" {
@@ -11,6 +12,7 @@ GLOBAL-DECL {
     TYPE-ATOM "SomeModule::ConstraintInfo"
     RBRACKET
     KEYWORD "of"
+    SP
     TYPE-ATOM "count"
   }
   ATTR-LIST {

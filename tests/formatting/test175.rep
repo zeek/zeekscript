@@ -4,6 +4,7 @@ EXPORT {
   LBRACE
   GLOBAL-DECL {
     KEYWORD "const"
+    SP
     IDENTIFIER "default_analyzer"
     COLON
     TYPE-ATOM "PacketAnalyzer::Tag"

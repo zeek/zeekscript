@@ -1,5 +1,6 @@
 FUNC-DECL {
   KEYWORD "event"
+  SP
   IDENTIFIER "some_handler"
   PARAMS {
     LPAREN
@@ -23,6 +24,7 @@ FUNC-DECL {
     LBRACE
     ADD {
       KEYWORD "add"
+      SP
       INDEX {
         FIELD-ACCESS {
           IDENTIFIER "c"

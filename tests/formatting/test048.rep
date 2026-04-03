@@ -6,6 +6,7 @@ TYPE-DECL "score" {
   SP
   TYPE-ENUM {
     KEYWORD "enum"
+    SP
     LBRACE
     ENUM-VALUE "NOT" "= 0"
     COMMA

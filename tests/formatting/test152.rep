@@ -1,5 +1,6 @@
 FUNC-DECL {
   KEYWORD "function"
+  SP
   IDENTIFIER "f"
   PARAMS {
     LPAREN
@@ -9,6 +10,7 @@ FUNC-DECL {
     LBRACE
     SWITCH {
       KEYWORD "switch"
+      SP
       PAREN {
         LPAREN
         IDENTIFIER "val"
@@ -17,6 +19,7 @@ FUNC-DECL {
       LBRACE
       CASE {
         KEYWORD "case"
+        SP
         VALUES {
           CONSTANT "0"
         }

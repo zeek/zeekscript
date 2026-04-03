@@ -1,5 +1,6 @@
 FUNC-DECL {
   KEYWORD "function"
+  SP
   IDENTIFIER "some_func"
   PARAMS {
     LPAREN
@@ -17,6 +18,7 @@ FUNC-DECL {
     LBRACE
     LOCAL-DECL {
       KEYWORD "local"
+      SP
       IDENTIFIER "rec"
       ASSIGN "="
       FIELD-ACCESS {
@@ -28,6 +30,7 @@ FUNC-DECL {
     }
     IF {
       KEYWORD "if"
+      SP
       LPAREN
       BINARY-OP "?$" {
         BINARY-OP "||" {
@@ -79,6 +82,7 @@ FUNC-DECL {
       BODY {
         RETURN {
           KEYWORD "return"
+          SP
           IDENTIFIER "ci"
           SEMI
         }

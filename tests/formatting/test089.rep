@@ -1,5 +1,6 @@
 FUNC-DECL {
   KEYWORD "event"
+  SP
   IDENTIFIER "some_evt"
   PARAMS {
     LPAREN
@@ -9,6 +10,7 @@ FUNC-DECL {
     LBRACE
     LOCAL-DECL {
       KEYWORD "local"
+      SP
       IDENTIFIER "some_services"
       ASSIGN "="
       BINARY-OP "|" {

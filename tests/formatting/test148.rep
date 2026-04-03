@@ -1,6 +1,7 @@
 COMMENT-LEADING "#@ BEGIN"
 FUNC-DECL {
   KEYWORD "function"
+  SP
   IDENTIFIER "foo"
   PARAMS {
     LPAREN

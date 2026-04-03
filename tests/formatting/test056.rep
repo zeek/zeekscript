@@ -1,5 +1,6 @@
 GLOBAL-DECL {
   KEYWORD "global"
+  SP
   IDENTIFIER "some_event_decl"
   COLON
   TYPE-FUNC "event" {

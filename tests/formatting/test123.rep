@@ -12,6 +12,7 @@ MODULE "SomeMod" {
 BLANK
 GLOBAL-DECL {
   KEYWORD "const"
+  SP
   IDENTIFIER "some_var"
   ASSIGN "="
   CONSTANT "\"some-value\""
@@ -20,6 +21,7 @@ GLOBAL-DECL {
 BLANK
 FUNC-DECL {
   KEYWORD "event"
+  SP
   IDENTIFIER "zeek_init"
   PARAMS {
     LPAREN
@@ -29,6 +31,7 @@ FUNC-DECL {
     LBRACE
     PRINT {
       KEYWORD "print"
+      SP
       IDENTIFIER "some_var"
       SEMI
     }

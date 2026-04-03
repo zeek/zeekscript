@@ -1,5 +1,6 @@
 FUNC-DECL {
   KEYWORD "event"
+  SP
   IDENTIFIER "SomeModule::some_raised_evt"
   PARAMS {
     LPAREN
@@ -49,6 +50,7 @@ FUNC-DECL {
     LBRACE
     PRINT {
       KEYWORD "print"
+      SP
       IDENTIFIER "c"
       SEMI
     }

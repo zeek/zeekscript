@@ -6,6 +6,7 @@ TYPE-DECL "SomeEnumAA" {
   SP
   TYPE-ENUM {
     KEYWORD "enum"
+    SP
     LBRACE
     ENUM-VALUE "SE_DNS_A"
     COMMA

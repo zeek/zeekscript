@@ -4,6 +4,7 @@ EXPORT {
   LBRACE
   GLOBAL-DECL {
     KEYWORD "const"
+    SP
     IDENTIFIER "cert_hygiene_server_wl_source"
     ASSIGN "="
     CONSTANT "\"cert-hygiene-server-wl.txt\""

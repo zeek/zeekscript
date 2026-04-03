@@ -1,5 +1,6 @@
 FUNC-DECL {
   KEYWORD "event"
+  SP
   IDENTIFIER "zeek_init"
   PARAMS {
     LPAREN
@@ -30,6 +31,7 @@ FUNC-DECL {
               LBRACE
               PRINT {
                 KEYWORD "print"
+                SP
                 IDENTIFIER "h"
                 SEMI
               }

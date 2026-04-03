@@ -1,5 +1,6 @@
 FUNC-DECL {
   KEYWORD "function"
+  SP
   IDENTIFIER "foo"
   PARAMS {
     LPAREN
@@ -9,11 +10,13 @@ FUNC-DECL {
     LBRACE
     FOR {
       KEYWORD "for"
+      SP
       LPAREN
       VARS {
         IDENTIFIER "x"
       }
       KEYWORD "in"
+      SP
       ITERABLE {
         IDENTIFIER "xs"
       }
@@ -21,11 +24,13 @@ FUNC-DECL {
       BODY {
         FOR {
           KEYWORD "for"
+          SP
           LPAREN
           VARS {
             IDENTIFIER "y"
           }
           KEYWORD "in"
+          SP
           ITERABLE {
             IDENTIFIER "ys"
           }

@@ -10,6 +10,7 @@ EXPORT {
     SP
     TYPE-ENUM {
       KEYWORD "enum"
+      SP
       LBRACE
       ENUM-VALUE "ANOMALY"
       COMMA

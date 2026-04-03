@@ -1,5 +1,6 @@
 GLOBAL-DECL {
   KEYWORD "global"
+  SP
   IDENTIFIER "some_long_cache_name"
   COLON
   TYPE-PARAMETERIZED "set" {

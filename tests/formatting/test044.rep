@@ -1,5 +1,6 @@
 FUNC-DECL {
   KEYWORD "function"
+  SP
   IDENTIFIER "foo"
   PARAMS {
     LPAREN
@@ -9,6 +10,7 @@ FUNC-DECL {
     LBRACE
     IF {
       KEYWORD "if"
+      SP
       LPAREN
       CALL {
         IDENTIFIER "some_condition"
@@ -24,6 +26,7 @@ FUNC-DECL {
           BLANK
           LOCAL-DECL {
             KEYWORD "local"
+            SP
             IDENTIFIER "published"
             ASSIGN "="
             CALL {

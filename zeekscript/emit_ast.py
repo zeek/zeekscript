@@ -75,6 +75,11 @@ class Emitter:
         """Write text at current indent, on a new line."""
         self.out.append("  " * self._indent + text)
 
+    def _kw(self, keyword: str) -> None:
+        """Emit a KEYWORD token followed by SP."""
+        self._w(f'KEYWORD {_quote(keyword)}')
+        self._w('SP')
+
     def _open(self, header: str) -> None:
         self._w(header + " {")
         self._indent += 1
@@ -253,7 +258,7 @@ class Emitter:
                 and len(kids) == 2):
             keyword = self._text(kids[0])
             self._open(f'KEYWORD-EXPR {_quote(keyword)}')
-            self._w(f'KEYWORD {_quote(keyword)}')
+            self._kw(keyword)
             self._emit_expr_child(kids[1])
             self._close()
             self._mark_content(node)
@@ -501,7 +506,7 @@ class Emitter:
             interval = [k for k in kids if k.is_named and k.type == "expr"]
             event_hdrs = [k for k in kids if k.type == "event_hdr"]
             self._open('SCHEDULE')
-            self._w('KEYWORD "schedule"')
+            self._kw("schedule")
             if interval:
                 self._emit_expr(interval[0])
             self._w('LBRACE')
@@ -646,7 +651,7 @@ class Emitter:
                 self._emit_type(p)
             self._w('RBRACKET')
             if of_type and of_type.type == "type":
-                self._w('KEYWORD "of"')
+                self._kw("of")
                 self._emit_type(of_type)
             self._close()
             return
@@ -660,7 +665,7 @@ class Emitter:
                     break
             if of_type:
                 self._open(f'TYPE-PARAMETERIZED "vector"')
-                self._w('KEYWORD "of"')
+                self._kw("of")
                 self._emit_type(of_type)
                 self._close()
             else:
@@ -681,7 +686,7 @@ class Emitter:
                 if not k.is_named:
                     text = self._text(k)
                     if text == "record":
-                        self._w('KEYWORD "record"')
+                        self._kw("record")
                     elif text == "{":
                         self._w('LBRACE')
                     elif text == "}":
@@ -699,7 +704,7 @@ class Emitter:
                 if not k.is_named:
                     text = self._text(k)
                     if text == "enum":
-                        self._w('KEYWORD "enum"')
+                        self._kw("enum")
                     elif text == "{":
                         self._w('LBRACE')
                     elif text == "}":
@@ -918,7 +923,7 @@ class Emitter:
             i += 1
 
         self._open('GLOBAL-DECL')
-        self._w(f'KEYWORD {_quote(keyword)}')
+        self._kw(keyword)
         self._w(f'IDENTIFIER {_quote(name)}')
         if typ:
             self._w('COLON')
@@ -979,7 +984,7 @@ class Emitter:
                 name = self._text(hdr_kids[1])
 
         self._open('FUNC-DECL')
-        self._w(f'KEYWORD {_quote(kind)}')
+        self._kw(kind)
         self._w(f'IDENTIFIER {_quote(name)}')
         if hdr_inner:
             self._emit_func_params_from(hdr_inner)
@@ -1009,8 +1014,7 @@ class Emitter:
             if not child.is_named:
                 text = self._text(child)
                 if text == "export":
-                    self._w('KEYWORD "export"')
-                    self._w('SP')
+                    self._kw("export")
                 elif text == "{":
                     self._w('LBRACE')
                 elif text == "}":
@@ -1029,8 +1033,7 @@ class Emitter:
             if child.type == "id":
                 name = self._text(child)
         self._open(f'MODULE {_quote(name)}')
-        self._w('KEYWORD "module"')
-        self._w('SP')
+        self._kw("module")
         self._w(f'IDENTIFIER {_quote(name)}')
         self._w('SEMI')
         self._close()
@@ -1047,8 +1050,7 @@ class Emitter:
             if not child.is_named:
                 text = self._text(child)
                 if text == "type":
-                    self._w('KEYWORD "type"')
-                    self._w('SP')
+                    self._kw("type")
                 elif text == ":":
                     self._w('COLON')
                     self._w('SP')
@@ -1208,7 +1210,7 @@ class Emitter:
             i += 1
 
         self._open('LOCAL-DECL')
-        self._w(f'KEYWORD {_quote(keyword)}')
+        self._kw(keyword)
         self._w(f'IDENTIFIER {_quote(name)}')
         if typ:
             self._w('COLON')
@@ -1279,7 +1281,7 @@ class Emitter:
                 else_body = k
 
         self._open('IF')
-        self._w('KEYWORD "if"')
+        self._kw("if")
         if cond:
             self._w('LPAREN')
             self._emit_expr(cond)
@@ -1325,7 +1327,7 @@ class Emitter:
 
         if else_body:
             self._open('ELSE')
-            self._w('KEYWORD "else"')
+            self._kw("else")
             self._emit_stmt(else_body)
             self._close()
         self._close()
@@ -1338,7 +1340,7 @@ class Emitter:
             if not child.is_named:
                 text = self._text(child)
                 if text == "for":
-                    self._w('KEYWORD "for"')
+                    self._kw("for")
                 elif text == "(":
                     self._w('LPAREN')
                 elif text == ")":
@@ -1347,7 +1349,7 @@ class Emitter:
                     if in_vars:
                         self._close()
                         in_vars = False
-                    self._w('KEYWORD "in"')
+                    self._kw("in")
                 elif text == ",":
                     self._w('COMMA')
             elif child.type == "id":
@@ -1374,7 +1376,7 @@ class Emitter:
             if not child.is_named:
                 text = self._text(child)
                 if text == "while":
-                    self._w('KEYWORD "while"')
+                    self._kw("while")
                 elif text == "(":
                     self._w('LPAREN')
                 elif text == ")":
@@ -1390,7 +1392,7 @@ class Emitter:
 
     def _emit_return(self, node: tree_sitter.Node) -> None:
         self._open('RETURN')
-        self._w('KEYWORD "return"')
+        self._kw("return")
         for child in self._iter_children(node):
             if child.type == "expr":
                 self._emit_expr(child)
@@ -1400,7 +1402,7 @@ class Emitter:
 
     def _emit_print(self, node: tree_sitter.Node) -> None:
         self._open('PRINT')
-        self._w('KEYWORD "print"')
+        self._kw("print")
         for child in self._iter_children(node):
             if child.type == "expr_list":
                 self._emit_expr_list(child)
@@ -1423,7 +1425,7 @@ class Emitter:
                     name = self._text(k)
                     break
         self._open(f'EVENT-STMT {_quote(name)}')
-        self._w('KEYWORD "event"')
+        self._kw("event")
         if hdr:
             for child in self._iter_children(hdr):
                 if child.type == "id":
@@ -1441,7 +1443,7 @@ class Emitter:
 
     def _emit_switch(self, node: tree_sitter.Node) -> None:
         self._open('SWITCH')
-        self._w('KEYWORD "switch"')
+        self._kw("switch")
         for child in self._iter_children(node):
             if not child.is_named:
                 text = self._text(child)
@@ -1474,7 +1476,7 @@ class Emitter:
                     i += 1
                 stmts = kids[i] if i < len(kids) and kids[i].type == "stmt_list" else None
                 self._open('CASE')
-                self._w('KEYWORD "case"')
+                self._kw("case")
                 if exprs:
                     self._open('VALUES')
                     self._emit_expr_list(exprs)
@@ -1504,14 +1506,14 @@ class Emitter:
 
     def _emit_when(self, node: tree_sitter.Node) -> None:
         self._open('WHEN')
-        self._w('KEYWORD "when"')
+        self._kw("when")
         state = "init"
         in_timeout = False
         for child in self._iter_children(node):
             if not child.is_named:
                 text = self._text(child)
                 if text == "timeout":
-                    self._w('KEYWORD "timeout"')
+                    self._kw("timeout")
                     state = "timeout"
                 elif text == "(":
                     self._w('LPAREN')
@@ -1548,7 +1550,7 @@ class Emitter:
 
     def _emit_add_delete(self, node: tree_sitter.Node, keyword: str) -> None:
         self._open(keyword.upper())
-        self._w(f'KEYWORD {_quote(keyword)}')
+        self._kw(keyword)
         for child in self._iter_children(node):
             if child.type == "expr":
                 self._emit_expr(child)

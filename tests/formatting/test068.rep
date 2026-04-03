@@ -4,6 +4,7 @@ PREPROC "@ifdef" "SOME_FEATURE" {
 }
 FUNC-DECL {
   KEYWORD "event"
+  SP
   IDENTIFIER "SomeModule::some_esp_message"
   PARAMS {
     LPAREN

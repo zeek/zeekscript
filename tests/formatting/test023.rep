@@ -1,5 +1,6 @@
 FUNC-DECL {
   KEYWORD "function"
+  SP
   IDENTIFIER "some_function_name_aa"
   PARAMS {
     LPAREN
@@ -17,6 +18,7 @@ FUNC-DECL {
     LBRACE
     IF {
       KEYWORD "if"
+      SP
       LPAREN
       BINARY-OP "&&" {
         BINARY-OP "&&" {
@@ -78,6 +80,7 @@ FUNC-DECL {
       BODY {
         PRINT {
           KEYWORD "print"
+          SP
           CONSTANT "\"yep\""
           SEMI
         }

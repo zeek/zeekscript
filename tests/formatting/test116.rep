@@ -1,5 +1,6 @@
 IF {
   KEYWORD "if"
+  SP
   LPAREN
   BINARY-OP "&&" {
     BINARY-OP "?$" {
@@ -42,6 +43,7 @@ IF {
   BODY {
     PRINT {
       KEYWORD "print"
+      SP
       CONSTANT "\"x\""
       SEMI
     }
