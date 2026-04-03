@@ -54,6 +54,16 @@ std::vector<const Node*> Node::ContentChildren() const
 	return result;
 	}
 
+std::vector<const Node*> Node::ContentChildren(const char* name, int n) const
+	{
+	auto result = ContentChildren();
+	if ( static_cast<int>(result.size()) < n )
+		throw FormatError(name + std::string(" node needs ") +
+					std::to_string(n) + " children");
+
+	return result;
+	}
+
 std::shared_ptr<Node> MakeNode(Tag tag)
 	{
 	switch ( tag )

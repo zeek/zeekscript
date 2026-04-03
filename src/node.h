@@ -40,6 +40,9 @@ public:
 	// Collect non-token, non-comment children.
 	std::vector<const Node*> ContentChildren() const;
 
+	// Same but there must be at least n or throw an exception.
+	std::vector<const Node*> ContentChildren(const char* name, int n) const;
+
 	const std::string& TrailingComment() const { return trailing_comment; }
 	void SetTrailingComment(std::string c)
 		{ trailing_comment = " " + std::move(c); }
