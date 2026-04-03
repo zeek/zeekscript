@@ -161,7 +161,7 @@ const LayoutItem SoftSp{LayoutItem::Kind::Sp};
 LayoutItem Tok(const Node* n)
 	{
 	LayoutItem item(n->Text());
-	item.must_break = n->MustBreakAfter();
+	item.SetMustBreak(n->MustBreakAfter());
 	return item;
 	}
 
@@ -198,7 +198,7 @@ Candidates BuildLayout(
 		for ( size_t j = i + 1; j < items.size(); ++j )
 			{
 			if ( items[j].kind == LayoutItem::Kind::Lit )
-				w += static_cast<int>(items[j].text.size());
+				w += static_cast<int>(items[j].Text().size());
 			else if ( items[j].kind == LayoutItem::Kind::Sp )
 				++w;  // space in the flat case
 			else
@@ -222,10 +222,10 @@ Candidates BuildLayout(
 			case LayoutItem::Kind::Lit:
 				{
 				Partial np = p;
-				np.text += item.text;
-				np.col += static_cast<int>(item.text.size());
+				np.text += item.Text();
+				np.col += static_cast<int>(item.Text().size());
 				np.overflow += ovf_at(np.col);
-				np.must_break = item.must_break;
+				np.must_break = item.MustBreak();
 				next.push_back(std::move(np));
 				break;
 				}
@@ -236,7 +236,7 @@ Candidates BuildLayout(
 				int avail = ctx.MaxCol() - p.col;
 				FmtContext sub(ctx.Indent(), p.col, avail,
 					trail);
-				auto cs = FormatExpr(*item.node, sub);
+				auto cs = FormatExpr(*item.LI_Node(), sub);
 				for ( const auto& c : cs )
 					{
 					Partial np = p;

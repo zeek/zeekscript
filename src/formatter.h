@@ -108,7 +108,7 @@ public:
 	// Build a new single-line candidate by appending another candidate.
 	// Overflow is not set; use In() to finalize.
 	Candidate Cat(const Candidate& o) const
-		{ return Candidate(text + o.text); }
+		{ return Candidate(text + o.Text()); }
 
 	// Return a copy with overflow computed against a context.
 	Candidate In(const FmtContext& ctx) const
@@ -166,28 +166,34 @@ std::string LinePrefix(int indent, int col);
 // A component in a layout specification.  Implicit constructors
 // let callers mix strings, node pointers, and SP markers freely:
 //   BuildLayout({prefix, SoftSp, node, SoftSp, suffix}, ctx)
-struct LayoutItem
+class LayoutItem
 	{
+public:
 	enum class Kind { Lit, Fmt, Sp } kind;
-	std::string text;
-	const Node* node;
-	bool must_break;	// force next Sp to break (trailing comment)
 
 	// Literal string.
 	LayoutItem(const std::string& s)
-		: kind(Kind::Lit), text(s), node(nullptr),
-		  must_break(false) {}
+		: kind(Kind::Lit), text(s), node(nullptr), must_break(false) {}
 	LayoutItem(const char* s)
-		: kind(Kind::Lit), text(s), node(nullptr),
-		  must_break(false) {}
+		: kind(Kind::Lit), text(s), node(nullptr), must_break(false) {}
 
 	// Node to format (produces candidates).
 	LayoutItem(const Node* n)
 		: kind(Kind::Fmt), node(n), must_break(false) {}
 
 	// Soft space (private; use SoftSp constant).
-	LayoutItem(Kind k)
-		: kind(k), node(nullptr), must_break(false) {}
+	LayoutItem(Kind k) : kind(k), node(nullptr), must_break(false) {}
+
+	const std::string& Text() const { return text; }
+	const Node* LI_Node() const { return node; }
+	bool MustBreak() const { return must_break; }
+
+	void SetMustBreak(bool _must_break) { must_break = _must_break; }
+
+private:
+	std::string text;
+	const Node* node;
+	bool must_break;	// force next Sp to break (trailing comment)
 	};
 
 extern const LayoutItem SoftSp;
