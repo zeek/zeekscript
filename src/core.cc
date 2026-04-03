@@ -3,10 +3,7 @@
 
 #include "fmt_internal.h"
 
-// ------------------------------------------------------------------
 // Line prefix: tabs for indent, spaces for remaining offset
-// ------------------------------------------------------------------
-
 std::string LinePrefix(int indent, int col)
 	{
 	std::string s(indent, '\t');
@@ -18,10 +15,7 @@ std::string LinePrefix(int indent, int col)
 	return s;
 	}
 
-// ------------------------------------------------------------------
 // Pre-comment / pre-marker emission
-// ------------------------------------------------------------------
-
 std::string EmitPreComments(const Node& node, const std::string& pad)
 	{
 	std::string result;
@@ -36,10 +30,7 @@ std::string EmitPreComments(const Node& node, const std::string& pad)
 	return result;
 	}
 
-// ------------------------------------------------------------------
 // Candidate comparison
-// ------------------------------------------------------------------
-
 int Candidate::ComputeSpread(const std::string& t, int first_col)
 	{
 	int max_w = 0;
@@ -54,6 +45,7 @@ int Candidate::ComputeSpread(const std::string& t, int first_col)
 			min_w = std::min(min_w, line_w);
 			line_w = 0;
 			}
+
 		else if ( c == '\t' )
 			line_w = (line_w / INDENT_WIDTH + 1) * INDENT_WIDTH;
 		else
@@ -69,17 +61,15 @@ int Candidate::ComputeSpread(const std::string& t, int first_col)
 
 bool Candidate::BetterThan(const Candidate& o) const
 	{
-	if ( Ovf() != o.Ovf() )
-		return Ovf() < o.Ovf();
-	if ( Lines() != o.Lines() )
-		return Lines() < o.Lines();
+	if ( Ovf() != o.Ovf() ) return Ovf() < o.Ovf();
+	if ( Lines() != o.Lines() ) return Lines() < o.Lines();
 	return Spread() < o.Spread();
 	}
 
 const Candidate& Best(const Candidates& cs)
 	{
 	assert(! cs.empty());
-	const Candidate* best = &cs[0];
+	auto best = &cs[0];
 
 	for ( size_t i = 1; i < cs.size(); ++i )
 		if ( cs[i].BetterThan(*best) )
@@ -87,10 +77,6 @@ const Candidate& Best(const Candidates& cs)
 
 	return *best;
 	}
-
-// ------------------------------------------------------------------
-// Helpers
-// ------------------------------------------------------------------
 
 int Ovf(int candidate_w, const FmtContext& ctx)
 	{
@@ -136,8 +122,7 @@ int TextOverflow(const std::string& text, int start_col, int max_col)
 	for ( size_t j = 0; j < text.size(); ++j )
 		if ( text[j] == '\n' )
 			{
-			int line_w = static_cast<int>(j) - pos +
-				line_start_col;
+			int line_w = static_cast<int>(j) - pos + line_start_col;
 			if ( line_w > max_col )
 				ovf += line_w - max_col;
 			pos = static_cast<int>(j) + 1;
@@ -152,10 +137,7 @@ int TextOverflow(const std::string& text, int start_col, int max_col)
 	return ovf;
 	}
 
-// ------------------------------------------------------------------
 // Layout combinator
-// ------------------------------------------------------------------
-
 const LayoutItem SoftSp{LayoutItem::Kind::Sp};
 
 LayoutItem Tok(const Node* n)
@@ -165,27 +147,113 @@ LayoutItem Tok(const Node* n)
 	return item;
 	}
 
-// Trailing literal width after a Fmt node is automatically reserved
-// so the formatted expression accounts for what follows it.
-Candidates BuildLayout(
-	std::initializer_list<LayoutItem> items_init,
-	const FmtContext& ctx)
+static constexpr int BEAM_WIDTH = 4;
+
+struct Partial {
+	std::string text;
+	int col;      // current column (end of last line)
+	int lines;
+	int overflow;
+	bool must_break;  // preceding token forces next Sp to break
+};
+
+using Partials = std::vector<Partial>;
+
+static Partials layout_one_item(const LayoutItem& item, Partials& beam,
+				const FmtContext& ctx, int trail)
 	{
-	static constexpr int BEAM_WIDTH = 4;
-
-	std::vector<LayoutItem> items(items_init);
-
-	struct Partial
-		{
-		std::string text;
-		int col;      // current column (end of last line)
-		int lines;
-		int overflow;
-		bool must_break;  // preceding token forces next Sp to break
-		};
+	Partials next;
 
 	auto ovf_at = [&](int c)
 		{ return std::max(0, c - ctx.MaxCol()); };
+
+	for ( auto& p : beam )
+		{
+		switch ( item.kind ) {
+		case LayoutItem::Kind::Lit:
+			{
+			Partial np = p;
+			np.text += item.Text();
+			np.col += static_cast<int>(item.Text().size());
+			np.overflow += ovf_at(np.col);
+			np.must_break = item.MustBreak();
+			next.push_back(std::move(np));
+			break;
+			}
+
+		case LayoutItem::Kind::Fmt:
+			{
+			int avail = ctx.MaxCol() - p.col;
+			FmtContext sub(ctx.Indent(), p.col, avail, trail);
+			auto cs = FormatExpr(*item.LI_Node(), sub);
+			for ( const auto& c : cs )
+				{
+				Partial np = p;
+				np.text += c.Text();
+				np.overflow += c.Ovf();
+				np.must_break = false;
+				if ( c.Lines() > 1 )
+					{
+					np.lines += c.Lines() - 1;
+					np.col = c.Width();
+					}
+				else
+					np.col += c.Width();
+				next.push_back(std::move(np));
+				}
+			break;
+			}
+
+		case LayoutItem::Kind::Sp:
+			{
+			// Option 1: space (skip if preceding
+			// token forces a break).
+			if ( ! p.must_break )
+				{
+				Partial sp = p;
+				sp.text += " ";
+				++sp.col;
+				sp.must_break = false;
+				next.push_back(std::move(sp));
+				}
+
+			// Option 2: break + indent.
+			FmtContext brk = ctx.Indented();
+			auto pad = "\n" + LinePrefix(brk.Indent(),
+							brk.IndentCol());
+			Partial bp = p;
+			bp.text += pad;
+			bp.col = brk.IndentCol();
+			++bp.lines;
+			bp.must_break = false;
+			next.push_back(std::move(bp));
+			break;
+			}
+		}
+		}
+
+	// Prune to best BEAM_WIDTH using same priority as
+	// Candidate::BetterThan: overflow > lines > spread.
+	if ( static_cast<int>(next.size()) > BEAM_WIDTH )
+		{
+		std::sort(next.begin(), next.end(),
+			[](const Partial& a, const Partial& b)
+				{
+				if ( a.overflow != b.overflow )
+					return a.overflow < b.overflow;
+				return a.lines < b.lines;
+				});
+		next.resize(BEAM_WIDTH);
+		}
+
+	return next;
+	}
+
+// Trailing literal width after a Fmt node is automatically reserved
+// so the formatted expression accounts for what follows it.
+Candidates BuildLayout(LayoutItems items_init, const FmtContext& ctx)
+	{
+	std::vector<LayoutItem> items(items_init);
 
 	// Compute trailing literal width after position i, assuming
 	// SoftSp items resolve to a single space.  If the trailing
@@ -208,109 +276,20 @@ Candidates BuildLayout(
 		return w;
 		};
 
-	std::vector<Partial> beam = {{"", ctx.Col(), 1, 0, false}};
+	Partials beam = {{"", ctx.Col(), 1, 0, false}};
 
 	for ( size_t i = 0; i < items.size(); ++i )
-		{
-		const auto& item = items[i];
-		std::vector<Partial> next;
-
-		for ( auto& p : beam )
-			{
-			switch ( item.kind )
-				{
-			case LayoutItem::Kind::Lit:
-				{
-				Partial np = p;
-				np.text += item.Text();
-				np.col += static_cast<int>(item.Text().size());
-				np.overflow += ovf_at(np.col);
-				np.must_break = item.MustBreak();
-				next.push_back(std::move(np));
-				break;
-				}
-
-			case LayoutItem::Kind::Fmt:
-				{
-				int trail = trail_after(i);
-				int avail = ctx.MaxCol() - p.col;
-				FmtContext sub(ctx.Indent(), p.col, avail,
-					trail);
-				auto cs = FormatExpr(*item.LI_Node(), sub);
-				for ( const auto& c : cs )
-					{
-					Partial np = p;
-					np.text += c.Text();
-					np.overflow += c.Ovf();
-					np.must_break = false;
-					if ( c.Lines() > 1 )
-						{
-						np.lines += c.Lines() - 1;
-						np.col = c.Width();
-						}
-					else
-						np.col += c.Width();
-					next.push_back(std::move(np));
-					}
-				break;
-				}
-
-			case LayoutItem::Kind::Sp:
-				{
-				// Option 1: space (skip if preceding
-				// token forces a break).
-				if ( ! p.must_break )
-					{
-					Partial sp = p;
-					sp.text += " ";
-					++sp.col;
-					sp.must_break = false;
-					next.push_back(std::move(sp));
-					}
-
-				// Option 2: break + indent.
-				FmtContext brk = ctx.Indented();
-				std::string pad = "\n" +
-					LinePrefix(brk.Indent(),
-					           brk.IndentCol());
-				Partial bp = p;
-				bp.text += pad;
-				bp.col = brk.IndentCol();
-				++bp.lines;
-				bp.must_break = false;
-				next.push_back(std::move(bp));
-				break;
-				}
-				}
-			}
-
-		// Prune to best BEAM_WIDTH using same priority as
-		// Candidate::BetterThan: overflow > lines > spread.
-		if ( static_cast<int>(next.size()) > BEAM_WIDTH )
-			{
-			std::sort(next.begin(), next.end(),
-				[](const Partial& a, const Partial& b)
-					{
-					if ( a.overflow != b.overflow )
-						return a.overflow < b.overflow;
-					return a.lines < b.lines;
-					});
-			next.resize(BEAM_WIDTH);
-			}
-
-		beam = std::move(next);
-		}
+		beam = layout_one_item(items[i], beam, ctx, trail_after(i));
 
 	// Convert partials to Candidates.  Width is relative to the
 	// start column so callers can combine it with other text.
 	Candidates result;
 	for ( auto& p : beam )
 		{
-		int w = (p.lines == 1)
-			? static_cast<int>(p.text.size())
-			: p.col;
+		int w = (p.lines == 1) ? static_cast<int>(p.text.size()) : p.col;
 		result.push_back({std::move(p.text), w, p.lines,
 		                  p.overflow, ctx.Col()});
 		}
+
 	return result;
 	}
