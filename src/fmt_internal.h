@@ -40,30 +40,25 @@ struct ArgComment
 		}
 	};
 
-bool HasBreaks(const std::vector<ArgComment>& items);
+using ArgComments = std::vector<ArgComment>;
 
-std::vector<ArgComment> CollectArgs(const Node::NodeVec& children);
+bool HasBreaks(const ArgComments& items);
 
-Candidate FormatArgsFlat(const std::vector<ArgComment>& items,
-                         const FmtContext& ctx);
+ArgComments CollectArgs(const Node::NodeVec& children);
 
-Candidate FormatArgsFill(const std::vector<ArgComment>& items,
-                         int align_col, int indent,
+Candidate FormatArgsFlat(const ArgComments& items, const FmtContext& ctx);
+
+Candidate FormatArgsFill(const ArgComments& items, int align_col, int indent,
                          const FmtContext& first_line_ctx);
 
-Candidates FlatOrFill(const std::string& prefix,
-                      const std::string& open,
-                      const std::string& close,
-                      const std::string& suffix,
-                      const std::vector<ArgComment>& items,
-                      const FmtContext& ctx,
+Candidates FlatOrFill(const std::string& prefix, const std::string& open,
+                      const std::string& close, const std::string& suffix,
+                      const ArgComments& items, const FmtContext& ctx,
                       const std::string& open_comment = "",
                       const std::string& close_prefix = "");
 
-Candidate FormatArgsVertical(const std::string& open,
-                             const std::string& close,
-                             const std::vector<ArgComment>& items,
-                             const FmtContext& ctx,
+Candidate FormatArgsVertical(const std::string& open, const std::string& close,
+                             const ArgComments& items, const FmtContext& ctx,
                              bool trailing_comma = false);
 
 // Dispatch.

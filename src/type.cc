@@ -14,7 +14,7 @@ Candidates FormatTypeParam(const Node& node, const FmtContext& ctx)
 
 	// Collect bracketed type args (between LBRACKET/RBRACKET)
 	// and "of" type (after KEYWORD "of").
-	std::vector<ArgComment> bt_items;
+	ArgComments bt_items;
 	const Node* of_type = nullptr;
 	const Node* pending_comma = nullptr;
 	bool in_brackets = false;

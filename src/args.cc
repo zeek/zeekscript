@@ -6,7 +6,7 @@
 // Arg list collection
 // ------------------------------------------------------------------
 
-bool HasBreaks(const std::vector<ArgComment>& items)
+bool HasBreaks(const ArgComments& items)
 	{
 	for ( auto& it : items )
 		if ( it.HasBreak() )
@@ -15,10 +15,9 @@ bool HasBreaks(const std::vector<ArgComment>& items)
 	return false;
 	}
 
-std::vector<ArgComment>
-CollectArgs(const Node::NodeVec& children)
+ArgComments CollectArgs(const Node::NodeVec& children)
 	{
-	std::vector<ArgComment> items;
+	ArgComments items;
 	const Node* pending_comma = nullptr;
 
 	for ( size_t i = 0; i < children.size(); ++i )
@@ -56,8 +55,7 @@ CollectArgs(const Node::NodeVec& children)
 // Arg list formatting
 // ------------------------------------------------------------------
 
-Candidate FormatArgsFlat(const std::vector<ArgComment>& items,
-                         const FmtContext& ctx)
+Candidate FormatArgsFlat(const ArgComments& items, const FmtContext& ctx)
 	{
 	std::string text;
 	int w = 0;
@@ -142,8 +140,7 @@ static void FormatFillArg(const Node& arg, int indent, int max_col,
 	total_overflow += best.Ovf();
 	}
 
-Candidate FormatArgsFill(const std::vector<ArgComment>& items,
-                         int align_col, int indent,
+Candidate FormatArgsFill(const ArgComments& items, int align_col, int indent,
                          const FmtContext& first_line_ctx)
 	{
 	std::string pad = LinePrefix(indent, align_col);
@@ -252,12 +249,9 @@ Candidate FormatArgsFill(const std::vector<ArgComment>& items,
 	}
 
 // Try flat, then greedy-fill for a bracketed list of items.
-Candidates FlatOrFill(const std::string& prefix,
-                      const std::string& open,
-                      const std::string& close,
-                      const std::string& suffix,
-                      const std::vector<ArgComment>& items,
-                      const FmtContext& ctx,
+Candidates FlatOrFill(const std::string& prefix, const std::string& open,
+                      const std::string& close, const std::string& suffix,
+                      const ArgComments& items, const FmtContext& ctx,
                       const std::string& open_comment,
                       const std::string& close_prefix)
 	{
@@ -332,10 +326,8 @@ Candidates FlatOrFill(const std::string& prefix,
 	return result;
 	}
 
-Candidate FormatArgsVertical(const std::string& open,
-                             const std::string& close,
-                             const std::vector<ArgComment>& items,
-                             const FmtContext& ctx,
+Candidate FormatArgsVertical(const std::string& open, const std::string& close,
+                             const ArgComments& items, const FmtContext& ctx,
                              bool trailing_comma)
 	{
 	int body_indent = ctx.Indent() + 1;
