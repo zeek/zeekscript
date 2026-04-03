@@ -40,8 +40,8 @@ The *primary* failure mode determines the category:
   like `:` in slices or `?$`.
 - **NO-FORMAT directives**: `#@ NO-FORMAT` / `#@ BEGIN-NO-FORMAT`
   regions not passed through verbatim.
-- **LAMBDA support**: lambda expressions emit a placeholder instead
-  of real output.
+- **LAMBDA support**: lambda expressions not formatted correctly
+  (resolved 2026-04-03).
 - **Ternary / vertical / param-list / enum / etc.**: specific
   construct not yet handled or not wrapping correctly.
 - **Miscellaneous**: one-off issues that don't fit a group.
