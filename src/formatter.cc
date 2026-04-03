@@ -405,17 +405,35 @@ struct ArgComment
 	std::string comment;	// trailing: empty or " # ..."
 	std::vector<std::string> leading;	// leading comments before item
 	const Node* comma = nullptr;	// preceding COMMA token, if any
+
+	bool HasBreak() const
+		{
+		if ( ! comment.empty() || ! leading.empty() )
+			return true;
+		if ( comma && comma->MustBreakAfter() )
+			return true;
+		return arg->MustBreakBefore() || arg->MustBreakAfter();
+		}
 	};
+
+// True when any item has a comment or forced break, meaning a
+// flat (single-line) layout would lose content.
+static bool HasBreaks(const std::vector<ArgComment>& items)
+	{
+	for ( auto& it : items )
+		if ( it.HasBreak() )
+			return true;
+
+	return false;
+	}
 
 // Scan a node's children, pairing each non-comment child with
 // its trailing comment and any pre-comments (leading comments
 // attached by the parser).
-// Returns the items and whether any comments were found.
-static std::pair<std::vector<ArgComment>, bool>
+static std::vector<ArgComment>
 CollectArgs(const Node::NodeVec& children)
 	{
 	std::vector<ArgComment> items;
-	bool has_breaks = false;
 	const Node* pending_comma = nullptr;
 
 	for ( size_t i = 0; i < children.size(); ++i )
@@ -429,24 +447,14 @@ CollectArgs(const Node::NodeVec& children)
 		if ( is_token(t) )
 			{
 			if ( t == Tag::Comma )
-				{
 				pending_comma = c.get();
-				if ( c->MustBreakAfter() )
-					has_breaks = true;
-				}
 			continue;
 			}
 
 		// Orphaned COMMENT-LEADING (end of block, no following
 		// sibling) - still appears as a standalone child.
 		if ( is_comment(t) )
-			{
-			has_breaks = true;
 			continue;
-			}
-
-		if ( c->MustBreakAfter() || c->MustBreakBefore() )
-			has_breaks = true;
 
 		std::vector<std::string> leading(c->PreComments().begin(),
 		                                 c->PreComments().end());
@@ -456,7 +464,7 @@ CollectArgs(const Node::NodeVec& children)
 		pending_comma = nullptr;
 		}
 
-	return {items, has_breaks};
+	return items;
 	}
 
 // ------------------------------------------------------------------
@@ -658,11 +666,11 @@ static Candidates FlatOrFill(const std::string& prefix,
                              const std::string& close,
                              const std::string& suffix,
                              const std::vector<ArgComment>& items,
-                             bool has_breaks,
                              const FmtContext& ctx,
                              const std::string& open_comment = "",
                              const std::string& close_prefix = "")
 	{
+	bool has_breaks = HasBreaks(items) || ! open_comment.empty();
 	int prefix_w = static_cast<int>(prefix.size());
 	int open_w = static_cast<int>(open.size());
 	int close_w = static_cast<int>(close.size());
@@ -785,19 +793,13 @@ static Candidates FormatCall(const Node& node, const FmtContext& ctx)
 	const Node* lp = args_node->FindChild(Tag::LParen);
 	const Node* rp = args_node->FindChild(Tag::RParen);
 
-	auto [items, has_breaks] = CollectArgs(args_node->Children());
+	auto items = CollectArgs(args_node->Children());
 
 	if ( items.empty() )
 		return {func.Cat(lp->Text() + rp->Text()).In(ctx)};
 
-	// Trailing comment on ARGS acts as an open-bracket comment
-	// (goes after the open paren, with args on the next line).
-	if ( ! args_node->TrailingComment().empty() )
-		has_breaks = true;
-
 	return FlatOrFill(func.Text(), lp->Text(), rp->Text(), "",
-		items, has_breaks, ctx,
-		args_node->TrailingComment());
+		items, ctx, args_node->TrailingComment());
 	}
 
 // ------------------------------------------------------------------
@@ -832,15 +834,15 @@ static Candidates FormatConstructor(const Node& node, const FmtContext& ctx)
 	std::string lp = lp_node->Text();
 	std::string rp = rp_node->Text();
 
-	auto [items, has_breaks] = CollectArgs(node.Children());
+	auto items = CollectArgs(node.Children());
 
 	if ( items.empty() )
 		return {Candidate(kw + lp + rp, ctx)};
 
 	Candidates result;
 
-	// Candidate 1: flat (only when no comments).
-	if ( ! has_breaks )
+	// Candidate 1: flat (only when no forced breaks).
+	if ( ! HasBreaks(items) )
 		{
 		int open_w = static_cast<int>(kw.size() + lp.size());
 		FmtContext args_ctx(ctx.Indent(), ctx.Col() + open_w,
@@ -900,9 +902,9 @@ static Candidates FormatIndex(const Node& node, const FmtContext& ctx)
 		}
 
 	// Multiple subscripts: format as comma-separated list.
-	auto [items, has_breaks] = CollectArgs(subs_node->Children());
+	auto items = CollectArgs(subs_node->Children());
 	return FlatOrFill(base.Text(), lb->Text(), rb->Text(), "",
-		items, has_breaks, ctx);
+		items, ctx);
 	}
 
 // ------------------------------------------------------------------
@@ -916,7 +918,7 @@ static Candidates FormatIndexLiteral(const Node& node, const FmtContext& ctx)
 	std::string lbt = lb->Text();
 	std::string rbt = rb->Text();
 
-	auto [items, has_breaks] = CollectArgs(node.Children());
+	auto items = CollectArgs(node.Children());
 
 	if ( items.empty() )
 		return {Candidate(lbt + rbt, ctx)};
@@ -928,7 +930,7 @@ static Candidates FormatIndexLiteral(const Node& node, const FmtContext& ctx)
 	// When every item has a trailing comment, use vertical indented
 	// layout (each item on its own line).  Otherwise use fill, which
 	// packs items and wraps after any trailing comment.
-	if ( has_breaks )
+	if ( HasBreaks(items) )
 		{
 		bool all_trailing = true;
 		for ( size_t i = 0; i < items.size(); ++i )
@@ -947,8 +949,7 @@ static Candidates FormatIndexLiteral(const Node& node, const FmtContext& ctx)
 				has_trailing_comma)};
 		}
 
-	return FlatOrFill("", lbt, rbt, "", items, has_breaks, ctx,
-		"", close_pfx);
+	return FlatOrFill("", lbt, rbt, "", items, ctx, "", close_pfx);
 	}
 
 // ------------------------------------------------------------------
@@ -1347,7 +1348,7 @@ static Candidates FormatTypeParam(const Node& node, const FmtContext& ctx)
 		return {Candidate(keyword + suffix, ctx)};
 
 	return FlatOrFill(keyword, lb->Text(), rb->Text(), suffix,
-		bt_items, false, ctx);
+		bt_items, ctx);
 	}
 
 // Find the first type child (TypeAtom, TypeParameterized, TypeFunc).
@@ -1918,20 +1919,16 @@ static Candidates FormatEventStmt(const Node& node, const FmtContext& ctx)
 	const Node* lp = args_node->FindChild(Tag::LParen);
 	const Node* rp = args_node->FindChild(Tag::RParen);
 
-	auto [items, has_breaks] = CollectArgs(args_node->Children());
+	auto items = CollectArgs(args_node->Children());
 
 	if ( items.empty() )
 		return {Candidate(prefix + lp->Text() + rp->Text() +
 			semi_str, ctx)};
 
-	if ( ! args_node->TrailingComment().empty() )
-		has_breaks = true;
-
 	int semi_w = semi ? semi->Width() : 0;
 	FmtContext inner = semi ? ctx.Reserve(semi_w) : ctx;
 	auto cs = FlatOrFill(prefix, lp->Text(), rp->Text(), "",
-		items, has_breaks, inner,
-		args_node->TrailingComment());
+		items, inner, args_node->TrailingComment());
 
 	Candidates result;
 	for ( auto& c : cs )
@@ -1979,7 +1976,7 @@ static Candidates FormatPrint(const Node& node, const FmtContext& ctx)
 	std::string semi_str = semi->Text();
 	std::string prefix = kw_node->Text();
 
-	auto [items, has_breaks] = CollectArgs(node.Children());
+	auto items = CollectArgs(node.Children());
 
 	if ( items.empty() )
 		return {Candidate(prefix + semi_str, ctx)};
@@ -1990,8 +1987,7 @@ static Candidates FormatPrint(const Node& node, const FmtContext& ctx)
 
 	int semi_w = semi->Width();
 	FmtContext inner = ctx.Reserve(semi_w);
-	auto cs = FlatOrFill(prefix + " ", "", "", "", items,
-		has_breaks, inner);
+	auto cs = FlatOrFill(prefix + " ", "", "", "", items, inner);
 
 	Candidates result;
 	for ( auto& c : cs )
