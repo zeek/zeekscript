@@ -6,27 +6,27 @@
 
 Candidates ConditionBlockNode::Format(const FmtContext& ctx) const
 	{
-	const Node* kw_node = FindChild(Tag::Keyword);
-	const Node* lparen_node = FindChild(Tag::LParen);
-	const Node* rparen_node = FindChild(Tag::RParen);
+	auto kw_node = FindChild(Tag::Keyword);
+	auto lparen_node = FindChild(Tag::LParen);
+	auto rparen_node = FindChild(Tag::RParen);
 
 	// Format the condition assuming the common (non-break) column.
-	int cond_col = ctx.Col() + kw_node->Width() + 1
-		+ lparen_node->Width() + 1;
+	int cond_col =
+		ctx.Col() + kw_node->Width() + 1 + lparen_node->Width() + 1;
 	int rp_w = 1 + rparen_node->Width();
 	FmtContext cond_ctx(ctx.Indent(), cond_col,
-		ctx.MaxCol() - cond_col, rp_w);
-	std::string cond = BuildCondition(cond_ctx);
+				ctx.MaxCol() - cond_col, rp_w);
+	auto cond = BuildCondition(cond_ctx);
 
-	// Build the head via BuildLayout so trailing comments on
-	// keyword or lparen correctly force line breaks.
-	auto head_cs = BuildLayout({Tok(kw_node), SoftSp,
-		Tok(lparen_node), SoftSp, cond,
-		" " + rparen_node->Text()}, ctx);
-	std::string head = Best(head_cs).Text();
+	// Build the head via BuildLayout so trailing comments on keyword
+	// or lparen correctly force line breaks.
+	LayoutItems los{Tok(kw_node), SoftSp, Tok(lparen_node), SoftSp, cond,
+			" " + rparen_node->Text()};
+	auto head_cs = BuildLayout(los, ctx);
+	auto head = Best(head_cs).Text();
 
-	const Node* body_node = FindChild(Tag::Body);
-	std::string result = head + FormatBodyText(body_node, ctx);
+	auto body_node = FindChild(Tag::Body);
+	auto result = head + FormatBodyText(body_node, ctx);
 
 	// Check for blank lines after the body (e.g., before else).
 	bool has_blank = false;
@@ -37,8 +37,8 @@ Candidates ConditionBlockNode::Format(const FmtContext& ctx) const
 
 	// Collect pre-comments from the follow-on node (e.g., Else).
 	std::string comments;
-	std::string stmt_pad = LinePrefix(ctx.Indent(), ctx.Col());
-	const Node* else_node = FindOptChild(Tag::Else);
+	auto stmt_pad = LinePrefix(ctx.Indent(), ctx.Col());
+	auto else_node = FindOptChild(Tag::Else);
 
 	if ( else_node )
 		for ( const auto& pc : else_node->PreComments() )
@@ -59,8 +59,7 @@ Candidates ConditionBlockNode::Format(const FmtContext& ctx) const
 std::string ConditionBlockNode::BuildCondition(const FmtContext& cond_ctx) const
 	{
 	// First content child is the condition expression.
-	auto content = ContentChildren();
-	return Best(FormatExpr(*content[0], cond_ctx)).Text();
+	return Best(FormatExpr(*ContentChildren()[0], cond_ctx)).Text();
 	}
 
 // ------------------------------------------------------------------
@@ -69,15 +68,16 @@ std::string ConditionBlockNode::BuildCondition(const FmtContext& cond_ctx) const
 
 std::string ForNode::BuildCondition(const FmtContext& cond_ctx) const
 	{
-	const Node* vars_node = FindChild(Tag::Vars);
-	const Node* for_kw = FindChild(Tag::Keyword);
-	const Node* in_node = FindChild(Tag::Keyword, for_kw);
-	const Node* iter_node = FindChild(Tag::Iterable);
+	auto vars_node = FindChild(Tag::Vars);
+	auto for_kw = FindChild(Tag::Keyword);
+	auto in_node = FindChild(Tag::Keyword, for_kw);
+	auto iter_node = FindChild(Tag::Iterable);
 
 	// Format vars (comma-separated identifiers).
 	std::string vars_text;
 	auto vars_content = vars_node->ContentChildren();
 	bool first = true;
+
 	for ( const auto* v : vars_content )
 		{
 		if ( ! first )
@@ -90,8 +90,7 @@ std::string ForNode::BuildCondition(const FmtContext& cond_ctx) const
 	std::string iter_text;
 	auto iter_content = iter_node->ContentChildren();
 	if ( ! iter_content.empty() )
-		iter_text = Best(FormatExpr(
-			*iter_content[0], cond_ctx)).Text();
+		iter_text = Best(FormatExpr(*iter_content[0], cond_ctx)).Text();
 
 	return vars_text + " " + in_node->Text() + " " + iter_text;
 	}
@@ -101,16 +100,14 @@ std::string ForNode::BuildCondition(const FmtContext& cond_ctx) const
 // ------------------------------------------------------------------
 
 std::string IfNode::BuildFollowOn(const FmtContext& ctx,
-	const std::string& comments, bool has_blank) const
+			const std::string& comments, bool has_blank) const
 	{
-	const Node* else_node = FindOptChild(Tag::Else);
-
+	auto else_node = FindOptChild(Tag::Else);
 	if ( ! else_node )
 		return "";
 
-	auto else_content = else_node->ContentChildren();
-	const Node* else_child = else_content[0];
-	std::string stmt_pad = LinePrefix(ctx.Indent(), ctx.Col());
+	auto else_child = else_node->ContentChildren()[0];
+	auto stmt_pad = LinePrefix(ctx.Indent(), ctx.Col());
 	std::string result;
 
 	if ( has_blank || ! comments.empty() )
@@ -132,8 +129,7 @@ std::string IfNode::BuildFollowOn(const FmtContext& ctx,
 		{
 		FmtContext else_ctx = ctx.Indented();
 		auto cs = FormatExpr(*else_child, else_ctx);
-		std::string epad = LinePrefix(
-			else_ctx.Indent(), else_ctx.Col());
+		std::string epad = LinePrefix(else_ctx.Indent(), else_ctx.Col());
 		result += "\n" + stmt_pad + "else\n" + epad + Best(cs).Text();
 		}
 

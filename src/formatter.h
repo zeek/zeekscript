@@ -94,6 +94,9 @@ public:
 		: text(t), width(w), lines(l), overflow(ovf),
 		  spread(l > 1 ? ComputeSpread(t, first_col) : 0) {}
 
+	Candidate(std::string t) :
+		Candidate(std::move(t), static_cast<int>(t.size()), 1, 0) { }
+
 	const std::string& Text() const { return text; }
 	int Width() const { return width; }
 	int Lines() const { return lines; }
@@ -122,9 +125,6 @@ public:
 	bool BetterThan(const Candidate& o) const;
 
 private:
-	Candidate(std::string t) :
-		Candidate(std::move(t), static_cast<int>(t.size()), 1, 0) { }
-
 	// Compute spread (max line width - min line width) from text.
 	// first_col is the absolute column where the first line starts.
 	static int ComputeSpread(const std::string& text, int first_col);
@@ -206,5 +206,5 @@ LayoutItem Tok(const Node* n);
 // beam search.  At each Fmt node, all of its candidates are tried;
 // at each SoftSp, both "space" and "break + indent" are tried.
 // The beam is pruned to the best candidates at each step.
-Candidates BuildLayout(std::initializer_list<LayoutItem> items_init,
-                       const FmtContext& ctx);
+using LayoutItems = std::initializer_list<LayoutItem>;
+Candidates BuildLayout(LayoutItems items_init, const FmtContext& ctx);
