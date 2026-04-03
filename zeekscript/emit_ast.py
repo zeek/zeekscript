@@ -586,6 +586,9 @@ class Emitter:
             else:
                 self._w(f'CONSTANT {_quote(self._text(node))}')
             self._mark_content(node)
+        elif node.type == "pattern":
+            self._w(f'CONSTANT {_quote(self._text(node))}')
+            self._mark_content(node)
         elif node.type == "begin_lambda":
             # Part of lambda — handled by parent
             pass
