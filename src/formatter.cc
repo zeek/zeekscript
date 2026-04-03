@@ -200,38 +200,18 @@ static const std::unordered_map<Tag, FormatFunc>& FormatDispatch();
 // Layout combinator
 // ------------------------------------------------------------------
 
-// A component in a layout specification.  Implicit constructors
-// let callers mix strings, node pointers, and SP markers freely:
-//   BuildLayout({prefix, colon->Text(), SoftSp, base_type, semi}, ctx)
-struct LayoutItem
+const LayoutItem SoftSp{LayoutItem::Kind::Sp};
+
+LayoutItem Tok(const Node* n)
 	{
-	enum class Kind { Lit, Fmt, Sp } kind;
-	std::string text;
-	const Node* node;
+	LayoutItem item(n->Text());
+	item.must_break = n->MustBreakAfter();
+	return item;
+	}
 
-	// Literal string.
-	LayoutItem(const std::string& s)
-		: kind(Kind::Lit), text(s), node(nullptr) {}
-	LayoutItem(const char* s)
-		: kind(Kind::Lit), text(s), node(nullptr) {}
-
-	// Node to format (produces candidates).
-	LayoutItem(const Node* n)
-		: kind(Kind::Fmt), node(n) {}
-
-	// Soft space (private; use SoftSp constant).
-	LayoutItem(Kind k) : kind(k), node(nullptr) {}
-	};
-
-static const LayoutItem SoftSp{LayoutItem::Kind::Sp};
-
-// Build layout candidates from a sequence of components using
-// beam search.  At each Fmt node, all of its candidates are tried;
-// at each SoftSp, both "space" and "break + indent" are tried.
-// The beam is pruned to the best BEAM_WIDTH partials at each step.
 // Trailing literal width after a Fmt node is automatically reserved
 // so the formatted expression accounts for what follows it.
-static Candidates BuildLayout(
+Candidates BuildLayout(
 	std::initializer_list<LayoutItem> items_init,
 	const FmtContext& ctx)
 	{
@@ -245,6 +225,7 @@ static Candidates BuildLayout(
 		int col;      // current column (end of last line)
 		int lines;
 		int overflow;
+		bool must_break;  // preceding token forces next Sp to break
 		};
 
 	auto ovf_at = [&](int c)
@@ -271,7 +252,7 @@ static Candidates BuildLayout(
 		return w;
 		};
 
-	std::vector<Partial> beam = {{"", ctx.Col(), 1, 0}};
+	std::vector<Partial> beam = {{"", ctx.Col(), 1, 0, false}};
 
 	for ( size_t i = 0; i < items.size(); ++i )
 		{
@@ -288,6 +269,7 @@ static Candidates BuildLayout(
 				np.text += item.text;
 				np.col += static_cast<int>(item.text.size());
 				np.overflow += ovf_at(np.col);
+				np.must_break = item.must_break;
 				next.push_back(std::move(np));
 				break;
 				}
@@ -304,6 +286,7 @@ static Candidates BuildLayout(
 					Partial np = p;
 					np.text += c.Text();
 					np.overflow += c.Ovf();
+					np.must_break = false;
 					if ( c.Lines() > 1 )
 						{
 						np.lines += c.Lines() - 1;
@@ -318,11 +301,16 @@ static Candidates BuildLayout(
 
 			case LayoutItem::Kind::Sp:
 				{
-				// Option 1: space.
-				Partial sp = p;
-				sp.text += " ";
-				++sp.col;
-				next.push_back(std::move(sp));
+				// Option 1: space (skip if preceding
+				// token forces a break).
+				if ( ! p.must_break )
+					{
+					Partial sp = p;
+					sp.text += " ";
+					++sp.col;
+					sp.must_break = false;
+					next.push_back(std::move(sp));
+					}
 
 				// Option 2: break + indent.
 				FmtContext brk = ctx.Indented();
@@ -333,6 +321,7 @@ static Candidates BuildLayout(
 				bp.text += pad;
 				bp.col = brk.IndentCol();
 				++bp.lines;
+				bp.must_break = false;
 				next.push_back(std::move(bp));
 				break;
 				}

@@ -10,20 +10,20 @@ Candidates ConditionBlockNode::Format(const FmtContext& ctx) const
 	const Node* lparen_node = FindChild(Tag::LParen);
 	const Node* rparen_node = FindChild(Tag::RParen);
 
-	// Build the head, inserting line breaks when a token has
-	// a trailing comment that forces a break.
-	std::string head;
-	int col = ctx.Col();
-	int indent = ctx.Indent();
-	int break_indent = ctx.Indent() + 1;
+	// Format the condition assuming the common (non-break) column.
+	int cond_col = ctx.Col() + kw_node->Width() + 1
+		+ lparen_node->Width() + 1;
+	int rp_w = 1 + rparen_node->Width();
+	FmtContext cond_ctx(ctx.Indent(), cond_col,
+		ctx.MaxCol() - cond_col, rp_w);
+	std::string cond = BuildCondition(cond_ctx);
 
-	AppendToken(kw_node, head, col, indent, break_indent);
-	AppendToken(lparen_node, head, col, indent, break_indent);
-
-	FmtContext cond_ctx(indent, col, ctx.MaxCol() - col);
-	std::string cond = BuildCondition(
-		cond_ctx.Reserve(1 + rparen_node->Width()));
-	head += cond + " " + rparen_node->Text();
+	// Build the head via BuildLayout so trailing comments on
+	// keyword or lparen correctly force line breaks.
+	auto head_cs = BuildLayout({Tok(kw_node), SoftSp,
+		Tok(lparen_node), SoftSp, cond,
+		" " + rparen_node->Text()}, ctx);
+	std::string head = Best(head_cs).Text();
 
 	const Node* body_node = FindChild(Tag::Body);
 	std::string result = head + FormatBodyText(body_node, ctx);

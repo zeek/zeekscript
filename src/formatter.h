@@ -171,3 +171,47 @@ std::string LinePrefix(int indent, int col);
 // indent level to use when a break occurs.
 void AppendToken(const Node* node, std::string& head,
                  int& col, int& indent, int break_indent);
+
+// ------------------------------------------------------------------
+// Layout combinator
+// ------------------------------------------------------------------
+
+// A component in a layout specification.  Implicit constructors
+// let callers mix strings, node pointers, and SP markers freely:
+//   BuildLayout({prefix, SoftSp, node, SoftSp, suffix}, ctx)
+struct LayoutItem
+	{
+	enum class Kind { Lit, Fmt, Sp } kind;
+	std::string text;
+	const Node* node;
+	bool must_break;	// force next Sp to break (trailing comment)
+
+	// Literal string.
+	LayoutItem(const std::string& s)
+		: kind(Kind::Lit), text(s), node(nullptr),
+		  must_break(false) {}
+	LayoutItem(const char* s)
+		: kind(Kind::Lit), text(s), node(nullptr),
+		  must_break(false) {}
+
+	// Node to format (produces candidates).
+	LayoutItem(const Node* n)
+		: kind(Kind::Fmt), node(n), must_break(false) {}
+
+	// Soft space (private; use SoftSp constant).
+	LayoutItem(Kind k)
+		: kind(k), node(nullptr), must_break(false) {}
+	};
+
+extern const LayoutItem SoftSp;
+
+// Token literal: emits node->Text() and forces the next SoftSp
+// to break if the token has a trailing comment.
+LayoutItem Tok(const Node* n);
+
+// Build layout candidates from a sequence of components using
+// beam search.  At each Fmt node, all of its candidates are tried;
+// at each SoftSp, both "space" and "break + indent" are tried.
+// The beam is pruned to the best candidates at each step.
+Candidates BuildLayout(std::initializer_list<LayoutItem> items_init,
+                       const FmtContext& ctx);
