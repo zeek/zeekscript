@@ -246,30 +246,25 @@ Candidates FormatIndexLiteral(const Node& node, const FmtContext& ctx)
 	return FlatOrFill("", lb, rb, "", items, ctx, "", close_pfx);
 	}
 
-// ------------------------------------------------------------------
-// Slice: expr[lo:hi]
-// ------------------------------------------------------------------
-
+// Slice: expr[lo:hi], where either lo or hi may be missing
 Candidates FormatSlice(const Node& node, const FmtContext& ctx)
 	{
-	auto content = node.ContentChildren();
-	if ( content.size() < 3 )
-		throw FormatError("SLICE node needs 3 content children");
+	auto content = node.ContentChildren("SLICE", 3);
+	auto lo = Best(FormatExpr(*content[1], ctx)).Text();
+	auto hi = Best(FormatExpr(*content[2], ctx)).Text();
 
-	const Node* lb = node.FindChild(Tag::LBracket);
-	const Node* rb = node.FindChild(Tag::RBracket);
-	const Node* colon = node.FindChild(Tag::Colon);
-	std::string lbt = lb->Text();
-	std::string rbt = rb->Text();
-
+	auto lb = node.FindChild(Tag::LBracket);
+	auto rb = node.FindChild(Tag::RBracket);
+	auto lbt = lb->Text();
+	auto rbt = rb->Text();
 	auto base_cs = FormatExpr(*content[0], ctx);
 	const auto& base = Best(base_cs);
 
-	std::string lo = Best(FormatExpr(*content[1], ctx)).Text();
-	std::string hi = Best(FormatExpr(*content[2], ctx)).Text();
+	auto colon = node.FindChild(Tag::Colon)->Text();
+	auto sep = colon;
+	if ( ! lo.empty() && ! hi.empty() )
+		sep = " " + sep + " ";
 
-	std::string sep = (! lo.empty() && ! hi.empty())
-		? " " + colon->Text() + " " : colon->Text();
 	Candidate flat = base.Cat(lbt + lo + sep + hi + rbt).In(ctx);
 
 	if ( flat.Fits() || lo.empty() || hi.empty() )
@@ -278,11 +273,11 @@ Candidates FormatSlice(const Node& node, const FmtContext& ctx)
 	// Split after ":" - continuation aligns after "[".
 	int bracket_col = ctx.Col() + base.Width() + lb->Width();
 	FmtContext hi_ctx = ctx.AtCol(bracket_col);
-	std::string hi2 = Best(FormatExpr(*content[2], hi_ctx)).Text();
+	auto hi2 = Best(FormatExpr(*content[2], hi_ctx)).Text();
 
-	std::string prefix = LinePrefix(hi_ctx.Indent(), bracket_col);
-	std::string split = base.Text() + lbt + lo + " " +
-		colon->Text() + "\n" + prefix + hi2 + rbt;
+	auto prefix = LinePrefix(hi_ctx.Indent(), bracket_col);
+	auto split = base.Text() + lbt + lo + " " + colon + "\n" +
+			prefix + hi2 + rbt;
 	int last_w = static_cast<int>(hi2.size()) + rb->Width();
 	int split_ovf = Ovf(last_w, hi_ctx);
 	int lines = 1 + CountLines(hi2);
@@ -290,59 +285,43 @@ Candidates FormatSlice(const Node& node, const FmtContext& ctx)
 	return {flat, {split, last_w, lines, split_ovf, ctx.Col()}};
 	}
 
-// ------------------------------------------------------------------
 // Paren: (expr)
-// ------------------------------------------------------------------
-
 Candidates FormatParen(const Node& node, const FmtContext& ctx)
 	{
-	auto content = node.ContentChildren();
-	if ( content.empty() )
-		throw FormatError("PAREN node needs a child");
+	auto content = node.ContentChildren("PAREN", 1);
+	auto lp = node.FindChild(Tag::LParen);
+	auto rp = node.FindChild(Tag::RParen)->Text();
 
-	const Node* lp = node.FindChild(Tag::LParen);
-	const Node* rp = node.FindChild(Tag::RParen);
-
-	auto inner_cs = FormatExpr(*content[0],
-		ctx.After(lp->Width()));
+	auto inner_cs = FormatExpr(*content[0], ctx.After(lp->Width()));
 	const auto& inner = Best(inner_cs);
 
-	return {Candidate(lp->Text(), ctx).Cat(inner)
-		.Cat(rp->Text()).In(ctx)};
+	return {Candidate(lp->Text(), ctx).Cat(inner).Cat(rp).In(ctx)};
 	}
 
-// ------------------------------------------------------------------
 // Unary: ! expr, -expr, ~expr
-// ------------------------------------------------------------------
-
 Candidates FormatUnary(const Node& node, const FmtContext& ctx)
 	{
 	const auto& op = node.Arg();
-	auto content = node.ContentChildren();
+	auto content = node.ContentChildren("UNARY-OP", 1);
 
-	if ( content.empty() )
-		throw FormatError("UNARY-OP node needs a child");
-
-	// Cardinality/absolute value: |expr|
 	if ( op == "|...|" )
-		{
-		const Node* lp = node.FindChild(Tag::Op);
-		const Node* rp = node.FindChild(Tag::Op, lp);
-		auto operand_cs = FormatExpr(*content[0],
-			ctx.After(lp->Width()));
-		const auto& operand = Best(operand_cs);
-		return {Candidate(lp->Text(), ctx).Cat(operand)
-			.Cat(rp->Text()).In(ctx)};
+		{ // Cardinality/absolute value: |expr|
+		auto lp = node.FindChild(Tag::Op);
+		auto rp = node.FindChild(Tag::Op, lp)->Text();
+		auto operand_cs =
+			FormatExpr(*content[0], ctx.After(lp->Width()));
+		auto operand = Best(operand_cs);
+		return {Candidate(lp->Text(), ctx).Cat(operand).Cat(rp).In(ctx)};
 		}
 
 	// Zeek style: space after "!".
-	std::string ps = op;
+	auto ps = op;
 	if ( op == "!" )
 		ps += " ";
 
 	Candidate prefix(ps, ctx);
 	auto operand_cs = FormatExpr(*content[0], ctx.After(prefix.Width()));
-	const auto& operand = Best(operand_cs);
+	auto operand = Best(operand_cs);
 
 	return {prefix.Cat(operand).In(ctx)};
 	}
