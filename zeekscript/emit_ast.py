@@ -601,14 +601,23 @@ class Emitter:
     def _emit_lambda(self, node: tree_sitter.Node) -> None:
         """Emit a lambda (anonymous function) expression."""
         self._open('LAMBDA')
+        self._kw("function")
         for child in self._iter_children(node):
-            if child.type == "capture_list":
-                self._open('CAPTURES')
-                for ck in self._iter_children(child):
-                    if ck.type == "id":
-                        self._w(f'IDENTIFIER {_quote(self._text(ck))}')
-                self._close()
-            elif child.type == "begin_lambda":
+            if child.type == "begin_lambda":
+                # Capture list is inside begin_lambda.
+                for blc in child.children:
+                    if not blc.is_extra and blc.type == "capture_list":
+                        self._open('CAPTURES')
+                        self._w('LBRACKET')
+                        for ck in self._iter_children(blc):
+                            if ck.type == "capture":
+                                for idk in ck.children:
+                                    if not idk.is_extra and idk.type == "id":
+                                        self._w(f'IDENTIFIER {_quote(self._text(idk))}')
+                            elif not ck.is_named and self._text(ck) == ",":
+                                self._w('COMMA')
+                        self._w('RBRACKET')
+                        self._close()
                 self._emit_func_params_from(child)
             elif child.type == "func_body":
                 self._emit_func_body(child)

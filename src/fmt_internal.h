@@ -101,6 +101,7 @@ Candidates FormatUnary(const Node& node, const FmtContext& ctx);
 Candidates FormatBinary(const Node& node, const FmtContext& ctx);
 Candidates FormatInterval(const Node& node, const FmtContext& ctx);
 Candidates FormatTernary(const Node& node, const FmtContext& ctx);
+Candidates FormatLambda(const Node& node, const FmtContext& ctx);
 
 // type.cc
 Candidates FormatParam(const Node& node, const FmtContext& ctx);

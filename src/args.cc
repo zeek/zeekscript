@@ -105,6 +105,19 @@ static void AppendTrailing(const ArgComment& it,
 		cur_col += next_comma->Width();
 		force_wrap = true;
 		}
+
+	// Lambda body forces following args onto a new line.
+	// Consume the next comma here so it attaches to the
+	// closing brace rather than the following arg.
+	if ( it.arg->GetTag() == Tag::Lambda )
+		{
+		if ( next_comma )
+			{
+			text += next_comma->Text();
+			cur_col += next_comma->Width();
+			}
+		force_wrap = true;
+		}
 	}
 
 // Format an arg at the current column, appending to text and
@@ -288,10 +301,31 @@ Candidates FlatOrFill(const std::string& prefix,
 		}
 
 	auto fill = FormatArgsFill(items, open_col, ctx.Indent(), inner_ctx);
-	std::string fill_text = prefix + open + fill_prefix +
-		fill.Text() + cb + suffix;
-	int flast_w = fill.Width() + close_extra + close_w + suffix_w;
+
+	// When the last arg is a lambda, put the close bracket on
+	// its own line at the alignment column.
+	bool close_break = ! items.empty() &&
+		items.back().arg->GetTag() == Tag::Lambda;
+
+	std::string fill_text;
+	int flast_w;
 	int fill_lines = fill.Lines() + (open_comment.empty() ? 0 : 1);
+
+	if ( close_break )
+		{
+		std::string close_pad = LinePrefix(ctx.Indent(), open_col);
+		fill_text = prefix + open + fill_prefix +
+			fill.Text() + "\n" + close_pad + cb + suffix;
+		flast_w = open_col + close_extra + close_w + suffix_w;
+		++fill_lines;
+		}
+	else
+		{
+		fill_text = prefix + open + fill_prefix +
+			fill.Text() + cb + suffix;
+		flast_w = fill.Width() + close_extra + close_w + suffix_w;
+		}
+
 	result.push_back({fill_text, flast_w, fill_lines,
 	                  fill.Ovf(), ctx.Col()});
 

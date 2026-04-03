@@ -1,4 +1,4 @@
-# C++ Formatter Failing Tests (154 pass, 19 fail as of 2026-04-03)
+# C++ Formatter Failing Tests (157 pass, 16 fail as of 2026-04-03)
 
 ## By category (sorted by count)
 
@@ -6,16 +6,9 @@
 Call args, assignments, binary ops not splitting at overflow.
 test{014,093,104,126,127,130,133,135,136}
 
-### LAMBDA support (3)
-Lambda expressions emit placeholder.
-test{094,095,096}
-
 ### Vertical call-arg layout (3)
 Multi-element set/redef not formatted one-per-line with trailing commas.
 test{041,097,098}
-
-### CONSTRUCTOR with LAMBDA attr (1)
-test038 (needs LAMBDA support first)
 
 ### Miscellaneous
 - test040: CALL wrapping (set() args should use indent, not alignment)
@@ -289,3 +282,14 @@ entries chronological within a session date.
 - After TYPE-FUNC param wrapping: 154 pass, 19 fail
   - Fixed: test056 (event type params now greedy-fill at overflow)
   - FormatTypeFunc: flat + greedy-fill candidates, aligned after "("
+
+## Session progress (2026-04-03)
+- After LAMBDA support: 157 pass, 16 fail
+  - Fixed: test{094,095,096} (lambda expressions)
+  - Emitter: emit KEYWORD "function" for lambdas; fix capture list emission
+    (was checking wrong tree level - now walks inside begin_lambda)
+  - Formatter: new FormatLambda - captures and params via FlatOrFill,
+    body Whitesmith block with indent derived from lambda column position
+  - FlatOrFill: close bracket on new line when last arg is lambda;
+    AppendTrailing consumes comma after lambda and forces wrap
+  - Removed "LAMBDA support" and "CONSTRUCTOR with LAMBDA attr" categories

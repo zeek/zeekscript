@@ -16,6 +16,8 @@ FUNC-DECL {
           IDENTIFIER "some_usecase"
           COMMA
           LAMBDA {
+            KEYWORD "function"
+            SP
             PARAMS {
               LPAREN
               PARAM "h" {

@@ -105,6 +105,75 @@ Candidates FormatSchedule(const Node& node, const FmtContext& ctx)
 	}
 
 // ------------------------------------------------------------------
+// Lambda: function[captures](params): ret { body }
+// ------------------------------------------------------------------
+
+Candidates FormatLambda(const Node& node, const FmtContext& ctx)
+	{
+	const Node* kw = node.FindChild(Tag::Keyword);
+	const Node* params = node.FindChild(Tag::Params);
+	const Node* body = node.FindChild(Tag::Body);
+	const Node* returns = node.FindOptChild(Tag::Returns);
+
+	// Build prefix: function[captures]
+	std::string prefix = kw->Text();
+
+	const Node* captures = node.FindOptChild(Tag::Captures);
+	if ( captures )
+		{
+		const Node* clb = captures->FindChild(Tag::LBracket);
+		const Node* crb = captures->FindChild(Tag::RBracket);
+		auto cap_items = CollectArgs(captures->Children());
+		if ( cap_items.empty() )
+			prefix += clb->Text() + crb->Text();
+		else
+			{
+			auto cs = FlatOrFill(prefix, clb->Text(),
+				crb->Text(), "", cap_items, ctx);
+			prefix = Best(cs).Text();
+			}
+		}
+
+	// Params and return type.
+	const Node* lp = params->FindChild(Tag::LParen);
+	const Node* rp = params->FindChild(Tag::RParen);
+	auto items = CollectArgs(params->Children());
+
+	std::string ret_str;
+	if ( returns )
+		{
+		const Node* rcol = node.FindChild(Tag::Colon);
+		const Node* rt = FindTypeChild(*returns);
+		if ( rt )
+			ret_str = rcol->Text() + " " +
+				Best(FormatExpr(*rt, ctx)).Text();
+		}
+
+	std::string sig;
+	if ( items.empty() )
+		sig = prefix + lp->Text() + rp->Text() + ret_str;
+	else
+		{
+		auto cs = FlatOrFill(prefix, lp->Text(),
+			rp->Text(), ret_str, items, ctx);
+		sig = Best(cs).Text();
+		}
+
+	// Format body with indent level based on the lambda's column
+	// position, so the Whitesmith block aligns to the next tab stop.
+	int lambda_indent = ctx.Col() / INDENT_WIDTH;
+	FmtContext body_ctx(lambda_indent, ctx.Col(),
+		ctx.MaxCol() - ctx.Col());
+	std::string block = FormatWhitesmithBlock(body, body_ctx);
+
+	std::string text = sig + block;
+	int last_w = LastLineLen(text);
+	int lines = CountLines(text);
+	int ovf = TextOverflow(text, ctx.Col(), ctx.MaxCol());
+	return {{text, last_w, lines, ovf, ctx.Col()}};
+	}
+
+// ------------------------------------------------------------------
 // Constructor: table(...), set(...), vector(...)
 // ------------------------------------------------------------------
 

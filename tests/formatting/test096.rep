@@ -16,6 +16,13 @@ FUNC-DECL {
           IDENTIFIER "opt_id"
           COMMA
           LAMBDA {
+            KEYWORD "function"
+            SP
+            CAPTURES {
+              LBRACKET
+              IDENTIFIER "evt_grp"
+              RBRACKET
+            }
             PARAMS {
               LPAREN
               PARAM "id" {
