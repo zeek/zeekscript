@@ -51,10 +51,9 @@ public:
 	// content will appear after the last line.
 	FmtContext Indented() const
 		{
-		int max_col = MaxCol();
 		int new_indent = indent + 1;
 		int new_col = new_indent * INDENT_WIDTH;
-		return {new_indent, new_col, max_col - new_col, trail};
+		return {new_indent, new_col, MaxCol() - new_col, trail};
 		}
 
 	// Derive a sub-context for a new line at the same
@@ -104,18 +103,12 @@ public:
 	// Build a new single-line candidate by appending a literal string.
 	// Overflow is not set; use In() to finalize.
 	Candidate Cat(const std::string& s) const
-		{
-		std::string t = text + s;
-		return {t, static_cast<int>(t.size()), 1, 0};
-		}
+		{ return Candidate(text + s); }
 
 	// Build a new single-line candidate by appending another candidate.
 	// Overflow is not set; use In() to finalize.
 	Candidate Cat(const Candidate& o) const
-		{
-		std::string t = text + o.text;
-		return {t, static_cast<int>(t.size()), 1, 0};
-		}
+		{ return Candidate(text + o.text); }
 
 	// Return a copy with overflow computed against a context.
 	Candidate In(const FmtContext& ctx) const
@@ -129,6 +122,9 @@ public:
 	bool BetterThan(const Candidate& o) const;
 
 private:
+	Candidate(std::string t) :
+		Candidate(std::move(t), static_cast<int>(t.size()), 1, 0) { }
+
 	// Compute spread (max line width - min line width) from text.
 	// first_col is the absolute column where the first line starts.
 	static int ComputeSpread(const std::string& text, int first_col);
@@ -165,9 +161,7 @@ std::string FormatWhitesmithBlock(const Node* body, const FmtContext& ctx);
 // *only* place tabs appear.
 std::string LinePrefix(int indent, int col);
 
-// ------------------------------------------------------------------
 // Layout combinator
-// ------------------------------------------------------------------
 
 // A component in a layout specification.  Implicit constructors
 // let callers mix strings, node pointers, and SP markers freely:

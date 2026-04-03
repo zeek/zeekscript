@@ -11,16 +11,10 @@
 #include "node.h"
 #include "tag.h"
 
-// ------------------------------------------------------------------
-// Pre-comment / pre-marker emission
-// ------------------------------------------------------------------
-
+// Pre-comment / pre-marker emission.
 std::string EmitPreComments(const Node& node, const std::string& pad);
 
-// ------------------------------------------------------------------
-// Helpers
-// ------------------------------------------------------------------
-
+// Helpers.
 int Ovf(int candidate_w, const FmtContext& ctx);
 int OvfNoTrail(int candidate_w, const FmtContext& ctx);
 int FitCol(int align_col, int w, int max_col);
@@ -28,10 +22,7 @@ int CountLines(const std::string& s);
 int LastLineLen(const std::string& s);
 int TextOverflow(const std::string& text, int start_col, int max_col);
 
-// ------------------------------------------------------------------
-// Arg lists with trailing comments
-// ------------------------------------------------------------------
-
+// Arg lists with trailing comments.
 struct ArgComment
 	{
 	const Node* arg;
@@ -75,16 +66,11 @@ Candidate FormatArgsVertical(const std::string& open,
                              const FmtContext& ctx,
                              bool trailing_comma = false);
 
-// ------------------------------------------------------------------
-// Dispatch
-// ------------------------------------------------------------------
-
+// Dispatch.
 using FormatFunc = Candidates (*)(const Node&, const FmtContext&);
 const std::unordered_map<Tag, FormatFunc>& FormatDispatch();
 
-// ------------------------------------------------------------------
-// Per-file format functions (registered in dispatch table)
-// ------------------------------------------------------------------
+// Per-file format functions (registered in dispatch table).
 
 // expr.cc
 Candidates FormatAtom(const Node& node, const FmtContext& ctx);
