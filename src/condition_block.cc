@@ -43,12 +43,13 @@ std::string ConditionBlockNode::BuildCondition(const FmtContext& cond_ctx) const
 // ForNode: for ( vars in iterable ) body
 // ------------------------------------------------------------------
 
+// FOR children: [0]=KEYWORD [1]=SP [2]=LPAREN [3]=VARS
+//   [4]=KEYWORD("in") [5]=SP [6]=ITERABLE [7]=RPAREN [8]=BODY
 std::string ForNode::BuildCondition(const FmtContext& cond_ctx) const
 	{
-	auto vars_node = FindChild(Tag::Vars);
-	auto for_kw = FindChild(Tag::Keyword);
-	auto in_node = FindChild(Tag::Keyword, for_kw);
-	auto iter_node = FindChild(Tag::Iterable);
+	auto vars_node = Child(3, Tag::Vars);
+	auto in_node = Child(4, Tag::Keyword);
+	auto iter_node = Child(6, Tag::Iterable);
 
 	// Format vars (comma-separated identifiers).
 	std::string vars_text;
@@ -114,8 +115,9 @@ std::string IfElseNode::BuildFollowOn(const FmtContext& ctx) const
 
 	result += comments;
 
-	auto else_child = else_node->ContentChildren()[0];
-	auto else_kw = else_node->FindChild(Tag::Keyword)->Text();
+	// ELSE-IF/ELSE-BODY: [0]=KEYWORD [1]=SP [2]=content
+	auto else_child = else_node->Child(2);
+	auto else_kw = else_node->Child(0, Tag::Keyword)->Text();
 
 	if ( else_node->GetTag() == Tag::ElseIf )
 		{

@@ -36,6 +36,12 @@ public:
 	const NodeVec& Children() const { return children; }
 	NodeVec& Children() { return children; }
 
+	// Direct positional child access.
+	const Node* Child(size_t i) const { return children[i].get(); }
+
+	// Positional child access with tag verification.
+	const Node* Child(size_t i, Tag t) const;
+
 	// Find a child node by tag, or nullptr if absent.
 	const Node* FindOptChild(Tag tag) const;
 

@@ -79,15 +79,17 @@ const Node* FindTypeChild(const Node& node)
 // TYPE-FUNC: event(params), function(params): rettype
 
 // Format a single parameter: name[: type]
+// PARAM children: [0]=COLON [1]=type_expr
 Candidates FormatParam(const Node& node, const FmtContext& ctx)
 	{
 	auto text = node.Arg();
 	if ( auto ptype = FindTypeChild(node) )
-		text += node.FindChild(Tag::Colon)->Text() + " " +
+		text += node.Child(0, Tag::Colon)->Text() + " " +
 			Best(FormatExpr(*ptype, ctx)).Text();
 	return {Candidate(text, ctx)};
 	}
 
+// TYPE-FUNC: [0]=PARAMS [optional COLON, RETURNS]
 Candidates FormatTypeFunc(const Node& node, const FmtContext& ctx)
 	{
 	const auto& keyword = node.Arg();
@@ -102,11 +104,11 @@ Candidates FormatTypeFunc(const Node& node, const FmtContext& ctx)
 				Best(FormatExpr(*rt, ctx)).Text();
 		}
 
-	auto params = node.FindChild(Tag::Params);
+	auto params = node.Child(0, Tag::Params);
 	auto items = CollectArgs(params->Children());
 
-	auto lp = params->FindChild(Tag::LParen)->Text();
-	auto rp = params->FindChild(Tag::RParen)->Text();
+	auto lp = params->Child(0, Tag::LParen)->Text();
+	auto rp = params->Children().back()->Text();
 
 	if ( items.empty() )
 		return {Candidate(keyword + lp + rp + ret_str, ctx)};

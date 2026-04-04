@@ -13,6 +13,18 @@ const std::string& Node::Arg(size_t i) const
 	return i < args.size() ? args[i] : empty;
 	}
 
+const Node* Node::Child(size_t i, Tag t) const
+	{
+	const Node* c = children[i].get();
+	if ( c->GetTag() != t )
+		throw std::runtime_error(std::string("internal error: ") +
+					TagToString(tag) + " child " +
+					std::to_string(i) + " is " +
+					TagToString(c->GetTag()) + ", expected " +
+					TagToString(t));
+	return c;
+	}
+
 const Node* Node::FindOptChild(Tag t) const
 	{
 	for ( const auto& c : children )

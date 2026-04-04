@@ -12,10 +12,11 @@ Candidates CommentNode::Format(const FmtContext& ctx) const
 // Keyword statements with expression list:
 //   return [expr], add expr, delete expr, assert expr[, msg],
 //   print expr, ...
+// Children: [0]=KEYWORD [1]=SP ... [last]=SEMI
 Candidates KeywordStmtNode::Format(const FmtContext& ctx) const
 	{
-	auto keyword = FindChild(Tag::Keyword)->Text();
-	auto semi = FindChild(Tag::Semi);
+	auto keyword = Child(0, Tag::Keyword)->Text();
+	auto semi = Children().back().get();
 	auto semi_str = semi->Text();
 	auto items = CollectArgs(Children());
 
@@ -42,14 +43,15 @@ Candidates KeywordStmtNode::Format(const FmtContext& ctx) const
 	}
 
 // Event statement: event name(args);
+// Children: [0]=KEYWORD [1]=SP [2]=ARGS [3]=SEMI
 Candidates EventStmtNode::Format(const FmtContext& ctx) const
 	{
-	auto args_node = FindChild(Tag::Args);
-	auto semi = FindChild(Tag::Semi);
+	auto args_node = Child(2, Tag::Args);
+	auto semi = Child(3, Tag::Semi);
 	auto semi_str = semi->Text();
-	auto prefix = FindChild(Tag::Keyword)->Text() + " " + Arg();
-	auto lp = args_node->FindChild(Tag::LParen)->Text();
-	auto rp = args_node->FindChild(Tag::RParen)->Text();
+	auto prefix = Child(0, Tag::Keyword)->Text() + " " + Arg();
+	auto lp = args_node->Child(0, Tag::LParen)->Text();
+	auto rp = args_node->Children().back()->Text();
 	auto items = CollectArgs(args_node->Children());
 
 	if ( items.empty() )
@@ -111,6 +113,7 @@ Candidates ExprStmtNode::Format(const FmtContext& ctx) const
 	}
 
 // Export declaration: export { decls }
+// Children: [0]=KEYWORD [1]=SP [2]=LBRACE ... [last]=RBRACE
 Candidates ExportNode::Format(const FmtContext& ctx) const
 	{
 	// Collect non-token children for the body.
@@ -125,10 +128,10 @@ Candidates ExportNode::Format(const FmtContext& ctx) const
 	int up_indent = ctx.Indent() + 1;
 	auto inner_pad = LinePrefix(up_indent, up_indent * INDENT_WIDTH);
 
-	auto rb = FindChild(Tag::RBrace);
+	auto rb = Children().back().get();
 	auto close = EmitPreComments(*rb, inner_pad) + pad + rb->Text();
-	auto kw = FindChild(Tag::Keyword)->Text();
-	auto lb = FindChild(Tag::LBrace)->Text();
+	auto kw = Child(0, Tag::Keyword)->Text();
+	auto lb = Child(2, Tag::LBrace)->Text();
 	auto head = Best(BuildLayout({kw, SoftSp, lb}, ctx)).Text();
 
 	return {Candidate(head + "\n" + body_text + close, ctx)};
@@ -148,34 +151,31 @@ static void AppendCaseBody(const Node* body, std::string& result,
 	result += "\n" + text;
 	}
 
+// Children: [0]=KEYWORD [1]=SP [2]=expr [3]=LBRACE ... [last]=RBRACE
 Candidates SwitchNode::Format(const FmtContext& ctx) const
 	{
-	// Find the switch expression: first content child.
-	auto content = ContentChildren();
-	auto switch_expr = content.empty() ? nullptr : content[0];
+	auto switch_expr = Child(2);
 
 	// Format the expression.  If the source used parens, unwrap
 	// the PAREN node and apply Zeek-style ( expr ) spacing.
 	std::string expr_text;
-	if ( switch_expr )
+	if ( switch_expr->GetTag() == Tag::Paren )
 		{
-		if ( switch_expr->GetTag() == Tag::Paren )
-			{
-			auto lp = switch_expr->FindChild(Tag::LParen)->Text();
-			auto rp = switch_expr->FindChild(Tag::RParen)->Text();
-			auto pc = switch_expr->ContentChildren();
-			if ( ! pc.empty() )
-				expr_text = lp + " " +
-					Best(FormatExpr(*pc[0], ctx)).Text() +
-					" " + rp;
-			}
-		else
-			expr_text = Best(FormatExpr(*switch_expr, ctx)).Text();
+		// PAREN: [0]=LPAREN [1]=expr [2]=RPAREN
+		auto lp = switch_expr->Child(0, Tag::LParen)->Text();
+		auto rp = switch_expr->Child(2, Tag::RParen)->Text();
+		auto pc = switch_expr->ContentChildren();
+		if ( ! pc.empty() )
+			expr_text = lp + " " +
+				Best(FormatExpr(*pc[0], ctx)).Text() +
+				" " + rp;
 		}
+	else
+		expr_text = Best(FormatExpr(*switch_expr, ctx)).Text();
 
 	auto pad = LinePrefix(ctx.Indent(), ctx.Col());
-	auto sw_kw = FindChild(Tag::Keyword)->Text();
-	auto lb = FindChild(Tag::LBrace)->Text();
+	auto sw_kw = Child(0, Tag::Keyword)->Text();
+	auto lb = Child(3, Tag::LBrace)->Text();
 	auto result = sw_kw + " " + expr_text + " " + lb;
 
 	// Format each CASE/DEFAULT.
@@ -184,18 +184,19 @@ Candidates SwitchNode::Format(const FmtContext& ctx) const
 		if ( c->GetTag() != Tag::Case && c->GetTag() != Tag::Default )
 			continue;
 
+		// DEFAULT: [0]=KEYWORD [1]=COLON [optional BODY]
 		if ( c->GetTag() == Tag::Default )
 			{
 			result += "\n" + pad +
-				c->FindChild(Tag::Keyword)->Text() +
-				c->FindChild(Tag::Colon)->Text();
+				c->Child(0, Tag::Keyword)->Text() +
+				c->Child(1, Tag::Colon)->Text();
 			AppendCaseBody(c->FindOptChild(Tag::Body), result, ctx);
 			continue;
 			}
 
-		// CASE: KEYWORD "case" VALUES {...} COLON BODY {...}
-		auto values = c->FindChild(Tag::Values);
-		auto case_text = c->FindChild(Tag::Keyword)->Text() + " ";
+		// CASE: [0]=KEYWORD [1]=SP [2]=VALUES [3]=COLON [4]=BODY
+		auto values = c->Child(2, Tag::Values);
+		auto case_text = c->Child(0, Tag::Keyword)->Text() + " ";
 
 		// Collect formatted values and commas.
 		std::vector<std::string> vals;
@@ -249,13 +250,13 @@ Candidates SwitchNode::Format(const FmtContext& ctx) const
 			cur_col += static_cast<int>(vi.size());
 			}
 
-		case_text += c->FindChild(Tag::Colon)->Text();
+		case_text += c->Child(3, Tag::Colon)->Text();
 
 		result += "\n" + pad + case_text;
 		AppendCaseBody(c->FindOptChild(Tag::Body), result, ctx);
 		}
 
-	auto rb = FindChild(Tag::RBrace)->Text();
+	auto rb = Children().back()->Text();
 	result += "\n" + pad + rb;
 
 	return {Candidate(result, ctx)};

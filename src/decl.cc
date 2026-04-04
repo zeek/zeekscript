@@ -246,10 +246,11 @@ static void DeclTypeSplit(const DeclParts& d, Candidates& result,
 	result.push_back({split, last_w, lines, ovf, ctx.Col()});
 	}
 
+// GLOBAL-DECL/LOCAL-DECL: [0]=KEYWORD [1]=SP [2]=IDENTIFIER ...
 Candidates FormatDecl(const Node& node, const FmtContext& ctx)
 	{
-	auto kw_node = node.FindChild(Tag::Keyword);
-	auto id_node = node.FindChild(Tag::Identifier);
+	auto kw_node = node.Child(0, Tag::Keyword);
+	auto id_node = node.Child(2, Tag::Identifier);
 
 	DeclParts d;
 	d.head = kw_node->Text() + " " + id_node->Text();
@@ -326,11 +327,12 @@ Candidates FormatDecl(const Node& node, const FmtContext& ctx)
 // Module declaration: module SomeName;
 // ------------------------------------------------------------------
 
+// MODULE: [0]=KEYWORD [1]=SP [2]=IDENTIFIER [3]=SEMI
 Candidates FormatModuleDecl(const Node& node, const FmtContext& ctx)
 	{
-	auto kw_text = node.FindChild(Tag::Keyword)->Text();
-	auto id_text = node.FindChild(Tag::Identifier)->Text();
-	auto semi_text = node.FindChild(Tag::Semi)->Text();
+	auto kw_text = node.Child(0, Tag::Keyword)->Text();
+	auto id_text = node.Child(2, Tag::Identifier)->Text();
+	auto semi_text = node.Child(3, Tag::Semi)->Text();
 	return BuildLayout({kw_text, SoftSp, id_text, semi_text}, ctx);
 	}
 
@@ -371,7 +373,7 @@ static std::vector<ParamEntry> FormatParamEntries(const Node* params,
 		std::string text = p->Arg();
 
 		if ( auto ptype = FindTypeChild(*p) )
-			text += p->FindChild(Tag::Colon)->Text() + " " +
+			text += p->Child(0, Tag::Colon)->Text() + " " +
 				Best(FormatExpr(*ptype, ctx)).Text();
 
 		result.push_back({text, pending_comma});
@@ -381,9 +383,11 @@ static std::vector<ParamEntry> FormatParamEntries(const Node* params,
 	return result;
 	}
 
+// FUNC-DECL: [0]=KEYWORD [1]=SP [2]=IDENTIFIER [3]=PARAMS
+//   [optional COLON, RETURNS, ATTR-LIST] [last]=BODY
 Candidates FormatFuncDecl(const Node& node, const FmtContext& ctx)
 	{
-	auto params = node.FindChild(Tag::Params);
+	auto params = node.Child(3, Tag::Params);
 	auto pentries = FormatParamEntries(params, ctx);
 
 	// Build flat param list.
@@ -418,16 +422,16 @@ Candidates FormatFuncDecl(const Node& node, const FmtContext& ctx)
 		}
 
 	// Trailing comment on the func decl (attached to body).
-	auto body = node.FindChild(Tag::Body);
+	auto body = node.Children().back().get();
 	auto trail_str = body->TrailingComment();
 
-	auto kw_node = node.FindChild(Tag::Keyword)->Text();
-	auto id_node = node.FindChild(Tag::Identifier)->Text();
-	auto lp = params->FindChild(Tag::LParen)->Text();
+	auto kw_node = node.Child(0, Tag::Keyword)->Text();
+	auto id_node = node.Child(2, Tag::Identifier)->Text();
+	auto lp = params->Child(0, Tag::LParen)->Text();
 	auto prefix = kw_node + " " + id_node + lp;
 
 	// --- Candidate 1: flat signature ---
-	auto rp = params->FindChild(Tag::RParen)->Text();
+	auto rp = params->Children().back()->Text();
 	auto sig = prefix + flat_params + rp + ret_str + attr_str + trail_str;
 	auto block = FormatWhitesmithBlock(body, ctx);
 
@@ -505,10 +509,11 @@ Candidates FormatFuncDecl(const Node& node, const FmtContext& ctx)
 
 // Format a record field.  suffix includes ";" and any trailing
 // comment so we can measure overflow and wrap attrs if needed.
+// FIELD: [0]=COLON [1]=type_expr [optional ATTR-LIST] [last]=SEMI
 static std::string FormatField(const Node& node, const std::string& suffix,
                                const FmtContext& ctx)
 	{
-	auto fcol = node.FindChild(Tag::Colon)->Text();
+	auto fcol = node.Child(0, Tag::Colon)->Text();
 	auto head = node.Arg() + fcol + " ";
 
 	std::string type_str;
@@ -550,38 +555,38 @@ static std::string FormatField(const Node& node, const std::string& suffix,
 
 // ------------------------------------------------------------------
 // Type alias: type name: basetype ;
+// Children: [0]=KEYWORD [1]=SP [2]=IDENTIFIER [3]=COLON [4]=SP
+//   [5]=type_expr [6]=SEMI
 // ------------------------------------------------------------------
 
 Candidates TypeDeclAliasNode::Format(const FmtContext& ctx) const
 	{
-	auto kw = FindChild(Tag::Keyword)->Text();
-	auto id = FindChild(Tag::Identifier)->Text();
-	auto colon = FindChild(Tag::Colon)->Text();
-	auto semi = FindChild(Tag::Semi)->Text();
+	auto kw = Child(0, Tag::Keyword)->Text();
+	auto id = Child(2, Tag::Identifier)->Text();
+	auto colon = Child(3, Tag::Colon)->Text();
+	auto semi = Child(6, Tag::Semi)->Text();
 
-	const Node* base_type = FindTypeChild(*this);
-	if ( base_type )
-		return BuildLayout({kw, SoftSp, id, colon,
-			SoftSp, base_type, semi}, ctx);
-
-	// Fallback for malformed alias.
-	return BuildLayout({kw, SoftSp, id, semi}, ctx);
+	return BuildLayout({kw, SoftSp, id, colon,
+		SoftSp, Child(5), semi}, ctx);
 	}
 
 // ------------------------------------------------------------------
 // Enum type: type name: enum { val1, val2, ... } ;
+// Children: [0]=KEYWORD [1]=SP [2]=IDENTIFIER [3]=COLON [4]=SP
+//   [5]=TYPE-ENUM [6]=SEMI
+// TYPE-ENUM: [0]=KEYWORD [1]=SP [2]=LBRACE ... [last]=RBRACE
 // ------------------------------------------------------------------
 
 Candidates TypeDeclEnumNode::Format(const FmtContext& ctx) const
 	{
-	auto kw = FindChild(Tag::Keyword)->Text();
-	auto id = FindChild(Tag::Identifier)->Text();
-	auto colon = FindChild(Tag::Colon)->Text();
-	auto semi = FindChild(Tag::Semi)->Text();
+	auto kw = Child(0, Tag::Keyword)->Text();
+	auto id = Child(2, Tag::Identifier)->Text();
+	auto colon = Child(3, Tag::Colon)->Text();
+	auto semi = Child(6, Tag::Semi)->Text();
 
-	auto enum_node = FindChild(Tag::TypeEnum);
-	auto ekw = enum_node->FindChild(Tag::Keyword)->Text();
-	auto lb = enum_node->FindChild(Tag::LBrace)->Text();
+	auto enum_node = Child(5, Tag::TypeEnum);
+	auto ekw = enum_node->Child(0, Tag::Keyword)->Text();
+	auto lb = enum_node->Child(2, Tag::LBrace)->Text();
 
 	auto head = Best(BuildLayout({kw, SoftSp, id, colon, SoftSp,
 					ekw + " " + lb}, ctx)).Text();
@@ -626,7 +631,7 @@ Candidates TypeDeclEnumNode::Format(const FmtContext& ctx) const
 		}
 
 	auto close_pad = LinePrefix(ctx.Indent(), ctx.Col());
-	auto rb = enum_node->FindChild(Tag::RBrace)->Text();
+	auto rb = enum_node->Children().back()->Text();
 	auto text = head + "\n" + body + close_pad + rb + semi;
 	return {Candidate(text, ctx)};
 	}
@@ -635,16 +640,19 @@ Candidates TypeDeclEnumNode::Format(const FmtContext& ctx) const
 // Record type: type name: record { field1; field2; ... } ;
 // ------------------------------------------------------------------
 
+// Children: [0]=KEYWORD [1]=SP [2]=IDENTIFIER [3]=COLON [4]=SP
+//   [5]=TYPE-RECORD [6]=SEMI
+// TYPE-RECORD: [0]=KEYWORD [1]=SP [2]=LBRACE ... [last]=RBRACE
 Candidates TypeDeclRecordNode::Format(const FmtContext& ctx) const
 	{
-	auto kw = FindChild(Tag::Keyword)->Text();
-	auto id = FindChild(Tag::Identifier)->Text();
-	auto colon = FindChild(Tag::Colon)->Text();
-	auto semi = FindChild(Tag::Semi)->Text();
+	auto kw = Child(0, Tag::Keyword)->Text();
+	auto id = Child(2, Tag::Identifier)->Text();
+	auto colon = Child(3, Tag::Colon)->Text();
+	auto semi = Child(6, Tag::Semi)->Text();
 
-	auto rec_node = FindChild(Tag::TypeRecord);
-	auto rkw = rec_node->FindChild(Tag::Keyword)->Text();
-	auto lb = rec_node->FindChild(Tag::LBrace)->Text();
+	auto rec_node = Child(5, Tag::TypeRecord);
+	auto rkw = rec_node->Child(0, Tag::Keyword)->Text();
+	auto lb = rec_node->Child(2, Tag::LBrace)->Text();
 
 	auto head = Best(BuildLayout({kw, SoftSp, id, colon, SoftSp,
 					rkw + " " + lb}, ctx)).Text();
@@ -672,7 +680,7 @@ Candidates TypeDeclRecordNode::Format(const FmtContext& ctx) const
 			{
 			body += EmitPreComments(*ki, field_pad);
 
-			auto fsemi = ki->FindChild(Tag::Semi)->Text();
+			auto fsemi = ki->Children().back()->Text();
 			auto suffix = fsemi + ki->TrailingComment();
 			auto field_text = FormatField(*ki, suffix, field_ctx);
 
@@ -681,7 +689,7 @@ Candidates TypeDeclRecordNode::Format(const FmtContext& ctx) const
 		}
 
 	auto close_pad = LinePrefix(ctx.Indent(), ctx.Col());
-	auto rb = rec_node->FindChild(Tag::RBrace)->Text();
+	auto rb = rec_node->Children().back()->Text();
 	auto text = head + "\n" + body + close_pad + rb + semi;
 
 	return {Candidate(text, ctx)};
