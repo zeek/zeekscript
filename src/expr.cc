@@ -374,26 +374,28 @@ Candidates CardinalityNode::Format(const FmtContext& ctx) const
 	return FormatBracketed(ctx);
 	}
 
+// Format "op[sep]child(1)" - shared by Negation (space) and Unary (no space).
+Candidates PrefixExprNode::FormatPrefix(const FmtContext& ctx,
+                                        const std::string& sep) const
+	{
+	auto op = Child(0, Tag::Op)->Text() + sep;
+	Candidate prefix(op, ctx);
+	auto operand = Best(FormatExpr(*Child(1), ctx.After(prefix.Width())));
+	return {prefix.Cat(operand).In(ctx)};
+	}
+
 // Negation: ! expr (Zeek style: space after !)
 // Children: [0]=OP("!") [1]=expr
 Candidates NegationNode::Format(const FmtContext& ctx) const
 	{
-	auto op = Child(0, Tag::Op)->Text() + " ";
-	Candidate prefix(op, ctx);
-	auto operand_cs = FormatExpr(*Child(1), ctx.After(prefix.Width()));
-	auto operand = Best(operand_cs);
-	return {prefix.Cat(operand).In(ctx)};
+	return FormatPrefix(ctx, " ");
 	}
 
 // Unary prefix: -expr, ~expr
 // Children: [0]=OP [1]=expr
 Candidates UnaryNode::Format(const FmtContext& ctx) const
 	{
-	auto op = Child(0, Tag::Op)->Text();
-	Candidate prefix(op, ctx);
-	auto operand_cs = FormatExpr(*Child(1), ctx.After(prefix.Width()));
-	auto operand = Best(operand_cs);
-	return {prefix.Cat(operand).In(ctx)};
+	return FormatPrefix(ctx, "");
 	}
 
 // Boolean chain: operands are direct children (flattened by emitter),
@@ -518,43 +520,59 @@ Candidates HasFieldNode::Format(const FmtContext& ctx) const
 	return {{text, last_w, lhs.Lines(), lhs.Ovf(), ctx.Col()}};
 	}
 
-// Division with atomic RHS: no spaces (subnet masking notation)
-// Children: [0]=left [1]=OP("/") [2]=right
-Candidates DivNode::Format(const FmtContext& ctx) const
+// Shared binary-op formatter.  sep is "" for tight (Div) or " "
+// for spaced (Binary).  split_multiline controls whether we offer
+// a split candidate when either side is already multi-line.
+Candidates BinaryExprNode::FormatBinaryOp(const FmtContext& ctx,
+                                          const std::string& sep,
+                                          bool split_multiline) const
 	{
-	auto op = Child(1, Tag::Op)->Text();
-	int op_w = static_cast<int>(op.size());
+	auto op = Child(1)->Text();
+	int sep_w = static_cast<int>(sep.size());
+	int op_w = static_cast<int>(op.size()) + 2 * sep_w;
 
 	auto lhs = Best(FormatExpr(*Child(0), ctx));
-	auto rhs_cs = FormatExpr(*Child(2), ctx.After(lhs.Width() + op_w));
-	auto rhs = Best(rhs_cs);
+	auto rhs = Best(FormatExpr(*Child(2), ctx.After(lhs.Width() + op_w)));
 
-	auto flat = lhs.Text() + op + rhs.Text();
+	auto flat = lhs.Text() + sep + op + sep + rhs.Text();
 	int flat_w = lhs.Width() + op_w + rhs.Width();
 	int flat_ovf = Ovf(flat_w, ctx);
+	bool need_split = flat_ovf > 0;
+	bool multiline = lhs.Lines() > 1 || rhs.Lines() > 1;
 
-	if ( lhs.Lines() > 1 || rhs.Lines() > 1 )
+	Candidates result;
+
+	if ( multiline )
 		{
 		int last_w = LastLineLen(flat);
 		int lines = CountLines(flat);
 		int ovf = TextOverflow(flat, ctx.Col(), ctx.MaxCol());
-		return {{flat, last_w, lines, ovf, ctx.Col()}};
+		result.push_back({flat, last_w, lines, ovf, ctx.Col()});
+
+		if ( ! split_multiline )
+			return result;
+
+		if ( ovf > 0 )
+			need_split = true;
 		}
+	else
+		result.push_back({flat, flat_w, 1, flat_ovf});
 
-	Candidates result;
-	result.push_back({flat, flat_w, 1, flat_ovf});
-
-	if ( flat_ovf <= 0 )
+	if ( ! need_split )
 		return result;
 
-	// Split after operator.
+	// Split after operator.  Continuation column: indent one
+	// more level when at indent column, otherwise align to
+	// expression start.
 	FmtContext cont_ctx = ctx.Col() == ctx.IndentCol() ?
 				ctx.Indented() : ctx.AtCol(ctx.Col());
 
 	auto rhs2 = Best(FormatExpr(*Child(2), cont_ctx));
 	auto cont_prefix = LinePrefix(cont_ctx.Indent(), cont_ctx.Col());
-	auto split = lhs.Text() + op + "\n" + cont_prefix + rhs2.Text();
-	int line1_w = lhs.Width() + op_w;
+	auto split = lhs.Text() + sep + op + "\n" +
+			cont_prefix + rhs2.Text();
+	int line1_w = lhs.Width() + sep_w +
+			static_cast<int>(op.size());
 	int split_lines = 1 + rhs2.Lines();
 
 	int last_w;
@@ -579,86 +597,18 @@ Candidates DivNode::Format(const FmtContext& ctx) const
 	return result;
 	}
 
+// Division with atomic RHS: no spaces (subnet masking notation)
+// Children: [0]=left [1]=OP("/") [2]=right
+Candidates DivNode::Format(const FmtContext& ctx) const
+	{
+	return FormatBinaryOp(ctx, "", false);
+	}
+
 // Binary: lhs op rhs
 // Children: [0]=left [1]=OP [2]=right
 Candidates BinaryNode::Format(const FmtContext& ctx) const
 	{
-	const auto& op = Arg();
-	int op_w = static_cast<int>(op.size()) + 2;
-
-	auto lhs = Best(FormatExpr(*Child(0), ctx));
-	auto rhs_cs = FormatExpr(*Child(2), ctx.After(lhs.Width() + op_w));
-	auto rhs = Best(rhs_cs);
-
-	// Candidate 1: flat - lhs op rhs
-	auto sep = std::string(" ");
-	auto flat = lhs.Text() + sep + op + sep + rhs.Text();
-	int flat_w = lhs.Width() + op_w + rhs.Width();
-	int flat_ovf = Ovf(flat_w, ctx);
-	bool need_split = flat_ovf > 0;
-
-	Candidates result;
-
-	if ( lhs.Lines() > 1 || rhs.Lines() > 1 )
-		{
-		// One side is multi-line.  Compute overflow from the
-		// widest line, not just the last.
-		int last_w = LastLineLen(flat);
-		int lines = CountLines(flat);
-		int ovf = TextOverflow(flat, ctx.Col(), ctx.MaxCol());
-
-		result.push_back({flat, last_w, lines, ovf, ctx.Col()});
-
-		if ( ovf > 0 )
-			need_split = true;
-		}
-	else
-		result.push_back({flat, flat_w, 1, flat_ovf});
-
-	if ( ! need_split )
-		return result;
-
-	// Split after operator.  The continuation column depends on
-	// where the expression starts relative to the indent column:
-	// - At the indent column: indent one more level (the natural
-	//   "next level" continuation).
-	// - Past the indent column: align to the expression start
-	//   (the principled continuation point for a sub-expression).
-	FmtContext cont_ctx = ctx.Col() == ctx.IndentCol() ?
-				ctx.Indented() : ctx.AtCol(ctx.Col());
-
-	auto rhs2 = Best(FormatExpr(*Child(2), cont_ctx));
-
-	auto cont_prefix = LinePrefix(cont_ctx.Indent(), cont_ctx.Col());
-	auto split = lhs.Text() + sep + op + "\n" + cont_prefix + rhs2.Text();
-	int line1_w = lhs.Width() + 1 +
-			static_cast<int>(op.size());
-	int split_lines = 1 + rhs2.Lines();
-
-	// Compute last-line width and overflow.  Use text length for
-	// single-line rhs rather than Width(), which may be an absolute
-	// column from sub-formatters like FlatOrFill.
-	int last_w;
-	int line2_ovf;
-
-	if ( rhs2.Lines() > 1 )
-		{
-		last_w = LastLineLen(split);
-		line2_ovf = rhs2.Ovf();
-		}
-	else
-		{
-		auto rhs_text_w = static_cast<int>(rhs2.Text().size());
-		last_w = cont_ctx.Col() + rhs_text_w;
-		line2_ovf = std::max(0, last_w + cont_ctx.Trail() -
-					cont_ctx.MaxCol());
-		}
-
-	int split_ovf = OvfNoTrail(line1_w, ctx) + line2_ovf;
-
-	result.push_back({split, last_w, split_lines, split_ovf, ctx.Col()});
-
-	return result;
+	return FormatBinaryOp(ctx, " ", true);
 	}
 
 // Interval constant: always a space before the unit

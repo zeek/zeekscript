@@ -35,6 +35,9 @@ public:
 protected:
 	// Format child 1 bracketed by children 0 and 2.
 	Candidates FormatBracketed(const FmtContext& ctx) const;
+	// Format "op[sep]child(1)" - shared by Negation and Unary.
+	Candidates FormatPrefix(const FmtContext& ctx,
+	                        const std::string& sep) const;
 };
 
 class CardinalityNode : public PrefixExprNode {
@@ -60,6 +63,13 @@ public:
 class BinaryExprNode : public ExprNode {
 public:
 	BinaryExprNode(Tag t) : ExprNode(t) { }
+protected:
+	// Format "lhs sep op sep rhs" with optional split after op.
+	// split_multiline: if false, skip split when either side is
+	// multi-line (used by Div for subnet notation).
+	Candidates FormatBinaryOp(const FmtContext& ctx,
+	                          const std::string& sep,
+	                          bool split_multiline) const;
 };
 
 class BinaryNode : public BinaryExprNode {
