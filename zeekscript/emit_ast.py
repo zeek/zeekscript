@@ -322,7 +322,7 @@ class Emitter:
                 and self._text(kids[0]) == "|"
                 and self._text(kids[2]) == "|"
                 and kids[1].is_named):
-            self._open('UNARY-OP "|...|"')
+            self._open('CARDINALITY')
             self._w('OP "|"')
             self._emit_expr_child(kids[1])
             self._w('OP "|"')
@@ -396,6 +396,13 @@ class Emitter:
         # Unary operator
         if len(kids) == 2 and not kids[0].is_named:
             op_text = self._text(kids[0])
+            if op_text == "!":
+                self._open('NEGATION')
+                self._w('OP "!"')
+                self._emit_expr_child(kids[1])
+                self._close()
+                self._mark_content(node)
+                return
             if op_text in _UNARY_OPS:
                 self._open(f'UNARY-OP {_quote(op_text)}')
                 self._w(f'OP {_quote(op_text)}')

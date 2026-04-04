@@ -35,7 +35,7 @@ FUNC-DECL {
       HAS-FIELD {
         BOOL-CHAIN "||" {
           HAS-FIELD {
-            UNARY-OP "!" {
+            NEGATION {
               OP "!"
               IDENTIFIER "rec"
             }
@@ -44,7 +44,7 @@ FUNC-DECL {
           }
           OP "||"
           BINARY-OP "==" {
-            UNARY-OP "|...|" {
+            CARDINALITY {
               OP "|"
               FIELD-ACCESS {
                 IDENTIFIER "rec"
@@ -57,7 +57,7 @@ FUNC-DECL {
             CONSTANT "0"
           }
           OP "||"
-          UNARY-OP "!" {
+          NEGATION {
             OP "!"
             INDEX {
               FIELD-ACCESS {

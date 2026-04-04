@@ -79,6 +79,8 @@ Candidates FormatIndex(const Node& node, const FmtContext& ctx);
 Candidates FormatIndexLiteral(const Node& node, const FmtContext& ctx);
 Candidates FormatSlice(const Node& node, const FmtContext& ctx);
 Candidates FormatParen(const Node& node, const FmtContext& ctx);
+Candidates FormatCardinality(const Node& node, const FmtContext& ctx);
+Candidates FormatNegation(const Node& node, const FmtContext& ctx);
 Candidates FormatUnary(const Node& node, const FmtContext& ctx);
 Candidates FormatBinary(const Node& node, const FmtContext& ctx);
 Candidates FormatBoolChain(const Node& node, const FmtContext& ctx);

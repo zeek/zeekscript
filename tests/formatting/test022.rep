@@ -24,7 +24,7 @@ FUNC-DECL {
         }
         OP "&&"
         BINARY-OP ">=" {
-          UNARY-OP "|...|" {
+          CARDINALITY {
             OP "|"
             IDENTIFIER "coalesced_state"
             OP "|"

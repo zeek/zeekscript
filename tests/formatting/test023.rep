@@ -28,7 +28,7 @@ FUNC-DECL {
         }
         OP "&&"
         BINARY-OP ">=" {
-          UNARY-OP "|...|" {
+          CARDINALITY {
             OP "|"
             FIELD-ACCESS {
               IDENTIFIER "c"
@@ -52,7 +52,7 @@ FUNC-DECL {
               SUBSCRIPTS {
                 LBRACKET
                 BINARY-OP "-" {
-                  UNARY-OP "|...|" {
+                  CARDINALITY {
                     OP "|"
                     FIELD-ACCESS {
                       IDENTIFIER "c"

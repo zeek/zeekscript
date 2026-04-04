@@ -12,7 +12,7 @@ FUNC-DECL {
       KEYWORD "if"
       SP
       LPAREN
-      UNARY-OP "!" {
+      NEGATION {
         OP "!"
         CALL {
           IDENTIFIER "some_function_name"

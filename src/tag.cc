@@ -11,8 +11,10 @@ static const std::unordered_map<std::string, TagEntry> tag_map = {
 	// Expressions
 	{"BINARY-OP", {Tag::BinaryOp, false}},
 	{"BOOL-CHAIN", {Tag::BoolChain, false}},
+	{"CARDINALITY", {Tag::Cardinality, false}},
 	{"DIV", {Tag::Div, false}},
 	{"HAS-FIELD", {Tag::HasField, false}},
+	{"NEGATION", {Tag::Negation, false}},
 	{"UNARY-OP", {Tag::UnaryOp, false}},
 	{"TERNARY", {Tag::Ternary, false}},
 	{"PAREN", {Tag::Paren, false}},

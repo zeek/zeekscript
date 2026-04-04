@@ -15,6 +15,8 @@ const std::unordered_map<Tag, FormatFunc>& FormatDispatch()
 		{Tag::BoolChain, FormatBoolChain},
 		{Tag::Div, FormatDiv},
 		{Tag::HasField, FormatHasField},
+		{Tag::Cardinality, FormatCardinality},
+		{Tag::Negation, FormatNegation},
 		{Tag::UnaryOp, FormatUnary},
 		{Tag::Call, FormatCall},
 		{Tag::Constructor, FormatConstructor},

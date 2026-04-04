@@ -34,7 +34,7 @@ FUNC-DECL {
         }
         OP "&&"
         BINARY-OP ">" {
-          UNARY-OP "|...|" {
+          CARDINALITY {
             OP "|"
             FIELD-ACCESS {
               IDENTIFIER "other"

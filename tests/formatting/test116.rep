@@ -24,7 +24,7 @@ IF-NO-ELSE {
     }
     OP "&&"
     BINARY-OP ">" {
-      UNARY-OP "|...|" {
+      CARDINALITY {
         OP "|"
         FIELD-ACCESS {
           IDENTIFIER "result"
