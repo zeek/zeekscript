@@ -1,4 +1,4 @@
-# C++ Formatter Failing Tests (164 pass, 9 fail as of 2026-04-04)
+# C++ Formatter Failing Tests (165 pass, 8 fail as of 2026-04-04)
 
 ## By category (sorted by count)
 
@@ -311,3 +311,7 @@ entries chronological within a session date.
   - FormatCall: route set/table/vector with >= 7 args to flat-or-vertical
   - Extract FormatConstructor_args shared helper for flat-or-vertical layout
   - Removed "Vertical call-arg layout" category (all tests fixed)
+- After FormatConstructor trailing comma fix: 165 pass, 8 fail
+  - Fixed: test038 (brace-initializer trailing comma preserved)
+  - FormatConstructor: detect trailing comma by counting COMMA nodes
+    vs item count (bare COMMA before RPAREN, not TRAILING-COMMA tag)

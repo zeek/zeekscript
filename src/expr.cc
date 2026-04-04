@@ -200,12 +200,24 @@ Candidates FormatConstructor(const Node& node, const FmtContext& ctx)
 	auto kw = node.FindChild(Tag::Keyword)->Text();
 	auto lp = node.FindChild(Tag::LParen)->Text();
 	auto rp = node.FindChild(Tag::RParen)->Text();
+	auto open = kw + lp;
 
 	auto items = CollectArgs(node.Children());
 	if ( items.empty() )
-		return {Candidate(kw + lp + rp, ctx)};
+		return {Candidate(open + rp, ctx)};
 
-	return FormatConstructor_args(kw + lp, rp, items, ctx);
+	// Detect trailing comma: N items have N-1 separators, so
+	// N commas means the last one is trailing.
+	int commas = 0;
+	for ( const auto& c : node.Children() )
+		if ( c->GetTag() == Tag::Comma )
+			++commas;
+
+	bool trailing = commas >= static_cast<int>(items.size());
+	if ( trailing )
+		return {FormatArgsVertical(open, rp, items, ctx, true)};
+
+	return FormatConstructor_args(open, rp, items, ctx);
 	}
 
 // Index: expr[subscripts]
