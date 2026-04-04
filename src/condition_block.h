@@ -13,6 +13,9 @@ public:
 	Candidates Format(const FmtContext& ctx) const;
 
 protected:
+	// Position of RPAREN child (4 for if/while, 7 for for).
+	virtual int RParenPos() const { return 4; }
+
 	// Returns formatted text for the condition between parens.
 	virtual std::string BuildCondition(const FmtContext& cond_ctx) const;
 
@@ -39,6 +42,7 @@ public:
 	ForNode() : ConditionBlockNode(Tag::For) { }
 
 protected:
+	int RParenPos() const override { return 7; }
 	std::string BuildCondition(
 		const FmtContext& cond_ctx) const override;
 };

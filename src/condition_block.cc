@@ -5,11 +5,14 @@
 // Shared condition-block formatting: keyword ( condition ) body
 // ------------------------------------------------------------------
 
+// Children: [0]=KEYWORD [1]=SP [2]=LPAREN ... [rp]=RPAREN [rp+1]=BODY
+// RPAREN position varies: 4 for if/while, 7 for for (via RParenPos).
 Candidates ConditionBlockNode::Format(const FmtContext& ctx) const
 	{
-	auto kw_node = FindChild(Tag::Keyword);
-	auto lparen_node = FindChild(Tag::LParen);
-	auto rparen_node = FindChild(Tag::RParen);
+	int rp_pos = RParenPos();
+	auto kw_node = Child(0, Tag::Keyword);
+	auto lparen_node = Child(2, Tag::LParen);
+	auto rparen_node = Child(rp_pos, Tag::RParen);
 
 	// Format the condition assuming the common (non-break) column.
 	int cond_col =
@@ -26,7 +29,7 @@ Candidates ConditionBlockNode::Format(const FmtContext& ctx) const
 	auto head_cs = BuildLayout(los, ctx);
 	auto head = Best(head_cs).Text();
 
-	auto body_node = FindChild(Tag::Body);
+	auto body_node = Child(rp_pos + 1, Tag::Body);
 	auto result = head + FormatBodyText(body_node, ctx) +
 			BuildFollowOn(ctx);
 
