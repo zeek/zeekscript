@@ -1,14 +1,10 @@
-# C++ Formatter Failing Tests (161 pass, 12 fail as of 2026-04-03)
+# C++ Formatter Failing Tests (164 pass, 9 fail as of 2026-04-04)
 
 ## By category (sorted by count)
 
 ### Line-breaking / layout quality (8)
 Call args, assignments, binary ops not splitting at overflow.
 test{093,104,126,127,130,133,135,136}
-
-### Vertical call-arg layout (3)
-Multi-element set/redef not formatted one-per-line with trailing commas.
-test{041,097,098}
 
 ## Notes
 - Some tests appear in multiple categories; listed under primary failure.
@@ -306,3 +302,12 @@ entries chronological within a session date.
   - Fixed: test014 (assignment split after = instead of wrapping call args)
   - FormatBinary split path: compute overflow from text length for single-line
     rhs rather than Width(), which FlatOrFill stores as absolute column
+- After FormatCall vertical layout for degenerate fill: 162 pass, 11 fail
+  - Fixed: test041 (set() with 3 long string args now uses vertical layout)
+  - FormatCall: when fill wraps every single-line item to its own line,
+    replace fill with vertical (indent-based alignment is cleaner)
+- After constructor-like call routing: 164 pass, 9 fail
+  - Fixed: test097, test098 (set() with 7 IP args now uses vertical layout)
+  - FormatCall: route set/table/vector with >= 7 args to flat-or-vertical
+  - Extract FormatConstructor_args shared helper for flat-or-vertical layout
+  - Removed "Vertical call-arg layout" category (all tests fixed)

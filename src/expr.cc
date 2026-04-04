@@ -38,6 +38,10 @@ Candidates FormatFieldAssign(const Node& node, const FmtContext& ctx)
 	return {Candidate(prefix + val.Text(), ctx)};
 	}
 
+static Candidates FormatConstructor_args(const std::string& open,
+	const std::string& close, const ArgComments& items,
+	const FmtContext& ctx);
+
 // Call: func(args)
 Candidates FormatCall(const Node& node, const FmtContext& ctx)
 	{
@@ -61,24 +65,28 @@ Candidates FormatCall(const Node& node, const FmtContext& ctx)
 		return {FormatArgsVertical(func.Text() + lp, rp,
 		                           items, ctx, true)};
 
+	// Constructor-like calls (set, table, vector) with many args
+	// use flat-or-vertical like CONSTRUCTOR nodes.
+	auto fname = func.Text();
+	if ( items.size() >= 7 &&
+	     (fname == "set" || fname == "table" || fname == "vector") )
+		return FormatConstructor_args(fname + lp, rp, items, ctx);
+
 	auto result = FlatOrFill(func.Text(), lp, rp, "", items, ctx,
 				args_node->TrailingComment());
 
 	// When fill wraps every single-line item to its own line,
 	// vertical layout with indent-based alignment is cleaner.
-	// Verify all items are single-line at the fill alignment
-	// column to exclude cases where multi-line expansion
-	// coincidentally matches the item count.
 	if ( items.size() >= 3 && result.size() > 1 &&
 	     result.back().Lines() == static_cast<int>(items.size()) )
 		{
 		auto prefix = func.Text() + lp;
 		int open_col = ctx.Col() + static_cast<int>(prefix.size());
 		int inner_w = ctx.MaxCol() - open_col - 1;
-		FmtContext check_ctx(ctx.Indent(), open_col, inner_w);
+		FmtContext chk(ctx.Indent(), open_col, inner_w);
 
 		for ( const auto& it : items )
-			if ( Best(FormatExpr(*it.arg, check_ctx)).Lines() > 1 )
+			if ( Best(FormatExpr(*it.arg, chk)).Lines() > 1 )
 				return result;
 
 		result.pop_back();
@@ -161,7 +169,32 @@ Candidates FormatLambda(const Node& node, const FmtContext& ctx)
 	return {{text, last_w, lines, ovf, ctx.Col()}};
 	}
 
-// Constructor: table(...), set(...), vector(...)
+// Shared constructor layout: flat or vertical (one per line).
+static Candidates FormatConstructor_args(const std::string& open,
+	const std::string& close, const ArgComments& items,
+	const FmtContext& ctx)
+	{
+	Candidates result;
+
+	if ( ! HasBreaks(items) )
+		{
+		int open_w = static_cast<int>(open.size());
+		int close_w = static_cast<int>(close.size());
+		FmtContext args_ctx(ctx.Indent(), ctx.Col() + open_w,
+		                    ctx.Width() - open_w - close_w);
+		auto flat_args = FormatArgsFlat(items, args_ctx);
+		auto flat_c = Candidate(open + flat_args.Text() + close, ctx);
+		result.push_back(flat_c);
+
+		if ( flat_c.Ovf() == 0 )
+			return result;
+		}
+
+	result.push_back(FormatArgsVertical(open, close, items, ctx));
+	return result;
+	}
+
+// Constructor: table(...), set(...), vector(...), {1, 2, 3}
 Candidates FormatConstructor(const Node& node, const FmtContext& ctx)
 	{
 	auto kw = node.FindChild(Tag::Keyword)->Text();
@@ -172,27 +205,7 @@ Candidates FormatConstructor(const Node& node, const FmtContext& ctx)
 	if ( items.empty() )
 		return {Candidate(kw + lp + rp, ctx)};
 
-	Candidates result;
-
-	// Candidate 1: flat (only when no forced breaks).
-	if ( ! HasBreaks(items) )
-		{
-		int open_w = static_cast<int>(kw.size() + lp.size());
-		FmtContext args_ctx(ctx.Indent(), ctx.Col() + open_w,
-		                    ctx.Width() - open_w -
-					static_cast<int>(rp.size()));
-		auto flat_args = FormatArgsFlat(items, args_ctx);
-		auto flat_c = Candidate(kw + lp + flat_args.Text() + rp, ctx);
-		result.push_back(flat_c);
-
-		if ( flat_c.Ovf() == 0 )
-			return result;
-		}
-
-	// Candidate 2: one element per line, indented body.
-	result.push_back(FormatArgsVertical(kw + lp, rp, items, ctx));
-
-	return result;
+	return FormatConstructor_args(kw + lp, rp, items, ctx);
 	}
 
 // Index: expr[subscripts]
