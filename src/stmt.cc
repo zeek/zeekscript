@@ -9,28 +9,36 @@ Candidates CommentNode::Format(const FmtContext& ctx) const
 	return {Candidate(Arg(), ctx)};
 	}
 
-// Simple keyword statements: return [expr], add expr, delete expr
+// Keyword statements with expression list:
+//   return [expr], add expr, delete expr, assert expr[, msg],
+//   print expr, ...
 Candidates KeywordStmtNode::Format(const FmtContext& ctx) const
 	{
 	auto keyword = FindChild(Tag::Keyword)->Text();
-	const Node* expr = nullptr;
-	const Node* semi = nullptr;
+	auto semi = FindChild(Tag::Semi);
+	auto semi_str = semi->Text();
+	auto items = CollectArgs(Children());
 
-	for ( const auto& c : Children() )
-		{
-		Tag t = c->GetTag();
-		if ( t == Tag::Semi )
-			semi = c.get();
-		else if ( ! is_token(t) && ! expr )
-			expr = c.get();
-		}
-
-	auto semi_str = semi ? semi->Text() : "";
-
-	if ( ! expr )
+	if ( items.empty() )
 		return {Candidate(keyword + semi_str, ctx)};
 
-	return BuildLayout({keyword, SoftSp, expr, semi_str}, ctx);
+	if ( items.size() == 1 )
+		return BuildLayout({keyword, SoftSp, items[0].arg,
+					semi_str}, ctx);
+
+	int semi_w = semi->Width();
+	FmtContext inner = ctx.Reserve(semi_w);
+	auto cs = FlatOrFill(keyword + " ", "", "", "", items, inner);
+
+	Candidates result;
+	for ( auto& c : cs )
+		{
+		auto text = c.Text() + semi_str;
+		int w = c.Width() + semi_w;
+		result.push_back({text, w, c.Lines(), c.Ovf(), ctx.Col()});
+		}
+
+	return result;
 	}
 
 // Event statement: event name(args);
@@ -63,35 +71,6 @@ Candidates EventStmtNode::Format(const FmtContext& ctx) const
 	return result;
 	}
 
-// Print statement: print expr, expr, ...
-Candidates PrintNode::Format(const FmtContext& ctx) const
-	{
-	auto semi = FindChild(Tag::Semi);
-	auto semi_str = semi->Text();
-	auto prefix = FindChild(Tag::Keyword)->Text();
-	auto items = CollectArgs(Children());
-
-	if ( items.empty() )
-		return {Candidate(prefix + semi_str, ctx)};
-
-	if ( items.size() == 1 )
-		return BuildLayout({prefix, SoftSp, items[0].arg,
-					semi_str}, ctx);
-
-	int semi_w = semi->Width();
-	FmtContext inner = ctx.Reserve(semi_w);
-	auto cs = FlatOrFill(prefix + " ", "", "", "", items, inner);
-
-	Candidates result;
-	for ( auto& c : cs )
-		{
-		auto text = c.Text() + semi_str;
-		int w = c.Width() + semi_w;
-		result.push_back({text, w, c.Lines(), c.Ovf(), ctx.Col()});
-		}
-
-	return result;
-	}
 
 // Expression statement: expr ;
 Candidates ExprStmtNode::Format(const FmtContext& ctx) const

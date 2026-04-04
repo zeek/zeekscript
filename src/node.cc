@@ -104,7 +104,7 @@ std::shared_ptr<Node> MakeNode(Tag tag)
 	case Tag::Delete: return std::make_shared<KeywordStmtNode>(tag);
 	case Tag::Assert: return std::make_shared<KeywordStmtNode>(tag);
 	case Tag::EventStmt: return std::make_shared<EventStmtNode>();
-	case Tag::Print: return std::make_shared<PrintNode>();
+	case Tag::Print: return std::make_shared<KeywordStmtNode>(Tag::Print);
 	case Tag::ExportDecl: return std::make_shared<ExportNode>();
 	case Tag::Switch: return std::make_shared<SwitchNode>();
 	default: return std::make_shared<Node>(tag);

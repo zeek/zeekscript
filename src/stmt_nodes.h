@@ -27,7 +27,9 @@ public:
 	Candidates Format(const FmtContext& ctx) const override;
 };
 
-// Keyword statements: return [expr], add expr, delete expr, assert
+// Keyword statements with expression list:
+//   return [expr], add expr, delete expr, assert expr[, msg],
+//   print expr, ...
 
 class KeywordStmtNode : public StmtNode {
 public:
@@ -43,13 +45,6 @@ public:
 	Candidates Format(const FmtContext& ctx) const override;
 };
 
-// Print statement: print expr, expr, ...
-
-class PrintNode : public StmtNode {
-public:
-	PrintNode() : StmtNode(Tag::Print) { }
-	Candidates Format(const FmtContext& ctx) const override;
-};
 
 // Export declaration: export { decls }
 
