@@ -142,7 +142,7 @@ using Candidates = std::vector<Candidate>;
 const Candidate& Best(const Candidates& cs);
 
 // Top-level entry point: format a list of top-level nodes.
-std::string Format(const Node::NodeVec& nodes);
+std::string Format(const NodeVec& nodes);
 
 // Format a single node in a given context, returning one or more candidates.
 Candidates FormatNode(const Node& node, const FmtContext& ctx);

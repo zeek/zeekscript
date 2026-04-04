@@ -546,7 +546,7 @@ static Candidate format_enum_decl(const Node* enum_node, const std::string& kw,
 
 	// Collect enum values and commas.
 	std::vector<std::string> values;
-	std::vector<const Node*> commas;
+	Nodes commas;
 	bool has_trailing_comma = false;
 	const Node* pending_comma = nullptr;
 

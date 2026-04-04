@@ -331,7 +331,7 @@ Candidates FormatUnary(const Node& node, const FmtContext& ctx)
 // then pack with fill layout breaking at the boolean operator.
 // ------------------------------------------------------------------
 static void FlattenBoolChain(const Node& node, const std::string& op,
-                             std::vector<const Node*>& out)
+                             Nodes& out)
 	{
 	auto content = node.ContentChildren();
 	if ( node.GetTag() == Tag::BinaryOp && node.Arg() == op &&
@@ -344,8 +344,7 @@ static void FlattenBoolChain(const Node& node, const std::string& op,
 		out.push_back(&node);
 	}
 
-static Candidates FormatBoolChain(const std::string& op,
-                                  const std::vector<const Node*>& operands,
+static Candidates FormatBoolChain(const std::string& op, const Nodes& operands,
                                   const FmtContext& ctx)
 	{
 	auto sep = " " + op + " ";
@@ -453,7 +452,7 @@ Candidates FormatBinary(const Node& node, const FmtContext& ctx)
 	const auto& op = node.Arg();
 	if ( op == "&&" || op == "||" )
 		{ // Boolean chains: flatten and fill-pack at && or ||.
-		std::vector<const Node*> operands;
+		Nodes operands;
 		FlattenBoolChain(node, op, operands);
 		return FormatBoolChain(op, operands, ctx);
 		}

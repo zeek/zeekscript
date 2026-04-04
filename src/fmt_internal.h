@@ -44,7 +44,7 @@ using ArgComments = std::vector<ArgComment>;
 
 bool HasBreaks(const ArgComments& items);
 
-ArgComments CollectArgs(const Node::NodeVec& children);
+ArgComments CollectArgs(const NodeVec& children);
 
 Candidate FormatArgsFlat(const ArgComments& items, const FmtContext& ctx);
 
@@ -107,6 +107,5 @@ Candidates FormatPrint(const Node& node, const FmtContext& ctx);
 Candidates FormatExport(const Node& node, const FmtContext& ctx);
 Candidates FormatSwitch(const Node& node, const FmtContext& ctx);
 Candidates FormatCondBlock(const Node& node, const FmtContext& ctx);
-std::string FormatStmtList(const Node::NodeVec& nodes,
-                           const FmtContext& ctx,
+std::string FormatStmtList(const NodeVec& nodes, const FmtContext& ctx,
                            bool skip_leading_blanks = false);

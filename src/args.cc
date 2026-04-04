@@ -15,7 +15,7 @@ bool HasBreaks(const ArgComments& items)
 	return false;
 	}
 
-ArgComments CollectArgs(const Node::NodeVec& children)
+ArgComments CollectArgs(const NodeVec& children)
 	{
 	ArgComments items;
 	const Node* pending_comma = nullptr;

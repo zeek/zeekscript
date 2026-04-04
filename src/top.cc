@@ -85,7 +85,7 @@ static void CollectTrailing(const Node& node,
 // Check that every trailing comment appears on a line that has
 // preceding content - never as a standalone line.
 static void WarnStandaloneTrailing(const std::string& output,
-                                   const Node::NodeVec& nodes)
+                                   const NodeVec& nodes)
 	{
 	std::vector<std::string> trailing;
 	for ( const auto& n : nodes )
@@ -120,7 +120,7 @@ static void WarnStandaloneTrailing(const std::string& output,
 		}
 	}
 
-std::string Format(const Node::NodeVec& nodes)
+std::string Format(const NodeVec& nodes)
 	{
 	static constexpr int MAX_WIDTH = 80;
 	FmtContext ctx(0, 0, MAX_WIDTH);

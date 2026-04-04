@@ -16,15 +16,18 @@
 // possibly args).
 // Bare markers like  SEMI  or  BLANK  have neither.
 
+class Node;
+using NodeVec = std::vector<std::shared_ptr<Node>>;
+using Nodes = std::vector<const Node*>;
+
 class Node {
 public:
-	using NodeVec = std::vector<std::shared_ptr<Node>>;
-
 	Node(Tag tag) : tag(tag) {}
 	virtual ~Node() = default;
 
 	Tag GetTag() const { return tag; }
 	const std::vector<std::string>& Args() const { return args; }
+
 	const NodeVec& Children() const { return children; }
 	NodeVec& Children() { return children; }
 
@@ -38,10 +41,10 @@ public:
 	const Node* FindChild(Tag tag, const Node* after) const;
 
 	// Collect non-token, non-comment children.
-	std::vector<const Node*> ContentChildren() const;
+	Nodes ContentChildren() const;
 
 	// Same but there must be at least n or throw an exception.
-	std::vector<const Node*> ContentChildren(const char* name, int n) const;
+	Nodes ContentChildren(const char* name, int n) const;
 
 	const std::string& TrailingComment() const { return trailing_comment; }
 	void SetTrailingComment(std::string c)
@@ -55,7 +58,7 @@ public:
 
 	// Marker nodes (BLANK, etc.) that appeared between the
 	// pre-comments and this node - preserved for round-trip.
-	const Node::NodeVec& PreMarkers() const { return pre_markers; }
+	const NodeVec& PreMarkers() const { return pre_markers; }
 	void AddPreMarker(std::shared_ptr<Node> m)
 		{ pre_markers.push_back(std::move(m)); }
 

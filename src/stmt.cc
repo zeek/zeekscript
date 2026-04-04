@@ -176,7 +176,7 @@ Candidates FormatExport(const Node& node, const FmtContext& ctx)
 	const Node* rb = node.FindChild(Tag::RBrace);
 
 	// Collect non-token children for the body.
-	Node::NodeVec body;
+	NodeVec body;
 	for ( const auto& c : node.Children() )
 		if ( ! is_token(c->GetTag()) )
 			body.push_back(c);
@@ -276,7 +276,7 @@ Candidates FormatSwitch(const Node& node, const FmtContext& ctx)
 
 		// Collect formatted values and commas.
 		std::vector<std::string> vals;
-		std::vector<const Node*> vcommas;
+		Nodes vcommas;
 		const Node* vpending = nullptr;
 		for ( const auto& vc : values->Children() )
 			{
@@ -369,7 +369,7 @@ static bool preproc_closes(const std::string& directive)
 	return directive == "@else" || directive == "@endif";
 	}
 
-std::string FormatStmtList(const Node::NodeVec& nodes,
+std::string FormatStmtList(const NodeVec& nodes,
                            const FmtContext& ctx,
                            bool skip_leading_blanks)
 	{
@@ -513,7 +513,7 @@ std::string FormatWhitesmithBlock(const Node* body,
 	const Node* rb = body->FindChild(Tag::RBrace);
 	const auto& kids = body->Children();
 	std::string close_trail = rb->TrailingComment();
-	Node::NodeVec inner;
+	NodeVec inner;
 
 	bool past_open = false;
 	for ( const auto& c : kids )
