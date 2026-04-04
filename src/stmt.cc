@@ -234,7 +234,7 @@ Candidates SwitchNode::Format(const FmtContext& ctx) const
 				continue;
 				}
 
-			if ( is_token(vt) || is_comment(vt) || is_marker(vt) )
+			if ( is_token(vt) || is_marker(vt) )
 				continue;
 
 			vals.push_back(Best(FormatExpr(*vc, ctx)).Text());
@@ -342,11 +342,6 @@ std::string FormatStmtList(const NodeVec& nodes, const FmtContext& ctx,
 		seen_content = true;
 
 		result += EmitPreComments(node, pad);
-
-		// COMMENT-TRAILING nodes are handled by the parser
-		// (attached to preceding node).  Skip them here.
-		if ( t == Tag::CommentTrailing )
-			continue;
 
 		// PREPROC directives: flow-control (@if etc.) at column 0,
 		// other directives (@load etc.) at current indentation.

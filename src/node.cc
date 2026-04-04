@@ -51,7 +51,7 @@ Nodes Node::ContentChildren() const
 	for ( const auto& c : children )
 		{
 		Tag t = c->GetTag();
-		if ( ! is_token(t) && ! is_comment(t) && ! is_marker(t) )
+		if ( ! is_token(t) && ! is_marker(t) )
 			result.push_back(c.get());
 		}
 

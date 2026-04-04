@@ -631,12 +631,6 @@ static Candidate format_rec_decl(const Node* rec_node, const std::string& kw,
 			continue;
 			}
 
-		if ( is_comment(t) )
-			{
-			body += field_pad + ki->Arg() + "\n";
-			continue;
-			}
-
 		if ( t == Tag::Field )
 			{
 			body += EmitPreComments(*ki, field_pad);

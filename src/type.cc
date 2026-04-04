@@ -41,7 +41,7 @@ Candidates FormatTypeParam(const Node& node, const FmtContext& ctx)
 			continue;
 			}
 
-		if ( is_token(t) || is_comment(t) )
+		if ( is_token(t) )
 			continue;
 
 		if ( past_of )

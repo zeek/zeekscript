@@ -132,11 +132,6 @@ Tag TagFromString(const std::string& s);
 // Convert a Tag enum value back to its .rep string form.
 const char* TagToString(Tag t);
 
-inline bool is_comment(Tag t)
-	{
-	return t == Tag::CommentLeading || t == Tag::CommentTrailing;
-	}
-
 inline bool is_type_tag(Tag t)
 	{
 	return t == Tag::TypeAtom || t == Tag::TypeParameterized ||

@@ -35,11 +35,6 @@ ArgComments CollectArgs(const NodeVec& children)
 			continue;
 			}
 
-		// Orphaned COMMENT-LEADING (end of block, no following
-		// sibling) - still appears as a standalone child.
-		if ( is_comment(t) )
-			continue;
-
 		std::vector<std::string> leading(c->PreComments().begin(),
 		                                 c->PreComments().end());
 
