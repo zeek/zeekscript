@@ -61,8 +61,32 @@ Candidates FormatCall(const Node& node, const FmtContext& ctx)
 		return {FormatArgsVertical(func.Text() + lp, rp,
 		                           items, ctx, true)};
 
-	return FlatOrFill(func.Text(), lp, rp, "", items, ctx,
+	auto result = FlatOrFill(func.Text(), lp, rp, "", items, ctx,
 				args_node->TrailingComment());
+
+	// When fill wraps every single-line item to its own line,
+	// vertical layout with indent-based alignment is cleaner.
+	// Verify all items are single-line at the fill alignment
+	// column to exclude cases where multi-line expansion
+	// coincidentally matches the item count.
+	if ( items.size() >= 3 && result.size() > 1 &&
+	     result.back().Lines() == static_cast<int>(items.size()) )
+		{
+		auto prefix = func.Text() + lp;
+		int open_col = ctx.Col() + static_cast<int>(prefix.size());
+		int inner_w = ctx.MaxCol() - open_col - 1;
+		FmtContext check_ctx(ctx.Indent(), open_col, inner_w);
+
+		for ( const auto& it : items )
+			if ( Best(FormatExpr(*it.arg, check_ctx)).Lines() > 1 )
+				return result;
+
+		result.pop_back();
+		result.push_back(FormatArgsVertical(prefix, rp, items,
+							ctx, false));
+		}
+
+	return result;
 	}
 
 // Schedule: schedule interval { event() }
