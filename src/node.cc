@@ -1,6 +1,7 @@
 #include "node.h"
 #include "condition_block.h"
 #include "expr_nodes.h"
+#include "stmt_nodes.h"
 
 #include <cstdio>
 #include <stdexcept>
@@ -96,6 +97,15 @@ std::shared_ptr<Node> MakeNode(Tag tag)
 	case Tag::Schedule: return std::make_shared<ScheduleNode>();
 	case Tag::Ternary: return std::make_shared<TernaryNode>();
 	case Tag::Lambda: return std::make_shared<LambdaNode>();
+	case Tag::ExprStmt: return std::make_shared<ExprStmtNode>();
+	case Tag::Return: return std::make_shared<KeywordStmtNode>(tag);
+	case Tag::Add: return std::make_shared<KeywordStmtNode>(tag);
+	case Tag::Delete: return std::make_shared<KeywordStmtNode>(tag);
+	case Tag::Assert: return std::make_shared<KeywordStmtNode>(tag);
+	case Tag::EventStmt: return std::make_shared<EventStmtNode>();
+	case Tag::Print: return std::make_shared<PrintNode>();
+	case Tag::ExportDecl: return std::make_shared<ExportNode>();
+	case Tag::Switch: return std::make_shared<SwitchNode>();
 	default: return std::make_shared<Node>(tag);
 	}
 	}

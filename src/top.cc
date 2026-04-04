@@ -1,12 +1,24 @@
 #include <cstdio>
 #include <unordered_map>
 
+#include "condition_block.h"
 #include "expr_nodes.h"
 #include "fmt_internal.h"
+#include "stmt_nodes.h"
 
 static Candidates FormatExprNode(const Node& node, const FmtContext& ctx)
 	{
 	return static_cast<const ExprNode&>(node).Format(ctx);
+	}
+
+static Candidates FormatStmtNode(const Node& node, const FmtContext& ctx)
+	{
+	return static_cast<const StmtNode&>(node).Format(ctx);
+	}
+
+static Candidates FormatCondBlock(const Node& node, const FmtContext& ctx)
+	{
+	return static_cast<const ConditionBlockNode&>(node).Format(ctx);
 	}
 
 // Dispatch table
@@ -41,21 +53,21 @@ const std::unordered_map<Tag, FormatFunc>& FormatDispatch()
 		{Tag::GlobalDecl, FormatDecl},
 		{Tag::LocalDecl, FormatDecl},
 		{Tag::ModuleDecl, FormatModuleDecl},
-		{Tag::ExprStmt, FormatExprStmt},
-		{Tag::Return, FormatKeywordStmt},
-		{Tag::Print, FormatPrint},
-		{Tag::Add, FormatKeywordStmt},
-		{Tag::Delete, FormatKeywordStmt},
-		{Tag::Assert, FormatKeywordStmt},
-		{Tag::EventStmt, FormatEventStmt},
+		{Tag::ExprStmt, FormatStmtNode},
+		{Tag::Return, FormatStmtNode},
+		{Tag::Print, FormatStmtNode},
+		{Tag::Add, FormatStmtNode},
+		{Tag::Delete, FormatStmtNode},
+		{Tag::Assert, FormatStmtNode},
+		{Tag::EventStmt, FormatStmtNode},
 		{Tag::FuncDecl, FormatFuncDecl},
 		{Tag::IfNoElse, FormatCondBlock},
 		{Tag::IfElse, FormatCondBlock},
 		{Tag::For, FormatCondBlock},
 		{Tag::While, FormatCondBlock},
-		{Tag::ExportDecl, FormatExport},
+		{Tag::ExportDecl, FormatStmtNode},
 		{Tag::TypeDecl, FormatTypeDecl},
-		{Tag::Switch, FormatSwitch},
+		{Tag::Switch, FormatStmtNode},
 	};
 
 	return table;

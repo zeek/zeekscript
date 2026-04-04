@@ -1,16 +1,16 @@
 #include <cstdio>
 
-#include "condition_block.h"
 #include "fmt_internal.h"
+#include "stmt_nodes.h"
 
 // Simple keyword statements: return [expr], add expr, delete expr
-Candidates FormatKeywordStmt(const Node& node, const FmtContext& ctx)
+Candidates KeywordStmtNode::Format(const FmtContext& ctx) const
 	{
-	auto keyword = node.FindChild(Tag::Keyword)->Text();
+	auto keyword = FindChild(Tag::Keyword)->Text();
 	const Node* expr = nullptr;
 	const Node* semi = nullptr;
 
-	for ( const auto& c : node.Children() )
+	for ( const auto& c : Children() )
 		{
 		Tag t = c->GetTag();
 		if ( t == Tag::Semi )
@@ -28,12 +28,12 @@ Candidates FormatKeywordStmt(const Node& node, const FmtContext& ctx)
 	}
 
 // Event statement: event name(args);
-Candidates FormatEventStmt(const Node& node, const FmtContext& ctx)
+Candidates EventStmtNode::Format(const FmtContext& ctx) const
 	{
-	auto args_node = node.FindChild(Tag::Args);
-	auto semi = node.FindOptChild(Tag::Semi);
+	auto args_node = FindChild(Tag::Args);
+	auto semi = FindOptChild(Tag::Semi);
 	auto semi_str = semi ? semi->Text() : "";
-	auto prefix = node.FindChild(Tag::Keyword)->Text() + " " + node.Arg();
+	auto prefix = FindChild(Tag::Keyword)->Text() + " " + Arg();
 	auto lp = args_node->FindChild(Tag::LParen)->Text();
 	auto rp = args_node->FindChild(Tag::RParen)->Text();
 	auto items = CollectArgs(args_node->Children());
@@ -58,12 +58,12 @@ Candidates FormatEventStmt(const Node& node, const FmtContext& ctx)
 	}
 
 // Print statement: print expr, expr, ...
-Candidates FormatPrint(const Node& node, const FmtContext& ctx)
+Candidates PrintNode::Format(const FmtContext& ctx) const
 	{
-	auto semi = node.FindChild(Tag::Semi);
+	auto semi = FindChild(Tag::Semi);
 	auto semi_str = semi->Text();
-	auto prefix = node.FindChild(Tag::Keyword)->Text();
-	auto items = CollectArgs(node.Children());
+	auto prefix = FindChild(Tag::Keyword)->Text();
+	auto items = CollectArgs(Children());
 
 	if ( items.empty() )
 		return {Candidate(prefix + semi_str, ctx)};
@@ -88,9 +88,9 @@ Candidates FormatPrint(const Node& node, const FmtContext& ctx)
 	}
 
 // Expression statement: expr ;
-Candidates FormatExprStmt(const Node& node, const FmtContext& ctx)
+Candidates ExprStmtNode::Format(const FmtContext& ctx) const
 	{
-	const auto& kids = node.Children();
+	const auto& kids = Children();
 	if ( kids.empty() )
 		throw FormatError("EXPR-STMT node needs children");
 
@@ -126,18 +126,12 @@ Candidates FormatExprStmt(const Node& node, const FmtContext& ctx)
 	return result;
 	}
 
-// Condition-block dispatch (if, for, while)
-Candidates FormatCondBlock(const Node& node, const FmtContext& ctx)
-	{
-	return static_cast<const ConditionBlockNode&>(node).Format(ctx);
-	}
-
 // Export declaration: export { decls }
-Candidates FormatExport(const Node& node, const FmtContext& ctx)
+Candidates ExportNode::Format(const FmtContext& ctx) const
 	{
 	// Collect non-token children for the body.
 	NodeVec body;
-	for ( const auto& c : node.Children() )
+	for ( const auto& c : Children() )
 		if ( ! is_token(c->GetTag()) )
 			body.push_back(c);
 
@@ -147,10 +141,10 @@ Candidates FormatExport(const Node& node, const FmtContext& ctx)
 	int up_indent = ctx.Indent() + 1;
 	auto inner_pad = LinePrefix(up_indent, up_indent * INDENT_WIDTH);
 
-	auto rb = node.FindChild(Tag::RBrace);
+	auto rb = FindChild(Tag::RBrace);
 	auto close = EmitPreComments(*rb, inner_pad) + pad + rb->Text();
-	auto kw = node.FindChild(Tag::Keyword)->Text();
-	auto lb = node.FindChild(Tag::LBrace)->Text();
+	auto kw = FindChild(Tag::Keyword)->Text();
+	auto lb = FindChild(Tag::LBrace)->Text();
 	auto head = Best(BuildLayout({kw, SoftSp, lb}, ctx)).Text();
 
 	return {Candidate(head + "\n" + body_text + close, ctx)};
@@ -170,10 +164,10 @@ static void AppendCaseBody(const Node* body, std::string& result,
 	result += "\n" + text;
 	}
 
-Candidates FormatSwitch(const Node& node, const FmtContext& ctx)
+Candidates SwitchNode::Format(const FmtContext& ctx) const
 	{
 	// Find the switch expression: first content child.
-	auto content = node.ContentChildren();
+	auto content = ContentChildren();
 	auto switch_expr = content.empty() ? nullptr : content[0];
 
 	// Format the expression.  If the source used parens, unwrap
@@ -196,12 +190,12 @@ Candidates FormatSwitch(const Node& node, const FmtContext& ctx)
 		}
 
 	auto pad = LinePrefix(ctx.Indent(), ctx.Col());
-	auto sw_kw = node.FindChild(Tag::Keyword)->Text();
-	auto lb = node.FindChild(Tag::LBrace)->Text();
+	auto sw_kw = FindChild(Tag::Keyword)->Text();
+	auto lb = FindChild(Tag::LBrace)->Text();
 	auto result = sw_kw + " " + expr_text + " " + lb;
 
 	// Format each CASE/DEFAULT.
-	for ( const auto& c : node.Children() )
+	for ( const auto& c : Children() )
 		{
 		if ( c->GetTag() != Tag::Case && c->GetTag() != Tag::Default )
 			continue;
@@ -277,7 +271,7 @@ Candidates FormatSwitch(const Node& node, const FmtContext& ctx)
 		AppendCaseBody(c->FindOptChild(Tag::Body), result, ctx);
 		}
 
-	auto rb = node.FindChild(Tag::RBrace)->Text();
+	auto rb = FindChild(Tag::RBrace)->Text();
 	result += "\n" + pad + rb;
 
 	return {Candidate(result, ctx)};

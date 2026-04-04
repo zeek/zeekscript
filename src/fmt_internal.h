@@ -85,13 +85,7 @@ Candidates FormatFuncDecl(const Node& node, const FmtContext& ctx);
 Candidates FormatModuleDecl(const Node& node, const FmtContext& ctx);
 Candidates FormatTypeDecl(const Node& node, const FmtContext& ctx);
 
-// stmt.cc
-Candidates FormatExprStmt(const Node& node, const FmtContext& ctx);
-Candidates FormatKeywordStmt(const Node& node, const FmtContext& ctx);
-Candidates FormatEventStmt(const Node& node, const FmtContext& ctx);
-Candidates FormatPrint(const Node& node, const FmtContext& ctx);
-Candidates FormatExport(const Node& node, const FmtContext& ctx);
-Candidates FormatSwitch(const Node& node, const FmtContext& ctx);
-Candidates FormatCondBlock(const Node& node, const FmtContext& ctx);
+// stmt.cc - statement formatting is now in StmtNode subclasses
+// (FormatCondBlock is in ConditionBlockNode, used directly from dispatch table)
 std::string FormatStmtList(const NodeVec& nodes, const FmtContext& ctx,
                            bool skip_leading_blanks = false);
