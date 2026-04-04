@@ -32,6 +32,9 @@ public:
 class PrefixExprNode : public ExprNode {
 public:
 	PrefixExprNode(Tag t) : ExprNode(t) { }
+protected:
+	// Format child 1 bracketed by children 0 and 2.
+	Candidates FormatBracketed(const FmtContext& ctx) const;
 };
 
 class CardinalityNode : public PrefixExprNode {
@@ -127,9 +130,9 @@ public:
 	Candidates Format(const FmtContext& ctx) const override;
 };
 
-class ParenNode : public ExprNode {
+class ParenNode : public PrefixExprNode {
 public:
-	ParenNode() : ExprNode(Tag::Paren) { }
+	ParenNode() : PrefixExprNode(Tag::Paren) { }
 	Candidates Format(const FmtContext& ctx) const override;
 };
 

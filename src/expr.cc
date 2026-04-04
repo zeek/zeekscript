@@ -351,27 +351,27 @@ Candidates SliceNode::Format(const FmtContext& ctx) const
 	}
 
 // Paren: (expr)
+// Format child 1 bracketed by children 0 and 2.
+// Used by PAREN and CARDINALITY.
+Candidates PrefixExprNode::FormatBracketed(const FmtContext& ctx) const
+	{
+	auto lp = Child(0);
+	auto rp = Child(2)->Text();
+	auto inner = Best(FormatExpr(*Child(1), ctx.After(lp->Width())));
+	return {Candidate(lp->Text(), ctx).Cat(inner).Cat(rp).In(ctx)};
+	}
+
 // Children: [0]=LPAREN [1]=expr [2]=RPAREN
 Candidates ParenNode::Format(const FmtContext& ctx) const
 	{
-	auto lp = Child(0, Tag::LParen);
-	auto rp = Child(2, Tag::RParen)->Text();
-
-	auto inner_cs = FormatExpr(*Child(1), ctx.After(lp->Width()));
-	const auto& inner = Best(inner_cs);
-
-	return {Candidate(lp->Text(), ctx).Cat(inner).Cat(rp).In(ctx)};
+	return FormatBracketed(ctx);
 	}
 
 // Cardinality/absolute value: |expr|
 // Children: [0]=OP("|") [1]=expr [2]=OP("|")
 Candidates CardinalityNode::Format(const FmtContext& ctx) const
 	{
-	auto lp = Child(0, Tag::Op);
-	auto rp = Child(2, Tag::Op)->Text();
-	auto operand_cs = FormatExpr(*Child(1), ctx.After(lp->Width()));
-	auto operand = Best(operand_cs);
-	return {Candidate(lp->Text(), ctx).Cat(operand).Cat(rp).In(ctx)};
+	return FormatBracketed(ctx);
 	}
 
 // Negation: ! expr (Zeek style: space after !)
