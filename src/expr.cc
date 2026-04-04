@@ -330,7 +330,6 @@ Candidates FormatUnary(const Node& node, const FmtContext& ctx)
 // Boolean chain: flatten left-associative && or || into operand list,
 // then pack with fill layout breaking at the boolean operator.
 // ------------------------------------------------------------------
-
 static void FlattenBoolChain(const Node& node, const std::string& op,
                              std::vector<const Node*>& out)
 	{
@@ -349,24 +348,28 @@ static Candidates FormatBoolChain(const std::string& op,
                                   const std::vector<const Node*>& operands,
                                   const FmtContext& ctx)
 	{
-	std::string sep = " " + op + " ";
+	auto sep = " " + op + " ";
 	int sep_w = static_cast<int>(sep.size());
 
 	// Try flat.  Only use when every operand fits on one line.
 	std::string flat;
 	int flat_w = 0;
 	bool any_multiline = false;
+
 	for ( size_t i = 0; i < operands.size(); ++i )
 		{
 		auto cs = FormatExpr(*operands[i], ctx.After(flat_w));
-		const auto& best = Best(cs);
+		auto best = Best(cs);
+
 		if ( best.Lines() > 1 )
 			any_multiline = true;
+
 		if ( i > 0 )
 			{
 			flat += sep;
 			flat_w += sep_w;
 			}
+
 		flat += best.Text();
 		flat_w += best.Width();
 		}
@@ -378,7 +381,7 @@ static Candidates FormatBoolChain(const std::string& op,
 	// Fill: pack operands with " op " separator, wrap at operator.
 	FmtContext cont_ctx = ctx.Col() == ctx.IndentCol() ?
 				ctx.Indented() : ctx.AtCol(ctx.Col());
-	std::string pad = LinePrefix(cont_ctx.Indent(), cont_ctx.Col());
+	auto pad = LinePrefix(cont_ctx.Indent(), cont_ctx.Col());
 	int max_col = ctx.MaxCol() - ctx.Trail();
 
 	std::string text;
@@ -388,10 +391,8 @@ static Candidates FormatBoolChain(const std::string& op,
 
 	for ( size_t i = 0; i < operands.size(); ++i )
 		{
-		FmtContext sub(cont_ctx.Indent(), cur_col,
-			max_col - cur_col);
-		auto cs = FormatExpr(*operands[i], sub);
-		const auto& best = Best(cs);
+		FmtContext sub(cont_ctx.Indent(), cur_col, max_col - cur_col);
+		auto best = Best(FormatExpr(*operands[i], sub));
 		int w = best.Width();
 
 		if ( i == 0 )
@@ -399,16 +400,17 @@ static Candidates FormatBoolChain(const std::string& op,
 			text += best.Text();
 			cur_col += w;
 			}
+
 		else
 			{
-			int need = sep_w + w;
-			if ( best.Lines() > 1 )
-				need = max_col + 1;
+			int need = best.Lines() > 1 ? max_col + 1 : sep_w + w;
+
 			if ( cur_col + need <= max_col )
 				{
 				text += sep + best.Text();
 				cur_col += need;
 				}
+
 			else
 				{
 				text += " " + op + "\n" + pad;
@@ -416,9 +418,10 @@ static Candidates FormatBoolChain(const std::string& op,
 				++lines;
 
 				FmtContext wrap_sub(cont_ctx.Indent(),
-					cur_col, max_col - cur_col);
+						cur_col, max_col - cur_col);
+
 				auto wcs = FormatExpr(*operands[i], wrap_sub);
-				const auto& wb = Best(wcs);
+				auto wb = Best(wcs);
 				text += wb.Text();
 				cur_col += wb.Width();
 				total_overflow += wb.Ovf();
@@ -440,67 +443,55 @@ static Candidates FormatBoolChain(const std::string& op,
 	return {{text, cur_col, lines, total_overflow, ctx.Col()}};
 	}
 
-// ------------------------------------------------------------------
 // Binary: lhs op rhs
-// ------------------------------------------------------------------
-
 Candidates FormatBinary(const Node& node, const FmtContext& ctx)
 	{
-	const auto& op = node.Arg();
-	auto content = node.ContentChildren();
-
+	auto content = node.ContentChildren("BINARY-OP", 2);
 	if ( content.size() < 2 )
 		throw FormatError("BINARY-OP node needs 2 children");
 
-	// Boolean chains: flatten and fill-pack at && or ||.
+	const auto& op = node.Arg();
 	if ( op == "&&" || op == "||" )
-		{
+		{ // Boolean chains: flatten and fill-pack at && or ||.
 		std::vector<const Node*> operands;
 		FlattenBoolChain(node, op, operands);
 		return FormatBoolChain(op, operands, ctx);
 		}
 
-	// ?$ binds without spaces, like field access.
-	// Reserve trail space so the LHS splits to leave room.
 	if ( op == "?$" )
 		{
-		const Node* op_node = node.FindChild(Tag::Op);
-		std::string rhs_text =
+		// ?$ binds without spaces, like field access.
+		// Reserve trail space so the LHS splits to leave room.
+		auto op_node = node.FindChild(Tag::Op);
+		auto rhs_text =
 			Best(FormatExpr(*content[1], ctx)).Text();
 		int suffix_w = op_node->Width() +
 			static_cast<int>(rhs_text.size());
 
 		auto lhs_cs = FormatExpr(*content[0], ctx.Reserve(suffix_w));
-		const auto& lhs = Best(lhs_cs);
+		auto lhs = Best(lhs_cs);
 
-		std::string text = lhs.Text() + op_node->Text() + rhs_text;
+		auto text = lhs.Text() + op_node->Text() + rhs_text;
 
-		if ( lhs.Lines() > 1 )
-			{
-			int last_w = lhs.Width() + suffix_w;
-			return {{text, last_w, lhs.Lines(), lhs.Ovf(),
-			         ctx.Col()}};
-			}
+		if ( lhs.Lines() <= 1 )
+			return {Candidate(text, ctx)};
 
-		return {Candidate(text, ctx)};
+		int last_w = lhs.Width() + suffix_w;
+		return {{text, last_w, lhs.Lines(), lhs.Ovf(), ctx.Col()}};
 		}
 
-	// "/" with atomic RHS: no spaces (subnet masking heuristic).
-	// Division typically has a compound RHS; masking has a bare
-	// constant or identifier.
+	// "/" with atomic RHS: no spaces (subnet masking heuristic, until
+	// next zeek-tree-sitter comes out w/ fix)
 	bool tight = (op == "/" && ! content[1]->HasChildren());
-	std::string lsep = tight ? "" : " ";
-	std::string rsep = tight ? "" : " ";
 	int op_w = static_cast<int>(op.size()) + (tight ? 0 : 2);
 
-	auto lhs_cs = FormatExpr(*content[0], ctx);
-	const auto& lhs = Best(lhs_cs);
-
+	auto lhs = Best(FormatExpr(*content[0], ctx));
 	auto rhs_cs = FormatExpr(*content[1], ctx.After(lhs.Width() + op_w));
-	const auto& rhs = Best(rhs_cs);
+	auto rhs = Best(rhs_cs);
 
 	// Candidate 1: flat - lhs op rhs
-	std::string flat = lhs.Text() + lsep + op + rsep + rhs.Text();
+	auto sep = tight ? "" : " ";
+	auto flat = lhs.Text() + sep + op + sep + rhs.Text();
 	int flat_w = lhs.Width() + op_w + rhs.Width();
 	int flat_ovf = Ovf(flat_w, ctx);
 	bool need_split = flat_ovf > 0;
@@ -535,18 +526,14 @@ Candidates FormatBinary(const Node& node, const FmtContext& ctx)
 	FmtContext cont_ctx = ctx.Col() == ctx.IndentCol() ?
 				ctx.Indented() : ctx.AtCol(ctx.Col());
 
-	auto rhs2_cs = FormatExpr(*content[1], cont_ctx);
-	const auto& rhs2 = Best(rhs2_cs);
+	auto rhs2 = Best(FormatExpr(*content[1], cont_ctx));
 
-	std::string cont_prefix = LinePrefix(cont_ctx.Indent(), cont_ctx.Col());
-
-	std::string split = lhs.Text() + lsep + op + "\n" +
-				cont_prefix + rhs2.Text();
-	int line1_w = lhs.Width() + static_cast<int>(lsep.size()) +
-		static_cast<int>(op.size());
+	auto cont_prefix = LinePrefix(cont_ctx.Indent(), cont_ctx.Col());
+	auto split = lhs.Text() + sep + op + "\n" + cont_prefix + rhs2.Text();
+	int line1_w = lhs.Width() + (tight ? 0 : 1) +
+			static_cast<int>(op.size());
 	int line2_ovf = Ovf(rhs2.Width(), cont_ctx);
 	int split_ovf = OvfNoTrail(line1_w, ctx) + line2_ovf;
-
 	int split_lines = 1 + rhs2.Lines();
 	int last_w = rhs2.Lines() > 1 ? LastLineLen(split) : rhs2.Width();
 
@@ -555,65 +542,49 @@ Candidates FormatBinary(const Node& node, const FmtContext& ctx)
 	return result;
 	}
 
-// ------------------------------------------------------------------
-// Interval: 1 sec, 3.5 hrs
-// ------------------------------------------------------------------
-
+// Interval constant: always a space before the unit
 Candidates FormatInterval(const Node& node, const FmtContext& ctx)
 	{
 	return {Candidate(node.Arg(0) + " " + node.Arg(1), ctx)};
 	}
 
-// ------------------------------------------------------------------
 // Ternary: cond ? true_val : false_val
-// ------------------------------------------------------------------
-
 Candidates FormatTernary(const Node& node, const FmtContext& ctx)
 	{
-	auto content = node.ContentChildren();
-	if ( content.size() < 3 )
-		throw FormatError("TERNARY node needs 3 children");
+	auto content = node.ContentChildren("TERNARY", 3);
 
-	const Node* q = node.FindChild(Tag::Question);
-	const Node* col = node.FindChild(Tag::Colon);
-	std::string qs = " " + q->Text() + " ";
-	std::string cs = " " + col->Text() + " ";
+	auto q = node.FindChild(Tag::Question);
+	auto col = node.FindChild(Tag::Colon);
+	auto qs = " " + q->Text() + " ";
+	auto cs = " " + col->Text() + " ";
 	int qw = static_cast<int>(qs.size());
 	int cw = static_cast<int>(cs.size());
 
-	auto cond_cs = FormatExpr(*content[0], ctx);
-	const auto& cond = Best(cond_cs);
-
-	int tv_col = ctx.Col() + cond.Width() + qw;
-	auto tv_cs = FormatExpr(*content[1],
-		ctx.After(cond.Width() + qw));
-	const auto& tv = Best(tv_cs);
-
+	auto cond = Best(FormatExpr(*content[0], ctx));
+	auto tv_cs = FormatExpr(*content[1], ctx.After(cond.Width() + qw));
+	auto tv = Best(tv_cs);
 	auto fv_cs = FormatExpr(*content[2],
-		ctx.After(cond.Width() + qw + tv.Width() + cw));
-	const auto& fv = Best(fv_cs);
+			ctx.After(cond.Width() + qw + tv.Width() + cw));
+	auto fv = Best(fv_cs);
 
-	std::string flat = cond.Text() + qs + tv.Text() + cs +
-				fv.Text();
+	auto flat = cond.Text() + qs + tv.Text() + cs + fv.Text();
 	Candidate flat_c(flat, ctx);
+	if ( flat_c.Fits() )
+		return {flat_c};
 
 	Candidates result;
 	result.push_back(flat_c);
 
-	if ( flat_c.Fits() )
-		return result;
-
 	// Split after ":" - false-value aligns under true-value.
+	int tv_col = ctx.Col() + cond.Width() + qw;
 	FmtContext fv_ctx = ctx.AtCol(tv_col);
-	auto fv2_cs = FormatExpr(*content[2], fv_ctx);
-	const auto& fv2 = Best(fv2_cs);
+	fv = Best(FormatExpr(*content[2], fv_ctx));
 
-	std::string fv_prefix = LinePrefix(fv_ctx.Indent(), tv_col);
-	std::string split_colon = cond.Text() + qs + tv.Text() +
-				" " + col->Text() + "\n" +
-				fv_prefix + fv2.Text();
-	int last_w = fv2.Width();
-	int lines = 1 + fv2.Lines();
+	auto fv_prefix = LinePrefix(fv_ctx.Indent(), tv_col);
+	auto split_colon = cond.Text() + qs + tv.Text() + " " + col->Text() +
+				"\n" + fv_prefix + fv.Text();
+	int last_w = fv.Width();
+	int lines = 1 + fv.Lines();
 	int ovf = Ovf(last_w, fv_ctx);
 
 	result.push_back({split_colon, last_w, lines, ovf, ctx.Col()});
@@ -621,18 +592,14 @@ Candidates FormatTernary(const Node& node, const FmtContext& ctx)
 	// Split after "?" - true and false on continuation line,
 	// aligned under the start of cond.
 	FmtContext cont_ctx = ctx.AtCol(ctx.Col());
-	auto tv2_cs = FormatExpr(*content[1], cont_ctx);
-	const auto& tv2 = Best(tv2_cs);
+	tv = Best(FormatExpr(*content[1], cont_ctx));
+	fv_cs = FormatExpr(*content[2], cont_ctx.After(tv.Width() + cw));
+	fv = Best(fv_cs);
 
-	auto fv3_cs = FormatExpr(*content[2],
-		cont_ctx.After(tv2.Width() + cw));
-	const auto& fv3 = Best(fv3_cs);
-
-	std::string cont_prefix = LinePrefix(cont_ctx.Indent(), ctx.Col());
-	std::string split_q = cond.Text() + " " + q->Text() + "\n" +
-				cont_prefix + tv2.Text() + cs +
-				fv3.Text();
-	int q_last_w = tv2.Width() + cw + fv3.Width();
+	auto cont_prefix = LinePrefix(cont_ctx.Indent(), ctx.Col());
+	auto split_q = cond.Text() + " " + q->Text() + "\n" + cont_prefix +
+			tv.Text() + cs + fv.Text();
+	int q_last_w = tv.Width() + cw + fv.Width();
 	int q_ovf = Ovf(q_last_w, cont_ctx);
 
 	result.push_back({split_q, q_last_w, 2, q_ovf, ctx.Col()});
