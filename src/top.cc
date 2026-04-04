@@ -3,10 +3,7 @@
 
 #include "fmt_internal.h"
 
-// ------------------------------------------------------------------
 // Dispatch table
-// ------------------------------------------------------------------
-
 const std::unordered_map<Tag, FormatFunc>& FormatDispatch()
 	{
 	static const std::unordered_map<Tag, FormatFunc> table = {
@@ -58,8 +55,7 @@ Candidates FormatExpr(const Node& node, const FmtContext& ctx)
 	if ( it != FormatDispatch().end() )
 		return it->second(node, ctx);
 
-	std::string fallback = std::string("/* ") +
-		TagToString(node.GetTag()) + " */";
+	auto fallback = std::string("/* ") + TagToString(node.GetTag()) + " */";
 	return {Candidate(fallback, ctx)};
 	}
 
@@ -67,10 +63,6 @@ Candidates FormatNode(const Node& node, const FmtContext& ctx)
 	{
 	return FormatExpr(node, ctx);
 	}
-
-// ------------------------------------------------------------------
-// Top-level formatting
-// ------------------------------------------------------------------
 
 // Collect all trailing comments from node fields.
 static void CollectTrailing(const Node& node,
@@ -125,7 +117,7 @@ std::string Format(const NodeVec& nodes)
 	static constexpr int MAX_WIDTH = 80;
 	FmtContext ctx(0, 0, MAX_WIDTH);
 
-	std::string result = FormatStmtList(nodes, ctx);
+	auto result = FormatStmtList(nodes, ctx);
 	WarnStandaloneTrailing(result, nodes);
 	return result;
 	}
