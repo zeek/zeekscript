@@ -15,7 +15,7 @@ Candidates KeywordStmtNode::Format(const FmtContext& ctx) const
 		Tag t = c->GetTag();
 		if ( t == Tag::Semi )
 			semi = c.get();
-		else if ( ! is_comment(t) && ! is_token(t) && ! expr )
+		else if ( ! is_token(t) && ! expr )
 			expr = c.get();
 		}
 
@@ -102,7 +102,7 @@ Candidates ExprStmtNode::Format(const FmtContext& ctx) const
 		Tag t = c->GetTag();
 		if ( t == Tag::Semi )
 			semi = c.get();
-		else if ( ! is_comment(t) && ! expr )
+		else if ( ! is_token(t) && ! expr )
 			expr = c.get();
 		}
 
