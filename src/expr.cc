@@ -137,23 +137,28 @@ Candidates LambdaNode::Format(const FmtContext& ctx) const
 	}
 
 
+// LAMBDA:          [0]=KW [1]=SP [2]=PARAMS [opt COLON RETURNS] BODY(last)
+// LAMBDA-CAPTURES: [0]=KW [1]=SP [2]=CAPTURES [3]=PARAMS [opt ...] BODY(last)
 Candidates LambdaNode::FormatLambda(const std::string& prefix,
                                     const FmtContext& ctx) const
 	{
-	// Return type.
+	int pp = ParamsPos();
+
+	// Return type (COLON and RETURNS follow PARAMS when present).
 	std::string ret_str;
-	if ( auto returns = FindOptChild(Tag::Returns) )
+	auto after_params = Child(pp + 1);
+	if ( after_params->GetTag() == Tag::Colon )
 		{
-		auto rcol = FindChild(Tag::Colon)->Text();
+		auto returns = Child(pp + 2, Tag::Returns);
 		if ( auto rt = FindTypeChild(*returns) )
-			ret_str = rcol + " " +
+			ret_str = after_params->Text() + " " +
 				Best(FormatExpr(*rt, ctx)).Text();
 		}
 
 	// Params.
-	auto params = FindChild(Tag::Params);
-	auto lp = params->FindChild(Tag::LParen)->Text();
-	auto rp = params->FindChild(Tag::RParen)->Text();
+	auto params = Child(pp, Tag::Params);
+	auto lp = params->Child(0, Tag::LParen)->Text();
+	auto rp = params->Children().back()->Text();
 	auto items = CollectArgs(params->Children());
 	std::string sig;
 
@@ -169,7 +174,7 @@ Candidates LambdaNode::FormatLambda(const std::string& prefix,
 	// position, so the Whitesmith block aligns to the next tab stop.
 	int lambda_indent = ctx.Col() / INDENT_WIDTH;
 	FmtContext body_ctx(lambda_indent, ctx.Col(), ctx.MaxCol() - ctx.Col());
-	auto body = FindChild(Tag::Body);
+	auto body = Children().back().get();
 	auto block = FormatWhitesmithBlock(body, body_ctx);
 
 	auto text = sig + block;

@@ -152,6 +152,7 @@ public:
 	Candidates Format(const FmtContext& ctx) const override;
 protected:
 	virtual std::string BuildPrefix(const FmtContext& ctx) const;
+	virtual int ParamsPos() const { return 2; }
 	Candidates FormatLambda(const std::string& prefix,
 	                        const FmtContext& ctx) const;
 };
@@ -161,4 +162,5 @@ public:
 	LambdaCapturesNode() : LambdaNode(Tag::LambdaCaptures) { }
 protected:
 	std::string BuildPrefix(const FmtContext& ctx) const override;
+	int ParamsPos() const override { return 3; }
 };
