@@ -62,16 +62,31 @@ public:
 	Candidates Format(const FmtContext& ctx) const override;
 };
 
-class TypeDeclEnumNode : public StmtNode {
+// Braced type declarations (enum, record): shared head/close framing,
+// virtual FormatBody for the inner content.
+class TypeDeclBracedNode : public StmtNode {
 public:
-	TypeDeclEnumNode() : StmtNode(Tag::TypeDeclEnum) { }
+	TypeDeclBracedNode(Tag t) : StmtNode(t) { }
 	Candidates Format(const FmtContext& ctx) const override;
+protected:
+	virtual std::string FormatBody(const Node* inner,
+	                               const FmtContext& ctx) const = 0;
 };
 
-class TypeDeclRecordNode : public StmtNode {
+class TypeDeclEnumNode : public TypeDeclBracedNode {
 public:
-	TypeDeclRecordNode() : StmtNode(Tag::TypeDeclRecord) { }
-	Candidates Format(const FmtContext& ctx) const override;
+	TypeDeclEnumNode() : TypeDeclBracedNode(Tag::TypeDeclEnum) { }
+protected:
+	std::string FormatBody(const Node* inner,
+	                        const FmtContext& ctx) const override;
+};
+
+class TypeDeclRecordNode : public TypeDeclBracedNode {
+public:
+	TypeDeclRecordNode() : TypeDeclBracedNode(Tag::TypeDeclRecord) { }
+protected:
+	std::string FormatBody(const Node* inner,
+	                        const FmtContext& ctx) const override;
 };
 
 // Switch statement: switch expr { case val: body ... }

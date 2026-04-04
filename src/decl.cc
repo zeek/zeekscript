@@ -571,33 +571,44 @@ Candidates TypeDeclAliasNode::Format(const FmtContext& ctx) const
 	}
 
 // ------------------------------------------------------------------
-// Enum type: type name: enum { val1, val2, ... } ;
+// Braced type declarations (enum, record): shared head/close framing.
 // Children: [0]=KEYWORD [1]=SP [2]=IDENTIFIER [3]=COLON [4]=SP
-//   [5]=TYPE-ENUM [6]=SEMI
-// TYPE-ENUM: [0]=KEYWORD [1]=SP [2]=LBRACE ... [last]=RBRACE
+//   [5]=TYPE-ENUM or TYPE-RECORD [6]=SEMI
+// Inner: [0]=KEYWORD [1]=SP [2]=LBRACE ... [last]=RBRACE
 // ------------------------------------------------------------------
 
-Candidates TypeDeclEnumNode::Format(const FmtContext& ctx) const
+Candidates TypeDeclBracedNode::Format(const FmtContext& ctx) const
 	{
 	auto kw = Child(0, Tag::Keyword)->Text();
 	auto id = Child(2, Tag::Identifier)->Text();
 	auto colon = Child(3, Tag::Colon)->Text();
 	auto semi = Child(6, Tag::Semi)->Text();
 
-	auto enum_node = Child(5, Tag::TypeEnum);
-	auto ekw = enum_node->Child(0, Tag::Keyword)->Text();
-	auto lb = enum_node->Child(2, Tag::LBrace)->Text();
+	auto inner = Child(5);
+	auto ikw = inner->Child(0, Tag::Keyword)->Text();
+	auto lb = inner->Child(2, Tag::LBrace)->Text();
 
 	auto head = Best(BuildLayout({kw, SoftSp, id, colon, SoftSp,
-					ekw + " " + lb}, ctx)).Text();
+					ikw + " " + lb}, ctx)).Text();
 
-	// Collect enum values and commas.
+	auto body = FormatBody(inner, ctx);
+
+	auto close_pad = LinePrefix(ctx.Indent(), ctx.Col());
+	auto rb = inner->Children().back()->Text();
+	auto text = head + "\n" + body + close_pad + rb + semi;
+	return {Candidate(text, ctx)};
+	}
+
+// Enum body: collect values with commas, one per line.
+std::string TypeDeclEnumNode::FormatBody(const Node* inner,
+                                         const FmtContext& ctx) const
+	{
 	std::vector<std::string> values;
 	Nodes commas;
 	bool has_trailing_comma = false;
 	const Node* pending_comma = nullptr;
 
-	for ( const auto& c : enum_node->Children() )
+	for ( const auto& c : inner->Children() )
 		{
 		if ( c->GetTag() == Tag::EnumValue )
 			{
@@ -617,7 +628,6 @@ Candidates TypeDeclEnumNode::Format(const FmtContext& ctx) const
 			has_trailing_comma = true;
 		}
 
-	// One per line.
 	auto pad = LinePrefix(ctx.Indent() + 1,
 				(ctx.Indent() + 1) * INDENT_WIDTH);
 	std::string body;
@@ -630,44 +640,21 @@ Candidates TypeDeclEnumNode::Format(const FmtContext& ctx) const
 		body += "\n";
 		}
 
-	auto close_pad = LinePrefix(ctx.Indent(), ctx.Col());
-	auto rb = enum_node->Children().back()->Text();
-	auto text = head + "\n" + body + close_pad + rb + semi;
-	return {Candidate(text, ctx)};
+	return body;
 	}
 
-// ------------------------------------------------------------------
-// Record type: type name: record { field1; field2; ... } ;
-// ------------------------------------------------------------------
-
-// Children: [0]=KEYWORD [1]=SP [2]=IDENTIFIER [3]=COLON [4]=SP
-//   [5]=TYPE-RECORD [6]=SEMI
-// TYPE-RECORD: [0]=KEYWORD [1]=SP [2]=LBRACE ... [last]=RBRACE
-Candidates TypeDeclRecordNode::Format(const FmtContext& ctx) const
+// Record body: fields, comments, blanks.
+std::string TypeDeclRecordNode::FormatBody(const Node* inner,
+                                           const FmtContext& ctx) const
 	{
-	auto kw = Child(0, Tag::Keyword)->Text();
-	auto id = Child(2, Tag::Identifier)->Text();
-	auto colon = Child(3, Tag::Colon)->Text();
-	auto semi = Child(6, Tag::Semi)->Text();
-
-	auto rec_node = Child(5, Tag::TypeRecord);
-	auto rkw = rec_node->Child(0, Tag::Keyword)->Text();
-	auto lb = rec_node->Child(2, Tag::LBrace)->Text();
-
-	auto head = Best(BuildLayout({kw, SoftSp, id, colon, SoftSp,
-					rkw + " " + lb}, ctx)).Text();
-
 	int field_indent = ctx.Indent() + 1;
 	int field_col = field_indent * INDENT_WIDTH;
 	FmtContext field_ctx(field_indent, field_col, ctx.MaxCol() - field_col);
 	auto field_pad = LinePrefix(field_indent, field_col);
 
-	// Collect fields, comments, blanks.
 	std::string body;
-	const auto& kids = rec_node->Children();
-	for ( size_t i = 0; i < kids.size(); ++i )
+	for ( const auto& ki : inner->Children() )
 		{
-		auto& ki = kids[i];
 		Tag t = ki->GetTag();
 
 		if ( t == Tag::Blank )
@@ -688,9 +675,5 @@ Candidates TypeDeclRecordNode::Format(const FmtContext& ctx) const
 			}
 		}
 
-	auto close_pad = LinePrefix(ctx.Indent(), ctx.Col());
-	auto rb = rec_node->Children().back()->Text();
-	auto text = head + "\n" + body + close_pad + rb + semi;
-
-	return {Candidate(text, ctx)};
+	return body;
 	}
