@@ -30,10 +30,10 @@ static void AttachPreComments(std::vector<std::string>& pending,
 
 	for ( auto& m : markers )
 		node.AddPreMarker(std::move(m));
-	markers.clear();
-
 	for ( auto& c : pending )
 		node.AddPreComment(std::move(c));
+
+	markers.clear();
 	pending.clear();
 	}
 
@@ -59,18 +59,18 @@ NodeVec Parser::ParseFile()
 
 		Tag t = node->GetTag();
 
-		// Attach COMMENT-TRAILING to the preceding node.
 		if ( t == Tag::CommentTrailing && ! nodes.empty() )
+			// Attach COMMENT-TRAILING to the preceding node.
 			nodes.back()->SetTrailingComment(node->Arg());
 
-		// Save COMMENT-LEADING for the next node.
 		else if ( t == Tag::CommentLeading )
+			// Save COMMENT-LEADING for the next node.
 			pending_pre.push_back(node->Arg());
 
-		// When pre-comments are pending, hold BLANK/SEMI/
-		// TrailingComma so they don't separate the comments
-		// from the node they belong to.
 		else if ( ! pending_pre.empty() && is_marker(t) )
+			// When pre-comments are pending, hold BLANK/SEMI/
+			// TrailingComma so they don't separate the comments
+			// from the node they belong to.
 			pending_nodes.push_back(std::move(node));
 
 		else
@@ -121,74 +121,69 @@ std::shared_ptr<Node> Parser::ParseNode()
 
 	while ( ! AtEnd() && Peek() == '"' )
 		{
-		std::string arg = ParseQuotedString();
-		node->AddArg(std::move(arg));
+		node->AddArg(ParseQuotedString());
 		SkipWhitespace();
 		}
 
 	// Optionally parse a { children } block.
-	if ( ! AtEnd() && Peek() == '{' )
+	if ( AtEnd() || Peek() != '{' )
+		return node;
+
+	node->SetHasBlock();
+	Advance();  // consume '{'
+	SkipWhitespace();
+
+	std::vector<std::string> pending_pre;
+	NodeVec pending_children;
+
+	while ( ! AtEnd() && Peek() != /* { to balance */ '}' )
 		{
-		node->SetHasBlock();
-		Advance();  // consume '{'
-		SkipWhitespace();
-
-		std::vector<std::string> pending_pre;
-		NodeVec pending_children;
-
-		while ( ! AtEnd() && Peek() != '}' )
-			{
-			auto child = ParseNode();
-			if ( ! child )
-				return nullptr;
-
-			Tag ct = child->GetTag();
-
-			// Attach COMMENT-TRAILING to preceding child.
-			if ( ct == Tag::CommentTrailing
-			     && node->HasChildren() )
-				node->Children().back()->SetTrailingComment(
-								child->Arg());
-
-			// Save COMMENT-LEADING for the next child.
-			else if ( ct == Tag::CommentLeading )
-				pending_pre.push_back(child->Arg());
-
-			// When pre-comments are pending, hold markers
-			// so they don't separate comments from their
-			// target node.
-			else if ( ! pending_pre.empty() && is_marker(ct) )
-				pending_children.push_back(std::move(child));
-
-			else
-				{
-				AttachPreComments(pending_pre, pending_children, *child);
-				node->AddChild(std::move(child));
-				}
-
-			SkipWhitespace();
-			}
-
-		// Flush any held markers and trailing comments.
-		for ( auto& pc : pending_children )
-			node->AddChild(std::move(pc));
-
-		for ( auto& c : pending_pre )
-			{
-			auto cn = MakeNode(Tag::CommentLeading);
-			cn->AddArg(std::move(c));
-			node->AddChild(std::move(cn));
-			}
-
-		if ( AtEnd() )
-			{
-			Error("unexpected end of input, "
-			      "expected '}'");
+		auto child = ParseNode();
+		if ( ! child )
 			return nullptr;
+
+		Tag ct = child->GetTag();
+
+		// Attach COMMENT-TRAILING to preceding child.
+		if ( ct == Tag::CommentTrailing && node->HasChildren() )
+			node->Children().back()->SetTrailingComment(child->Arg());
+
+		// Save COMMENT-LEADING for the next child.
+		else if ( ct == Tag::CommentLeading )
+			pending_pre.push_back(child->Arg());
+
+		// When pre-comments are pending, hold markers so they don't
+		// separate comments from their target node.
+		else if ( ! pending_pre.empty() && is_marker(ct) )
+			pending_children.push_back(std::move(child));
+
+		else
+			{
+			AttachPreComments(pending_pre, pending_children, *child);
+			node->AddChild(std::move(child));
 			}
 
-		Advance();  // consume '}'
+		SkipWhitespace();
 		}
+
+	// Flush any held markers and trailing comments.
+	for ( auto& pc : pending_children )
+		node->AddChild(std::move(pc));
+
+	for ( auto& c : pending_pre )
+		{
+		auto cn = MakeNode(Tag::CommentLeading);
+		cn->AddArg(std::move(c));
+		node->AddChild(std::move(cn));
+		}
+
+	if ( AtEnd() )
+		{
+		Error("unexpected end of input, expected '}'");
+		return nullptr;
+		}
+
+	Advance();  // consume '}'
 
 	return node;
 	}
@@ -200,10 +195,10 @@ std::string Parser::ParseTag()
 	while ( ! AtEnd() )
 		{
 		char c = Peek();
-		if ( c == ' ' || c == '\t' ||
-		     c == '\n' || c == '\r' ||
+		if ( c == ' ' || c == '\t' || c == '\n' || c == '\r' ||
 		     c == '"' || c == '{' || c == '}' )
 			break;
+
 		Advance();
 		}
 
@@ -223,48 +218,46 @@ std::string Parser::ParseQuotedString()
 
 	while ( ! AtEnd() && Peek() != '"' )
 		{
-		if ( Peek() == '\\' )
-			{
-			Advance();  // consume backslash
-			if ( AtEnd() )
-				{
-				Error("unexpected end of "
-				      "input in string escape");
-				return {};
-				}
-
-			char c = Peek();
-			switch ( c ) {
-			case '"': result += '"'; break;
-			case '\\': result += '\\'; break;
-			case 'n': result += '\n'; break;
-			case 't': result += '\t'; break;
-			case 'r': result += '\r'; break;
-			case '/': result += '/'; break;
-			default:
-				// Keep backslash for unknown escapes.
-				result += '\\';
-				result += c;
-				break;
-			}
-
-			Advance();
-			}
-		else
+		if ( Peek() != '\\' )
 			{
 			result += Peek();
 			Advance();
+			continue;
 			}
+
+		Advance();  // consume backslash
+		if ( AtEnd() )
+			{
+			Error("unexpected end of input in string escape");
+			return {};
+			}
+
+		char c = Peek();
+		switch ( c ) {
+		case '"': result += '"'; break;
+		case '\\': result += '\\'; break;
+		case 'n': result += '\n'; break;
+		case 't': result += '\t'; break;
+		case 'r': result += '\r'; break;
+		case '/': result += '/'; break;
+
+		default:
+			// Keep backslash for unknown escapes.
+			result += '\\' + c;
+			break;
+		}
+
+		Advance();
 		}
 
 	if ( AtEnd() )
 		{
-		Error("unexpected end of input, "
-		      "expected closing '\"'");
+		Error("unexpected end of input, expected closing '\"'");
 		return {};
 		}
 
 	Advance();  // consume closing '"'
+
 	return result;
 	}
 
@@ -273,8 +266,7 @@ void Parser::SkipWhitespace()
 	while ( ! AtEnd() )
 		{
 		char c = Peek();
-		if ( c == ' ' || c == '\t' ||
-		     c == '\n' || c == '\r' )
+		if ( c == ' ' || c == '\t' || c == '\n' || c == '\r' )
 			Advance();
 		else
 			break;
@@ -298,7 +290,6 @@ char Parser::Advance()
 
 void Parser::Error(const char* msg) const
 	{
-	fprintf(stderr,
-	        "parse error at line %d, col %d: %s\n",
+	fprintf(stderr, "parse error at line %d, col %d: %s\n",
 	        line, col, msg);
 	}
