@@ -431,7 +431,7 @@ std::string FormatWhitesmithBlock(const Node* body, const FmtContext& ctx)
 		}
 
 	if ( inner.empty() && ! lb->MustBreakAfter() &&
-	     rb->PreComments().empty() )
+	     ! rb->MustBreakBefore() )
 		return "\n" + brace_pad + lb->Text() + " " + rb->Text();
 
 	auto body_text = FormatStmtList(inner, block_ctx, true);
