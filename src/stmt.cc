@@ -9,6 +9,17 @@ Candidates CommentNode::Format(const FmtContext& ctx) const
 	return {Candidate(Arg(), ctx)};
 	}
 
+// Append a suffix (semicolon) to each candidate.
+static Candidates AppendSuffix(Candidates& cs, const std::string& suffix,
+                               int suffix_w, int col)
+	{
+	Candidates result;
+	for ( auto& c : cs )
+		result.push_back({c.Text() + suffix, c.Width() + suffix_w,
+		                  c.Lines(), c.Ovf(), col});
+	return result;
+	}
+
 // Keyword statements with expression list:
 //   return [expr], add expr, delete expr, assert expr[, msg],
 //   print expr, ...
@@ -31,15 +42,7 @@ Candidates KeywordStmtNode::Format(const FmtContext& ctx) const
 	FmtContext inner = ctx.Reserve(semi_w);
 	auto cs = FlatOrFill(keyword + " ", "", "", "", items, inner);
 
-	Candidates result;
-	for ( auto& c : cs )
-		{
-		auto text = c.Text() + semi_str;
-		int w = c.Width() + semi_w;
-		result.push_back({text, w, c.Lines(), c.Ovf(), ctx.Col()});
-		}
-
-	return result;
+	return AppendSuffix(cs, semi_str, semi_w, ctx.Col());
 	}
 
 // Event statement: event name(args);
@@ -62,15 +65,7 @@ Candidates EventStmtNode::Format(const FmtContext& ctx) const
 	auto cs = FlatOrFill(prefix, lp, rp, "", items, inner,
 				args_node->TrailingComment());
 
-	Candidates result;
-	for ( auto& c : cs )
-		{
-		auto text = c.Text() + semi_str;
-		int w = c.Width() + semi_w;
-		result.push_back({text, w, c.Lines(), c.Ovf(), ctx.Col()});
-		}
-
-	return result;
+	return AppendSuffix(cs, semi_str, semi_w, ctx.Col());
 	}
 
 
