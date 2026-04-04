@@ -207,7 +207,7 @@ static void DeclTypeSplit(const DeclParts& d, Candidates& result,
 		return;
 
 	FmtContext cont = ctx.Indented();
-	auto bare_type = d.type_str.substr(2);
+	auto bare_type = Best(FormatExpr(*d.type_node, cont)).Text();
 
 	auto line1 = d.head + d.colon_node->Text();
 	auto pad = LinePrefix(cont.Indent(), cont.Col());

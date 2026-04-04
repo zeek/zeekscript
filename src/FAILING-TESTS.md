@@ -1,4 +1,4 @@
-# C++ Formatter Failing Tests (159 pass, 14 fail as of 2026-04-03)
+# C++ Formatter Failing Tests (160 pass, 13 fail as of 2026-04-03)
 
 ## By category (sorted by count)
 
@@ -9,9 +9,6 @@ test{014,093,104,126,127,130,133,135,136}
 ### Vertical call-arg layout (3)
 Multi-element set/redef not formatted one-per-line with trailing commas.
 test{041,097,098}
-
-### Miscellaneous (1)
-- test176: TYPE-PARAMETERIZED continuation misaligned after `[`
 
 ## Notes
 - Some tests appear in multiple categories; listed under primary failure.
@@ -300,3 +297,8 @@ entries chronological within a session date.
   - Fixed: test102 (pattern /regex/ was emitted as UNKNOWN-EXPR)
   - Emitter: recognize tree-sitter "pattern" node type, emit as CONSTANT
   - Removed test102 from "Miscellaneous" category
+- After DeclTypeSplit fill-wrap indent fix: 160 pass, 13 fail
+  - Fixed: test176 (TYPE-PARAMETERIZED continuation misaligned after `[`)
+  - DeclTypeSplit: re-format type node in indented context instead of
+    reusing pre-formatted type_str (which had indent=0 fill-wrap pads)
+  - Removed "Miscellaneous" category (all tests fixed)
