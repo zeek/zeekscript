@@ -84,10 +84,9 @@ Candidates ExprStmtNode::Format(const FmtContext& ctx) const
 
 	for ( const auto& c : kids )
 		{
-		Tag t = c->GetTag();
-		if ( t == Tag::Semi )
+		if ( c->GetTag() == Tag::Semi )
 			semi = c.get();
-		else if ( ! is_token(t) && ! expr )
+		else if ( ! c->IsToken() && ! expr )
 			expr = c.get();
 		}
 
@@ -117,7 +116,7 @@ Candidates ExportNode::Format(const FmtContext& ctx) const
 	// Collect non-token children for the body.
 	NodeVec body;
 	for ( const auto& c : Children() )
-		if ( ! is_token(c->GetTag()) )
+		if ( ! c->IsToken() )
 			body.push_back(c);
 
 	auto body_text = FormatStmtList(body, ctx.Indented());
@@ -213,7 +212,7 @@ Candidates SwitchNode::Format(const FmtContext& ctx) const
 				continue;
 				}
 
-			if ( is_token(vt) || is_marker(vt) )
+			if ( vc->IsToken() || vc->IsMarker() )
 				continue;
 
 			vals.push_back(Best(FormatExpr(*vc, ctx)).Text());

@@ -26,6 +26,11 @@ public:
 	virtual ~Node() = default;
 
 	Tag GetTag() const { return tag; }
+	bool IsLambda() const { return is_lambda(tag); }
+	bool IsMarker() const { return is_marker(tag); }
+	bool IsToken() const { return is_token(tag); }
+	bool IsType() const { return is_type_tag(tag); }
+
 	const std::vector<std::string>& Args() const { return args; }
 
 	const NodeVec& Children() const { return children; }

@@ -281,14 +281,14 @@ Candidates FormatDecl(const Node& node, const FmtContext& ctx)
 			continue;
 			}
 
-		if ( expect_type && ! is_token(t) )
+		if ( expect_type && ! c->IsToken() )
 			{
 			d.type_node = c.get();
 			expect_type = false;
 			continue;
 			}
 
-		if ( expect_init && ! is_token(t) )
+		if ( expect_init && ! c->IsToken() )
 			{
 			d.init_val = c.get();
 			expect_init = false;
@@ -361,7 +361,7 @@ static std::vector<ParamEntry> FormatParamEntries(const Node* params,
 			continue;
 			}
 
-		if ( is_token(t) )
+		if ( p->IsToken() )
 			continue;
 
 		if ( t != Tag::Param )

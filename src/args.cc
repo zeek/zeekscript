@@ -23,13 +23,13 @@ ArgComments CollectArgs(const NodeVec& children)
 	for ( size_t i = 0; i < children.size(); ++i )
 		{
 		auto& c = children[i];
-		Tag t = c->GetTag();
 
-		if ( is_marker(t) )
+		if ( c->IsMarker() )
 			continue;
 
-		if ( is_token(t) )
+		if ( c->IsToken() )
 			{
+			Tag t = c->GetTag();
 			if ( t == Tag::Comma )
 				pending_comma = c.get();
 			continue;
@@ -99,7 +99,7 @@ static void AppendTrailing(const ArgComment& it, const Node* next_comma,
 	// Lambda body forces following args onto a new line.
 	// Consume the next comma here so it attaches to the
 	// closing brace rather than the following arg.
-	if ( is_lambda(it.arg->GetTag()) )
+	if ( it.arg->IsLambda() )
 		{
 		if ( next_comma )
 			{
@@ -349,7 +349,7 @@ Candidates FlatOrFill(const std::string& prefix, const std::string& open,
 	// When the last arg is a lambda, put the close bracket on
 	// its own line at the alignment column.
 	bool close_break = ! items.empty() &&
-		is_lambda(items.back().arg->GetTag());
+		items.back().arg->IsLambda();
 
 	std::string fill_text;
 	int flast_w;

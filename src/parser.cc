@@ -18,9 +18,9 @@ static void AttachPreComments(std::vector<std::string>& pending,
 		{
 		for ( auto& c : node.Children() )
 			{
-			Tag t = c->GetTag();
-			if ( ! is_marker(t) &&
-			     t != Tag::LBrace && t != Tag::RBrace )
+			if ( ! c->IsMarker() &&
+			     c->GetTag() != Tag::LBrace &&
+			     c->GetTag() != Tag::RBrace )
 				{
 				AttachPreComments(pending, markers, *c);
 				return;
@@ -77,7 +77,7 @@ NodeVec Parser::ParseFile()
 			pending_pre.push_back(std::move(text));
 			}
 
-		else if ( ! pending_pre.empty() && is_marker(t) )
+		else if ( ! pending_pre.empty() && node->IsMarker() )
 			{
 			// Merge a BLANK between comments and their
 			// target into the last comment as a trailing '\n'.
@@ -177,7 +177,7 @@ std::shared_ptr<Node> Parser::ParseNode()
 
 		// When pre-comments are pending, hold markers so they don't
 		// separate comments from their target node.
-		else if ( ! pending_pre.empty() && is_marker(ct) )
+		else if ( ! pending_pre.empty() && child->IsMarker() )
 			{
 			if ( ct == Tag::Blank )
 				pending_pre.back() += "\n";

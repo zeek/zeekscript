@@ -49,11 +49,8 @@ Nodes Node::ContentChildren() const
 	{
 	Nodes result;
 	for ( const auto& c : children )
-		{
-		Tag t = c->GetTag();
-		if ( ! is_token(t) && ! is_marker(t) )
+		if ( ! c->IsToken() && ! c->IsMarker() )
 			result.push_back(c.get());
-		}
 
 	return result;
 	}

@@ -41,7 +41,7 @@ Candidates FormatTypeParam(const Node& node, const FmtContext& ctx)
 			continue;
 			}
 
-		if ( is_token(t) )
+		if ( c->IsToken() )
 			continue;
 
 		if ( past_of )
@@ -71,7 +71,7 @@ Candidates FormatTypeParam(const Node& node, const FmtContext& ctx)
 const Node* FindTypeChild(const Node& node)
 	{
 	for ( const auto& c : node.Children() )
-		if ( is_type_tag(c->GetTag()) )
+		if ( c->IsType() )
 			return c.get();
 	return nullptr;
 	}
@@ -117,7 +117,7 @@ Candidates FormatTypeFunc(const Node& node, const FmtContext& ctx)
 static const Node* get_non_token_child(const Node* parent)
 	{
 	for ( const auto& c : parent->Children() )
-		if ( ! is_token(c->GetTag()) )
+		if ( ! c->IsToken() )
 			return c.get();
 
 	return nullptr;
