@@ -206,11 +206,47 @@ Candidate FormatArgsFill(const ArgComments& items, int align_col, int indent,
 
 		else
 			{
-			// Multi-line args always wrap to a fresh line where
-			// they may fit flat at the alignment column.
 			int need = 2 + aw;
 			if ( best.Lines() > 1 )
+				{
+				// Bracketed list args (INDEX-LITERAL) can
+				// start on the current line when the first
+				// line fits and there's no overflow.  We
+				// must re-format at the actual position
+				// (after ", ") so internal alignment is
+				// correct.
 				need = max_col + 1;
+				if ( it.arg->GetTag() == Tag::IndexLiteral &&
+				     best.Ovf() == 0 )
+					{
+					int same_col = cur_col + 2;
+					FmtContext sc(indent, same_col,
+						max_col - same_col);
+					auto sb = Best(FormatExpr(*it.arg, sc));
+					auto nl = sb.Text().find('\n');
+					int first_w = nl != std::string::npos
+						? static_cast<int>(nl)
+						: sb.Width();
+					if ( same_col + first_w <= max_col &&
+					     sb.Ovf() == 0 )
+						{
+						text += it.comma->Text() + " "
+							+ sb.Text();
+						if ( sb.Lines() > 1 )
+							{
+							lines += sb.Lines() - 1;
+							cur_col = LastLineLen(text);
+							}
+						else
+							cur_col = same_col
+								+ sb.Width();
+						total_overflow += sb.Ovf();
+						AppendTrailing(it, nc, text,
+							cur_col, force_wrap);
+						continue;
+						}
+					}
+				}
 			if ( cur_col + need <= max_col )
 				{
 				text += it.comma->Text() + " " + best.Text();

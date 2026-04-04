@@ -137,6 +137,36 @@ int TextOverflow(const std::string& text, int start_col, int max_col)
 	return ovf;
 	}
 
+// Like TextOverflow but returns the maximum overflow of any single
+// line rather than the sum.  Handles tab indentation correctly
+// (each tab = INDENT_WIDTH columns).
+int MaxLineOverflow(const std::string& text, int start_col, int max_col)
+	{
+	int max_ovf = 0;
+	int col = start_col;
+
+	for ( char c : text )
+		{
+		if ( c == '\n' )
+			{
+			int ovf = std::max(0, col - max_col);
+			if ( ovf > max_ovf )
+				max_ovf = ovf;
+			col = 0;
+			}
+		else if ( c == '\t' )
+			col = (col / INDENT_WIDTH + 1) * INDENT_WIDTH;
+		else
+			++col;
+		}
+
+	int ovf = std::max(0, col - max_col);
+	if ( ovf > max_ovf )
+		max_ovf = ovf;
+
+	return max_ovf;
+	}
+
 // Layout combinator
 const LayoutItem SoftSp{LayoutItem::Kind::Sp};
 

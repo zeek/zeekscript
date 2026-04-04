@@ -21,6 +21,7 @@ int FitCol(int align_col, int w, int max_col);
 int CountLines(const std::string& s);
 int LastLineLen(const std::string& s);
 int TextOverflow(const std::string& text, int start_col, int max_col);
+int MaxLineOverflow(const std::string& text, int start_col, int max_col);
 
 // Arg lists with trailing comments.
 struct ArgComment

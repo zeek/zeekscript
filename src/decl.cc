@@ -68,6 +68,19 @@ static void DeclWithInit(const DeclParts& d, Candidates& result,
 	// Split after init operator.
 	if ( result[0].Ovf() > 0 )
 		{
+		// The split moves the value from col before_w to
+		// col indent_col.  Skip if the worst-line overflow
+		// barely improves.
+		int flat_mlo = MaxLineOverflow(flat, ctx.Col(),
+		                               ctx.MaxCol());
+		int savings = before_w - ctx.Indented().Col();
+
+		if ( flat_mlo == 0 && val.Lines() > 1 )
+			return;
+		if ( savings > 0 && savings < flat_mlo &&
+		     savings < INDENT_WIDTH )
+			return;
+
 		FmtContext cont = ctx.Indented().Reserve(suffix_w);
 		auto val2 = Best(FormatExpr(*d.init_val, cont));
 

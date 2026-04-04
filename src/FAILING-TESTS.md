@@ -1,14 +1,10 @@
-# C++ Formatter Failing Tests (166 pass, 7 fail as of 2026-04-04)
+# C++ Formatter Failing Tests (172 pass, 1 fail as of 2026-04-04)
 
 ## By category (sorted by count)
 
-### Unnecessary init split (6)
-DeclWithInit splits after `=` when the split still overflows,
-adding a line for no real improvement.
-test{093,104,126,130,135,136}
-
-### Field-assign overflow (1)
-Long field-assign values should underflow rather than overflow.
+### Field-assign underflow (1)
+Long field-assign values should underflow (shift left) rather than
+overflow at the alignment column.
 test127
 
 ## Notes
@@ -324,3 +320,15 @@ entries chronological within a session date.
   - Fixed: test133 (baseline updated - fmt() args split is an improvement)
   - DeclWithInit: include val2.Ovf() in split candidate overflow
   - Recategorized remaining failures: 6 unnecessary init splits, 1 underflow
+- After DeclWithInit split gating + INDEX-LITERAL same-line: 172 pass, 1 fail
+  - Fixed: test{093,104,126} (DeclWithInit split gating)
+  - Fixed: test{130,135,136} (INDEX-LITERAL same-line in fill)
+  - DeclWithInit: skip split when flat has no real line overflow
+    (MaxLineOverflow==0 with multi-line value), or when column savings
+    are less than both the overflow and INDENT_WIDTH
+  - MaxLineOverflow: new tab-aware helper returning max overflow of any
+    single line (vs TextOverflow which sums all lines)
+  - FormatArgsFill: allow multi-line INDEX-LITERAL args on same line
+    when first line fits and there's no overflow; re-format at actual
+    position (after ", ") so internal fill alignment is correct
+  - Removed "Unnecessary init split" category (all 6 fixed)
