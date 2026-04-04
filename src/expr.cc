@@ -1,21 +1,22 @@
 #include <algorithm>
 
+#include "expr_nodes.h"
 #include "fmt_internal.h"
 
-Candidates FormatAtom(const Node& node, const FmtContext& ctx)
+Candidates AtomNode::Format(const FmtContext& ctx) const
 	{
-	return {Candidate(node.Arg(), ctx)};
+	return {Candidate(Arg(), ctx)};
 	}
 
 // Field access: rec$field
-Candidates FormatFieldAccess(const Node& node, const FmtContext& ctx)
+Candidates FieldAccessNode::Format(const FmtContext& ctx) const
 	{
-	auto content = node.ContentChildren("FIELD-ACCESS", 2);
+	auto content = ContentChildren("FIELD-ACCESS", 2);
 
 	auto lhs_cs = FormatExpr(*content[0], ctx);
 	const auto& lhs = Best(lhs_cs);
 
-	auto dollar = node.FindChild(Tag::Dollar);
+	auto dollar = FindChild(Tag::Dollar);
 	int dw = dollar->Width();
 	auto rhs_cs = FormatExpr(*content[1], ctx.After(lhs.Width() + dw));
 	auto rhs = Best(rhs_cs);
@@ -24,14 +25,14 @@ Candidates FormatFieldAccess(const Node& node, const FmtContext& ctx)
 	}
 
 // Field assign: $field=expr
-Candidates FormatFieldAssign(const Node& node, const FmtContext& ctx)
+Candidates FieldAssignNode::Format(const FmtContext& ctx) const
 	{
-	auto dollar = node.FindChild(Tag::Dollar)->Text();
-	auto assign = node.FindChild(Tag::Assign)->Text();
-	auto prefix = dollar + node.Arg() + assign;
+	auto dollar = FindChild(Tag::Dollar)->Text();
+	auto assign = FindChild(Tag::Assign)->Text();
+	auto prefix = dollar + Arg() + assign;
 	int pw = static_cast<int>(prefix.size());
 
-	auto content = node.ContentChildren("FIELD-ASSIGN", 1);
+	auto content = ContentChildren("FIELD-ASSIGN", 1);
 	auto val_cs = FormatExpr(*content[0], ctx.After(pw));
 	auto val = Best(val_cs);
 
@@ -43,13 +44,13 @@ static Candidates FormatConstructor_args(const std::string& open,
 	const FmtContext& ctx);
 
 // Call: func(args)
-Candidates FormatCall(const Node& node, const FmtContext& ctx)
+Candidates CallNode::Format(const FmtContext& ctx) const
 	{
-	auto content = node.ContentChildren("CALL", 1);
+	auto content = ContentChildren("CALL", 1);
 	auto func_cs = FormatExpr(*content[0], ctx);
 	const auto& func = Best(func_cs);
 
-	auto args_node = node.FindChild(Tag::Args);
+	auto args_node = FindChild(Tag::Args);
 	if ( ! args_node )
 		return {func.Cat("()").In(ctx)};
 
@@ -98,24 +99,24 @@ Candidates FormatCall(const Node& node, const FmtContext& ctx)
 	}
 
 // Schedule: schedule interval { event() }
-Candidates FormatSchedule(const Node& node, const FmtContext& ctx)
+Candidates ScheduleNode::Format(const FmtContext& ctx) const
 	{
-	auto kw = node.FindChild(Tag::Keyword)->Text();
-	auto lb = node.FindChild(Tag::LBrace)->Text();
-	auto rb = node.FindChild(Tag::RBrace)->Text();
-	auto content = node.ContentChildren("SCHEDULE", 2);
+	auto kw = FindChild(Tag::Keyword)->Text();
+	auto lb = FindChild(Tag::LBrace)->Text();
+	auto rb = FindChild(Tag::RBrace)->Text();
+	auto content = ContentChildren("SCHEDULE", 2);
 
 	return BuildLayout({kw, SoftSp, content[0], SoftSp, lb,
 				SoftSp, content[1], SoftSp, rb}, ctx);
 	}
 
 // Lambda: function[captures](params): ret { body }
-Candidates FormatLambda(const Node& node, const FmtContext& ctx)
+Candidates LambdaNode::Format(const FmtContext& ctx) const
 	{
 	// Build prefix: function[captures]
-	std::string prefix = node.FindChild(Tag::Keyword)->Text();
+	std::string prefix = FindChild(Tag::Keyword)->Text();
 
-	if ( auto captures = node.FindOptChild(Tag::Captures) )
+	if ( auto captures = FindOptChild(Tag::Captures) )
 		{
 		auto clb = captures->FindChild(Tag::LBracket)->Text();
 		auto crb = captures->FindChild(Tag::RBracket)->Text();
@@ -132,15 +133,15 @@ Candidates FormatLambda(const Node& node, const FmtContext& ctx)
 
 	// Return type and params.
 	std::string ret_str;
-	if ( auto returns = node.FindOptChild(Tag::Returns) )
+	if ( auto returns = FindOptChild(Tag::Returns) )
 		{
-		auto rcol = node.FindChild(Tag::Colon)->Text();
+		auto rcol = FindChild(Tag::Colon)->Text();
 		if ( auto rt = FindTypeChild(*returns) )
 			ret_str = rcol + " " +
 				Best(FormatExpr(*rt, ctx)).Text();
 		}
 
-	auto params = node.FindChild(Tag::Params);
+	auto params = FindChild(Tag::Params);
 	auto lp = params->FindChild(Tag::LParen)->Text();
 	auto rp = params->FindChild(Tag::RParen)->Text();
 	auto items = CollectArgs(params->Children());
@@ -158,7 +159,7 @@ Candidates FormatLambda(const Node& node, const FmtContext& ctx)
 	// position, so the Whitesmith block aligns to the next tab stop.
 	int lambda_indent = ctx.Col() / INDENT_WIDTH;
 	FmtContext body_ctx(lambda_indent, ctx.Col(), ctx.MaxCol() - ctx.Col());
-	auto body = node.FindChild(Tag::Body);
+	auto body = FindChild(Tag::Body);
 	auto block = FormatWhitesmithBlock(body, body_ctx);
 
 	auto text = sig + block;
@@ -195,21 +196,21 @@ static Candidates FormatConstructor_args(const std::string& open,
 	}
 
 // Constructor: table(...), set(...), vector(...), {1, 2, 3}
-Candidates FormatConstructor(const Node& node, const FmtContext& ctx)
+Candidates ConstructorNode::Format(const FmtContext& ctx) const
 	{
-	auto kw = node.FindChild(Tag::Keyword)->Text();
-	auto lp = node.FindChild(Tag::LParen)->Text();
-	auto rp = node.FindChild(Tag::RParen)->Text();
+	auto kw = FindChild(Tag::Keyword)->Text();
+	auto lp = FindChild(Tag::LParen)->Text();
+	auto rp = FindChild(Tag::RParen)->Text();
 	auto open = kw + lp;
 
-	auto items = CollectArgs(node.Children());
+	auto items = CollectArgs(Children());
 	if ( items.empty() )
 		return {Candidate(open + rp, ctx)};
 
 	// Detect trailing comma: N items have N-1 separators, so
 	// N commas means the last one is trailing.
 	int commas = 0;
-	for ( const auto& c : node.Children() )
+	for ( const auto& c : Children() )
 		if ( c->GetTag() == Tag::Comma )
 			++commas;
 
@@ -221,13 +222,13 @@ Candidates FormatConstructor(const Node& node, const FmtContext& ctx)
 	}
 
 // Index: expr[subscripts]
-Candidates FormatIndex(const Node& node, const FmtContext& ctx)
+Candidates IndexNode::Format(const FmtContext& ctx) const
 	{
-	auto content = node.ContentChildren("INDEX", 1);
+	auto content = ContentChildren("INDEX", 1);
 	auto base_cs = FormatExpr(*content[0], ctx);
 	const auto& base = Best(base_cs);
 
-	auto subs_node = node.FindChild(Tag::Subscripts);
+	auto subs_node = FindChild(Tag::Subscripts);
 	if ( ! subs_node )
 		return {base.Cat("[]").In(ctx)};
 
@@ -257,17 +258,17 @@ Candidates FormatIndex(const Node& node, const FmtContext& ctx)
 	}
 
 // Index literal: [$field=expr, ...]
-Candidates FormatIndexLiteral(const Node& node, const FmtContext& ctx)
+Candidates IndexLiteralNode::Format(const FmtContext& ctx) const
 	{
-	auto lb = node.FindChild(Tag::LBracket)->Text();
-	auto rb = node.FindChild(Tag::RBracket)->Text();
+	auto lb = FindChild(Tag::LBracket)->Text();
+	auto rb = FindChild(Tag::RBracket)->Text();
 
-	auto items = CollectArgs(node.Children());
+	auto items = CollectArgs(Children());
 	if ( items.empty() )
 		return {Candidate(lb + rb, ctx)};
 
 	bool has_trailing_comma =
-		node.FindOptChild(Tag::TrailingComma) != nullptr;
+		FindOptChild(Tag::TrailingComma) != nullptr;
 	std::string close_pfx = has_trailing_comma ? ", " : "";
 
 	// When every item has a trailing comment, use vertical indented
@@ -296,20 +297,20 @@ Candidates FormatIndexLiteral(const Node& node, const FmtContext& ctx)
 	}
 
 // Slice: expr[lo:hi], where either lo or hi may be missing
-Candidates FormatSlice(const Node& node, const FmtContext& ctx)
+Candidates SliceNode::Format(const FmtContext& ctx) const
 	{
-	auto content = node.ContentChildren("SLICE", 3);
+	auto content = ContentChildren("SLICE", 3);
 	auto lo = Best(FormatExpr(*content[1], ctx)).Text();
 	auto hi = Best(FormatExpr(*content[2], ctx)).Text();
 
-	auto lb = node.FindChild(Tag::LBracket);
-	auto rb = node.FindChild(Tag::RBracket);
+	auto lb = FindChild(Tag::LBracket);
+	auto rb = FindChild(Tag::RBracket);
 	auto lbt = lb->Text();
 	auto rbt = rb->Text();
 	auto base_cs = FormatExpr(*content[0], ctx);
 	const auto& base = Best(base_cs);
 
-	auto colon = node.FindChild(Tag::Colon)->Text();
+	auto colon = FindChild(Tag::Colon)->Text();
 	auto sep = colon;
 	if ( ! lo.empty() && ! hi.empty() )
 		sep = " " + sep + " ";
@@ -335,11 +336,11 @@ Candidates FormatSlice(const Node& node, const FmtContext& ctx)
 	}
 
 // Paren: (expr)
-Candidates FormatParen(const Node& node, const FmtContext& ctx)
+Candidates ParenNode::Format(const FmtContext& ctx) const
 	{
-	auto content = node.ContentChildren("PAREN", 1);
-	auto lp = node.FindChild(Tag::LParen);
-	auto rp = node.FindChild(Tag::RParen)->Text();
+	auto content = ContentChildren("PAREN", 1);
+	auto lp = FindChild(Tag::LParen);
+	auto rp = FindChild(Tag::RParen)->Text();
 
 	auto inner_cs = FormatExpr(*content[0], ctx.After(lp->Width()));
 	const auto& inner = Best(inner_cs);
@@ -347,40 +348,46 @@ Candidates FormatParen(const Node& node, const FmtContext& ctx)
 	return {Candidate(lp->Text(), ctx).Cat(inner).Cat(rp).In(ctx)};
 	}
 
-// Unary: ! expr, -expr, ~expr
-Candidates FormatUnary(const Node& node, const FmtContext& ctx)
+// Cardinality/absolute value: |expr|
+Candidates CardinalityNode::Format(const FmtContext& ctx) const
 	{
-	const auto& op = node.Arg();
-	auto content = node.ContentChildren("UNARY-OP", 1);
+	auto content = ContentChildren("CARDINALITY", 1);
+	auto lp = FindChild(Tag::Op);
+	auto rp = FindChild(Tag::Op, lp)->Text();
+	auto operand_cs =
+		FormatExpr(*content[0], ctx.After(lp->Width()));
+	auto operand = Best(operand_cs);
+	return {Candidate(lp->Text(), ctx).Cat(operand).Cat(rp).In(ctx)};
+	}
 
-	if ( op == "|...|" )
-		{ // Cardinality/absolute value: |expr|
-		auto lp = node.FindChild(Tag::Op);
-		auto rp = node.FindChild(Tag::Op, lp)->Text();
-		auto operand_cs =
-			FormatExpr(*content[0], ctx.After(lp->Width()));
-		auto operand = Best(operand_cs);
-		return {Candidate(lp->Text(), ctx).Cat(operand).Cat(rp).In(ctx)};
-		}
-
-	// Zeek style: space after "!".
-	auto ps = op;
-	if ( op == "!" )
-		ps += " ";
-
-	Candidate prefix(ps, ctx);
+// Negation: ! expr (Zeek style: space after !)
+Candidates NegationNode::Format(const FmtContext& ctx) const
+	{
+	auto content = ContentChildren("NEGATION", 1);
+	auto op = FindChild(Tag::Op)->Text() + " ";
+	Candidate prefix(op, ctx);
 	auto operand_cs = FormatExpr(*content[0], ctx.After(prefix.Width()));
 	auto operand = Best(operand_cs);
+	return {prefix.Cat(operand).In(ctx)};
+	}
 
+// Unary prefix: -expr, ~expr
+Candidates UnaryNode::Format(const FmtContext& ctx) const
+	{
+	auto content = ContentChildren("UNARY-OP", 1);
+	auto op = FindChild(Tag::Op)->Text();
+	Candidate prefix(op, ctx);
+	auto operand_cs = FormatExpr(*content[0], ctx.After(prefix.Width()));
+	auto operand = Best(operand_cs);
 	return {prefix.Cat(operand).In(ctx)};
 	}
 
 // Boolean chain: operands are direct children (flattened by emitter),
 // pack with fill layout breaking at the boolean operator.
-Candidates FormatBoolChain(const Node& node, const FmtContext& ctx)
+Candidates BoolChainNode::Format(const FmtContext& ctx) const
 	{
-	auto operands = node.ContentChildren();
-	const auto& op = node.Arg();
+	auto operands = ContentChildren();
+	const auto& op = Arg();
 	auto sep = " " + op + " ";
 	int sep_w = static_cast<int>(sep.size());
 
@@ -477,10 +484,10 @@ Candidates FormatBoolChain(const Node& node, const FmtContext& ctx)
 	}
 
 // Has-field: lhs?$rhs (tight binding, no spaces)
-Candidates FormatHasField(const Node& node, const FmtContext& ctx)
+Candidates HasFieldNode::Format(const FmtContext& ctx) const
 	{
-	auto content = node.ContentChildren("HAS-FIELD", 2);
-	auto op_node = node.FindChild(Tag::Op);
+	auto content = ContentChildren("HAS-FIELD", 2);
+	auto op_node = FindChild(Tag::Op);
 	auto rhs_text = Best(FormatExpr(*content[1], ctx)).Text();
 	int suffix_w = op_node->Width() +
 		static_cast<int>(rhs_text.size());
@@ -498,10 +505,10 @@ Candidates FormatHasField(const Node& node, const FmtContext& ctx)
 	}
 
 // Division with atomic RHS: no spaces (subnet masking notation)
-Candidates FormatDiv(const Node& node, const FmtContext& ctx)
+Candidates DivNode::Format(const FmtContext& ctx) const
 	{
-	auto content = node.ContentChildren("DIV", 2);
-	auto op = node.FindChild(Tag::Op)->Text();
+	auto content = ContentChildren("DIV", 2);
+	auto op = FindChild(Tag::Op)->Text();
 	int op_w = static_cast<int>(op.size());
 
 	auto lhs = Best(FormatExpr(*content[0], ctx));
@@ -559,11 +566,11 @@ Candidates FormatDiv(const Node& node, const FmtContext& ctx)
 	}
 
 // Binary: lhs op rhs
-Candidates FormatBinary(const Node& node, const FmtContext& ctx)
+Candidates BinaryNode::Format(const FmtContext& ctx) const
 	{
-	auto content = node.ContentChildren("BINARY-OP", 2);
+	auto content = ContentChildren("BINARY-OP", 2);
 
-	const auto& op = node.Arg();
+	const auto& op = Arg();
 	int op_w = static_cast<int>(op.size()) + 2;
 
 	auto lhs = Best(FormatExpr(*content[0], ctx));
@@ -642,18 +649,18 @@ Candidates FormatBinary(const Node& node, const FmtContext& ctx)
 	}
 
 // Interval constant: always a space before the unit
-Candidates FormatInterval(const Node& node, const FmtContext& ctx)
+Candidates IntervalNode::Format(const FmtContext& ctx) const
 	{
-	return {Candidate(node.Arg(0) + " " + node.Arg(1), ctx)};
+	return {Candidate(Arg(0) + " " + Arg(1), ctx)};
 	}
 
 // Ternary: cond ? true_val : false_val
-Candidates FormatTernary(const Node& node, const FmtContext& ctx)
+Candidates TernaryNode::Format(const FmtContext& ctx) const
 	{
-	auto content = node.ContentChildren("TERNARY", 3);
+	auto content = ContentChildren("TERNARY", 3);
 
-	auto q = node.FindChild(Tag::Question);
-	auto col = node.FindChild(Tag::Colon);
+	auto q = FindChild(Tag::Question);
+	auto col = FindChild(Tag::Colon);
 	auto qs = " " + q->Text() + " ";
 	auto cs = " " + col->Text() + " ";
 	int qw = static_cast<int>(qs.size());

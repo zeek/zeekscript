@@ -68,27 +68,7 @@ const std::unordered_map<Tag, FormatFunc>& FormatDispatch();
 
 // Per-file format functions (registered in dispatch table).
 
-// expr.cc
-Candidates FormatAtom(const Node& node, const FmtContext& ctx);
-Candidates FormatFieldAccess(const Node& node, const FmtContext& ctx);
-Candidates FormatFieldAssign(const Node& node, const FmtContext& ctx);
-Candidates FormatCall(const Node& node, const FmtContext& ctx);
-Candidates FormatSchedule(const Node& node, const FmtContext& ctx);
-Candidates FormatConstructor(const Node& node, const FmtContext& ctx);
-Candidates FormatIndex(const Node& node, const FmtContext& ctx);
-Candidates FormatIndexLiteral(const Node& node, const FmtContext& ctx);
-Candidates FormatSlice(const Node& node, const FmtContext& ctx);
-Candidates FormatParen(const Node& node, const FmtContext& ctx);
-Candidates FormatCardinality(const Node& node, const FmtContext& ctx);
-Candidates FormatNegation(const Node& node, const FmtContext& ctx);
-Candidates FormatUnary(const Node& node, const FmtContext& ctx);
-Candidates FormatBinary(const Node& node, const FmtContext& ctx);
-Candidates FormatBoolChain(const Node& node, const FmtContext& ctx);
-Candidates FormatHasField(const Node& node, const FmtContext& ctx);
-Candidates FormatDiv(const Node& node, const FmtContext& ctx);
-Candidates FormatInterval(const Node& node, const FmtContext& ctx);
-Candidates FormatTernary(const Node& node, const FmtContext& ctx);
-Candidates FormatLambda(const Node& node, const FmtContext& ctx);
+// expr.cc - all expression formatting is now in ExprNode subclasses
 
 // type.cc
 Candidates FormatParam(const Node& node, const FmtContext& ctx);

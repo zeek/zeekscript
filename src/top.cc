@@ -1,37 +1,43 @@
 #include <cstdio>
 #include <unordered_map>
 
+#include "expr_nodes.h"
 #include "fmt_internal.h"
+
+static Candidates FormatExprNode(const Node& node, const FmtContext& ctx)
+	{
+	return static_cast<const ExprNode&>(node).Format(ctx);
+	}
 
 // Dispatch table
 const std::unordered_map<Tag, FormatFunc>& FormatDispatch()
 	{
 	static const std::unordered_map<Tag, FormatFunc> table = {
-		{Tag::Identifier, FormatAtom},
-		{Tag::Constant, FormatAtom},
-		{Tag::FieldAccess, FormatFieldAccess},
-		{Tag::FieldAssign, FormatFieldAssign},
-		{Tag::BinaryOp, FormatBinary},
-		{Tag::BoolChain, FormatBoolChain},
-		{Tag::Div, FormatDiv},
-		{Tag::HasField, FormatHasField},
-		{Tag::Cardinality, FormatCardinality},
-		{Tag::Negation, FormatNegation},
-		{Tag::UnaryOp, FormatUnary},
-		{Tag::Call, FormatCall},
-		{Tag::Constructor, FormatConstructor},
-		{Tag::Schedule, FormatSchedule},
-		{Tag::Index, FormatIndex},
-		{Tag::IndexLiteral, FormatIndexLiteral},
-		{Tag::Slice, FormatSlice},
-		{Tag::Paren, FormatParen},
-		{Tag::Interval, FormatInterval},
-		{Tag::TypeAtom, FormatAtom},
+		{Tag::Identifier, FormatExprNode},
+		{Tag::Constant, FormatExprNode},
+		{Tag::FieldAccess, FormatExprNode},
+		{Tag::FieldAssign, FormatExprNode},
+		{Tag::BinaryOp, FormatExprNode},
+		{Tag::BoolChain, FormatExprNode},
+		{Tag::Div, FormatExprNode},
+		{Tag::HasField, FormatExprNode},
+		{Tag::Cardinality, FormatExprNode},
+		{Tag::Negation, FormatExprNode},
+		{Tag::UnaryOp, FormatExprNode},
+		{Tag::Call, FormatExprNode},
+		{Tag::Constructor, FormatExprNode},
+		{Tag::Schedule, FormatExprNode},
+		{Tag::Index, FormatExprNode},
+		{Tag::IndexLiteral, FormatExprNode},
+		{Tag::Slice, FormatExprNode},
+		{Tag::Paren, FormatExprNode},
+		{Tag::Interval, FormatExprNode},
+		{Tag::TypeAtom, FormatExprNode},
 		{Tag::TypeParameterized, FormatTypeParam},
 		{Tag::Param, FormatParam},
 		{Tag::TypeFunc, FormatTypeFunc},
-		{Tag::Ternary, FormatTernary},
-		{Tag::Lambda, FormatLambda},
+		{Tag::Ternary, FormatExprNode},
+		{Tag::Lambda, FormatExprNode},
 		{Tag::GlobalDecl, FormatDecl},
 		{Tag::LocalDecl, FormatDecl},
 		{Tag::ModuleDecl, FormatModuleDecl},

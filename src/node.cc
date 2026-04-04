@@ -1,5 +1,6 @@
 #include "node.h"
 #include "condition_block.h"
+#include "expr_nodes.h"
 
 #include <cstdio>
 #include <stdexcept>
@@ -73,6 +74,28 @@ std::shared_ptr<Node> MakeNode(Tag tag)
 	case Tag::IfElse: return std::make_shared<IfElseNode>();
 	case Tag::For: return std::make_shared<ForNode>();
 	case Tag::While: return std::make_shared<WhileNode>();
+	case Tag::Identifier: return std::make_shared<AtomNode>(tag);
+	case Tag::Constant: return std::make_shared<AtomNode>(tag);
+	case Tag::TypeAtom: return std::make_shared<AtomNode>(tag);
+	case Tag::Interval: return std::make_shared<IntervalNode>();
+	case Tag::Cardinality: return std::make_shared<CardinalityNode>();
+	case Tag::Negation: return std::make_shared<NegationNode>();
+	case Tag::UnaryOp: return std::make_shared<UnaryNode>();
+	case Tag::BinaryOp: return std::make_shared<BinaryNode>();
+	case Tag::BoolChain: return std::make_shared<BoolChainNode>();
+	case Tag::HasField: return std::make_shared<HasFieldNode>();
+	case Tag::Div: return std::make_shared<DivNode>();
+	case Tag::FieldAccess: return std::make_shared<FieldAccessNode>();
+	case Tag::FieldAssign: return std::make_shared<FieldAssignNode>();
+	case Tag::Call: return std::make_shared<CallNode>();
+	case Tag::Constructor: return std::make_shared<ConstructorNode>();
+	case Tag::Index: return std::make_shared<IndexNode>();
+	case Tag::IndexLiteral: return std::make_shared<IndexLiteralNode>();
+	case Tag::Slice: return std::make_shared<SliceNode>();
+	case Tag::Paren: return std::make_shared<ParenNode>();
+	case Tag::Schedule: return std::make_shared<ScheduleNode>();
+	case Tag::Ternary: return std::make_shared<TernaryNode>();
+	case Tag::Lambda: return std::make_shared<LambdaNode>();
 	default: return std::make_shared<Node>(tag);
 	}
 	}
