@@ -1,0 +1,14 @@
+IF-NO-ELSE {
+  KEYWORD "if"
+  SP
+  LPAREN
+  IDENTIFIER "condition"
+  RPAREN
+  BODY {
+    BLOCK {
+      LBRACE
+      COMMENT-LEADING "\n# Fill this in sometime"
+      RBRACE
+    }
+  }
+}

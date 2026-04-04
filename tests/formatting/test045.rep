@@ -52,8 +52,8 @@ FUNC-DECL {
                     }
                   }
                 }
-                RBRACE
                 COMMENT-TRAILING "#@ NOT-TESTED"
+                RBRACE
               }
             }
           }

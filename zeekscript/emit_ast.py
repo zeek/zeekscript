@@ -1262,11 +1262,10 @@ class Emitter:
         if first_text == "{":
             self._open('BLOCK')
             self._w('LBRACE')
-            for k in kids:
+            for k in self._iter_children(node):
                 if k.type == "stmt_list":
                     self._emit_stmt_list(k)
             self._w('RBRACE')
-            self._emit_extras_in(node)
             self._close()
             self._mark_content(node)
             return

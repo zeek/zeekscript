@@ -42,8 +42,8 @@ FUNC-DECL {
             }
             SEMI
           }
-          RBRACE
           COMMENT-TRAILING "# HASH"
+          RBRACE
         }
       }
     }

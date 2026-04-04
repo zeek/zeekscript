@@ -430,7 +430,8 @@ std::string FormatWhitesmithBlock(const Node* body, const FmtContext& ctx)
 			inner.push_back(c);
 		}
 
-	if ( inner.empty() && ! lb->MustBreakAfter() )
+	if ( inner.empty() && ! lb->MustBreakAfter() &&
+	     rb->PreComments().empty() )
 		return "\n" + brace_pad + lb->Text() + " " + rb->Text();
 
 	auto body_text = FormatStmtList(inner, block_ctx, true);
@@ -448,8 +449,9 @@ std::string FormatWhitesmithBlock(const Node* body, const FmtContext& ctx)
 			rb_text.size() - close_trail.size());
 		}
 
+	auto rb_comments = EmitPreComments(*rb, brace_pad);
 	return "\n" + brace_pad + lb->Text() + "\n" +
-		body_text + brace_pad + rb_text;
+		body_text + rb_comments + brace_pad + rb_text;
 	}
 
 // Format a single-statement body (no braces, indented one level).
