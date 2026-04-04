@@ -27,7 +27,7 @@ FUNC-DECL {
   }
   BODY {
     LBRACE
-    IF {
+    IF-WITH-ELSE {
       KEYWORD "if"
       SP
       LPAREN
@@ -60,10 +60,10 @@ FUNC-DECL {
         COMMENT-TRAILING "#@ NOT-TESTED"
       }
       BLANK
-      ELSE {
+      ELSE-IF {
         KEYWORD "else"
         SP
-        IF {
+        IF-NO-ELSE {
           KEYWORD "if"
           SP
           LPAREN

@@ -8,7 +8,7 @@ FUNC-DECL {
   }
   BODY {
     LBRACE
-    IF {
+    IF-NO-ELSE {
       KEYWORD "if"
       SP
       LPAREN

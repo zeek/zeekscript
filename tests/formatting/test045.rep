@@ -12,7 +12,7 @@ FUNC-DECL {
   }
   BODY {
     LBRACE
-    IF {
+    IF-NO-ELSE {
       KEYWORD "if"
       SP
       LPAREN
@@ -22,7 +22,7 @@ FUNC-DECL {
         BLOCK {
           LBRACE
           BLANK
-          IF {
+          IF-NO-ELSE {
             KEYWORD "if"
             SP
             LPAREN
@@ -32,7 +32,7 @@ FUNC-DECL {
               BLOCK {
                 LBRACE
                 BLANK
-                IF {
+                IF-NO-ELSE {
                   KEYWORD "if"
                   SP
                   LPAREN

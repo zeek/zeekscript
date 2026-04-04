@@ -12,11 +12,11 @@ FUNC-DECL {
   }
   BODY {
     LBRACE
-    IF {
+    IF-NO-ELSE {
       KEYWORD "if"
       SP
       LPAREN
-      BINARY-OP "&&" {
+      BOOL-CHAIN "&&" {
         IDENTIFIER "some_condition"
         OP "&&"
         IDENTIFIER "some_other_condition"

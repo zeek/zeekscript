@@ -6,6 +6,9 @@
 enum class Tag {
 	// Expressions
 	BinaryOp,
+	BoolChain,
+	Div,
+	HasField,
 	UnaryOp,
 	Ternary,
 	Paren,
@@ -46,7 +49,8 @@ enum class Tag {
 
 	// Statements
 	ExprStmt,
-	If,
+	IfNoElse,
+	IfElse,
 	For,
 	While,
 	Switch,
@@ -66,7 +70,8 @@ enum class Tag {
 	Param,
 	Returns,
 	Body,
-	Else,
+	ElseIf,
+	ElseBody,
 	Iterable,
 	Vars,
 	Captures,

@@ -28,35 +28,33 @@ FUNC-DECL {
       }
       SEMI
     }
-    IF {
+    IF-NO-ELSE {
       KEYWORD "if"
       SP
       LPAREN
-      BINARY-OP "?$" {
-        BINARY-OP "||" {
-          BINARY-OP "||" {
-            BINARY-OP "?$" {
-              UNARY-OP "!" {
-                OP "!"
+      HAS-FIELD {
+        BOOL-CHAIN "||" {
+          HAS-FIELD {
+            UNARY-OP "!" {
+              OP "!"
+              IDENTIFIER "rec"
+            }
+            OP "?$"
+            IDENTIFIER "some_field"
+          }
+          OP "||"
+          BINARY-OP "==" {
+            UNARY-OP "|...|" {
+              OP "|"
+              FIELD-ACCESS {
                 IDENTIFIER "rec"
+                DOLLAR
+                IDENTIFIER "some_field"
               }
-              OP "?$"
-              IDENTIFIER "some_field"
+              OP "|"
             }
-            OP "||"
-            BINARY-OP "==" {
-              UNARY-OP "|...|" {
-                OP "|"
-                FIELD-ACCESS {
-                  IDENTIFIER "rec"
-                  DOLLAR
-                  IDENTIFIER "some_field"
-                }
-                OP "|"
-              }
-              OP "=="
-              CONSTANT "0"
-            }
+            OP "=="
+            CONSTANT "0"
           }
           OP "||"
           UNARY-OP "!" {

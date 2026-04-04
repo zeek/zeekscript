@@ -16,31 +16,29 @@ FUNC-DECL {
   }
   BODY {
     LBRACE
-    IF {
+    IF-NO-ELSE {
       KEYWORD "if"
       SP
       LPAREN
-      BINARY-OP "&&" {
-        BINARY-OP "&&" {
-          BINARY-OP "?$" {
-            IDENTIFIER "c"
-            OP "?$"
-            IDENTIFIER "tunnel"
-          }
-          OP "&&"
-          BINARY-OP ">=" {
-            UNARY-OP "|...|" {
-              OP "|"
-              FIELD-ACCESS {
-                IDENTIFIER "c"
-                DOLLAR
-                IDENTIFIER "tunnel"
-              }
-              OP "|"
+      BOOL-CHAIN "&&" {
+        HAS-FIELD {
+          IDENTIFIER "c"
+          OP "?$"
+          IDENTIFIER "tunnel"
+        }
+        OP "&&"
+        BINARY-OP ">=" {
+          UNARY-OP "|...|" {
+            OP "|"
+            FIELD-ACCESS {
+              IDENTIFIER "c"
+              DOLLAR
+              IDENTIFIER "tunnel"
             }
-            OP ">="
-            CONSTANT "2"
+            OP "|"
           }
+          OP ">="
+          CONSTANT "2"
         }
         OP "&&"
         BINARY-OP "==" {

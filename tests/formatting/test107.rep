@@ -21,7 +21,7 @@ FUNC-DECL {
             IDENTIFIER "floor"
             ARGS {
               LPAREN
-              BINARY-OP "/" {
+              DIV {
                 FIELD-ACCESS {
                   FIELD-ACCESS {
                     IDENTIFIER "c"

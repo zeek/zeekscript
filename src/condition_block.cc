@@ -26,31 +26,8 @@ Candidates ConditionBlockNode::Format(const FmtContext& ctx) const
 	auto head = Best(head_cs).Text();
 
 	auto body_node = FindChild(Tag::Body);
-	auto result = head + FormatBodyText(body_node, ctx);
-
-	// Check for blank lines after the body (e.g., before else).
-	bool has_blank = false;
-
-	for ( const auto& c : Children() )
-		if ( c->GetTag() == Tag::Blank )
-			has_blank = true;
-
-	// Collect pre-comments from the follow-on node (e.g., Else).
-	std::string comments;
-	auto stmt_pad = LinePrefix(ctx.Indent(), ctx.Col());
-	auto else_node = FindOptChild(Tag::Else);
-
-	if ( else_node )
-		for ( const auto& pc : else_node->PreComments() )
-			{
-			if ( ! comments.empty() || has_blank )
-				comments += "\n";
-
-			comments += stmt_pad + pc;
-			has_blank = false;
-			}
-
-	result += BuildFollowOn(ctx, comments, has_blank);
+	auto result = head + FormatBodyText(body_node, ctx) +
+			BuildFollowOn(ctx);
 
 	return {Candidate(result, ctx)};
 	}
@@ -58,7 +35,6 @@ Candidates ConditionBlockNode::Format(const FmtContext& ctx) const
 // Default: format the single expression between parens.
 std::string ConditionBlockNode::BuildCondition(const FmtContext& cond_ctx) const
 	{
-	// First content child is the condition expression.
 	return Best(FormatExpr(*ContentChildren()[0], cond_ctx)).Text();
 	}
 
@@ -96,18 +72,45 @@ std::string ForNode::BuildCondition(const FmtContext& cond_ctx) const
 	}
 
 // ------------------------------------------------------------------
-// IfNode: else clause follow-on
+// IfElseNode: else clause follow-on
 // ------------------------------------------------------------------
 
-std::string IfNode::BuildFollowOn(const FmtContext& ctx,
-			const std::string& comments, bool has_blank) const
+// Find the ElseIf or ElseBody child.
+static const Node* find_else(const Node& node)
 	{
-	auto else_node = FindOptChild(Tag::Else);
-	if ( ! else_node )
-		return "";
+	for ( const auto& c : node.Children() )
+		{
+		Tag t = c->GetTag();
+		if ( t == Tag::ElseIf || t == Tag::ElseBody )
+			return c.get();
+		}
 
-	auto else_child = else_node->ContentChildren()[0];
+	return nullptr;
+	}
+
+std::string IfElseNode::BuildFollowOn(const FmtContext& ctx) const
+	{
+	auto else_node = find_else(*this);
+
+	// Check for blank lines before the else.
+	bool has_blank = false;
+	for ( const auto& c : Children() )
+		if ( c->GetTag() == Tag::Blank )
+			has_blank = true;
+
+	// Collect pre-comments from the else node.
+	std::string comments;
 	auto stmt_pad = LinePrefix(ctx.Indent(), ctx.Col());
+
+	for ( const auto& pc : else_node->PreComments() )
+		{
+		if ( ! comments.empty() || has_blank )
+			comments += "\n";
+
+		comments += stmt_pad + pc;
+		has_blank = false;
+		}
+
 	std::string result;
 
 	if ( has_blank || ! comments.empty() )
@@ -115,22 +118,27 @@ std::string IfNode::BuildFollowOn(const FmtContext& ctx,
 
 	result += comments;
 
-	if ( else_child->GetTag() == Tag::If )
+	auto else_child = else_node->ContentChildren()[0];
+	auto else_kw = else_node->FindChild(Tag::Keyword)->Text();
+
+	if ( else_node->GetTag() == Tag::ElseIf )
 		{
 		auto inner_cs = FormatExpr(*else_child, ctx);
-		result += "\n" + stmt_pad + "else " + Best(inner_cs).Text();
+		result += "\n" + stmt_pad + else_kw + " " +
+				Best(inner_cs).Text();
 		}
 
 	else if ( else_child->GetTag() == Tag::Block )
-		result += "\n" + stmt_pad + "else" +
-			FormatWhitesmithBlock(else_child, ctx);
+		result += "\n" + stmt_pad + else_kw +
+				FormatWhitesmithBlock(else_child, ctx);
 
 	else
 		{
 		FmtContext else_ctx = ctx.Indented();
 		auto cs = FormatExpr(*else_child, else_ctx);
-		std::string epad = LinePrefix(else_ctx.Indent(), else_ctx.Col());
-		result += "\n" + stmt_pad + "else\n" + epad + Best(cs).Text();
+		auto epad = LinePrefix(else_ctx.Indent(), else_ctx.Col());
+		result += "\n" + stmt_pad + else_kw + "\n" +
+				epad + Best(cs).Text();
 		}
 
 	return result;

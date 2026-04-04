@@ -50,7 +50,7 @@ FUNC-DECL {
                   CONSTANT "10"
                 }
                 OP "+"
-                BINARY-OP "/" {
+                DIV {
                   CONSTANT "23"
                   OP "/"
                   CONSTANT "15"

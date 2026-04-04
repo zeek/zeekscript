@@ -96,6 +96,27 @@ class Emitter:
         """Non-extra children."""
         return [c for c in node.children if not c.is_extra]
 
+    def _is_atomic_expr(self, node: tree_sitter.Node) -> bool:
+        """True if node will emit as a leaf (IDENTIFIER or CONSTANT)."""
+        kids = self._children(node)
+        if len(kids) != 1:
+            return False
+        return kids[0].type in ("id", "constant", "integer",
+                                "string", "pattern_literal")
+
+    def _flatten_bool_chain(self, node: tree_sitter.Node,
+                            op: str,
+                            out: list[tree_sitter.Node]) -> None:
+        """Collect operands of left-associative && or || chain."""
+        kids = self._children(node)
+        token_texts = {self._text(k) for k in kids if not k.is_named}
+        bin_ops = token_texts & _BINARY_OPS
+        if bin_ops and len(kids) == 3 and bin_ops.pop() == op:
+            self._flatten_bool_chain(kids[0], op, out)
+            out.append(kids[2])
+        else:
+            out.append(node)
+
     def _has_blank(self, start: int, end: int) -> bool:
         return self.source[start:end].count(b"\n") >= 2
 
@@ -313,6 +334,43 @@ class Emitter:
         bin_ops = token_texts & _BINARY_OPS
         if bin_ops and len(kids) == 3:
             op = bin_ops.pop()
+
+            # ?$ -> HAS-FIELD
+            if op == "?$":
+                self._open('HAS-FIELD')
+                self._emit_expr_child(kids[0])
+                self._w(f'OP {_quote(op)}')
+                self._emit_expr_child(kids[2])
+                self._emit_extras_in(node)
+                self._close()
+                self._mark_content(node)
+                return
+
+            # &&/|| chains -> BOOL-CHAIN with flat operands
+            if op in ("&&", "||"):
+                operands = []
+                self._flatten_bool_chain(node, op, operands)
+                self._open(f'BOOL-CHAIN {_quote(op)}')
+                for i, operand in enumerate(operands):
+                    if i > 0:
+                        self._w(f'OP {_quote(op)}')
+                    self._emit_expr_child(operand)
+                self._emit_extras_in(node)
+                self._close()
+                self._mark_content(node)
+                return
+
+            # / with atomic RHS -> DIV (tight spacing)
+            if op == "/" and self._is_atomic_expr(kids[2]):
+                self._open('DIV')
+                self._emit_expr_child(kids[0])
+                self._w(f'OP {_quote(op)}')
+                self._emit_expr_child(kids[2])
+                self._emit_extras_in(node)
+                self._close()
+                self._mark_content(node)
+                return
+
             self._open(f'BINARY-OP {_quote(op)}')
             self._emit_expr_child(kids[0])
             self._w(f'OP {_quote(op)}')
@@ -1301,7 +1359,7 @@ class Emitter:
             elif k.type == "stmt" and found_else:
                 else_body = k
 
-        self._open('IF')
+        self._open('IF-WITH-ELSE' if else_body else 'IF-NO-ELSE')
         self._kw("if")
         if cond:
             self._w('LPAREN')
@@ -1347,7 +1405,12 @@ class Emitter:
                 self._w("BLANK")
 
         if else_body:
-            self._open('ELSE')
+            else_kids = self._children(else_body)
+            first_text = self._text(else_kids[0]) if else_kids else ""
+            if first_text == "if":
+                self._open('ELSE-IF')
+            else:
+                self._open('ELSE-BODY')
             self._kw("else")
             self._emit_stmt(else_body)
             self._close()

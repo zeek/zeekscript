@@ -1,19 +1,17 @@
 RETURN {
   KEYWORD "return"
   SP
-  BINARY-OP "&&" {
-    BINARY-OP "&&" {
-      BINARY-OP "in" {
-        IDENTIFIER "a_long_var_name"
-        OP "in"
-        IDENTIFIER "subj"
-      }
-      OP "&&"
-      BINARY-OP "!in" {
-        IDENTIFIER "b_long_var_name"
-        OP "!in"
-        IDENTIFIER "subj"
-      }
+  BOOL-CHAIN "&&" {
+    BINARY-OP "in" {
+      IDENTIFIER "a_long_var_name"
+      OP "in"
+      IDENTIFIER "subj"
+    }
+    OP "&&"
+    BINARY-OP "!in" {
+      IDENTIFIER "b_long_var_name"
+      OP "!in"
+      IDENTIFIER "subj"
     }
     OP "&&"
     BINARY-OP "!in" {

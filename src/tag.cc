@@ -10,6 +10,9 @@ struct TagEntry {
 static const std::unordered_map<std::string, TagEntry> tag_map = {
 	// Expressions
 	{"BINARY-OP", {Tag::BinaryOp, false}},
+	{"BOOL-CHAIN", {Tag::BoolChain, false}},
+	{"DIV", {Tag::Div, false}},
+	{"HAS-FIELD", {Tag::HasField, false}},
 	{"UNARY-OP", {Tag::UnaryOp, false}},
 	{"TERNARY", {Tag::Ternary, false}},
 	{"PAREN", {Tag::Paren, false}},
@@ -50,7 +53,8 @@ static const std::unordered_map<std::string, TagEntry> tag_map = {
 
 	// Statements
 	{"EXPR-STMT", {Tag::ExprStmt, false}},
-	{"IF", {Tag::If, false}},
+	{"IF-NO-ELSE", {Tag::IfNoElse, false}},
+	{"IF-WITH-ELSE", {Tag::IfElse, false}},
 	{"FOR", {Tag::For, false}},
 	{"WHILE", {Tag::While, false}},
 	{"SWITCH", {Tag::Switch, false}},
@@ -70,7 +74,8 @@ static const std::unordered_map<std::string, TagEntry> tag_map = {
 	{"PARAM", {Tag::Param, false}},
 	{"RETURNS", {Tag::Returns, false}},
 	{"BODY", {Tag::Body, false}},
-	{"ELSE", {Tag::Else, false}},
+	{"ELSE-IF", {Tag::ElseIf, false}},
+	{"ELSE-BODY", {Tag::ElseBody, false}},
 	{"ITERABLE", {Tag::Iterable, false}},
 	{"VARS", {Tag::Vars, false}},
 	{"CAPTURES", {Tag::Captures, false}},

@@ -1,4 +1,4 @@
-IF {
+IF-NO-ELSE {
   KEYWORD "if"
   SP
   LPAREN
@@ -13,7 +13,7 @@ IF {
       BINARY-OP "=" {
         IDENTIFIER "age_d"
         OP "="
-        BINARY-OP "/" {
+        DIV {
           CALL {
             IDENTIFIER "interval_to_double"
             ARGS {

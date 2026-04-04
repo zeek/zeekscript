@@ -23,7 +23,7 @@ FUNC-DECL {
   BODY {
     LBRACE
     COMMENT-LEADING "#@ BEGIN-SKIP-TESTING"
-    IF {
+    IF-NO-ELSE {
       KEYWORD "if"
       SP
       LPAREN

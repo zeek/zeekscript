@@ -8,35 +8,33 @@ FUNC-DECL {
   }
   BODY {
     LBRACE
-    IF {
+    IF-NO-ELSE {
       KEYWORD "if"
       SP
       LPAREN
-      BINARY-OP "?$" {
-        BINARY-OP "||" {
-          BINARY-OP "||" {
-            BINARY-OP "?$" {
-              UNARY-OP "!" {
-                OP "!"
+      HAS-FIELD {
+        BOOL-CHAIN "||" {
+          HAS-FIELD {
+            UNARY-OP "!" {
+              OP "!"
+              IDENTIFIER "aa"
+            }
+            OP "?$"
+            IDENTIFIER "bb_chain"
+          }
+          OP "||"
+          BINARY-OP "==" {
+            UNARY-OP "|...|" {
+              OP "|"
+              FIELD-ACCESS {
                 IDENTIFIER "aa"
+                DOLLAR
+                IDENTIFIER "bb_chain"
               }
-              OP "?$"
-              IDENTIFIER "bb_chain"
+              OP "|"
             }
-            OP "||"
-            BINARY-OP "==" {
-              UNARY-OP "|...|" {
-                OP "|"
-                FIELD-ACCESS {
-                  IDENTIFIER "aa"
-                  DOLLAR
-                  IDENTIFIER "bb_chain"
-                }
-                OP "|"
-              }
-              OP "=="
-              CONSTANT "0"
-            }
+            OP "=="
+            CONSTANT "0"
           }
           OP "||"
           UNARY-OP "!" {

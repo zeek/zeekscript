@@ -14,25 +14,24 @@ public:
 
 protected:
 	// Returns formatted text for the condition between parens.
-	// cond_ctx is positioned at the condition's start column
-	// with space reserved for the closing " )".
 	virtual std::string BuildCondition(const FmtContext& cond_ctx) const;
 
-	// Returns any follow-on text (e.g., else clause for if).
-	// comments holds formatted interstitial comments between
-	// body and follow-on; has_blank indicates a preceding blank.
-	virtual std::string BuildFollowOn(const FmtContext& /* ctx */,
-		const std::string& /* comments */, bool /* has_blank */) const
+	// Returns any follow-on text after the body (e.g., else clause).
+	virtual std::string BuildFollowOn(const FmtContext& /* ctx */) const
 		{ return ""; }
 };
 
-class IfNode : public ConditionBlockNode {
+class IfNoElseNode : public ConditionBlockNode {
 public:
-	IfNode() : ConditionBlockNode(Tag::If) { }
+	IfNoElseNode() : ConditionBlockNode(Tag::IfNoElse) { }
+};
+
+class IfElseNode : public ConditionBlockNode {
+public:
+	IfElseNode() : ConditionBlockNode(Tag::IfElse) { }
 
 protected:
-	std::string BuildFollowOn(const FmtContext& ctx,
-		const std::string& comments, bool has_blank) const override;
+	std::string BuildFollowOn(const FmtContext& ctx) const override;
 };
 
 class ForNode : public ConditionBlockNode {

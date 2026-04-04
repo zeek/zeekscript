@@ -375,27 +375,12 @@ Candidates FormatUnary(const Node& node, const FmtContext& ctx)
 	return {prefix.Cat(operand).In(ctx)};
 	}
 
-// ------------------------------------------------------------------
-// Boolean chain: flatten left-associative && or || into operand list,
-// then pack with fill layout breaking at the boolean operator.
-// ------------------------------------------------------------------
-static void FlattenBoolChain(const Node& node, const std::string& op,
-                             Nodes& out)
+// Boolean chain: operands are direct children (flattened by emitter),
+// pack with fill layout breaking at the boolean operator.
+Candidates FormatBoolChain(const Node& node, const FmtContext& ctx)
 	{
-	auto content = node.ContentChildren();
-	if ( node.GetTag() == Tag::BinaryOp && node.Arg() == op &&
-	     content.size() >= 2 )
-		{
-		FlattenBoolChain(*content[0], op, out);
-		out.push_back(content[1]);
-		}
-	else
-		out.push_back(&node);
-	}
-
-static Candidates FormatBoolChain(const std::string& op, const Nodes& operands,
-                                  const FmtContext& ctx)
-	{
+	auto operands = node.ContentChildren();
+	const auto& op = node.Arg();
 	auto sep = " " + op + " ";
 	int sep_w = static_cast<int>(sep.size());
 
@@ -491,54 +476,102 @@ static Candidates FormatBoolChain(const std::string& op, const Nodes& operands,
 	return {{text, cur_col, lines, total_overflow, ctx.Col()}};
 	}
 
+// Has-field: lhs?$rhs (tight binding, no spaces)
+Candidates FormatHasField(const Node& node, const FmtContext& ctx)
+	{
+	auto content = node.ContentChildren("HAS-FIELD", 2);
+	auto op_node = node.FindChild(Tag::Op);
+	auto rhs_text = Best(FormatExpr(*content[1], ctx)).Text();
+	int suffix_w = op_node->Width() +
+		static_cast<int>(rhs_text.size());
+
+	auto lhs_cs = FormatExpr(*content[0], ctx.Reserve(suffix_w));
+	auto lhs = Best(lhs_cs);
+
+	auto text = lhs.Text() + op_node->Text() + rhs_text;
+
+	if ( lhs.Lines() <= 1 )
+		return {Candidate(text, ctx)};
+
+	int last_w = lhs.Width() + suffix_w;
+	return {{text, last_w, lhs.Lines(), lhs.Ovf(), ctx.Col()}};
+	}
+
+// Division with atomic RHS: no spaces (subnet masking notation)
+Candidates FormatDiv(const Node& node, const FmtContext& ctx)
+	{
+	auto content = node.ContentChildren("DIV", 2);
+	auto op = node.FindChild(Tag::Op)->Text();
+	int op_w = static_cast<int>(op.size());
+
+	auto lhs = Best(FormatExpr(*content[0], ctx));
+	auto rhs_cs = FormatExpr(*content[1], ctx.After(lhs.Width() + op_w));
+	auto rhs = Best(rhs_cs);
+
+	auto flat = lhs.Text() + op + rhs.Text();
+	int flat_w = lhs.Width() + op_w + rhs.Width();
+	int flat_ovf = Ovf(flat_w, ctx);
+
+	if ( lhs.Lines() > 1 || rhs.Lines() > 1 )
+		{
+		int last_w = LastLineLen(flat);
+		int lines = CountLines(flat);
+		int ovf = TextOverflow(flat, ctx.Col(), ctx.MaxCol());
+		return {{flat, last_w, lines, ovf, ctx.Col()}};
+		}
+
+	Candidates result;
+	result.push_back({flat, flat_w, 1, flat_ovf});
+
+	if ( flat_ovf <= 0 )
+		return result;
+
+	// Split after operator.
+	FmtContext cont_ctx = ctx.Col() == ctx.IndentCol() ?
+				ctx.Indented() : ctx.AtCol(ctx.Col());
+
+	auto rhs2 = Best(FormatExpr(*content[1], cont_ctx));
+	auto cont_prefix = LinePrefix(cont_ctx.Indent(), cont_ctx.Col());
+	auto split = lhs.Text() + op + "\n" + cont_prefix + rhs2.Text();
+	int line1_w = lhs.Width() + op_w;
+	int split_lines = 1 + rhs2.Lines();
+
+	int last_w;
+	int line2_ovf;
+
+	if ( rhs2.Lines() > 1 )
+		{
+		last_w = LastLineLen(split);
+		line2_ovf = rhs2.Ovf();
+		}
+	else
+		{
+		auto rhs_text_w = static_cast<int>(rhs2.Text().size());
+		last_w = cont_ctx.Col() + rhs_text_w;
+		line2_ovf = std::max(0, last_w + cont_ctx.Trail() -
+					cont_ctx.MaxCol());
+		}
+
+	int split_ovf = OvfNoTrail(line1_w, ctx) + line2_ovf;
+	result.push_back({split, last_w, split_lines, split_ovf, ctx.Col()});
+
+	return result;
+	}
+
 // Binary: lhs op rhs
 Candidates FormatBinary(const Node& node, const FmtContext& ctx)
 	{
 	auto content = node.ContentChildren("BINARY-OP", 2);
-	if ( content.size() < 2 )
-		throw FormatError("BINARY-OP node needs 2 children");
 
 	const auto& op = node.Arg();
-	if ( op == "&&" || op == "||" )
-		{ // Boolean chains: flatten and fill-pack at && or ||.
-		Nodes operands;
-		FlattenBoolChain(node, op, operands);
-		return FormatBoolChain(op, operands, ctx);
-		}
-
-	if ( op == "?$" )
-		{
-		// ?$ binds without spaces, like field access.
-		// Reserve trail space so the LHS splits to leave room.
-		auto op_node = node.FindChild(Tag::Op);
-		auto rhs_text =
-			Best(FormatExpr(*content[1], ctx)).Text();
-		int suffix_w = op_node->Width() +
-			static_cast<int>(rhs_text.size());
-
-		auto lhs_cs = FormatExpr(*content[0], ctx.Reserve(suffix_w));
-		auto lhs = Best(lhs_cs);
-
-		auto text = lhs.Text() + op_node->Text() + rhs_text;
-
-		if ( lhs.Lines() <= 1 )
-			return {Candidate(text, ctx)};
-
-		int last_w = lhs.Width() + suffix_w;
-		return {{text, last_w, lhs.Lines(), lhs.Ovf(), ctx.Col()}};
-		}
-
-	// "/" with atomic RHS: no spaces (subnet masking heuristic, until
-	// next zeek-tree-sitter comes out w/ fix)
-	bool tight = (op == "/" && ! content[1]->HasChildren());
-	int op_w = static_cast<int>(op.size()) + (tight ? 0 : 2);
+	int op_w = static_cast<int>(op.size()) + 2;
 
 	auto lhs = Best(FormatExpr(*content[0], ctx));
 	auto rhs_cs = FormatExpr(*content[1], ctx.After(lhs.Width() + op_w));
 	auto rhs = Best(rhs_cs);
 
 	// Candidate 1: flat - lhs op rhs
-	auto sep = tight ? "" : " ";
+	auto sep = std::string(" ");
 	auto flat = lhs.Text() + sep + op + sep + rhs.Text();
 	int flat_w = lhs.Width() + op_w + rhs.Width();
 	int flat_ovf = Ovf(flat_w, ctx);
@@ -578,7 +611,7 @@ Candidates FormatBinary(const Node& node, const FmtContext& ctx)
 
 	auto cont_prefix = LinePrefix(cont_ctx.Indent(), cont_ctx.Col());
 	auto split = lhs.Text() + sep + op + "\n" + cont_prefix + rhs2.Text();
-	int line1_w = lhs.Width() + (tight ? 0 : 1) +
+	int line1_w = lhs.Width() + 1 +
 			static_cast<int>(op.size());
 	int split_lines = 1 + rhs2.Lines();
 

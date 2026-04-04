@@ -1,17 +1,13 @@
-IF {
+IF-NO-ELSE {
   KEYWORD "if"
   SP
   LPAREN
-  BINARY-OP "&&" {
-    BINARY-OP "&&" {
-      BINARY-OP "&&" {
-        IDENTIFIER "first_condition"
-        OP "&&"
-        IDENTIFIER "second_condition"
-      }
-      OP "&&"
-      IDENTIFIER "third_condition"
-    }
+  BOOL-CHAIN "&&" {
+    IDENTIFIER "first_condition"
+    OP "&&"
+    IDENTIFIER "second_condition"
+    OP "&&"
+    IDENTIFIER "third_condition"
     OP "&&"
     BINARY-OP ">" {
       FIELD-ACCESS {
