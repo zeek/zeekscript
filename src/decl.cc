@@ -76,8 +76,8 @@ static void DeclWithInit(const DeclParts& d, Candidates& result,
 		auto split = line1 + "\n" + pad + val2.Text() + d.suffix;
 		int last_w = LastLineLen(split);
 		int lines = CountLines(split);
-		int ovf = OvfNoTrail(static_cast<int>(line1.size()), ctx) +
-				Ovf(last_w, ctx);
+		int ovf = TextOverflow(split, ctx.Col(), ctx.MaxCol());
+
 		result.push_back({split, last_w, lines, ovf, ctx.Col()});
 		}
 	}

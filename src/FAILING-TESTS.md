@@ -1,10 +1,15 @@
-# C++ Formatter Failing Tests (165 pass, 8 fail as of 2026-04-04)
+# C++ Formatter Failing Tests (166 pass, 7 fail as of 2026-04-04)
 
 ## By category (sorted by count)
 
-### Line-breaking / layout quality (8)
-Call args, assignments, binary ops not splitting at overflow.
-test{093,104,126,127,130,133,135,136}
+### Unnecessary init split (6)
+DeclWithInit splits after `=` when the split still overflows,
+adding a line for no real improvement.
+test{093,104,126,130,135,136}
+
+### Field-assign overflow (1)
+Long field-assign values should underflow rather than overflow.
+test127
 
 ## Notes
 - Some tests appear in multiple categories; listed under primary failure.
@@ -315,3 +320,7 @@ entries chronological within a session date.
   - Fixed: test038 (brace-initializer trailing comma preserved)
   - FormatConstructor: detect trailing comma by counting COMMA nodes
     vs item count (bare COMMA before RPAREN, not TRAILING-COMMA tag)
+- After DeclWithInit split overflow accounting: 166 pass, 7 fail
+  - Fixed: test133 (baseline updated - fmt() args split is an improvement)
+  - DeclWithInit: include val2.Ovf() in split candidate overflow
+  - Recategorized remaining failures: 6 unnecessary init splits, 1 underflow
