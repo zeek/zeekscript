@@ -1,10 +1,10 @@
-# C++ Formatter Failing Tests (160 pass, 13 fail as of 2026-04-03)
+# C++ Formatter Failing Tests (161 pass, 12 fail as of 2026-04-03)
 
 ## By category (sorted by count)
 
-### Line-breaking / layout quality (9)
+### Line-breaking / layout quality (8)
 Call args, assignments, binary ops not splitting at overflow.
-test{014,093,104,126,127,130,133,135,136}
+test{093,104,126,127,130,133,135,136}
 
 ### Vertical call-arg layout (3)
 Multi-element set/redef not formatted one-per-line with trailing commas.
@@ -302,3 +302,7 @@ entries chronological within a session date.
   - DeclTypeSplit: re-format type node in indented context instead of
     reusing pre-formatted type_str (which had indent=0 fill-wrap pads)
   - Removed "Miscellaneous" category (all tests fixed)
+- After FormatBinary split overflow fix: 161 pass, 12 fail
+  - Fixed: test014 (assignment split after = instead of wrapping call args)
+  - FormatBinary split path: compute overflow from text length for single-line
+    rhs rather than Width(), which FlatOrFill stores as absolute column

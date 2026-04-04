@@ -531,10 +531,28 @@ Candidates FormatBinary(const Node& node, const FmtContext& ctx)
 	auto split = lhs.Text() + sep + op + "\n" + cont_prefix + rhs2.Text();
 	int line1_w = lhs.Width() + (tight ? 0 : 1) +
 			static_cast<int>(op.size());
-	int line2_ovf = Ovf(rhs2.Width(), cont_ctx);
-	int split_ovf = OvfNoTrail(line1_w, ctx) + line2_ovf;
 	int split_lines = 1 + rhs2.Lines();
-	int last_w = rhs2.Lines() > 1 ? LastLineLen(split) : rhs2.Width();
+
+	// Compute last-line width and overflow.  Use text length for
+	// single-line rhs rather than Width(), which may be an absolute
+	// column from sub-formatters like FlatOrFill.
+	int last_w;
+	int line2_ovf;
+
+	if ( rhs2.Lines() > 1 )
+		{
+		last_w = LastLineLen(split);
+		line2_ovf = rhs2.Ovf();
+		}
+	else
+		{
+		auto rhs_text_w = static_cast<int>(rhs2.Text().size());
+		last_w = cont_ctx.Col() + rhs_text_w;
+		line2_ovf = std::max(0, last_w + cont_ctx.Trail() -
+					cont_ctx.MaxCol());
+		}
+
+	int split_ovf = OvfNoTrail(line1_w, ctx) + line2_ovf;
 
 	result.push_back({split, last_w, split_lines, split_ovf, ctx.Col()});
 
