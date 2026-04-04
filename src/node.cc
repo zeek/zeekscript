@@ -97,6 +97,7 @@ std::shared_ptr<Node> MakeNode(Tag tag)
 	case Tag::Schedule: return std::make_shared<ScheduleNode>();
 	case Tag::Ternary: return std::make_shared<TernaryNode>();
 	case Tag::Lambda: return std::make_shared<LambdaNode>();
+	case Tag::CommentLeading: return std::make_shared<CommentNode>();
 	case Tag::ExprStmt: return std::make_shared<ExprStmtNode>();
 	case Tag::Return: return std::make_shared<KeywordStmtNode>(tag);
 	case Tag::Add: return std::make_shared<KeywordStmtNode>(tag);

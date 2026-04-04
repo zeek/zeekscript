@@ -3,6 +3,12 @@
 #include "fmt_internal.h"
 #include "stmt_nodes.h"
 
+// Standalone comment at statement level.
+Candidates CommentNode::Format(const FmtContext& ctx) const
+	{
+	return {Candidate(Arg(), ctx)};
+	}
+
 // Simple keyword statements: return [expr], add expr, delete expr
 Candidates KeywordStmtNode::Format(const FmtContext& ctx) const
 	{
@@ -338,16 +344,9 @@ std::string FormatStmtList(const NodeVec& nodes, const FmtContext& ctx,
 		result += EmitPreComments(node, pad);
 
 		// COMMENT-TRAILING nodes are handled by the parser
-		// (attached to preceding node) or by the parent
-		// (e.g. after open brace).  Skip them here.
+		// (attached to preceding node).  Skip them here.
 		if ( t == Tag::CommentTrailing )
 			continue;
-
-		if ( is_comment(t) )
-			{
-			result += pad + node.Arg() + "\n";
-			continue;
-			}
 
 		// PREPROC directives: flow-control (@if etc.) at column 0,
 		// other directives (@load etc.) at current indentation.

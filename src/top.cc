@@ -53,6 +53,7 @@ const std::unordered_map<Tag, FormatFunc>& FormatDispatch()
 		{Tag::GlobalDecl, FormatDecl},
 		{Tag::LocalDecl, FormatDecl},
 		{Tag::ModuleDecl, FormatModuleDecl},
+		{Tag::CommentLeading, FormatStmtNode},
 		{Tag::ExprStmt, FormatStmtNode},
 		{Tag::Return, FormatStmtNode},
 		{Tag::Print, FormatStmtNode},
