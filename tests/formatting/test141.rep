@@ -17,8 +17,7 @@ TYPE-DECL "SomeInfo" {
       }
       SEMI
     }
-    BLANK
-    COMMENT-LEADING "## A unique identifier."
+    COMMENT-LEADING "\n## A unique identifier."
     FIELD "uid" {
       COLON
       TYPE-ATOM "string"
@@ -27,8 +26,7 @@ TYPE-DECL "SomeInfo" {
       }
       SEMI
     }
-    BLANK
-    COMMENT-LEADING "## A network address."
+    COMMENT-LEADING "\n## A network address."
     FIELD "addr_field" {
       COLON
       TYPE-ATOM "addr"

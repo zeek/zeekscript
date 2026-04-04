@@ -99,7 +99,7 @@ static void AppendTrailing(const ArgComment& it, const Node* next_comma,
 	// Lambda body forces following args onto a new line.
 	// Consume the next comma here so it attaches to the
 	// closing brace rather than the following arg.
-	if ( it.arg->GetTag() == Tag::Lambda )
+	if ( is_lambda(it.arg->GetTag()) )
 		{
 		if ( next_comma )
 			{
@@ -349,7 +349,7 @@ Candidates FlatOrFill(const std::string& prefix, const std::string& open,
 	// When the last arg is a lambda, put the close bracket on
 	// its own line at the alignment column.
 	bool close_break = ! items.empty() &&
-		items.back().arg->GetTag() == Tag::Lambda;
+		is_lambda(items.back().arg->GetTag());
 
 	std::string fill_text;
 	int flast_w;

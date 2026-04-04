@@ -110,28 +110,38 @@ Candidates ScheduleNode::Format(const FmtContext& ctx) const
 				SoftSp, content[1], SoftSp, rb}, ctx);
 	}
 
-// Lambda: function[captures](params): ret { body }
+// Lambda without captures: function(params): ret { body }
+std::string LambdaNode::BuildPrefix(const FmtContext& /*ctx*/) const
+	{
+	return FindChild(Tag::Keyword)->Text();
+	}
+
+// Lambda with captures: function[captures](params): ret { body }
+std::string LambdaCapturesNode::BuildPrefix(const FmtContext& ctx) const
+	{
+	auto prefix = FindChild(Tag::Keyword)->Text();
+	auto captures = FindChild(Tag::Captures);
+	auto clb = captures->FindChild(Tag::LBracket)->Text();
+	auto crb = captures->FindChild(Tag::RBracket)->Text();
+	auto cap_items = CollectArgs(captures->Children());
+
+	if ( cap_items.empty() )
+		return prefix + clb + crb;
+
+	auto cs = FlatOrFill(prefix, clb, crb, "", cap_items, ctx);
+	return Best(cs).Text();
+	}
+
 Candidates LambdaNode::Format(const FmtContext& ctx) const
 	{
-	// Build prefix: function[captures]
-	std::string prefix = FindChild(Tag::Keyword)->Text();
+	return FormatLambda(BuildPrefix(ctx), ctx);
+	}
 
-	if ( auto captures = FindOptChild(Tag::Captures) )
-		{
-		auto clb = captures->FindChild(Tag::LBracket)->Text();
-		auto crb = captures->FindChild(Tag::RBracket)->Text();
-		auto cap_items = CollectArgs(captures->Children());
-		if ( cap_items.empty() )
-			prefix += clb + crb;
-		else
-			{
-			auto cs = FlatOrFill(prefix, clb, crb, "",
-						cap_items, ctx);
-			prefix = Best(cs).Text();
-			}
-		}
 
-	// Return type and params.
+Candidates LambdaNode::FormatLambda(const std::string& prefix,
+                                    const FmtContext& ctx) const
+	{
+	// Return type.
 	std::string ret_str;
 	if ( auto returns = FindOptChild(Tag::Returns) )
 		{
@@ -141,6 +151,7 @@ Candidates LambdaNode::Format(const FmtContext& ctx) const
 				Best(FormatExpr(*rt, ctx)).Text();
 		}
 
+	// Params.
 	auto params = FindChild(Tag::Params);
 	auto lp = params->FindChild(Tag::LParen)->Text();
 	auto rp = params->FindChild(Tag::RParen)->Text();

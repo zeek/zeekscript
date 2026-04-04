@@ -674,7 +674,16 @@ class Emitter:
 
     def _emit_lambda(self, node: tree_sitter.Node) -> None:
         """Emit a lambda (anonymous function) expression."""
-        self._open('LAMBDA')
+        # Determine whether captures are present to choose the tag.
+        has_captures = False
+        for child in node.children:
+            if not child.is_extra and child.type == "begin_lambda":
+                for blc in child.children:
+                    if not blc.is_extra and blc.type == "capture_list":
+                        has_captures = True
+
+        tag = 'LAMBDA-CAPTURES' if has_captures else 'LAMBDA'
+        self._open(tag)
         self._kw("function")
         for child in self._iter_children(node):
             if child.type == "begin_lambda":

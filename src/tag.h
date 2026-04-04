@@ -25,6 +25,7 @@ enum class Tag {
 	Schedule,
 	KeywordExpr,   // hook, copy
 	Lambda,
+	LambdaCaptures,
 	WhenLocal,
 
 	// Expression atoms
@@ -131,6 +132,11 @@ Tag TagFromString(const std::string& s);
 
 // Convert a Tag enum value back to its .rep string form.
 const char* TagToString(Tag t);
+
+inline bool is_lambda(Tag t)
+	{
+	return t == Tag::Lambda || t == Tag::LambdaCaptures;
+	}
 
 inline bool is_type_tag(Tag t)
 	{

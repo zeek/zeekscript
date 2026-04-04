@@ -19,8 +19,7 @@ EXPORT {
     }
     SEMI
   }
-  BLANK
-  COMMENT-LEADING "## Some trailing comment"
+  COMMENT-LEADING "\n## Some trailing comment"
   COMMENT-LEADING "## Another trailing comment"
   RBRACE
 }

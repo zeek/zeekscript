@@ -15,7 +15,7 @@ FUNC-DECL {
           LPAREN
           IDENTIFIER "opt_id"
           COMMA
-          LAMBDA {
+          LAMBDA-CAPTURES {
             KEYWORD "function"
             SP
             CAPTURES {

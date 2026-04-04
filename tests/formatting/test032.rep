@@ -32,8 +32,7 @@ FUNC-DECL {
           SEMI
         }
       }
-      BLANK
-      COMMENT-LEADING "# This handles the fallback case."
+      COMMENT-LEADING "\n# This handles the fallback case."
       COMMENT-LEADING "# Check secondary pattern too."
       ELSE-IF {
         KEYWORD "else"

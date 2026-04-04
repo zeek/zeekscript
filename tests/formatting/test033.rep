@@ -22,7 +22,6 @@ FUNC-DECL {
     RBRACE
   }
 }
-BLANK
-COMMENT-LEADING "# Note: This comment belongs inside the ifdef block."
+COMMENT-LEADING "\n# Note: This comment belongs inside the ifdef block."
 COMMENT-LEADING "# It should be tab-indented."
 PREPROC "@endif"

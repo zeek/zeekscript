@@ -148,5 +148,17 @@ public:
 class LambdaNode : public ExprNode {
 public:
 	LambdaNode() : ExprNode(Tag::Lambda) { }
+	LambdaNode(Tag t) : ExprNode(t) { }
 	Candidates Format(const FmtContext& ctx) const override;
+protected:
+	virtual std::string BuildPrefix(const FmtContext& ctx) const;
+	Candidates FormatLambda(const std::string& prefix,
+	                        const FmtContext& ctx) const;
+};
+
+class LambdaCapturesNode : public LambdaNode {
+public:
+	LambdaCapturesNode() : LambdaNode(Tag::LambdaCaptures) { }
+protected:
+	std::string BuildPrefix(const FmtContext& ctx) const override;
 };

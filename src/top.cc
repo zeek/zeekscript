@@ -50,6 +50,7 @@ const std::unordered_map<Tag, FormatFunc>& FormatDispatch()
 		{Tag::TypeFunc, FormatTypeFunc},
 		{Tag::Ternary, FormatExprNode},
 		{Tag::Lambda, FormatExprNode},
+		{Tag::LambdaCaptures, FormatExprNode},
 		{Tag::GlobalDecl, FormatDecl},
 		{Tag::LocalDecl, FormatDecl},
 		{Tag::ModuleDecl, FormatModuleDecl},

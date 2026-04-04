@@ -29,6 +29,7 @@ static const std::unordered_map<std::string, TagEntry> tag_map = {
 	{"SCHEDULE", {Tag::Schedule, false}},
 	{"KEYWORD-EXPR", {Tag::KeywordExpr, false}},
 	{"LAMBDA", {Tag::Lambda, false}},
+	{"LAMBDA-CAPTURES", {Tag::LambdaCaptures, false}},
 	{"WHEN-LOCAL", {Tag::WhenLocal, false}},
 
 	// Expression atoms
