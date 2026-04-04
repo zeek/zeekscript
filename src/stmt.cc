@@ -45,8 +45,8 @@ Candidates KeywordStmtNode::Format(const FmtContext& ctx) const
 Candidates EventStmtNode::Format(const FmtContext& ctx) const
 	{
 	auto args_node = FindChild(Tag::Args);
-	auto semi = FindOptChild(Tag::Semi);
-	auto semi_str = semi ? semi->Text() : "";
+	auto semi = FindChild(Tag::Semi);
+	auto semi_str = semi->Text();
 	auto prefix = FindChild(Tag::Keyword)->Text() + " " + Arg();
 	auto lp = args_node->FindChild(Tag::LParen)->Text();
 	auto rp = args_node->FindChild(Tag::RParen)->Text();
@@ -55,8 +55,8 @@ Candidates EventStmtNode::Format(const FmtContext& ctx) const
 	if ( items.empty() )
 		return {Candidate(prefix + lp + rp + semi_str, ctx)};
 
-	int semi_w = semi ? semi->Width() : 0;
-	FmtContext inner = semi ? ctx.Reserve(semi_w) : ctx;
+	int semi_w = semi->Width();
+	FmtContext inner = ctx.Reserve(semi_w);
 	auto cs = FlatOrFill(prefix, lp, rp, "", items, inner,
 				args_node->TrailingComment());
 

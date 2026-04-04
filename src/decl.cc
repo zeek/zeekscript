@@ -253,7 +253,7 @@ Candidates FormatDecl(const Node& node, const FmtContext& ctx)
 	DeclParts d;
 	d.head = kw_node->Text() + " " + id_node->Text();
 	d.attrs_node = node.FindOptChild(Tag::AttrList);
-	d.semi_node = node.FindOptChild(Tag::Semi);
+	d.semi_node = node.FindChild(Tag::Semi);
 
 	// Scan children sequentially: COLON precedes type, ASSIGN
 	// precedes init value.  Skip the head keyword and name nodes.
