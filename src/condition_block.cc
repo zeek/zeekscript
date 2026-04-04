@@ -1,4 +1,5 @@
 #include "condition_block.h"
+#include "fmt_internal.h"
 
 // ------------------------------------------------------------------
 // Shared condition-block formatting: keyword ( condition ) body
@@ -92,24 +93,19 @@ std::string IfElseNode::BuildFollowOn(const FmtContext& ctx) const
 	{
 	auto else_node = find_else(*this);
 
-	// Check for blank lines before the else.
+	// Check for standalone blank lines before the else
+	// (not merged with comments).
 	bool has_blank = false;
 	for ( const auto& c : Children() )
 		if ( c->GetTag() == Tag::Blank )
 			has_blank = true;
 
-	// Collect pre-comments from the else node.
-	std::string comments;
 	auto stmt_pad = LinePrefix(ctx.Indent(), ctx.Col());
+	auto comments = EmitPreComments(*else_node, stmt_pad);
 
-	for ( const auto& pc : else_node->PreComments() )
-		{
-		if ( ! comments.empty() || has_blank )
-			comments += "\n";
-
-		comments += stmt_pad + pc;
-		has_blank = false;
-		}
+	// Strip trailing newline - the else line provides its own.
+	if ( ! comments.empty() && comments.back() == '\n' )
+		comments.pop_back();
 
 	std::string result;
 

@@ -21,7 +21,26 @@ std::string EmitPreComments(const Node& node, const std::string& pad)
 	std::string result;
 
 	for ( const auto& pc : node.PreComments() )
-		result += pad + pc + "\n";
+		{
+		// Leading '\n' = blank line before this comment.
+		size_t start = 0;
+		while ( start < pc.size() && pc[start] == '\n' )
+			{
+			result += "\n";
+			++start;
+			}
+
+		// The comment text itself.
+		size_t end = pc.size();
+		while ( end > start && pc[end - 1] == '\n' )
+			--end;
+
+		result += pad + pc.substr(start, end - start) + "\n";
+
+		// Trailing '\n' = blank line after this comment.
+		for ( size_t j = end; j < pc.size(); ++j )
+			result += "\n";
+		}
 
 	for ( const auto& pm : node.PreMarkers() )
 		if ( pm->GetTag() == Tag::Blank )

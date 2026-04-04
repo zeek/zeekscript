@@ -161,8 +161,31 @@ Candidate FormatArgsFill(const ArgComments& items, int align_col, int indent,
 
 			for ( const auto& lc : it.leading )
 				{
-				text += "\n" + pad + lc;
+				// Leading '\n' = blank line merged
+				// from adjacent BLANK.
+				size_t start = 0;
+				while ( start < lc.size() &&
+				        lc[start] == '\n' )
+					{
+					text += "\n";
+					++lines;
+					++start;
+					}
+
+				size_t end = lc.size();
+				while ( end > start &&
+				        lc[end - 1] == '\n' )
+					--end;
+
+				text += "\n" + pad +
+					lc.substr(start, end - start);
 				++lines;
+
+				for ( size_t j = end; j < lc.size(); ++j )
+					{
+					text += "\n";
+					++lines;
+					}
 				}
 
 			text += "\n" + pad;

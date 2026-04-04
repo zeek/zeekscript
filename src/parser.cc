@@ -64,14 +64,28 @@ NodeVec Parser::ParseFile()
 			nodes.back()->SetTrailingComment(node->Arg());
 
 		else if ( t == Tag::CommentLeading )
-			// Save COMMENT-LEADING for the next node.
-			pending_pre.push_back(node->Arg());
+			{
+			// Merge a preceding standalone BLANK into
+			// the comment as a leading '\n'.
+			std::string text = node->Arg();
+			if ( ! nodes.empty() &&
+			     nodes.back()->GetTag() == Tag::Blank )
+				{
+				nodes.pop_back();
+				text = "\n" + text;
+				}
+			pending_pre.push_back(std::move(text));
+			}
 
 		else if ( ! pending_pre.empty() && is_marker(t) )
-			// When pre-comments are pending, hold BLANK/SEMI/
-			// TrailingComma so they don't separate the comments
-			// from the node they belong to.
-			pending_nodes.push_back(std::move(node));
+			{
+			// Merge a BLANK between comments and their
+			// target into the last comment as a trailing '\n'.
+			if ( t == Tag::Blank )
+				pending_pre.back() += "\n";
+			else
+				pending_nodes.push_back(std::move(node));
+			}
 
 		else
 			{
@@ -150,12 +164,26 @@ std::shared_ptr<Node> Parser::ParseNode()
 
 		// Save COMMENT-LEADING for the next child.
 		else if ( ct == Tag::CommentLeading )
-			pending_pre.push_back(child->Arg());
+			{
+			std::string text = child->Arg();
+			if ( node->HasChildren() &&
+			     node->Children().back()->GetTag() == Tag::Blank )
+				{
+				node->Children().pop_back();
+				text = "\n" + text;
+				}
+			pending_pre.push_back(std::move(text));
+			}
 
 		// When pre-comments are pending, hold markers so they don't
 		// separate comments from their target node.
 		else if ( ! pending_pre.empty() && is_marker(ct) )
-			pending_children.push_back(std::move(child));
+			{
+			if ( ct == Tag::Blank )
+				pending_pre.back() += "\n";
+			else
+				pending_children.push_back(std::move(child));
+			}
 
 		else
 			{
