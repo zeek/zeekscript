@@ -1,4 +1,4 @@
-TYPE-DECL "some_very_long_type_name_aaaaa" {
+TYPEDECL-ALIAS "some_very_long_type_name_aaaaa" {
   KEYWORD "type"
   SP
   IDENTIFIER "some_very_long_type_name_aaaaa"

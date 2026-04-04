@@ -1,4 +1,4 @@
-TYPE-DECL "Foo" {
+TYPEDECL-RECORD "Foo" {
   KEYWORD "type"
   SP
   IDENTIFIER "Foo"

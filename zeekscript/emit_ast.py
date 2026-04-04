@@ -1133,11 +1133,20 @@ class Emitter:
 
     def _emit_type_decl(self, node: tree_sitter.Node) -> None:
         name = ""
+        # Determine the type-decl variant by inspecting the type child.
+        variant = "TYPEDECL-ALIAS"
         for k in node.children:
             if not k.is_extra and k.type == "id":
                 name = self._text(k)
-                break
-        self._open(f'TYPE-DECL {_quote(name)}')
+            elif not k.is_extra and k.type == "type":
+                type_kids = self._children(k)
+                if type_kids:
+                    ft = self._text(type_kids[0])
+                    if ft == "record":
+                        variant = "TYPEDECL-RECORD"
+                    elif ft == "enum":
+                        variant = "TYPEDECL-ENUM"
+        self._open(f'{variant} {_quote(name)}')
         for child in self._iter_children(node):
             if not child.is_named:
                 text = self._text(child)

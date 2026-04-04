@@ -2,7 +2,7 @@ EXPORT {
   KEYWORD "export"
   SP
   LBRACE
-  TYPE-DECL "AnomalyTypes" {
+  TYPEDECL-ENUM "AnomalyTypes" {
     KEYWORD "type"
     SP
     IDENTIFIER "AnomalyTypes"

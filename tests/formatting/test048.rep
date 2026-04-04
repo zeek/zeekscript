@@ -1,4 +1,4 @@
-TYPE-DECL "score" {
+TYPEDECL-ENUM "score" {
   KEYWORD "type"
   SP
   IDENTIFIER "score"

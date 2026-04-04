@@ -2,7 +2,7 @@ EXPORT {
   KEYWORD "export"
   SP
   LBRACE
-  TYPE-DECL "SomeAttrs" {
+  TYPEDECL-RECORD "SomeAttrs" {
     KEYWORD "type"
     SP
     IDENTIFIER "SomeAttrs"

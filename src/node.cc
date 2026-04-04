@@ -105,6 +105,9 @@ std::shared_ptr<Node> MakeNode(Tag tag)
 	case Tag::Print: return std::make_shared<KeywordStmtNode>(Tag::Print);
 	case Tag::ExportDecl: return std::make_shared<ExportNode>();
 	case Tag::Switch: return std::make_shared<SwitchNode>();
+	case Tag::TypeDeclAlias: return std::make_shared<TypeDeclAliasNode>();
+	case Tag::TypeDeclEnum: return std::make_shared<TypeDeclEnumNode>();
+	case Tag::TypeDeclRecord: return std::make_shared<TypeDeclRecordNode>();
 	default: return std::make_shared<Node>(tag);
 	}
 	}

@@ -1,4 +1,5 @@
 #include "fmt_internal.h"
+#include "stmt_nodes.h"
 
 // Declarations: global/local/const/redef name [: type] [= init] [attrs] ;
 
@@ -547,10 +548,38 @@ static std::string FormatField(const Node& node, const std::string& suffix,
 	return head + type_str + "\n" + pad + all_attrs + suffix;
 	}
 
-static Candidate format_enum_decl(const Node* enum_node, const std::string& kw,
-				const std::string& id, const std::string& semi,
-				const std::string& colon, const FmtContext& ctx)
+// ------------------------------------------------------------------
+// Type alias: type name: basetype ;
+// ------------------------------------------------------------------
+
+Candidates TypeDeclAliasNode::Format(const FmtContext& ctx) const
 	{
+	auto kw = FindChild(Tag::Keyword)->Text();
+	auto id = FindChild(Tag::Identifier)->Text();
+	auto colon = FindChild(Tag::Colon)->Text();
+	auto semi = FindChild(Tag::Semi)->Text();
+
+	const Node* base_type = FindTypeChild(*this);
+	if ( base_type )
+		return BuildLayout({kw, SoftSp, id, colon,
+			SoftSp, base_type, semi}, ctx);
+
+	// Fallback for malformed alias.
+	return BuildLayout({kw, SoftSp, id, semi}, ctx);
+	}
+
+// ------------------------------------------------------------------
+// Enum type: type name: enum { val1, val2, ... } ;
+// ------------------------------------------------------------------
+
+Candidates TypeDeclEnumNode::Format(const FmtContext& ctx) const
+	{
+	auto kw = FindChild(Tag::Keyword)->Text();
+	auto id = FindChild(Tag::Identifier)->Text();
+	auto colon = FindChild(Tag::Colon)->Text();
+	auto semi = FindChild(Tag::Semi)->Text();
+
+	auto enum_node = FindChild(Tag::TypeEnum);
 	auto ekw = enum_node->FindChild(Tag::Keyword)->Text();
 	auto lb = enum_node->FindChild(Tag::LBrace)->Text();
 
@@ -599,13 +628,21 @@ static Candidate format_enum_decl(const Node* enum_node, const std::string& kw,
 	auto close_pad = LinePrefix(ctx.Indent(), ctx.Col());
 	auto rb = enum_node->FindChild(Tag::RBrace)->Text();
 	auto text = head + "\n" + body + close_pad + rb + semi;
-	return Candidate(text, ctx);
+	return {Candidate(text, ctx)};
 	}
 
-static Candidate format_rec_decl(const Node* rec_node, const std::string& kw,
-				const std::string& id, const std::string& semi,
-				const std::string& colon, const FmtContext& ctx)
+// ------------------------------------------------------------------
+// Record type: type name: record { field1; field2; ... } ;
+// ------------------------------------------------------------------
+
+Candidates TypeDeclRecordNode::Format(const FmtContext& ctx) const
 	{
+	auto kw = FindChild(Tag::Keyword)->Text();
+	auto id = FindChild(Tag::Identifier)->Text();
+	auto colon = FindChild(Tag::Colon)->Text();
+	auto semi = FindChild(Tag::Semi)->Text();
+
+	auto rec_node = FindChild(Tag::TypeRecord);
 	auto rkw = rec_node->FindChild(Tag::Keyword)->Text();
 	auto lb = rec_node->FindChild(Tag::LBrace)->Text();
 
@@ -648,33 +685,4 @@ static Candidate format_rec_decl(const Node* rec_node, const std::string& kw,
 	auto text = head + "\n" + body + close_pad + rb + semi;
 
 	return {Candidate(text, ctx)};
-	}
-
-Candidates FormatTypeDecl(const Node& node, const FmtContext& ctx)
-	{
-	const Node* kw_node = node.FindChild(Tag::Keyword);
-	const Node* id_node = node.FindChild(Tag::Identifier);
-	const Node* colon = node.FindChild(Tag::Colon);
-	const Node* semi = node.FindChild(Tag::Semi);
-	std::string kw = kw_node->Text();
-	std::string id = id_node->Text();
-	std::string semi_str = semi->Text();
-
-	// Simple type alias: type name: basetype;
-	const Node* base_type = FindTypeChild(node);
-	if ( base_type )
-		return BuildLayout({kw, SoftSp, id, colon->Text(),
-			SoftSp, base_type, semi_str}, ctx);
-
-	if ( auto enum_node = node.FindOptChild(Tag::TypeEnum) )
-		return {format_enum_decl(enum_node, kw, id,
-						semi_str, colon->Text(), ctx)};
-
-	// Record type.
-	if ( auto rec_node = node.FindOptChild(Tag::TypeRecord) )
-		return {format_rec_decl(rec_node, kw, id,
-						semi_str, colon->Text(), ctx)};
-
-	// Fallback.
-	return BuildLayout({kw, SoftSp, id, semi_str}, ctx);
 	}

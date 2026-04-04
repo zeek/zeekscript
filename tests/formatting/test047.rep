@@ -1,4 +1,4 @@
-TYPE-DECL "SomeEnumAA" {
+TYPEDECL-ENUM "SomeEnumAA" {
   KEYWORD "type"
   SP
   IDENTIFIER "SomeEnumAA"

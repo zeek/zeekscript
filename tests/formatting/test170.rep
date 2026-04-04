@@ -1,4 +1,4 @@
-TYPE-DECL "val" {
+TYPEDECL-ALIAS "val" {
   KEYWORD "type"
   SP
   IDENTIFIER "val"

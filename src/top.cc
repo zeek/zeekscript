@@ -68,7 +68,9 @@ const std::unordered_map<Tag, FormatFunc>& FormatDispatch()
 		{Tag::For, FormatCondBlock},
 		{Tag::While, FormatCondBlock},
 		{Tag::ExportDecl, FormatStmtNode},
-		{Tag::TypeDecl, FormatTypeDecl},
+		{Tag::TypeDeclAlias, FormatStmtNode},
+		{Tag::TypeDeclEnum, FormatStmtNode},
+		{Tag::TypeDeclRecord, FormatStmtNode},
 		{Tag::Switch, FormatStmtNode},
 	};
 

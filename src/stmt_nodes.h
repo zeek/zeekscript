@@ -54,6 +54,26 @@ public:
 	Candidates Format(const FmtContext& ctx) const override;
 };
 
+// Type declarations: type name : alias/enum/record ;
+
+class TypeDeclAliasNode : public StmtNode {
+public:
+	TypeDeclAliasNode() : StmtNode(Tag::TypeDeclAlias) { }
+	Candidates Format(const FmtContext& ctx) const override;
+};
+
+class TypeDeclEnumNode : public StmtNode {
+public:
+	TypeDeclEnumNode() : StmtNode(Tag::TypeDeclEnum) { }
+	Candidates Format(const FmtContext& ctx) const override;
+};
+
+class TypeDeclRecordNode : public StmtNode {
+public:
+	TypeDeclRecordNode() : StmtNode(Tag::TypeDeclRecord) { }
+	Candidates Format(const FmtContext& ctx) const override;
+};
+
 // Switch statement: switch expr { case val: body ... }
 
 class SwitchNode : public StmtNode {

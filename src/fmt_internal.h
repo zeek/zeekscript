@@ -83,7 +83,6 @@ std::vector<std::string> FormatAttrStrings(const Node& node,
 Candidates FormatDecl(const Node& node, const FmtContext& ctx);
 Candidates FormatFuncDecl(const Node& node, const FmtContext& ctx);
 Candidates FormatModuleDecl(const Node& node, const FmtContext& ctx);
-Candidates FormatTypeDecl(const Node& node, const FmtContext& ctx);
 
 // stmt.cc - statement formatting is now in StmtNode subclasses
 // (FormatCondBlock is in ConditionBlockNode, used directly from dispatch table)
