@@ -33,23 +33,23 @@ static Candidates append_suffix(Candidates& cs, const std::string& suffix,
 // Children: [0]=KEYWORD [1]=SP ... [last]=SEMI
 Candidates KeywordStmtNode::Format(const FmtContext& ctx) const
 	{
-	auto keyword = Child(0, Tag::Keyword)->Text();
-	auto semi = Children().back().get();
-	auto semi_str = semi->Text();
+	auto kw = Child(0, Tag::Keyword);
+	const auto& semi = Children().back();
 	auto items = collect_args(Children());
 
 	if ( items.empty() )
-		return {Candidate(keyword + semi_str, ctx)};
+		return {Candidate(Formatting(kw) + semi, ctx)};
 
 	if ( items.size() == 1 )
-		return build_layout({keyword, soft_sp, items[0].arg,
-					semi_str}, ctx);
+		return build_layout({tok(kw), soft_sp, items[0].arg,
+					tok(semi)}, ctx);
 
+	auto keyword = kw->Text();
 	int semi_w = semi->Width();
 	FmtContext inner = ctx.Reserve(semi_w);
 	auto cs = flat_or_fill(keyword + " ", "", "", "", items, inner);
 
-	return append_suffix(cs, semi_str, semi_w, ctx.Col());
+	return append_suffix(cs, semi->Text(), semi_w, ctx.Col());
 	}
 
 // Event statement: event name(args);
@@ -80,7 +80,7 @@ Candidates EventStmtNode::Format(const FmtContext& ctx) const
 // Children: [0]=expr ... [last]=SEMI
 Candidates ExprStmtNode::Format(const FmtContext& ctx) const
 	{
-	auto semi = Children().back().get();
+	const auto& semi = Children().back();
 	int semi_w = semi->Width();
 	auto expr_cs = format_expr(*Child(0), ctx.Reserve(semi_w));
 	return append_suffix(expr_cs, semi->Text(), semi_w, ctx.Col(), &ctx);
@@ -104,9 +104,8 @@ Candidates ExportNode::Format(const FmtContext& ctx) const
 
 	const auto& rb = Children().back();
 	auto close = rb->EmitPreComments(inner_pad) + pad + rb;
-	auto kw = Child(0, Tag::Keyword)->Text();
-	auto lb = Child(2, Tag::LBrace)->Text();
-	auto head = best(build_layout({kw, soft_sp, lb}, ctx)).Text();
+	auto head = best(build_layout({tok(Child(0, Tag::Keyword)),
+		soft_sp, tok(Child(2, Tag::LBrace))}, ctx)).Text();
 
 	auto text = head + "\n" + body_text + close;
 	return {Candidate(std::move(text), ctx)};
@@ -265,10 +264,11 @@ FmtPtr PreprocCondNode::FormatText() const
 	{
 	const auto& directive = Arg(0);
 	const auto& arg = Arg(1);
-	auto lp = Child(0, Tag::LParen)->Text();
-	auto rp = Child(1, Tag::RParen)->Text();
-	return std::make_shared<Formatting>(directive + " " + lp +
-						" " + arg + " " + rp);
+	Formatting result(directive + " ");
+	result += Child(0, Tag::LParen);
+	result += " " + arg + " ";
+	result += Child(1, Tag::RParen);
+	return std::make_shared<Formatting>(std::move(result));
 	}
 
 bool PreprocBaseNode::OpensDepth() const

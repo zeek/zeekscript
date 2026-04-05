@@ -180,12 +180,12 @@ std::vector<std::string> Node::FormatAttrStrings(const FmtContext& ctx) const
 
 Formatting Node::FormatAttrList(const FmtContext& ctx) const
 	{
-	Formatting text;
+	Formatting fmt;
 	for ( const auto& s : FormatAttrStrings(ctx) )
 		{
-		if ( ! text.Empty() )
-			text += " ";
-		text += s;
+		if ( ! fmt.Empty() )
+			fmt += " ";
+		fmt += s;
 		}
-	return text;
+	return fmt;
 	}

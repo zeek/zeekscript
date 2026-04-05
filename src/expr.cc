@@ -92,12 +92,10 @@ Candidates CallNode::Format(const FmtContext& ctx) const
 // Children: [0]=KEYWORD [1]=SP [2]=interval [3]=LBRACE [4]=event [5]=RBRACE
 Candidates ScheduleNode::Format(const FmtContext& ctx) const
 	{
-	auto kw = Child(0, Tag::Keyword)->Text();
-	auto lb = Child(3, Tag::LBrace)->Text();
-	auto rb = Child(5, Tag::RBrace)->Text();
-
-	return build_layout({kw, soft_sp, Child(2), soft_sp, lb,
-				soft_sp, Child(4), soft_sp, rb}, ctx);
+	return build_layout({tok(Child(0, Tag::Keyword)), soft_sp, Child(2),
+		soft_sp, tok(Child(3, Tag::LBrace)),
+		soft_sp, Child(4), soft_sp,
+		tok(Child(5, Tag::RBrace))}, ctx);
 	}
 
 // Lambda without captures: function(params): ret { body }
@@ -167,7 +165,7 @@ Candidates LambdaNode::FormatLambda(const std::string& prefix,
 	// position, so the Whitesmith block aligns to the next tab stop.
 	int lambda_indent = ctx.Col() / INDENT_WIDTH;
 	FmtContext body_ctx(lambda_indent, ctx.Col(), ctx.MaxCol() - ctx.Col());
-	auto body = Children().back().get();
+	const auto& body = Children().back();
 	auto block = body->FormatWhitesmithBlock(body_ctx);
 
 	auto text = sig + block.Str();

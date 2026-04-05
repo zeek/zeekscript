@@ -306,10 +306,9 @@ Candidates DeclNode::Format(const FmtContext& ctx) const
 // MODULE: [0]=KEYWORD [1]=SP [2]=IDENTIFIER [3]=SEMI
 Candidates ModuleDeclNode::Format(const FmtContext& ctx) const
 	{
-	auto kw_text = Child(0, Tag::Keyword)->Text();
-	auto id_text = Child(2, Tag::Identifier)->Text();
-	auto semi_text = Child(3, Tag::Semi)->Text();
-	return build_layout({kw_text, soft_sp, id_text, semi_text}, ctx);
+	return build_layout({tok(Child(0, Tag::Keyword)), soft_sp,
+		tok(Child(2, Tag::Identifier)),
+		tok(Child(3, Tag::Semi))}, ctx);
 	}
 
 // ------------------------------------------------------------------
@@ -394,7 +393,7 @@ Candidates FuncDeclNode::Format(const FmtContext& ctx) const
 		}
 
 	// Trailing comment on the func decl (attached to body).
-	auto body = Children().back().get();
+	const auto& body = Children().back();
 	auto trail_str = body->TrailingComment();
 
 	auto kw_text = Child(0, Tag::Keyword)->Text();
@@ -533,13 +532,11 @@ static Formatting format_field(const Node& node, const std::string& suffix,
 
 Candidates TypeDeclAliasNode::Format(const FmtContext& ctx) const
 	{
-	auto kw = Child(0, Tag::Keyword)->Text();
-	auto id = Child(2, Tag::Identifier)->Text();
-	auto colon = Child(3, Tag::Colon)->Text();
-	auto semi = Child(6, Tag::Semi)->Text();
-
-	return build_layout({kw, soft_sp, id, colon,
-		soft_sp, Child(5), semi}, ctx);
+	return build_layout({tok(Child(0, Tag::Keyword)), soft_sp,
+		tok(Child(2, Tag::Identifier)),
+		tok(Child(3, Tag::Colon)),
+		soft_sp, Child(5),
+		tok(Child(6, Tag::Semi))}, ctx);
 	}
 
 // ------------------------------------------------------------------
@@ -551,24 +548,23 @@ Candidates TypeDeclAliasNode::Format(const FmtContext& ctx) const
 
 Candidates TypeDeclBracedNode::Format(const FmtContext& ctx) const
 	{
-	auto kw = Child(0, Tag::Keyword)->Text();
-	auto id = Child(2, Tag::Identifier)->Text();
-	auto colon = Child(3, Tag::Colon)->Text();
-	auto semi = Child(6, Tag::Semi)->Text();
-
 	auto inner = Child(5);
-	auto ikw = inner->Child(0, Tag::Keyword)->Text();
-	auto lb = inner->Child(2, Tag::LBrace)->Text();
 
-	auto head = best(build_layout({kw, soft_sp, id, colon, soft_sp,
-					ikw + " " + lb}, ctx)).Text();
+	auto head = best(build_layout(
+		{tok(Child(0, Tag::Keyword)), soft_sp,
+		 tok(Child(2, Tag::Identifier)),
+		 tok(Child(3, Tag::Colon)),
+		 soft_sp, tok(inner->Child(0, Tag::Keyword)),
+		 soft_sp, tok(inner->Child(2, Tag::LBrace))}, ctx)).Text();
 
 	auto body = FormatBody(inner, ctx);
 
 	auto close_pad = line_prefix(ctx.Indent(), ctx.Col());
-	auto rb = inner->Children().back()->Text();
-	auto text = head + "\n" + body + close_pad + rb + semi;
-	return {Candidate(std::move(text), ctx)};
+	Formatting fmt(head);
+	fmt += "\n" + body + close_pad;
+	fmt += inner->Children().back();
+	fmt += Child(6, Tag::Semi);
+	return {Candidate(std::move(fmt), ctx)};
 	}
 
 // Enum body: collect values with commas, one per line.
