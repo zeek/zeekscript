@@ -8,7 +8,7 @@ FUNC-DECL {
   }
   BODY {
     LBRACE
-    PREPROC "@if" "FOO" {
+    PREPROC-COND "@if" "FOO" {
       LPAREN
       RPAREN
     }

@@ -1,4 +1,4 @@
-PREPROC "@ifdef" "SOME_FEATURE" {
+PREPROC-COND "@ifdef" "SOME_FEATURE" {
   LPAREN
   RPAREN
 }

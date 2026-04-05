@@ -120,6 +120,8 @@ std::shared_ptr<Node> MakeNode(Tag tag)
 	case Tag::TypeDeclAlias: return std::make_shared<TypeDeclAliasNode>();
 	case Tag::TypeDeclEnum: return std::make_shared<TypeDeclEnumNode>();
 	case Tag::TypeDeclRecord: return std::make_shared<TypeDeclRecordNode>();
+	case Tag::Preproc: return std::make_shared<PreprocNode>();
+	case Tag::PreprocCond: return std::make_shared<PreprocCondNode>();
 	default: return std::make_shared<Node>(tag);
 	}
 	}

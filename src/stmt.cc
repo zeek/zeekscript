@@ -236,36 +236,46 @@ Candidates SwitchNode::Format(const FmtContext& ctx) const
 	return {Candidate(result, ctx)};
 	}
 
-// Format a PREPROC directive.  Returns the text (always at column 0).
-// Conditional directives have LPAREN/RPAREN children for "( arg )" spacing.
-static std::string FormatPreproc(const Node& node)
+// PREPROC node methods.
+
+std::string PreprocNode::FormatText() const
 	{
-	const auto& directive = node.Arg(0);
-	const auto& arg = node.Arg(1);
+	const auto& directive = Arg(0);
+	const auto& arg = Arg(1);
 
 	if ( arg.empty() )
 		return directive;
 
-	// @if, @ifdef, @ifndef have LPAREN/RPAREN children.
-	auto lp = node.FindOptChild(Tag::LParen);
-	auto rp = node.FindOptChild(Tag::RParen);
-	if ( lp && rp )
-		return directive + " " + lp->Text() + " " + arg +
-			" " + rp->Text();
-
-	// @load, @load-sigs, etc. use space.
 	return directive + " " + arg;
 	}
 
-static bool preproc_opens(const std::string& directive)
+bool PreprocNode::OpensDepth() const
 	{
-	return directive == "@if" || directive == "@ifdef" ||
-		directive == "@ifndef" || directive == "@else";
+	const auto& d = Arg(0);
+	return d == "@else";
 	}
 
-static bool preproc_closes(const std::string& directive)
+bool PreprocNode::ClosesDepth() const
 	{
-	return directive == "@else" || directive == "@endif";
+	const auto& d = Arg(0);
+	return d == "@else" || d == "@endif";
+	}
+
+bool PreprocNode::AtColumnZero() const
+	{
+	const auto& d = Arg(0);
+	return d == "@else" || d == "@endif";
+	}
+
+// PREPROC-COND: @if/@ifdef/@ifndef ( arg ).
+// Children: [0]=LPAREN [1]=RPAREN
+std::string PreprocCondNode::FormatText() const
+	{
+	const auto& directive = Arg(0);
+	const auto& arg = Arg(1);
+	auto lp = Child(0, Tag::LParen)->Text();
+	auto rp = Child(1, Tag::RParen)->Text();
+	return directive + " " + lp + " " + arg + " " + rp;
 	}
 
 std::string FormatStmtList(const NodeVec& nodes, const FmtContext& ctx,
@@ -296,13 +306,12 @@ std::string FormatStmtList(const NodeVec& nodes, const FmtContext& ctx,
 
 		result += EmitPreComments(node, pad);
 
-		// PREPROC directives: flow-control (@if etc.) at column 0,
-		// other directives (@load etc.) at current indentation.
-		if ( t == Tag::Preproc )
+		// Preprocessor directives.
+		if ( t == Tag::Preproc || t == Tag::PreprocCond )
 			{
-			const auto& directive = node.Arg(0);
+			auto& pp = static_cast<const PreprocBaseNode&>(node);
 
-			if ( preproc_closes(directive) )
+			if ( pp.ClosesDepth() )
 				{
 				--preproc_depth;
 				int new_indent = preproc_depth;
@@ -312,14 +321,12 @@ std::string FormatStmtList(const NodeVec& nodes, const FmtContext& ctx,
 				pad = LinePrefix(new_indent, new_col);
 				}
 
-			// Flow-control directives at column 0; others
-			// use current indentation.
-			if ( preproc_opens(directive) || directive == "@endif" )
-				result += FormatPreproc(node) + "\n";
+			if ( pp.AtColumnZero() )
+				result += pp.FormatText() + "\n";
 			else
-				result += pad + FormatPreproc(node) + "\n";
+				result += pad + pp.FormatText() + "\n";
 
-			if ( preproc_opens(directive) )
+			if ( pp.OpensDepth() )
 				{
 				++preproc_depth;
 				int new_indent = preproc_depth;

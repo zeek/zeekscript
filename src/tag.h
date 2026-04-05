@@ -121,6 +121,7 @@ enum class Tag {
 
 	// Preprocessor
 	Preproc,
+	PreprocCond,
 
 	// Fallback
 	Token,

@@ -125,6 +125,7 @@ static const std::unordered_map<std::string, TagEntry> tag_map = {
 
 	// Preprocessor
 	{"PREPROC", {Tag::Preproc, false}},
+	{"PREPROC-COND", {Tag::PreprocCond, false}},
 
 	// Fallback
 	{"TOKEN", {Tag::Token, false}},
