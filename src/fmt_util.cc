@@ -74,7 +74,7 @@ ArgComments collect_args(const NodeVec& children)
 
 Candidate format_args_flat(const ArgComments& items, const FmtContext& ctx)
 	{
-	std::string text;
+	Formatting fmt;
 	int w = 0;
 
 	for ( size_t i = 0; i < items.size(); ++i )
@@ -83,16 +83,16 @@ Candidate format_args_flat(const ArgComments& items, const FmtContext& ctx)
 
 		if ( it.comma )
 			{
-			text += it.comma->Text() + " ";
+			fmt += Formatting(it.comma) + " ";
 			w += it.comma->Width() + 1;
 			}
 
 		auto bc = best(format_expr(*it.arg, ctx.After(w)));
-		text += bc.Text();
+		fmt += bc.Fmt();
 		w += bc.Width();
 		}
 
-	return {text};
+	return {fmt};
 	}
 
 // Append trailing material after an item in a fill layout.  Handles

@@ -314,20 +314,20 @@ Formatting Node::FormatWhitesmithBlock(const FmtContext& ctx) const
 
 	// If the closing brace has a trailing comment, move it
 	// to the last statement line, not the '}' itself.
-	auto rb_text = rb->Text();
+	Formatting rb_fmt(rb);
 	if ( ! close_trail.empty() && ! body_text.Empty() &&
 	     body_text.Back() == '\n' )
 		{
 		body_text = body_text.Substr(0, body_text.Size() - 1) +
 				close_trail + "\n";
 		// Already relocated - use bare brace.
-		rb_text = rb_text.substr(0,
-			rb_text.size() - close_trail.size());
+		rb_fmt = rb_fmt.Substr(0,
+			rb_fmt.Size() - static_cast<int>(close_trail.size()));
 		}
 
 	auto rb_comments = rb->EmitPreComments(brace_pad);
 	return "\n" + brace_pad + lb + "\n" +
-		body_text + rb_comments + brace_pad + rb_text;
+		body_text + rb_comments + brace_pad + rb_fmt;
 	}
 
 // Format a single-statement body (no braces, indented one level).

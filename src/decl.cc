@@ -474,35 +474,35 @@ Candidates FuncDeclNode::Format(const FmtContext& ctx) const
 // Format a record field.  suffix includes ";" and any trailing
 // comment so we can measure overflow and wrap attrs if needed.
 // FIELD: [0]=COLON [1]=type_expr [optional ATTR-LIST] [last]=SEMI
-static Formatting format_field(const Node& node, const std::string& suffix,
+static Formatting format_field(const Node& node, const Formatting& suffix,
                               const FmtContext& ctx)
 	{
-	auto fcol = node.Child(0, Tag::Colon)->Text();
-	auto head = node.Arg() + fcol + " ";
+	Formatting head = node.Arg() + Formatting(node.Child(0, Tag::Colon)) +
+				" ";
 
-	std::string type_str;
+	Formatting type_str;
 	if ( auto tc = node.FindTypeChild() )
-		type_str = best(format_expr(*tc, ctx)).Text();
+		type_str = best(format_expr(*tc, ctx)).Fmt();
 
 	auto attrs = node.FindOptChild(Tag::AttrList);
-	std::string attr_str;
+	Formatting attr_str;
 	if ( attrs )
 		{
 		auto as = attrs->FormatAttrList(ctx);
 		if ( ! as.Empty() )
-			attr_str = " " + as.Str();
+			attr_str = " " + as;
 		}
 
 	// Try flat.
 	auto flat = head + type_str + attr_str + suffix;
-	if ( ctx.Col() + static_cast<int>(flat.size()) <= ctx.MaxCol() )
+	if ( ctx.Col() + flat.Size() <= ctx.MaxCol() )
 		return flat;
 
-	if ( attr_str.empty() )
+	if ( attr_str.Empty() )
 		return flat;
 
 	// Wrap attrs to continuation line aligned one past type start.
-	int attr_col = static_cast<int>(head.size()) + 1;
+	int attr_col = head.Size() + 1;
 	auto pad = line_prefix(ctx.Indent(), ctx.Col() + attr_col);
 	auto attr_strs = attrs->FormatAttrStrings(ctx);
 
@@ -631,8 +631,9 @@ Formatting TypeDeclRecordNode::FormatBody(const NodePtr& inner,
 			{
 			body += ki->EmitPreComments(field_pad);
 
-			auto fsemi = ki->Children().back()->Text();
-			auto suffix = fsemi + ki->TrailingComment();
+			auto suffix = Formatting(
+				ki->Children().back()->Text()) +
+				ki->TrailingComment();
 			auto field_text = format_field(*ki, suffix, field_ctx);
 
 			body += field_pad + field_text + "\n";

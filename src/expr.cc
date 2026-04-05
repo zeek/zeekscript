@@ -305,22 +305,22 @@ Candidates IndexLiteralNode::Format(const FmtContext& ctx) const
 // Children: [0]=expr [1]=LBRACKET [2]=lo [3]=COLON [4]=hi [5]=RBRACKET
 Candidates SliceNode::Format(const FmtContext& ctx) const
 	{
-	auto lo = best(format_expr(*Child(2), ctx)).Text();
-	auto hi = best(format_expr(*Child(4), ctx)).Text();
+	auto lo = best(format_expr(*Child(2), ctx)).Fmt();
+	auto hi = best(format_expr(*Child(4), ctx)).Fmt();
 
 	auto lb = Child(1, Tag::LBracket);
 	auto rb = Child(5, Tag::RBracket);
 	auto base_cs = format_expr(*Child(0), ctx);
 	const auto& base = best(base_cs);
 
-	auto colon = Child(3, Tag::Colon)->Text();
-	auto sep = colon;
-	if ( ! lo.empty() && ! hi.empty() )
+	auto colon = Child(3, Tag::Colon);
+	Formatting sep(colon);
+	if ( ! lo.Empty() && ! hi.Empty() )
 		sep = " " + sep + " ";
 
-	Candidate flat = base.Cat(lb).Cat(lo + sep + hi).Cat(rb).In(ctx);
+	Candidate flat(base.Fmt() + lb + lo + sep + hi + rb, ctx);
 
-	if ( flat.Fits() || lo.empty() || hi.empty() )
+	if ( flat.Fits() || lo.Empty() || hi.Empty() )
 		return {flat};
 
 	// Split after ":" - continuation aligns after "[".
