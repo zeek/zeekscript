@@ -27,7 +27,8 @@ static Formatting concat(const FmtSteps& steps)
 	}
 
 // Derive the continuation context for a split.
-static FmtContext split_ctx(const SplitAt& sp, const FmtContext& ctx)
+static FmtContext split_ctx(const SplitAt& sp, const FmtSteps& steps,
+                            const FmtContext& ctx)
 	{
 	switch ( sp.style ) {
 	case SplitAt::Indented: return ctx.Indented();
@@ -37,6 +38,14 @@ static FmtContext split_ctx(const SplitAt& sp, const FmtContext& ctx)
 		if ( ctx.Col() == ctx.IndentCol() )
 			return ctx.Indented();
 		return ctx.AtCol(ctx.Col());
+
+	case SplitAt::AlignWith:
+		{
+		int col = ctx.Col();
+		for ( int i = 0; i < sp.align_piece; ++i )
+			col += steps[i].text.Size();
+		return ctx.AtCol(col);
+		}
 	}
 
 	return ctx.Indented();	// unreachable
@@ -48,7 +57,7 @@ static FmtContext split_ctx(const SplitAt& sp, const FmtContext& ctx)
 static Candidate build_split(const FmtSteps& steps, const SplitAt& sp,
                              const FmtContext& ctx)
 	{
-	FmtContext cont = split_ctx(sp, ctx);
+	FmtContext cont = split_ctx(sp, steps, ctx);
 	auto pad = line_prefix(cont.Indent(), cont.Col());
 
 	// First line: pieces up through the split point.

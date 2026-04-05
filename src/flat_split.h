@@ -52,9 +52,11 @@ struct SplitAt {
 		Indented,	// ctx.Indented()
 		SameCol,	// ctx.AtCol(ctx.Col())
 		IndentedOrSame,	// Indented if at indent col, else SameCol
+		AlignWith,	// ctx.AtCol(flat position of piece align_piece)
 	};
 
 	Style style;
+	int align_piece = -1;		// for AlignWith
 	bool skip_if_multiline = false;	// skip when sub-exprs are multiline
 };
 

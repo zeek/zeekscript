@@ -544,57 +544,20 @@ Candidates IntervalNode::Format(const FmtContext& ctx) const
 // Children: [0]=cond [1]=QUESTION [2]=true_expr [3]=COLON [4]=false_expr
 Candidates TernaryNode::Format(const FmtContext& ctx) const
 	{
-	auto q = Child(1, Tag::Question);
-	auto col = Child(3, Tag::Colon);
-	int qw = q->Width() + 2;	// " ? "
-	int cw = col->Width() + 2;	// " : "
-
-	auto cond = best(format_expr(*Child(0), ctx));
-	auto tv_cs = format_expr(*Child(2), ctx.After(cond.Width() + qw));
-	auto tv = best(tv_cs);
-	auto fv_cs = format_expr(*Child(4),
-			ctx.After(cond.Width() + qw + tv.Width() + cw));
-	auto fv = best(fv_cs);
-
-	auto flat = cond.Fmt() + " " + q + " " + tv.Fmt() +
-			" " + col + " " + fv.Fmt();
-	Candidate flat_c(std::move(flat), ctx);
-	if ( flat_c.Fits() )
-		return {flat_c};
-
-	Candidates result;
-	result.push_back(flat_c);
-
-	// Split after ":" - false-value aligns under true-value.
-	int tv_col = ctx.Col() + cond.Width() + qw;
-	FmtContext fv_ctx = ctx.AtCol(tv_col);
-	fv = best(format_expr(*Child(4), fv_ctx));
-
-	auto fv_prefix = line_prefix(fv_ctx.Indent(), tv_col);
-	auto split_colon = cond.Fmt() + " " + q + " " + tv.Fmt() + " " +
-				col + "\n" + fv_prefix + fv.Fmt();
-	int last_w = fv.Width();
-	int lines = 1 + fv.Lines();
-	int split_ovf = ovf(last_w, fv_ctx);
-
-	result.push_back({std::move(split_colon), last_w, lines,
-				split_ovf, ctx.Col()});
-
-	// Split after "?" - true and false on continuation line,
-	// aligned under the start of cond.
-	FmtContext cont_ctx = ctx.AtCol(ctx.Col());
-	tv = best(format_expr(*Child(2), cont_ctx));
-	fv_cs = format_expr(*Child(4), cont_ctx.After(tv.Width() + cw));
-	fv = best(fv_cs);
-
-	auto cont_prefix = line_prefix(cont_ctx.Indent(), ctx.Col());
-	auto split_q = cond.Fmt() + " " + q + "\n" +
-			cont_prefix + tv.Fmt() + " " + col +
-			" " + fv.Fmt();
-	int q_last_w = tv.Width() + cw + fv.Width();
-	int q_ovf = ovf(q_last_w, cont_ctx);
-
-	result.push_back({std::move(split_q), q_last_w, 2, q_ovf, ctx.Col()});
-
-	return result;
+	//  0       1      2    3      4       5      6    7      8
+	//  E(cond) L(" ") L(?) S(" ") E(tv)   L(" ") L(:) S(" ") E(fv)
+	// Split after ":" (6): fv aligns under tv (piece 4).
+	// Split after "?" (2): tv+fv on continuation at same column.
+	return flat_or_split({
+		FmtStep::E(Child(0)),
+		FmtStep::L(" "), FmtStep::L(Child(1, Tag::Question)),
+		FmtStep::S(),
+		FmtStep::E(Child(2)),
+		FmtStep::L(" "), FmtStep::L(Child(3, Tag::Colon)),
+		FmtStep::S(),
+		FmtStep::E(Child(4)),
+	}, {
+		{6, SplitAt::AlignWith, 4},
+		{2, SplitAt::SameCol},
+	}, ctx);
 	}
