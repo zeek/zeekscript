@@ -4,7 +4,6 @@
 // Not part of the public API - use formatter.h for that.
 
 #include <string>
-#include <unordered_map>
 #include <vector>
 
 #include "formatter.h"
@@ -62,28 +61,12 @@ Candidate FormatArgsVertical(const std::string& open, const std::string& close,
                              const ArgComments& items, const FmtContext& ctx,
                              bool trailing_comma = false);
 
-// Dispatch.
-using FormatFunc = Candidates (*)(const Node&, const FmtContext&);
-const std::unordered_map<Tag, FormatFunc>& FormatDispatch();
-
-// Per-file format functions (registered in dispatch table).
-
-// expr.cc - all expression formatting is now in ExprNode subclasses
-
 // type.cc
-Candidates FormatParam(const Node& node, const FmtContext& ctx);
-Candidates FormatTypeParam(const Node& node, const FmtContext& ctx);
-Candidates FormatTypeFunc(const Node& node, const FmtContext& ctx);
 const Node* FindTypeChild(const Node& node);
 std::string FormatAttrList(const Node& node, const FmtContext& ctx);
 std::vector<std::string> FormatAttrStrings(const Node& node,
                                            const FmtContext& ctx);
 
-// decl.cc
-Candidates FormatFuncDecl(const Node& node, const FmtContext& ctx);
-Candidates FormatModuleDecl(const Node& node, const FmtContext& ctx);
-
-// stmt.cc - statement formatting is now in StmtNode subclasses
-// (FormatCondBlock is in ConditionBlockNode, used directly from dispatch table)
+// stmt.cc
 std::string FormatStmtList(const NodeVec& nodes, const FmtContext& ctx,
                            bool skip_leading_blanks = false);

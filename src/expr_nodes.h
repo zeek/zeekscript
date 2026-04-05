@@ -177,3 +177,27 @@ public:
 protected:
 	std::string BuildPrefix(const FmtContext& ctx) const override;
 };
+
+// TYPE-PARAMETERIZED: table[k] of v, set[t], vector of t
+
+class TypeParamNode : public ExprNode {
+public:
+	TypeParamNode() : ExprNode(Tag::TypeParameterized) { }
+	Candidates Format(const FmtContext& ctx) const override;
+};
+
+// PARAM: name[: type]
+
+class ParamNode : public ExprNode {
+public:
+	ParamNode() : ExprNode(Tag::Param) { }
+	Candidates Format(const FmtContext& ctx) const override;
+};
+
+// TYPE-FUNC: event(params), function(params): rettype
+
+class TypeFuncNode : public ExprNode {
+public:
+	TypeFuncNode() : ExprNode(Tag::TypeFunc) { }
+	Candidates Format(const FmtContext& ctx) const override;
+};

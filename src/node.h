@@ -6,6 +6,10 @@
 #include <string>
 #include <vector>
 
+class FmtContext;
+class Candidate;
+using Candidates = std::vector<Candidate>;
+
 // A node in the representation tree.  Each node has:
 //   - tag:      semantic type (e.g. Tag::BinaryOp)
 //   - args:     zero or more string arguments
@@ -24,6 +28,7 @@ class Node {
 public:
 	Node(Tag tag) : tag(tag) {}
 	virtual ~Node() = default;
+	virtual Candidates Format(const FmtContext& ctx) const;
 
 	Tag GetTag() const { return tag; }
 	bool IsLambda() const { return is_lambda(tag); }

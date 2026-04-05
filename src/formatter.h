@@ -136,8 +136,6 @@ private:
 	int spread;	// max line width - min line width (0 = balanced)
 };
 
-using Candidates = std::vector<Candidate>;
-
 // Pick the best candidate from a non-empty vector.
 const Candidate& Best(const Candidates& cs);
 

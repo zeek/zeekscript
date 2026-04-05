@@ -1,95 +1,15 @@
 #include <cstdio>
-#include <unordered_map>
 
-#include "condition_block.h"
-#include "expr_nodes.h"
 #include "fmt_internal.h"
-#include "stmt_nodes.h"
-
-static Candidates FormatExprNode(const Node& node, const FmtContext& ctx)
-	{
-	return static_cast<const ExprNode&>(node).Format(ctx);
-	}
-
-static Candidates FormatStmtNode(const Node& node, const FmtContext& ctx)
-	{
-	return static_cast<const StmtNode&>(node).Format(ctx);
-	}
-
-static Candidates FormatCondBlock(const Node& node, const FmtContext& ctx)
-	{
-	return static_cast<const ConditionBlockNode&>(node).Format(ctx);
-	}
-
-// Dispatch table
-const std::unordered_map<Tag, FormatFunc>& FormatDispatch()
-	{
-	static const std::unordered_map<Tag, FormatFunc> table = {
-		{Tag::Identifier, FormatExprNode},
-		{Tag::Constant, FormatExprNode},
-		{Tag::FieldAccess, FormatExprNode},
-		{Tag::FieldAssign, FormatExprNode},
-		{Tag::BinaryOp, FormatExprNode},
-		{Tag::BoolChain, FormatExprNode},
-		{Tag::Div, FormatExprNode},
-		{Tag::HasField, FormatExprNode},
-		{Tag::Cardinality, FormatExprNode},
-		{Tag::Negation, FormatExprNode},
-		{Tag::UnaryOp, FormatExprNode},
-		{Tag::Call, FormatExprNode},
-		{Tag::Constructor, FormatExprNode},
-		{Tag::Schedule, FormatExprNode},
-		{Tag::Index, FormatExprNode},
-		{Tag::IndexLiteral, FormatExprNode},
-		{Tag::Slice, FormatExprNode},
-		{Tag::Paren, FormatExprNode},
-		{Tag::Interval, FormatExprNode},
-		{Tag::TypeAtom, FormatExprNode},
-		{Tag::TypeParameterized, FormatTypeParam},
-		{Tag::Param, FormatParam},
-		{Tag::TypeFunc, FormatTypeFunc},
-		{Tag::Ternary, FormatExprNode},
-		{Tag::Lambda, FormatExprNode},
-		{Tag::LambdaCaptures, FormatExprNode},
-		{Tag::GlobalDecl, FormatStmtNode},
-		{Tag::LocalDecl, FormatStmtNode},
-		{Tag::ModuleDecl, FormatModuleDecl},
-		{Tag::CommentLeading, FormatStmtNode},
-		{Tag::ExprStmt, FormatStmtNode},
-		{Tag::Return, FormatStmtNode},
-		{Tag::Print, FormatStmtNode},
-		{Tag::Add, FormatStmtNode},
-		{Tag::Delete, FormatStmtNode},
-		{Tag::Assert, FormatStmtNode},
-		{Tag::EventStmt, FormatStmtNode},
-		{Tag::FuncDecl, FormatFuncDecl},
-		{Tag::IfNoElse, FormatCondBlock},
-		{Tag::IfElse, FormatCondBlock},
-		{Tag::For, FormatCondBlock},
-		{Tag::While, FormatCondBlock},
-		{Tag::ExportDecl, FormatStmtNode},
-		{Tag::TypeDeclAlias, FormatStmtNode},
-		{Tag::TypeDeclEnum, FormatStmtNode},
-		{Tag::TypeDeclRecord, FormatStmtNode},
-		{Tag::Switch, FormatStmtNode},
-	};
-
-	return table;
-	}
 
 Candidates FormatExpr(const Node& node, const FmtContext& ctx)
 	{
-	auto it = FormatDispatch().find(node.GetTag());
-	if ( it != FormatDispatch().end() )
-		return it->second(node, ctx);
-
-	auto fallback = std::string("/* ") + TagToString(node.GetTag()) + " */";
-	return {Candidate(fallback, ctx)};
+	return node.Format(ctx);
 	}
 
 Candidates FormatNode(const Node& node, const FmtContext& ctx)
 	{
-	return FormatExpr(node, ctx);
+	return node.Format(ctx);
 	}
 
 // Collect all trailing comments from node fields.

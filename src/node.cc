@@ -1,11 +1,18 @@
 #include "node.h"
 #include "condition_block.h"
 #include "expr_nodes.h"
+#include "formatter.h"
 #include "stmt_nodes.h"
 
 #include <cstdio>
 #include <stdexcept>
 #include <unordered_map>
+
+Candidates Node::Format(const FmtContext& ctx) const
+	{
+	auto fallback = std::string("/* ") + TagToString(tag) + " */";
+	return {Candidate(fallback, ctx)};
+	}
 
 const std::string& Node::Arg(size_t i) const
 	{
@@ -107,6 +114,9 @@ std::shared_ptr<Node> MakeNode(Tag tag)
 	case Tag::Ternary: return std::make_shared<TernaryNode>();
 	case Tag::Lambda: return std::make_shared<LambdaNode>();
 	case Tag::LambdaCaptures: return std::make_shared<LambdaCapturesNode>();
+	case Tag::TypeParameterized: return std::make_shared<TypeParamNode>();
+	case Tag::Param: return std::make_shared<ParamNode>();
+	case Tag::TypeFunc: return std::make_shared<TypeFuncNode>();
 	case Tag::CommentLeading: return std::make_shared<CommentNode>();
 	case Tag::ExprStmt: return std::make_shared<ExprStmtNode>();
 	case Tag::Return: return std::make_shared<KeywordStmtNode>(tag);
@@ -117,6 +127,8 @@ std::shared_ptr<Node> MakeNode(Tag tag)
 	case Tag::Print: return std::make_shared<KeywordStmtNode>(Tag::Print);
 	case Tag::GlobalDecl: return std::make_shared<DeclNode>(tag);
 	case Tag::LocalDecl: return std::make_shared<DeclNode>(tag);
+	case Tag::ModuleDecl: return std::make_shared<ModuleDeclNode>();
+	case Tag::FuncDecl: return std::make_shared<FuncDeclNode>();
 	case Tag::ExportDecl: return std::make_shared<ExportNode>();
 	case Tag::Switch: return std::make_shared<SwitchNode>();
 	case Tag::TypeDeclAlias: return std::make_shared<TypeDeclAliasNode>();

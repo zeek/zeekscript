@@ -130,6 +130,22 @@ public:
 		{ return FindOptChild(Tag::DeclInit); }
 };
 
+// Module declaration: module name;
+
+class ModuleDeclNode : public StmtNode {
+public:
+	ModuleDeclNode() : StmtNode(Tag::ModuleDecl) { }
+	Candidates Format(const FmtContext& ctx) const override;
+};
+
+// Function/event/hook declarations
+
+class FuncDeclNode : public StmtNode {
+public:
+	FuncDeclNode() : StmtNode(Tag::FuncDecl) { }
+	Candidates Format(const FmtContext& ctx) const override;
+};
+
 // Switch statement: switch expr { case val: body ... }
 
 class SwitchNode : public StmtNode {

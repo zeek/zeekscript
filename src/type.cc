@@ -1,9 +1,10 @@
+#include "expr_nodes.h"
 #include "fmt_internal.h"
 
 // TYPE-PARAMETERIZED: table[k] of v, set[t], vector of t
-Candidates FormatTypeParam(const Node& node, const FmtContext& ctx)
+Candidates TypeParamNode::Format(const FmtContext& ctx) const
 	{
-	const auto& keyword = node.Arg();	// "table", "set", "vector"
+	const auto& keyword = Arg();	// "table", "set", "vector"
 
 	// Collect bracketed type args (between LBRACKET/RBRACKET)
 	// and "of" type (after KEYWORD "of").
@@ -13,7 +14,7 @@ Candidates FormatTypeParam(const Node& node, const FmtContext& ctx)
 	bool in_brackets = false;
 	bool past_of = false;
 
-	for ( const auto& c : node.Children() )
+	for ( const auto& c : Children() )
 		{
 		Tag t = c->GetTag();
 
@@ -56,14 +57,14 @@ Candidates FormatTypeParam(const Node& node, const FmtContext& ctx)
 
 	std::string suffix;
 	if ( of_type )
-		suffix = " " + node.FindChild(Tag::Keyword)->Text() + " " +
+		suffix = " " + FindChild(Tag::Keyword)->Text() + " " +
 			Best(FormatExpr(*of_type, ctx)).Text();
 
 	if ( bt_items.empty() )
 		return {Candidate(keyword + suffix, ctx)};
 
-	auto lb = node.FindChild(Tag::LBracket)->Text();
-	auto rb = node.FindChild(Tag::RBracket)->Text();
+	auto lb = FindChild(Tag::LBracket)->Text();
+	auto rb = FindChild(Tag::RBracket)->Text();
 	return FlatOrFill(keyword, lb, rb, suffix, bt_items, ctx);
 	}
 
@@ -80,31 +81,31 @@ const Node* FindTypeChild(const Node& node)
 
 // Format a single parameter: name[: type]
 // PARAM children: [0]=COLON [1]=type_expr
-Candidates FormatParam(const Node& node, const FmtContext& ctx)
+Candidates ParamNode::Format(const FmtContext& ctx) const
 	{
-	auto text = node.Arg();
-	if ( auto ptype = FindTypeChild(node) )
-		text += node.Child(0, Tag::Colon)->Text() + " " +
+	auto text = Arg();
+	if ( auto ptype = FindTypeChild(*this) )
+		text += Child(0, Tag::Colon)->Text() + " " +
 			Best(FormatExpr(*ptype, ctx)).Text();
 	return {Candidate(text, ctx)};
 	}
 
 // TYPE-FUNC: [0]=PARAMS [optional COLON, RETURNS]
-Candidates FormatTypeFunc(const Node& node, const FmtContext& ctx)
+Candidates TypeFuncNode::Format(const FmtContext& ctx) const
 	{
-	const auto& keyword = node.Arg();
+	const auto& keyword = Arg();
 
 	// Return type suffix.
 	std::string ret_str;
-	if ( auto returns = node.FindOptChild(Tag::Returns) )
+	if ( auto returns = FindOptChild(Tag::Returns) )
 		{
-		auto colon = node.FindChild(Tag::Colon)->Text();
+		auto colon = FindChild(Tag::Colon)->Text();
 		if ( auto rt = FindTypeChild(*returns) )
 			ret_str = colon + " " +
 				Best(FormatExpr(*rt, ctx)).Text();
 		}
 
-	auto params = node.Child(0, Tag::Params);
+	auto params = Child(0, Tag::Params);
 	auto items = CollectArgs(params->Children());
 
 	auto lp = params->Child(0, Tag::LParen)->Text();

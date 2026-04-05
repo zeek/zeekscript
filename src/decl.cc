@@ -303,11 +303,11 @@ Candidates DeclNode::Format(const FmtContext& ctx) const
 // ------------------------------------------------------------------
 
 // MODULE: [0]=KEYWORD [1]=SP [2]=IDENTIFIER [3]=SEMI
-Candidates FormatModuleDecl(const Node& node, const FmtContext& ctx)
+Candidates ModuleDeclNode::Format(const FmtContext& ctx) const
 	{
-	auto kw_text = node.Child(0, Tag::Keyword)->Text();
-	auto id_text = node.Child(2, Tag::Identifier)->Text();
-	auto semi_text = node.Child(3, Tag::Semi)->Text();
+	auto kw_text = Child(0, Tag::Keyword)->Text();
+	auto id_text = Child(2, Tag::Identifier)->Text();
+	auto semi_text = Child(3, Tag::Semi)->Text();
 	return BuildLayout({kw_text, SoftSp, id_text, semi_text}, ctx);
 	}
 
@@ -356,9 +356,9 @@ static std::vector<ParamEntry> FormatParamEntries(const Node& params,
 
 // FUNC-DECL: [0]=KEYWORD [1]=SP [2]=IDENTIFIER [3]=PARAMS
 //   [optional COLON, RETURNS, ATTR-LIST] [last]=BODY
-Candidates FormatFuncDecl(const Node& node, const FmtContext& ctx)
+Candidates FuncDeclNode::Format(const FmtContext& ctx) const
 	{
-	auto params = node.Child(3, Tag::Params);
+	auto params = Child(3, Tag::Params);
 	auto pentries = FormatParamEntries(*params, ctx);
 
 	// Build flat param list.
@@ -373,11 +373,11 @@ Candidates FormatFuncDecl(const Node& node, const FmtContext& ctx)
 
 	// Return type suffix.
 	std::string ret_str;
-	if ( auto returns = node.FindOptChild(Tag::Returns) )
+	if ( auto returns = FindOptChild(Tag::Returns) )
 		{
 		if ( auto rt = FindTypeChild(*returns) )
 			{
-			auto rcol = node.FindChild(Tag::Colon);
+			auto rcol = FindChild(Tag::Colon);
 			ret_str = rcol->Text() + " " +
 				Best(FormatExpr(*rt, ctx)).Text();
 			}
@@ -385,7 +385,7 @@ Candidates FormatFuncDecl(const Node& node, const FmtContext& ctx)
 
 	// Attribute suffix.
 	std::string attr_str;
-	if ( auto attrs = node.FindOptChild(Tag::AttrList) )
+	if ( auto attrs = FindOptChild(Tag::AttrList) )
 		{
 		auto as = FormatAttrList(*attrs, ctx);
 		if ( ! as.empty() )
@@ -393,13 +393,13 @@ Candidates FormatFuncDecl(const Node& node, const FmtContext& ctx)
 		}
 
 	// Trailing comment on the func decl (attached to body).
-	auto body = node.Children().back().get();
+	auto body = Children().back().get();
 	auto trail_str = body->TrailingComment();
 
-	auto kw_node = node.Child(0, Tag::Keyword)->Text();
-	auto id_node = node.Child(2, Tag::Identifier)->Text();
+	auto kw_text = Child(0, Tag::Keyword)->Text();
+	auto id_text = Child(2, Tag::Identifier)->Text();
 	auto lp = params->Child(0, Tag::LParen)->Text();
-	auto prefix = kw_node + " " + id_node + lp;
+	auto prefix = kw_text + " " + id_text + lp;
 
 	// --- Candidate 1: flat signature ---
 	auto rp = params->Children().back()->Text();

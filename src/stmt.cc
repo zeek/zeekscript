@@ -368,15 +368,8 @@ std::string FormatStmtList(const NodeVec& nodes, const FmtContext& ctx,
 		if ( t == Tag::Keyword )
 			stmt_text = node.Arg();
 		else
-			{
-			auto it = FormatDispatch().find(t);
-			if ( it == FormatDispatch().end() )
-				stmt_text = std::string("/* TODO: ") +
-						TagToString(t) + " */";
-			else
-				stmt_text = Best(it->second(node,
+			stmt_text = Best(node.Format(
 					cur_ctx.Reserve(trail_w))).Text();
-			}
 
 		result += pad + stmt_text + semi_str + comment_text + "\n";
 		}
