@@ -236,7 +236,9 @@ Candidates SwitchNode::Format(const FmtContext& ctx) const
 	return {Candidate(result, ctx)};
 	}
 
-// PREPROC node methods.
+// PreprocBaseNode methods.  PREPROC-COND (@if/@ifdef/@ifndef) always
+// opens depth and sits at column 0.  Plain PREPROC checks the
+// directive string for @else/@endif.
 
 std::string PreprocNode::FormatText() const
 	{
@@ -249,25 +251,6 @@ std::string PreprocNode::FormatText() const
 	return directive + " " + arg;
 	}
 
-bool PreprocNode::OpensDepth() const
-	{
-	const auto& d = Arg(0);
-	return d == "@else";
-	}
-
-bool PreprocNode::ClosesDepth() const
-	{
-	const auto& d = Arg(0);
-	return d == "@else" || d == "@endif";
-	}
-
-bool PreprocNode::AtColumnZero() const
-	{
-	const auto& d = Arg(0);
-	return d == "@else" || d == "@endif";
-	}
-
-// PREPROC-COND: @if/@ifdef/@ifndef ( arg ).
 // Children: [0]=LPAREN [1]=RPAREN
 std::string PreprocCondNode::FormatText() const
 	{
@@ -276,6 +259,27 @@ std::string PreprocCondNode::FormatText() const
 	auto lp = Child(0, Tag::LParen)->Text();
 	auto rp = Child(1, Tag::RParen)->Text();
 	return directive + " " + lp + " " + arg + " " + rp;
+	}
+
+bool PreprocBaseNode::OpensDepth() const
+	{
+	return GetTag() == Tag::PreprocCond || Arg(0) == "@else";
+	}
+
+bool PreprocBaseNode::ClosesDepth() const
+	{
+	if ( GetTag() == Tag::PreprocCond )
+		return false;
+	const auto& d = Arg(0);
+	return d == "@else" || d == "@endif";
+	}
+
+bool PreprocBaseNode::AtColumnZero() const
+	{
+	if ( GetTag() == Tag::PreprocCond )
+		return true;
+	const auto& d = Arg(0);
+	return d == "@else" || d == "@endif";
 	}
 
 std::string FormatStmtList(const NodeVec& nodes, const FmtContext& ctx,

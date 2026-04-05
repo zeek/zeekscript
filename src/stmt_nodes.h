@@ -91,32 +91,28 @@ protected:
 
 // Preprocessor directives.  Not StmtNodes (no Candidates), but
 // provide FormatText() for FormatStmtList and depth-control queries.
+// PREPROC-COND always opens depth and sits at column 0.  Plain
+// PREPROC uses the directive string for @else/@endif handling.
 
 class PreprocBaseNode : public Node {
 public:
 	PreprocBaseNode(Tag t) : Node(t) { }
 	virtual std::string FormatText() const = 0;
-	virtual bool OpensDepth() const = 0;
-	virtual bool ClosesDepth() const = 0;
-	virtual bool AtColumnZero() const = 0;
+	bool OpensDepth() const;
+	bool ClosesDepth() const;
+	bool AtColumnZero() const;
 };
 
 class PreprocNode : public PreprocBaseNode {
 public:
 	PreprocNode() : PreprocBaseNode(Tag::Preproc) { }
 	std::string FormatText() const override;
-	bool OpensDepth() const override;
-	bool ClosesDepth() const override;
-	bool AtColumnZero() const override;
 };
 
 class PreprocCondNode : public PreprocBaseNode {
 public:
 	PreprocCondNode() : PreprocBaseNode(Tag::PreprocCond) { }
 	std::string FormatText() const override;
-	bool OpensDepth() const override { return true; }
-	bool ClosesDepth() const override { return false; }
-	bool AtColumnZero() const override { return true; }
 };
 
 // Switch statement: switch expr { case val: body ... }
