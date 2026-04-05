@@ -3,8 +3,9 @@
 
 #include <cassert>
 
-Formatting::Formatting(const Node* n)
+Formatting::Formatting(const NodePtr& n)
 	{
+	assert(n);
 	assert(n->IsToken() || ! n->Args().empty());
 	auto t = n->Text();
 	total = t.size();
