@@ -133,25 +133,28 @@ Candidates SwitchNode::Format(const FmtContext& ctx) const
 
 	// Format the expression.  If the source used parens, unwrap
 	// the PAREN node and apply Zeek-style ( expr ) spacing.
-	std::string expr_text;
+	Formatting expr_text;
 	if ( switch_expr->GetTag() == Tag::Paren )
 		{
 		// PAREN: [0]=LPAREN [1]=expr [2]=RPAREN
-		auto lp = switch_expr->Child(0, Tag::LParen)->Text();
-		auto rp = switch_expr->Child(2, Tag::RParen)->Text();
 		auto pc = switch_expr->ContentChildren();
 		if ( ! pc.empty() )
-			expr_text = lp + " " +
+			{
+			expr_text += switch_expr->Child(0, Tag::LParen);
+			expr_text += " " +
 				best(format_expr(*pc[0], ctx)).Text() +
-				" " + rp;
+				" ";
+			expr_text += switch_expr->Child(2, Tag::RParen);
+			}
 		}
 	else
-		expr_text = best(format_expr(*switch_expr, ctx)).Text();
+		expr_text += best(format_expr(*switch_expr, ctx)).Text();
 
 	auto pad = line_prefix(ctx.Indent(), ctx.Col());
-	auto sw_kw = Child(0, Tag::Keyword)->Text();
-	auto lb = Child(3, Tag::LBrace)->Text();
-	Formatting result = sw_kw + " " + expr_text + " " + lb;
+	Formatting result;
+	result += Child(0, Tag::Keyword);
+	result += " " + expr_text + " ";
+	result += Child(3, Tag::LBrace);
 
 	// Format each CASE/DEFAULT.
 	for ( const auto& c : Children() )
@@ -171,7 +174,9 @@ Candidates SwitchNode::Format(const FmtContext& ctx) const
 
 		// CASE: [0]=KEYWORD [1]=SP [2]=VALUES [3]=COLON [4]=BODY
 		auto values = c->Child(2, Tag::Values);
-		auto case_text = c->Child(0, Tag::Keyword)->Text() + " ";
+		Formatting case_text;
+		case_text += c->Child(0, Tag::Keyword);
+		case_text += " ";
 
 		// Collect formatted values and commas.
 		std::vector<std::string> vals;
@@ -197,7 +202,7 @@ Candidates SwitchNode::Format(const FmtContext& ctx) const
 			}
 
 		// Fill-pack values, wrapping at comma.
-		int case_col = ctx.Col() + static_cast<int>(case_text.size());
+		int case_col = ctx.Col() + case_text.Size();
 		auto vpad = line_prefix(ctx.Indent(), case_col);
 		int max_col = ctx.MaxCol();
 		int cur_col = case_col;
@@ -211,13 +216,15 @@ Candidates SwitchNode::Format(const FmtContext& ctx) const
 
 			if ( i > 0 && cur_col + need > max_col )
 				{
-				case_text += vcommas[i]->Text() + "\n" + vpad;
+				case_text += vcommas[i];
+				case_text += "\n" + vpad;
 				cur_col = case_col;
 				}
 
 			else if ( i > 0 )
 				{
-				case_text += vcommas[i]->Text() + " ";
+				case_text += vcommas[i];
+				case_text += " ";
 				cur_col += 2;
 				}
 
@@ -225,9 +232,10 @@ Candidates SwitchNode::Format(const FmtContext& ctx) const
 			cur_col += static_cast<int>(vi.size());
 			}
 
-		case_text += c->Child(3, Tag::Colon)->Text();
+		case_text += c->Child(3, Tag::Colon);
 
-		result += "\n" + pad + case_text;
+		result += "\n" + pad;
+		result += case_text;
 		append_case_body(c->FindOptChild(Tag::Body), result, ctx);
 		}
 
@@ -314,7 +322,7 @@ Formatting Node::FormatWhitesmithBlock(const FmtContext& ctx) const
 
 	if ( inner.empty() && ! lb->MustBreakAfter() &&
 	     ! rb->MustBreakBefore() )
-		return "\n" + brace_pad + lb->Text() + " " + rb->Text();
+		return "\n" + brace_pad + lb + " " + rb;
 
 	auto body_text = format_stmt_list(inner, block_ctx, true);
 
@@ -332,7 +340,7 @@ Formatting Node::FormatWhitesmithBlock(const FmtContext& ctx) const
 		}
 
 	auto rb_comments = rb->EmitPreComments(brace_pad);
-	return "\n" + brace_pad + lb->Text() + "\n" +
+	return "\n" + brace_pad + lb + "\n" +
 		body_text + rb_comments + brace_pad + rb_text;
 	}
 

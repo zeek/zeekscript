@@ -593,7 +593,7 @@ Formatting format_stmt_list(const NodeVec& nodes, const FmtContext& ctx,
 			++i;
 			}
 
-		auto semi_str = sibling_semi ? sibling_semi->Text() : "";
+		int semi_w = sibling_semi ? sibling_semi->Width() : 0;
 
 		// Check for trailing comment on the node or its SEMI.
 		auto comment_text = node.TrailingComment();
@@ -601,7 +601,7 @@ Formatting format_stmt_list(const NodeVec& nodes, const FmtContext& ctx,
 			comment_text = sibling_semi->TrailingComment();
 
 		int comment_w = static_cast<int>(comment_text.size());
-		int trail_w = static_cast<int>(semi_str.size()) + comment_w;
+		int trail_w = semi_w + comment_w;
 
 		std::string stmt_text;
 
@@ -612,7 +612,10 @@ Formatting format_stmt_list(const NodeVec& nodes, const FmtContext& ctx,
 			stmt_text = best(node.Format(
 					cur_ctx.Reserve(trail_w))).Text();
 
-		result += pad + stmt_text + semi_str + comment_text + "\n";
+		result += pad + stmt_text;
+		if ( sibling_semi )
+			result += sibling_semi;
+		result += comment_text + "\n";
 		}
 
 	return result;
