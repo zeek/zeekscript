@@ -18,6 +18,7 @@ public:
 
 	// Defined in formatting.cc (needs complete Formatting type).
 	size_t Size() const;
+	int Find(char c) const;
 	void AppendTo(std::string& out) const;
 	void PopBack();
 

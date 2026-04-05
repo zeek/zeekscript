@@ -16,8 +16,15 @@ const std::string& Formatting::Str() const
 
 int Formatting::Find(char c) const
 	{
-	auto pos = Str().find(c);
-	return pos == std::string::npos ? -1 : static_cast<int>(pos);
+	int offset = 0;
+	for ( const auto& p : pieces )
+		{
+		int pos = p.Find(c);
+		if ( pos >= 0 )
+			return offset + pos;
+		offset += static_cast<int>(p.Size());
+		}
+	return -1;
 	}
 
 void Formatting::PopBack()
@@ -47,6 +54,25 @@ size_t FmtPiece::Size() const
 	if ( auto* s = std::get_if<std::string>(&data) )
 		return s->size();
 	return std::get<std::shared_ptr<Formatting>>(data)->Size();
+	}
+
+int FmtPiece::Find(char c) const
+	{
+	if ( auto* sv = std::get_if<std::string_view>(&data) )
+		{
+		auto pos = sv->find(c);
+		return pos == std::string_view::npos
+			? -1 : static_cast<int>(pos);
+		}
+
+	if ( auto* s = std::get_if<std::string>(&data) )
+		{
+		auto pos = s->find(c);
+		return pos == std::string::npos
+			? -1 : static_cast<int>(pos);
+		}
+
+	return std::get<std::shared_ptr<Formatting>>(data)->Find(c);
 	}
 
 void FmtPiece::AppendTo(std::string& out) const
