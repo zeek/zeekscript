@@ -515,14 +515,14 @@ Candidates BinaryExprNode::FormatBinaryOp(const FmtContext& ctx,
                                           const std::string& sep,
                                           bool split_multiline) const
 	{
-	auto op = Child(1)->Text();
+	auto op = Child(1);
 	int sep_w = static_cast<int>(sep.size());
-	int op_w = static_cast<int>(op.size()) + 2 * sep_w;
+	int op_w = op->Width() + 2 * sep_w;
 
 	auto lhs = best(format_expr(*Child(0), ctx));
 	auto rhs = best(format_expr(*Child(2), ctx.After(lhs.Width() + op_w)));
 
-	auto flat = lhs.Text() + sep + op + sep + rhs.Text();
+	auto flat = lhs.Text() + sep + op->Text() + sep + rhs.Text();
 	int flat_w = lhs.Width() + op_w + rhs.Width();
 	int flat_ovf = ovf(flat_w, ctx);
 	bool need_split = flat_ovf > 0;
@@ -557,10 +557,9 @@ Candidates BinaryExprNode::FormatBinaryOp(const FmtContext& ctx,
 
 	auto rhs2 = best(format_expr(*Child(2), cont_ctx));
 	auto cont_prefix = line_prefix(cont_ctx.Indent(), cont_ctx.Col());
-	auto split = lhs.Text() + sep + op + "\n" +
+	auto split = lhs.Text() + sep + op->Text() + "\n" +
 			cont_prefix + rhs2.Text();
-	int line1_w = lhs.Width() + sep_w +
-			static_cast<int>(op.size());
+	int line1_w = lhs.Width() + sep_w + op->Width();
 	int split_lines = 1 + rhs2.Lines();
 
 	int last_w;
@@ -573,8 +572,8 @@ Candidates BinaryExprNode::FormatBinaryOp(const FmtContext& ctx,
 		}
 	else
 		{
-		auto rhs_text_w = static_cast<int>(rhs2.Text().size());
-		last_w = cont_ctx.Col() + rhs_text_w;
+		last_w = cont_ctx.Col() +
+			static_cast<int>(rhs2.Text().size());
 		line2_ovf = std::max(0, last_w + cont_ctx.Trail() -
 					cont_ctx.MaxCol());
 		}
@@ -611,10 +610,8 @@ Candidates TernaryNode::Format(const FmtContext& ctx) const
 	{
 	auto q = Child(1, Tag::Question);
 	auto col = Child(3, Tag::Colon);
-	auto qs = " " + q->Text() + " ";
-	auto cs = " " + col->Text() + " ";
-	int qw = static_cast<int>(qs.size());
-	int cw = static_cast<int>(cs.size());
+	int qw = q->Width() + 2;	// " ? "
+	int cw = col->Width() + 2;	// " : "
 
 	auto cond = best(format_expr(*Child(0), ctx));
 	auto tv_cs = format_expr(*Child(2), ctx.After(cond.Width() + qw));
@@ -623,7 +620,8 @@ Candidates TernaryNode::Format(const FmtContext& ctx) const
 			ctx.After(cond.Width() + qw + tv.Width() + cw));
 	auto fv = best(fv_cs);
 
-	auto flat = cond.Text() + qs + tv.Text() + cs + fv.Text();
+	auto flat = cond.Text() + " " + q->Text() + " " + tv.Text() +
+			" " + col->Text() + " " + fv.Text();
 	Candidate flat_c(flat, ctx);
 	if ( flat_c.Fits() )
 		return {flat_c};
@@ -637,8 +635,9 @@ Candidates TernaryNode::Format(const FmtContext& ctx) const
 	fv = best(format_expr(*Child(4), fv_ctx));
 
 	auto fv_prefix = line_prefix(fv_ctx.Indent(), tv_col);
-	auto split_colon = cond.Text() + qs + tv.Text() + " " + col->Text() +
-				"\n" + fv_prefix + fv.Text();
+	auto split_colon = cond.Text() + " " + q->Text() + " " +
+				tv.Text() + " " + col->Text() + "\n" +
+				fv_prefix + fv.Text();
 	int last_w = fv.Width();
 	int lines = 1 + fv.Lines();
 	int split_ovf = ovf(last_w, fv_ctx);
@@ -653,8 +652,9 @@ Candidates TernaryNode::Format(const FmtContext& ctx) const
 	fv = best(fv_cs);
 
 	auto cont_prefix = line_prefix(cont_ctx.Indent(), ctx.Col());
-	auto split_q = cond.Text() + " " + q->Text() + "\n" + cont_prefix +
-			tv.Text() + cs + fv.Text();
+	auto split_q = cond.Text() + " " + q->Text() + "\n" +
+			cont_prefix + tv.Text() + " " + col->Text() +
+			" " + fv.Text();
 	int q_last_w = tv.Width() + cw + fv.Width();
 	int q_ovf = ovf(q_last_w, cont_ctx);
 

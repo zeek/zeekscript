@@ -559,10 +559,8 @@ Candidates TypeDeclBracedNode::Format(const FmtContext& ctx) const
 	auto body = FormatBody(inner, ctx);
 
 	auto close_pad = line_prefix(ctx.Indent(), ctx.Col());
-	Formatting fmt(head);
-	fmt += "\n" + body + close_pad;
-	fmt += inner->Children().back();
-	fmt += Child(6, Tag::Semi);
+	auto fmt = Formatting(head) + "\n" + body + close_pad +
+			inner->Children().back() + Child(6, Tag::Semi);
 	return {Candidate(std::move(fmt), ctx)};
 	}
 
