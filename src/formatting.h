@@ -109,19 +109,7 @@ public:
 		{ Formatting r(*this); r += p; return r; }
 
 	// Materialize the cord into a single string.
-	const std::string& Str() const
-		{
-		if ( dirty )
-			{
-			cache.clear();
-			cache.reserve(total);
-			for ( const auto& p : pieces )
-				p.append_to(cache);
-			dirty = false;
-			}
-
-		return cache;
-		}
+	const std::string& Str() const;
 
 	bool empty() const { return total == 0; }
 	size_t size() const { return total; }
@@ -130,29 +118,11 @@ public:
 
 	// Search for a character in the materialized string.
 	// Returns position as int, or -1 if not found.
-	int Find(char c) const
-		{
-		auto pos = Str().find(c);
-		return pos == std::string::npos ? -1 : static_cast<int>(pos);
-		}
-
+	int Find(char c) const;
 	bool Contains(char c) const { return Find(c) >= 0; }
 
-	void pop_back()
-		{
-		while ( ! pieces.empty() && pieces.back().size() == 0 )
-			pieces.pop_back();
-
-		if ( ! pieces.empty() )
-			{
-			pieces.back().pop_back();
-			--total;
-			dirty = true;
-			}
-		}
-
-	Formatting substr(size_t pos, size_t len = std::string::npos) const
-		{ return {Str().substr(pos, len)}; }
+	void pop_back();
+	Formatting substr(size_t pos, size_t len = std::string::npos) const;
 
 private:
 	std::vector<FmtPiece> pieces;
@@ -179,40 +149,3 @@ inline Formatting operator+(const FmtPtr& lhs, const std::string& rhs)
 inline Formatting operator+(const FmtPtr& lhs, const char* rhs)
 	{ Formatting r; r += lhs; r += rhs; return r; }
 
-// Deferred FmtPiece method implementations (need complete Formatting).
-
-inline size_t FmtPiece::size() const
-	{
-	if ( auto* sv = std::get_if<std::string_view>(&data) )
-		return sv->size();
-	if ( auto* s = std::get_if<std::string>(&data) )
-		return s->size();
-	return std::get<std::shared_ptr<Formatting>>(data)->size();
-	}
-
-inline void FmtPiece::append_to(std::string& out) const
-	{
-	if ( auto* sv = std::get_if<std::string_view>(&data) )
-		out += *sv;
-	else if ( auto* s = std::get_if<std::string>(&data) )
-		out += *s;
-	else
-		out += std::get<std::shared_ptr<Formatting>>(data)->Str();
-	}
-
-inline void FmtPiece::pop_back()
-	{
-	if ( auto* sv = std::get_if<std::string_view>(&data) )
-		sv->remove_suffix(1);
-	else if ( auto* s = std::get_if<std::string>(&data) )
-		s->pop_back();
-	else
-		{
-		// Materialize the shared Formatting and replace
-		// with an owned string.
-		auto& fp = std::get<std::shared_ptr<Formatting>>(data);
-		std::string materialized = fp->Str();
-		materialized.pop_back();
-		data = std::move(materialized);
-		}
-	}
