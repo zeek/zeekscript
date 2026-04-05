@@ -19,26 +19,13 @@ public:
 
 	// Multi-line candidate.  first_col is the absolute column where the
 	// first line starts (needed for balance/spread computation).
-	Candidate(const std::string& t, int w, int l, int ovf,
-	          int first_col = 0)
-		: fmt(t), width(w), lines(l), overflow(ovf),
-		  spread(l > 1 ? ComputeSpread(fmt.Str(), first_col) : 0) {}
-
-	Candidate(std::string&& t, int w, int l, int ovf, int first_col = 0)
-		: fmt(std::move(t)), width(w), lines(l), overflow(ovf),
-		  spread(l > 1 ? ComputeSpread(fmt.Str(), first_col) : 0) {}
-
 	Candidate(Formatting t, int w, int l, int ovf, int first_col = 0)
 		: fmt(std::move(t)), width(w), lines(l), overflow(ovf),
 		  spread(l > 1 ? ComputeSpread(fmt.Str(), first_col) : 0) {}
 
-	Candidate(std::string t) : fmt(std::move(t)), width(fmt.Size()),
-		  lines(1), overflow(0), spread(0) { }
-
 	Candidate(Formatting t) : fmt(std::move(t)), width(fmt.Size()),
 		  lines(1), overflow(0), spread(0) { }
 
-	const std::string& Text() const { return fmt.Str(); }
 	const Formatting& Fmt() const { return fmt; }
 	int Width() const { return width; }
 	int Lines() const { return lines; }
@@ -47,8 +34,6 @@ public:
 
 	// Build a new single-line candidate by appending.
 	// Overflow is not set; use In() to finalize.
-	Candidate Cat(const std::string& s) const
-		{ return Candidate(fmt + s); }
 	Candidate Cat(const Candidate& o) const
 		{ return Candidate(fmt + o.fmt); }
 	Candidate Cat(const NodePtr& n) const
