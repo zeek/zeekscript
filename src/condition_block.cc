@@ -55,7 +55,7 @@ Formatting ForNode::BuildCondition(const FmtContext& cond_ctx) const
 	auto iter_node = Child(6, Tag::Iterable);
 
 	// Format vars (comma-separated identifiers).
-	std::string vars_text;
+	Formatting vars_text;
 	auto vars_content = vars_node->ContentChildren();
 	bool first = true;
 
@@ -68,12 +68,12 @@ Formatting ForNode::BuildCondition(const FmtContext& cond_ctx) const
 		}
 
 	// Format iterable.
-	std::string iter_text;
+	Formatting iter_text;
 	auto iter_content = iter_node->ContentChildren();
 	if ( ! iter_content.empty() )
-		iter_text = best(format_expr(*iter_content[0], cond_ctx)).Text();
+		iter_text += best(format_expr(*iter_content[0], cond_ctx)).Text();
 
-	return vars_text + " " + in_node->Text() + " " + iter_text;
+	return vars_text + " " + in_node + " " + iter_text;
 	}
 
 // ------------------------------------------------------------------
@@ -120,7 +120,7 @@ FmtPtr IfElseNode::BuildFollowOn(const FmtContext& ctx) const
 
 	// ELSE-IF/ELSE-BODY: [0]=KEYWORD [1]=SP [2]=content
 	auto else_child = else_node->Child(2);
-	auto else_kw = else_node->Child(0, Tag::Keyword)->Text();
+	auto else_kw = else_node->Child(0, Tag::Keyword);
 
 	if ( else_node->GetTag() == Tag::ElseIf )
 		{

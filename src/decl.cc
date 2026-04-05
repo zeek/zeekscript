@@ -608,7 +608,12 @@ Formatting TypeDeclEnumNode::FormatBody(const NodePtr& inner,
 		body += pad + values[i];
 		auto nc = (i + 1 < commas.size()) ? commas[i + 1] : nullptr;
 		if ( nc || has_trailing_comma )
-			body += nc ? nc->Text() : ",";
+			{
+			if ( nc )
+				body += nc;
+			else
+				body += ",";
+			}
 		body += "\n";
 		}
 

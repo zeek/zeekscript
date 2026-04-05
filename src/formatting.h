@@ -71,6 +71,7 @@ public:
 	Formatting& operator+=(const Formatting& o);
 	Formatting& operator+=(Formatting&& o);
 	Formatting& operator+=(const std::shared_ptr<Formatting>& p);
+	Formatting& operator+=(const NodePtr& n);
 	Formatting& operator+=(const std::string& s);
 	Formatting& operator+=(const char* s);
 
@@ -82,6 +83,8 @@ public:
 		{ Formatting r(*this); r += s; return r; }
 	Formatting operator+(const std::shared_ptr<Formatting>& p) const
 		{ Formatting r(*this); r += p; return r; }
+	Formatting operator+(const NodePtr& n) const
+		{ Formatting r(*this); r += n; return r; }
 
 	// Materialize the cord into a single string.
 	const std::string& Str() const;
@@ -110,6 +113,12 @@ inline Formatting operator+(const std::string& lhs, const Formatting& rhs)
 	{ return Formatting(lhs) += rhs; }
 inline Formatting operator+(const char* lhs, const Formatting& rhs)
 	{ return Formatting(lhs) += rhs; }
+
+// Allow mixing NodePtr in concatenation chains.
+inline Formatting operator+(const std::string& lhs, const NodePtr& rhs)
+	{ Formatting r(lhs); r += rhs; return r; }
+inline Formatting operator+(const char* lhs, const NodePtr& rhs)
+	{ Formatting r(lhs); r += rhs; return r; }
 
 // Allow mixing shared_ptr<Formatting> in concatenation chains.
 using FmtPtr = std::shared_ptr<Formatting>;

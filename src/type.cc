@@ -84,11 +84,11 @@ const NodePtr& Node::FindTypeChild() const
 // PARAM children: [0]=COLON [1]=type_expr
 Candidates ParamNode::Format(const FmtContext& ctx) const
 	{
-	auto text = Arg();
+	Formatting fmt(Arg());
 	if ( auto ptype = FindTypeChild() )
-		text += Child(0, Tag::Colon)->Text() + " " +
+		fmt += Formatting(Child(0, Tag::Colon)) + " " +
 			best(format_expr(*ptype, ctx)).Text();
-	return {Candidate(text, ctx)};
+	return {Candidate(std::move(fmt), ctx)};
 	}
 
 // TYPE-FUNC: [0]=PARAMS [optional COLON, RETURNS]

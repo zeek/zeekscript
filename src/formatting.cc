@@ -115,6 +115,14 @@ Formatting& Formatting::operator+=(const std::shared_ptr<Formatting>& p)
 	return *this;
 	}
 
+Formatting& Formatting::operator+=(const NodePtr& n)
+	{
+	pieces.emplace_back(n);
+	total += pieces.back().Size();
+	dirty = true;
+	return *this;
+	}
+
 Formatting& Formatting::operator+=(const std::string& s)
 	{
 	pieces.emplace_back(s);

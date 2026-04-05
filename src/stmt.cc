@@ -102,8 +102,8 @@ Candidates ExportNode::Format(const FmtContext& ctx) const
 	int up_indent = ctx.Indent() + 1;
 	auto inner_pad = line_prefix(up_indent, up_indent * INDENT_WIDTH);
 
-	auto rb = Children().back().get();
-	auto close = rb->EmitPreComments(inner_pad) + pad + rb->Text();
+	const auto& rb = Children().back();
+	auto close = rb->EmitPreComments(inner_pad) + pad + rb;
 	auto kw = Child(0, Tag::Keyword)->Text();
 	auto lb = Child(2, Tag::LBrace)->Text();
 	auto head = best(build_layout({kw, soft_sp, lb}, ctx)).Text();
@@ -162,9 +162,9 @@ Candidates SwitchNode::Format(const FmtContext& ctx) const
 		// DEFAULT: [0]=KEYWORD [1]=COLON [optional BODY]
 		if ( c->GetTag() == Tag::Default )
 			{
-			result += "\n" + pad +
-				c->Child(0, Tag::Keyword)->Text() +
-				c->Child(1, Tag::Colon)->Text();
+			result += "\n" + pad;
+			result += c->Child(0, Tag::Keyword);
+			result += c->Child(1, Tag::Colon);
 			append_case_body(c->FindOptChild(Tag::Body), result, ctx);
 			continue;
 			}
@@ -231,8 +231,8 @@ Candidates SwitchNode::Format(const FmtContext& ctx) const
 		append_case_body(c->FindOptChild(Tag::Body), result, ctx);
 		}
 
-	auto rb = Children().back()->Text();
-	result += "\n" + pad + rb;
+	result += "\n" + pad;
+	result += Children().back();
 
 	return {Candidate(std::move(result), ctx)};
 	}
