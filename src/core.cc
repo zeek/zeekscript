@@ -107,6 +107,8 @@ LayoutItem tok(const Node* n)
 	return item;
 	}
 
+LayoutItem tok(const NodePtr& n) { return tok(n.get()); }
+
 static constexpr int BEAM_WIDTH = 4;
 
 struct Partial {

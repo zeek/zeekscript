@@ -4,7 +4,8 @@
 // Declarations: global/local/const/redef name [: type] [= init] [attrs] ;
 
 // Build the suffix: attrs + optional semicolon.
-static std::string decl_suffix(const Node* attrs_node, const Node* semi_node,
+static std::string decl_suffix(const NodePtr& attrs_node,
+                              const NodePtr& semi_node,
                               const FmtContext& ctx)
 	{
 	std::string suffix;
@@ -28,11 +29,11 @@ struct DeclParts {
 	std::string type_str;	// ": type" or ""
 	std::string suffix;	// " &attr1 &attr2;" or ";" or ""
 	std::string assign_op;	// "=", "+=", or ""
-	const Node* type_node = nullptr; // direct type child (after COLON)
-	const Node* colon_node = nullptr; // COLON before type
+	NodePtr type_node;	// direct type child (after COLON)
+	NodePtr colon_node;	// COLON before type
 	const Node* init_val = nullptr; // direct init value (after ASSIGN)
-	const Node* attrs_node = nullptr;
-	const Node* semi_node = nullptr;
+	NodePtr attrs_node;	// ATTR-LIST child
+	NodePtr semi_node;	// SEMI child
 };
 
 // Flat candidate + split-after-init for declarations with initializers.
@@ -571,7 +572,7 @@ Candidates TypeDeclBracedNode::Format(const FmtContext& ctx) const
 	}
 
 // Enum body: collect values with commas, one per line.
-Formatting TypeDeclEnumNode::FormatBody(const Node* inner,
+Formatting TypeDeclEnumNode::FormatBody(const NodePtr& inner,
                                         const FmtContext& ctx) const
 	{
 	std::vector<std::string> values;
@@ -615,7 +616,7 @@ Formatting TypeDeclEnumNode::FormatBody(const Node* inner,
 	}
 
 // Record body: fields, comments, blanks.
-Formatting TypeDeclRecordNode::FormatBody(const Node* inner,
+Formatting TypeDeclRecordNode::FormatBody(const NodePtr& inner,
                                           const FmtContext& ctx) const
 	{
 	int field_indent = ctx.Indent() + 1;

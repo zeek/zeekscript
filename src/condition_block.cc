@@ -81,16 +81,16 @@ Formatting ForNode::BuildCondition(const FmtContext& cond_ctx) const
 // ------------------------------------------------------------------
 
 // Find the ElseIf or ElseBody child.
-static const Node* find_else(const Node& node)
+static const NodePtr& find_else(const Node& node)
 	{
 	for ( const auto& c : node.Children() )
 		{
 		Tag t = c->GetTag();
 		if ( t == Tag::ElseIf || t == Tag::ElseBody )
-			return c.get();
+			return c;
 		}
 
-	return nullptr;
+	return null_node;
 	}
 
 FmtPtr IfElseNode::BuildFollowOn(const FmtContext& ctx) const

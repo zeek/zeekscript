@@ -194,6 +194,8 @@ public:
 	// Node to format (produces candidates).
 	LayoutItem(const Node* n)
 		: kind(Kind::Fmt), node(n), must_break(false) {}
+	LayoutItem(const NodePtr& n)
+		: kind(Kind::Fmt), node(n.get()), must_break(false) {}
 
 	// Soft space (private; use soft_sp constant).
 	LayoutItem(Kind k) : kind(k), node(nullptr), must_break(false) {}
@@ -215,6 +217,7 @@ extern const LayoutItem soft_sp;
 // Token literal: emits node->Text() and forces the next soft_sp
 // to break if the token has a trailing comment.
 LayoutItem tok(const Node* n);
+LayoutItem tok(const NodePtr& n);
 
 // Build layout candidates from a sequence of components using
 // beam search.  At each Fmt node, all of its candidates are tried;

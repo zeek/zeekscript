@@ -26,6 +26,8 @@ using NodePtr = std::shared_ptr<Node>;
 using NodeVec = std::vector<NodePtr>;
 using Nodes = std::vector<const Node*>;
 
+extern const NodePtr null_node;
+
 class Node {
 public:
 	Node(Tag tag) : tag(tag) {}
@@ -44,19 +46,19 @@ public:
 	NodeVec& Children() { return children; }
 
 	// Direct positional child access.
-	const Node* Child(size_t i) const { return children[i].get(); }
+	const NodePtr& Child(size_t i) const { return children[i]; }
 
 	// Positional child access with tag verification.
-	const Node* Child(size_t i, Tag t) const;
+	const NodePtr& Child(size_t i, Tag t) const;
 
-	// Find a child node by tag, or nullptr if absent.
-	const Node* FindOptChild(Tag tag) const;
+	// Find a child node by tag, or null NodePtr if absent.
+	const NodePtr& FindOptChild(Tag tag) const;
 
 	// Find a required child node by tag.  Aborts if not found.
-	const Node* FindChild(Tag tag) const;
+	const NodePtr& FindChild(Tag tag) const;
 
 	// Find a child by tag, starting after the given child.
-	const Node* FindChild(Tag tag, const Node* after) const;
+	const NodePtr& FindChild(Tag tag, const NodePtr& after) const;
 
 	// Collect non-token, non-comment children.
 	Nodes ContentChildren() const;
@@ -108,7 +110,7 @@ public:
 	FmtPtr EmitPreComments(const std::string& pad) const;
 
 	// Find the first type child (TypeAtom, TypeParameterized, TypeFunc).
-	const Node* FindTypeChild() const;
+	const NodePtr& FindTypeChild() const;
 
 	// Format an ATTR-LIST node as a single string.
 	Formatting FormatAttrList(const FmtContext& ctx) const;

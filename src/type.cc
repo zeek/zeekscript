@@ -69,12 +69,13 @@ Candidates TypeParamNode::Format(const FmtContext& ctx) const
 	}
 
 // Find the first type child (TypeAtom, TypeParameterized, TypeFunc).
-const Node* Node::FindTypeChild() const
+const NodePtr& Node::FindTypeChild() const
 	{
 	for ( const auto& c : Children() )
 		if ( c->IsType() )
-			return c.get();
-	return nullptr;
+			return c;
+
+	return null_node;
 	}
 
 // TYPE-FUNC: event(params), function(params): rettype

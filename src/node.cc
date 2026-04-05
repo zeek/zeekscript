@@ -20,9 +20,11 @@ const std::string& Node::Arg(size_t i) const
 	return i < args.size() ? args[i] : empty;
 	}
 
-const Node* Node::Child(size_t i, Tag t) const
+const NodePtr null_node;
+
+const NodePtr& Node::Child(size_t i, Tag t) const
 	{
-	const Node* c = children[i].get();
+	const auto& c = children[i];
 	if ( c->GetTag() != t )
 		throw std::runtime_error(std::string("internal error: ") +
 					TagToString(tag) + " child " +
@@ -32,17 +34,17 @@ const Node* Node::Child(size_t i, Tag t) const
 	return c;
 	}
 
-const Node* Node::FindOptChild(Tag t) const
+const NodePtr& Node::FindOptChild(Tag t) const
 	{
 	for ( const auto& c : children )
 		if ( c->GetTag() == t )
-			return c.get();
-	return nullptr;
+			return c;
+	return null_node;
 	}
 
-const Node* Node::FindChild(Tag t) const
+const NodePtr& Node::FindChild(Tag t) const
 	{
-	const Node* n = FindOptChild(t);
+	const auto& n = FindOptChild(t);
 	if ( ! n )
 		throw std::runtime_error(std::string("internal error: ") +
 					TagToString(tag) + " has no " +
@@ -50,18 +52,18 @@ const Node* Node::FindChild(Tag t) const
 	return n;
 	}
 
-const Node* Node::FindChild(Tag t, const Node* after) const
+const NodePtr& Node::FindChild(Tag t, const NodePtr& after) const
 	{
 	bool past = false;
 	for ( const auto& c : children )
 		{
-		if ( c.get() == after )
+		if ( c == after )
 			past = true;
 		else if ( past && c->GetTag() == t )
-			return c.get();
+			return c;
 		}
 
-	return nullptr;
+	return null_node;
 	}
 
 Nodes Node::ContentChildren() const

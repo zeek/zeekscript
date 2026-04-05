@@ -69,7 +69,7 @@ public:
 	TypeDeclBracedNode(Tag t) : StmtNode(t) { }
 	Candidates Format(const FmtContext& ctx) const override;
 protected:
-	virtual Formatting FormatBody(const Node* inner,
+	virtual Formatting FormatBody(const NodePtr& inner,
 	                              const FmtContext& ctx) const = 0;
 };
 
@@ -77,7 +77,7 @@ class TypeDeclEnumNode : public TypeDeclBracedNode {
 public:
 	TypeDeclEnumNode() : TypeDeclBracedNode(Tag::TypeDeclEnum) { }
 protected:
-	Formatting FormatBody(const Node* inner,
+	Formatting FormatBody(const NodePtr& inner,
 	                       const FmtContext& ctx) const override;
 };
 
@@ -85,7 +85,7 @@ class TypeDeclRecordNode : public TypeDeclBracedNode {
 public:
 	TypeDeclRecordNode() : TypeDeclBracedNode(Tag::TypeDeclRecord) { }
 protected:
-	Formatting FormatBody(const Node* inner,
+	Formatting FormatBody(const NodePtr& inner,
 	                       const FmtContext& ctx) const override;
 };
 
@@ -124,9 +124,9 @@ public:
 	DeclNode(Tag t) : StmtNode(t) { }
 	Candidates Format(const FmtContext& ctx) const override;
 
-	const Node* TypeWrapper() const
+	const NodePtr& TypeWrapper() const
 		{ return FindOptChild(Tag::DeclType); }
-	const Node* InitWrapper() const
+	const NodePtr& InitWrapper() const
 		{ return FindOptChild(Tag::DeclInit); }
 };
 

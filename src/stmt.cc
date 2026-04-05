@@ -113,7 +113,7 @@ Candidates ExportNode::Format(const FmtContext& ctx) const
 	}
 
 // Switch statement: switch expr { case val: body ... }
-static void append_case_body(const Node* body, Formatting& result,
+static void append_case_body(const NodePtr& body, Formatting& result,
                            const FmtContext& ctx)
 	{
 	if ( ! body )
