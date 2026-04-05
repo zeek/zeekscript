@@ -412,21 +412,39 @@ class Emitter:
                 return
 
         # Function/event call: expr ( expr_list )
-        # Also handles keyword-named constructors: set(...), table(...), vector(...)
+        # Keyword-named constructors (set, table, vector) with many
+        # args emit as CONSTRUCTOR; other calls emit as CALL.
         if "(" in token_texts and ")" in token_texts:
             first_text = self._text(kids[0])
-            if kids[0].is_named or first_text in ("set", "table", "vector",
-                                                    "record", "event"):
-                if kids[0].is_named:
-                    callee_text = None  # emit via _emit_expr_child
-                else:
-                    callee_text = first_text
+            constructors = ("set", "table", "vector")
+            callables = constructors + ("record", "event")
+            if kids[0].is_named or first_text in callables:
                 args = [k for k in kids if k.type == "expr_list"]
+
+                # Count expression children to decide threshold.
+                nargs = 0
+                if args:
+                    nargs = sum(1 for c in args[0].children
+                                if c.type == "expr")
+
+                if (not kids[0].is_named
+                        and first_text in constructors
+                        and nargs >= 7):
+                    self._open('CONSTRUCTOR')
+                    self._w(f'KEYWORD {_quote(first_text)}')
+                    self._w('LPAREN')
+                    if args:
+                        self._emit_expr_list(args[0])
+                    self._w('RPAREN')
+                    self._close()
+                    self._mark_content(node)
+                    return
+
                 self._open('CALL')
-                if callee_text:
-                    self._w(f'IDENTIFIER {_quote(callee_text)}')
-                else:
+                if kids[0].is_named:
                     self._emit_expr_child(kids[0])
+                else:
+                    self._w(f'IDENTIFIER {_quote(first_text)}')
                 self._open('ARGS')
                 self._w('LPAREN')
                 if args:

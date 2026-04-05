@@ -63,13 +63,6 @@ Candidates CallNode::Format(const FmtContext& ctx) const
 		return {FormatArgsVertical(func.Text() + lp, rp,
 		                           items, ctx, true)};
 
-	// Constructor-like calls (set, table, vector) with many args
-	// use flat-or-vertical like CONSTRUCTOR nodes.
-	auto fname = func.Text();
-	if ( items.size() >= 7 &&
-	     (fname == "set" || fname == "table" || fname == "vector") )
-		return FormatConstructor_args(fname + lp, rp, items, ctx);
-
 	auto result = FlatOrFill(func.Text(), lp, rp, "", items, ctx,
 				args_node->TrailingComment());
 
