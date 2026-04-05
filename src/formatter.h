@@ -23,9 +23,6 @@ public:
 		{ text += s; return *this; }
 	Formatting& operator+=(const char* s)
 		{ text += s; return *this; }
-	Formatting& operator+=(char c)
-		{ text += c; return *this; }
-
 	Formatting operator+(const Formatting& o) const
 		{ return {text + o.text}; }
 	Formatting operator+(const std::string& s) const
@@ -43,14 +40,6 @@ public:
 
 	Formatting substr(size_t pos, size_t len = std::string::npos) const
 		{ return {text.substr(pos, len)}; }
-	size_t find(char c, size_t pos = 0) const
-		{ return text.find(c, pos); }
-	size_t find(const std::string& s, size_t pos = 0) const
-		{ return text.find(s, pos); }
-	size_t rfind(char c, size_t pos = std::string::npos) const
-		{ return text.rfind(c, pos); }
-
-	void append(size_t count, char c) { text.append(count, c); }
 
 private:
 	std::string text;
