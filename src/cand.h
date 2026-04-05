@@ -14,7 +14,6 @@ public:
 	// Single-line candidate with overflow computed from context.
 	// Accounts for trailing reservation (e.g. comment after stmt).
 	// Defined in cand.cc (needs complete FmtContext).
-	Candidate(const std::string& t, const FmtContext& ctx);
 	Candidate(Formatting t, const FmtContext& ctx);
 
 	// Multi-line candidate.  first_col is the absolute column where the

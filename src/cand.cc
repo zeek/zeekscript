@@ -4,15 +4,6 @@
 #include "cand.h"
 #include "layout.h"
 
-Candidate::Candidate(const std::string& t, const FmtContext& ctx)
-	: fmt(t), width(static_cast<int>(t.size())),
-	  lines(1), spread(0)
-	{
-	int avail = ctx.Width() - ctx.Trail();
-	int excess = width - avail;
-	overflow = excess > 0 ? excess : 0;
-	}
-
 Candidate::Candidate(Formatting t, const FmtContext& ctx)
 	: fmt(std::move(t)), width(fmt.Size()), lines(1), spread(0)
 	{
