@@ -6,7 +6,7 @@
 #include <string>
 #include <vector>
 
-#include "formatter.h"
+#include "layout.h"
 #include "node.h"
 #include "tag.h"
 

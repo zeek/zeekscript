@@ -1,6 +1,6 @@
 #pragma once
 
-#include "formatter.h"
+#include "layout.h"
 #include "node.h"
 
 // Base class for statement nodes with virtual Format.

@@ -15,19 +15,19 @@ $(TARGET): $(OBJS)
 	$(CXX) $(CXXFLAGS) -c -o $@ $<
 
 # Header dependencies
-main.o: formatter.h formatting.h node.h parser.h tag.h
-node.o: condition_block.h expr.h formatter.h formatting.h node.h stmt.h tag.h
+main.o: layout.h formatting.h node.h parser.h tag.h
+node.o: condition_block.h expr.h layout.h formatting.h node.h stmt.h tag.h
 parser.o: formatting.h node.h parser.h tag.h
 tag.o: tag.h
 formatting.o: formatting.h
-core.o: fmt_util.h formatter.h formatting.h node.h tag.h
-fmt_util.o: fmt_util.h formatter.h formatting.h node.h stmt.h tag.h
-expr.o: expr.h fmt_util.h formatter.h formatting.h node.h tag.h
-type.o: expr.h fmt_util.h formatter.h formatting.h node.h tag.h
-decl.o: fmt_util.h formatter.h formatting.h node.h stmt.h tag.h
-stmt.o: fmt_util.h formatter.h formatting.h node.h stmt.h tag.h
-top.o: fmt_util.h formatter.h formatting.h node.h tag.h
-condition_block.o: condition_block.h fmt_util.h formatter.h formatting.h node.h tag.h
+core.o: fmt_util.h layout.h formatting.h node.h tag.h
+fmt_util.o: fmt_util.h layout.h formatting.h node.h stmt.h tag.h
+expr.o: expr.h fmt_util.h layout.h formatting.h node.h tag.h
+type.o: expr.h fmt_util.h layout.h formatting.h node.h tag.h
+decl.o: fmt_util.h layout.h formatting.h node.h stmt.h tag.h
+stmt.o: fmt_util.h layout.h formatting.h node.h stmt.h tag.h
+top.o: fmt_util.h layout.h formatting.h node.h tag.h
+condition_block.o: condition_block.h fmt_util.h layout.h formatting.h node.h tag.h
 
 SHELL = /bin/bash
 
