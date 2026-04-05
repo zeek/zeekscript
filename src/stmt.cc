@@ -9,14 +9,21 @@ Candidates CommentNode::Format(const FmtContext& ctx) const
 	return {Candidate(Arg(), ctx)};
 	}
 
-// Append a suffix (semicolon) to each candidate.
+// Append a suffix (semicolon) to each candidate.  When ovf_ctx is
+// provided, single-line candidates recompute overflow against it
+// (needed when the outer context has its own trail).
 static Candidates AppendSuffix(Candidates& cs, const std::string& suffix,
-                               int suffix_w, int col)
+                               int suffix_w, int col,
+                               const FmtContext* ovf_ctx = nullptr)
 	{
 	Candidates result;
 	for ( auto& c : cs )
-		result.push_back({c.Text() + suffix, c.Width() + suffix_w,
-		                  c.Lines(), c.Ovf(), col});
+		{
+		int w = c.Width() + suffix_w;
+		int ovf = (ovf_ctx && c.Lines() == 1) ?
+				Ovf(w, *ovf_ctx) : c.Ovf();
+		result.push_back({c.Text() + suffix, w, c.Lines(), ovf, col});
+		}
 	return result;
 	}
 
@@ -70,41 +77,13 @@ Candidates EventStmtNode::Format(const FmtContext& ctx) const
 
 
 // Expression statement: expr ;
+// Children: [0]=expr ... [last]=SEMI
 Candidates ExprStmtNode::Format(const FmtContext& ctx) const
 	{
-	const auto& kids = Children();
-	if ( kids.empty() )
-		throw FormatError("EXPR-STMT node needs children");
-
-	const Node* expr = nullptr;
-	const Node* semi = nullptr;
-
-	for ( const auto& c : kids )
-		{
-		if ( c->GetTag() == Tag::Semi )
-			semi = c.get();
-		else if ( ! c->IsToken() && ! expr )
-			expr = c.get();
-		}
-
-	if ( ! expr )
-		return {Candidate(semi ? semi->Text() : "", ctx)};
-
-	// Reserve trailing space for the semicolon.
-	int semi_w = semi ? semi->Width() : 0;
-	auto expr_cs = FormatExpr(*expr, ctx.Reserve(semi_w));
-
-	Candidates result;
-	for ( const auto& ec : expr_cs )
-		{
-		auto semi_str = semi ? semi->Text() : "";
-		auto text = ec.Text() + semi_str;
-		int w = ec.Width() + semi_w;
-		int ovf = ec.Lines() == 1 ? Ovf(w, ctx) : ec.Ovf();
-		result.push_back({text, w, ec.Lines(), ovf, ctx.Col()});
-		}
-
-	return result;
+	auto semi = Children().back().get();
+	int semi_w = semi->Width();
+	auto expr_cs = FormatExpr(*Child(0), ctx.Reserve(semi_w));
+	return AppendSuffix(expr_cs, semi->Text(), semi_w, ctx.Col(), &ctx);
 	}
 
 // Export declaration: export { decls }
