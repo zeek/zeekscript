@@ -125,7 +125,7 @@ static void DeclNoInit(const DeclParts& d, Candidates& result,
 		}
 
 	// Type alone, attrs on separate lines.
-	auto semi_str = d.semi_node ? d.semi_node->Text() : "";
+	auto semi_str = d.semi_node->Text();
 	auto type_suffix = d.attrs_node ? "" : d.suffix;
 	auto split = line1 + "\n" + pad + tv + type_suffix;
 
@@ -169,7 +169,7 @@ static void DeclWrappedAttrs(const DeclParts& d, Candidates& result,
 	int attr_col = static_cast<int>(d.head.size()) + 3;
 	auto attr_pad = LinePrefix(ctx.Indent(), attr_col);
 	int max_col = ctx.MaxCol();
-	int semi_w = d.semi_node ? d.semi_node->Width() : 0;
+	int semi_w = d.semi_node->Width();
 
 	// Check if all attrs fit on one continuation line.
 	std::string all_attrs;
@@ -204,8 +204,7 @@ static void DeclWrappedAttrs(const DeclParts& d, Candidates& result,
 			}
 		}
 
-	if ( d.semi_node )
-		wrapped += d.semi_node->Text();
+	wrapped += d.semi_node->Text();
 
 	int last_w = LastLineLen(wrapped);
 	int lines = CountLines(wrapped);
@@ -345,16 +344,12 @@ struct ParamEntry {
 	const Node* comma = nullptr;	// COMMA before this param
 };
 
-static std::vector<ParamEntry> FormatParamEntries(const Node* params,
+static std::vector<ParamEntry> FormatParamEntries(const Node& params,
                                                    const FmtContext& ctx)
 	{
 	std::vector<ParamEntry> result;
-
-	if ( ! params )
-		return result;
-
 	const Node* pending_comma = nullptr;
-	for ( const auto& p : params->Children() )
+	for ( const auto& p : params.Children() )
 		{
 		Tag t = p->GetTag();
 
@@ -388,7 +383,7 @@ static std::vector<ParamEntry> FormatParamEntries(const Node* params,
 Candidates FormatFuncDecl(const Node& node, const FmtContext& ctx)
 	{
 	auto params = node.Child(3, Tag::Params);
-	auto pentries = FormatParamEntries(params, ctx);
+	auto pentries = FormatParamEntries(*params, ctx);
 
 	// Build flat param list.
 	std::string flat_params;

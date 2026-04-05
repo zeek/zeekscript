@@ -379,9 +379,6 @@ std::string FormatWhitesmithBlock(const Node* body, const FmtContext& ctx)
 	auto block_ctx = ctx.Indented();
 	auto brace_pad = LinePrefix(block_ctx.Indent(), block_ctx.Col());
 
-	if ( ! body )
-		return "\n" + brace_pad + "{ }";
-
 	// Extract the children between LBRACE and RBRACE, reading
 	// trailing comments from the brace tokens themselves.
 	auto lb = body->FindChild(Tag::LBrace);
@@ -429,12 +426,10 @@ std::string FormatWhitesmithBlock(const Node* body, const FmtContext& ctx)
 	}
 
 // Format a single-statement body (no braces, indented one level).
-static std::string FormatSingleStmtBody(const Node* body, const FmtContext& ctx)
+static std::string FormatSingleStmtBody(const Node& body, const FmtContext& ctx)
 	{
-	if ( ! body || body->Children().empty() )
-		return "";
 
-	auto text = FormatStmtList(body->Children(), ctx.Indented());
+	auto text = FormatStmtList(body.Children(), ctx.Indented());
 
 	// Strip trailing newline - the parent loop adds its own.
 	if ( ! text.empty() && text.back() == '\n' )
@@ -447,12 +442,9 @@ static std::string FormatSingleStmtBody(const Node* body, const FmtContext& ctx)
 // otherwise indented single-statement body.
 std::string FormatBodyText(const Node* body, const FmtContext& ctx)
 	{
-	if ( ! body || body->Children().empty() )
-		return "";
-
 	auto content = body->ContentChildren();
 	if ( content.empty() || content[0]->GetTag() != Tag::Block )
-		return "\n" + FormatSingleStmtBody(body, ctx);
+		return "\n" + FormatSingleStmtBody(*body, ctx);
 
 	return FormatWhitesmithBlock(content[0], ctx);
 	}
