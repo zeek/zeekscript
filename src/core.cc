@@ -4,7 +4,7 @@
 #include "fmt_internal.h"
 
 // Line prefix: tabs for indent, spaces for remaining offset
-std::string LinePrefix(int indent, int col)
+std::string line_prefix(int indent, int col)
 	{
 	std::string s(indent, '\t');
 	int space_col = indent * INDENT_WIDTH;
@@ -16,11 +16,11 @@ std::string LinePrefix(int indent, int col)
 	}
 
 // Pre-comment / pre-marker emission
-std::string EmitPreComments(const Node& node, const std::string& pad)
+std::string Node::EmitPreComments(const std::string& pad) const
 	{
 	std::string result;
 
-	for ( const auto& pc : node.PreComments() )
+	for ( const auto& pc : PreComments() )
 		{
 		// Leading '\n' = blank line before this comment.
 		size_t start = 0;
@@ -42,7 +42,7 @@ std::string EmitPreComments(const Node& node, const std::string& pad)
 			result += "\n";
 		}
 
-	for ( const auto& pm : node.PreMarkers() )
+	for ( const auto& pm : PreMarkers() )
 		if ( pm->GetTag() == Tag::Blank )
 			result += "\n";
 
@@ -85,36 +85,36 @@ bool Candidate::BetterThan(const Candidate& o) const
 	return Spread() < o.Spread();
 	}
 
-const Candidate& Best(const Candidates& cs)
+const Candidate& best(const Candidates& cs)
 	{
 	assert(! cs.empty());
-	auto best = &cs[0];
+	auto result = &cs[0];
 
 	for ( size_t i = 1; i < cs.size(); ++i )
-		if ( cs[i].BetterThan(*best) )
-			best = &cs[i];
+		if ( cs[i].BetterThan(*result) )
+			result = &cs[i];
 
-	return *best;
+	return *result;
 	}
 
-int Ovf(int candidate_w, const FmtContext& ctx)
+int ovf(int candidate_w, const FmtContext& ctx)
 	{
 	return std::max(0, candidate_w - ctx.Width() + ctx.Trail());
 	}
 
-int OvfNoTrail(int candidate_w, const FmtContext& ctx)
+int ovf_no_trail(int candidate_w, const FmtContext& ctx)
 	{
 	return std::max(0, candidate_w - ctx.Width());
 	}
 
-int FitCol(int align_col, int w, int max_col)
+int fit_col(int align_col, int w, int max_col)
 	{
 	if ( align_col + w <= max_col - 1 )
 		return align_col;
 	return max_col - 1 - w;
 	}
 
-int CountLines(const std::string& s)
+int count_lines(const std::string& s)
 	{
 	int n = 1;
 	for ( char c : s )
@@ -123,7 +123,7 @@ int CountLines(const std::string& s)
 	return n;
 	}
 
-int LastLineLen(const std::string& s)
+int last_line_len(const std::string& s)
 	{
 	auto n = s.size();
 	auto pos = s.rfind('\n');
@@ -132,7 +132,7 @@ int LastLineLen(const std::string& s)
 	return static_cast<int>(n);
 	}
 
-int TextOverflow(const std::string& text, int start_col, int max_col)
+int text_overflow(const std::string& text, int start_col, int max_col)
 	{
 	int ovf = 0;
 	int pos = 0;
@@ -156,10 +156,10 @@ int TextOverflow(const std::string& text, int start_col, int max_col)
 	return ovf;
 	}
 
-// Like TextOverflow but returns the maximum overflow of any single
+// Like text_overflow but returns the maximum overflow of any single
 // line rather than the sum.  Handles tab indentation correctly
 // (each tab = INDENT_WIDTH columns).
-int MaxLineOverflow(const std::string& text, int start_col, int max_col)
+int max_line_overflow(const std::string& text, int start_col, int max_col)
 	{
 	int max_ovf = 0;
 	int col = start_col;
@@ -187,9 +187,9 @@ int MaxLineOverflow(const std::string& text, int start_col, int max_col)
 	}
 
 // Layout combinator
-const LayoutItem SoftSp{LayoutItem::Kind::Sp};
+const LayoutItem soft_sp{LayoutItem::Kind::Sp};
 
-LayoutItem Tok(const Node* n)
+LayoutItem tok(const Node* n)
 	{
 	LayoutItem item(n->Text());
 	item.SetMustBreak(n->MustBreakAfter());
@@ -234,7 +234,7 @@ static Partials layout_one_item(const LayoutItem& item, Partials& beam,
 			{
 			int avail = ctx.MaxCol() - p.col;
 			FmtContext sub(ctx.Indent(), p.col, avail, trail);
-			auto cs = FormatExpr(*item.LI_Node(), sub);
+			auto cs = format_expr(*item.LI_Node(), sub);
 			for ( const auto& c : cs )
 				{
 				Partial np = p;
@@ -268,7 +268,7 @@ static Partials layout_one_item(const LayoutItem& item, Partials& beam,
 
 			// Option 2: break + indent.
 			FmtContext brk = ctx.Indented();
-			auto pad = "\n" + LinePrefix(brk.Indent(),
+			auto pad = "\n" + line_prefix(brk.Indent(),
 							brk.IndentCol());
 			Partial bp = p;
 			bp.text += pad;
@@ -300,12 +300,12 @@ static Partials layout_one_item(const LayoutItem& item, Partials& beam,
 
 // Trailing literal width after a Fmt node is automatically reserved
 // so the formatted expression accounts for what follows it.
-Candidates BuildLayout(LayoutItems items_init, const FmtContext& ctx)
+Candidates build_layout(LayoutItems items_init, const FmtContext& ctx)
 	{
 	std::vector<LayoutItem> items(items_init);
 
 	// Compute trailing literal width after position i, assuming
-	// SoftSp items resolve to a single space.  If the trailing
+	// soft_sp items resolve to a single space.  If the trailing
 	// items extend to the end of the layout, include the outer
 	// context's trail reservation (e.g. a ";" appended by the
 	// caller after the whole layout).

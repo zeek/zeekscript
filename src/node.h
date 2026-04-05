@@ -102,6 +102,24 @@ public:
 
 	bool HasChildren() const { return ! children.empty(); }
 
+	// Emit pre-comments and pre-markers as indented lines.
+	std::string EmitPreComments(const std::string& pad) const;
+
+	// Find the first type child (TypeAtom, TypeParameterized, TypeFunc).
+	const Node* FindTypeChild() const;
+
+	// Format an ATTR-LIST node as a single string.
+	std::string FormatAttrList(const FmtContext& ctx) const;
+
+	// Format an ATTR-LIST node as individual attr strings.
+	std::vector<std::string> FormatAttrStrings(const FmtContext& ctx) const;
+
+	// Format a BODY node: Whitesmith block or indented single stmt.
+	std::string FormatBodyText(const FmtContext& ctx) const;
+
+	// Format a Whitesmith-style braced block.
+	std::string FormatWhitesmithBlock(const FmtContext& ctx) const;
+
 	// Debug: print tree to stdout.
 	void Dump(int indent = 0) const;
 

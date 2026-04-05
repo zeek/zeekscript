@@ -137,33 +137,27 @@ private:
 };
 
 // Pick the best candidate from a non-empty vector.
-const Candidate& Best(const Candidates& cs);
+const Candidate& best(const Candidates& cs);
 
 // Top-level entry point: format a list of top-level nodes.
 std::string Format(const NodeVec& nodes);
 
 // Format a single node in a given context, returning one or more candidates.
-Candidates FormatNode(const Node& node, const FmtContext& ctx);
+Candidates format_node(const Node& node, const FmtContext& ctx);
 
 // Format an expression node, dispatching by tag.
-Candidates FormatExpr(const Node& node, const FmtContext& ctx);
-
-// Format a statement body (block or single statement).
-std::string FormatBodyText(const Node* body, const FmtContext& ctx);
-
-// Format a Whitesmith-style braced block.
-std::string FormatWhitesmithBlock(const Node* body, const FmtContext& ctx);
+Candidates format_expr(const Node& node, const FmtContext& ctx);
 
 // Emit a line prefix for a given indent level and starting column: tabs
 // for indent levels, then spaces to reach the target column.  This is the
 // *only* place tabs appear.
-std::string LinePrefix(int indent, int col);
+std::string line_prefix(int indent, int col);
 
 // Layout combinator
 
 // A component in a layout specification.  Implicit constructors
 // let callers mix strings, node pointers, and SP markers freely:
-//   BuildLayout({prefix, SoftSp, node, SoftSp, suffix}, ctx)
+//   build_layout({prefix, soft_sp, node, soft_sp, suffix}, ctx)
 class LayoutItem
 	{
 public:
@@ -179,7 +173,7 @@ public:
 	LayoutItem(const Node* n)
 		: kind(Kind::Fmt), node(n), must_break(false) {}
 
-	// Soft space (private; use SoftSp constant).
+	// Soft space (private; use soft_sp constant).
 	LayoutItem(Kind k) : kind(k), node(nullptr), must_break(false) {}
 
 	const std::string& Text() const { return text; }
@@ -194,15 +188,15 @@ private:
 	bool must_break;	// force next Sp to break (trailing comment)
 	};
 
-extern const LayoutItem SoftSp;
+extern const LayoutItem soft_sp;
 
-// Token literal: emits node->Text() and forces the next SoftSp
+// Token literal: emits node->Text() and forces the next soft_sp
 // to break if the token has a trailing comment.
-LayoutItem Tok(const Node* n);
+LayoutItem tok(const Node* n);
 
 // Build layout candidates from a sequence of components using
 // beam search.  At each Fmt node, all of its candidates are tried;
-// at each SoftSp, both "space" and "break + indent" are tried.
+// at each soft_sp, both "space" and "break + indent" are tried.
 // The beam is pruned to the best candidates at each step.
 using LayoutItems = std::initializer_list<LayoutItem>;
-Candidates BuildLayout(LayoutItems items_init, const FmtContext& ctx);
+Candidates build_layout(LayoutItems items_init, const FmtContext& ctx);

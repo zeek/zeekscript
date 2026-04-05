@@ -58,20 +58,20 @@ Candidates TypeParamNode::Format(const FmtContext& ctx) const
 	std::string suffix;
 	if ( of_type )
 		suffix = " " + FindChild(Tag::Keyword)->Text() + " " +
-			Best(FormatExpr(*of_type, ctx)).Text();
+			best(format_expr(*of_type, ctx)).Text();
 
 	if ( bt_items.empty() )
 		return {Candidate(keyword + suffix, ctx)};
 
 	auto lb = FindChild(Tag::LBracket)->Text();
 	auto rb = FindChild(Tag::RBracket)->Text();
-	return FlatOrFill(keyword, lb, rb, suffix, bt_items, ctx);
+	return flat_or_fill(keyword, lb, rb, suffix, bt_items, ctx);
 	}
 
 // Find the first type child (TypeAtom, TypeParameterized, TypeFunc).
-const Node* FindTypeChild(const Node& node)
+const Node* Node::FindTypeChild() const
 	{
-	for ( const auto& c : node.Children() )
+	for ( const auto& c : Children() )
 		if ( c->IsType() )
 			return c.get();
 	return nullptr;
@@ -84,9 +84,9 @@ const Node* FindTypeChild(const Node& node)
 Candidates ParamNode::Format(const FmtContext& ctx) const
 	{
 	auto text = Arg();
-	if ( auto ptype = FindTypeChild(*this) )
+	if ( auto ptype = FindTypeChild() )
 		text += Child(0, Tag::Colon)->Text() + " " +
-			Best(FormatExpr(*ptype, ctx)).Text();
+			best(format_expr(*ptype, ctx)).Text();
 	return {Candidate(text, ctx)};
 	}
 
@@ -100,13 +100,13 @@ Candidates TypeFuncNode::Format(const FmtContext& ctx) const
 	if ( auto returns = FindOptChild(Tag::Returns) )
 		{
 		auto colon = FindChild(Tag::Colon)->Text();
-		if ( auto rt = FindTypeChild(*returns) )
+		if ( auto rt = returns->FindTypeChild() )
 			ret_str = colon + " " +
-				Best(FormatExpr(*rt, ctx)).Text();
+				best(format_expr(*rt, ctx)).Text();
 		}
 
 	auto params = Child(0, Tag::Params);
-	auto items = CollectArgs(params->Children());
+	auto items = collect_args(params->Children());
 
 	auto lp = params->Child(0, Tag::LParen)->Text();
 	auto rp = params->Children().back()->Text();
@@ -114,7 +114,7 @@ Candidates TypeFuncNode::Format(const FmtContext& ctx) const
 	if ( items.empty() )
 		return {Candidate(keyword + lp + rp + ret_str, ctx)};
 
-	return FlatOrFill(keyword, lp, rp, ret_str, items, ctx);
+	return flat_or_fill(keyword, lp, rp, ret_str, items, ctx);
 	}
 
 static const Node* get_non_token_child(const Node* parent)
@@ -128,7 +128,7 @@ static const Node* get_non_token_child(const Node* parent)
 
 // Check whether any attr value in an ATTR-LIST contains blanks.
 // If so, all attrs use " = " spacing; otherwise "=".
-static bool AttrListNeedsSpaces(const Node& node, const FmtContext& ctx)
+static bool attr_list_needs_spaces(const Node& node, const FmtContext& ctx)
 	{
 	for ( const auto& attr : node.Children() )
 		{
@@ -140,7 +140,7 @@ static bool AttrListNeedsSpaces(const Node& node, const FmtContext& ctx)
 		if ( ! val )
 			continue;
 
-		if ( Best(FormatExpr(*val, ctx)).Text().find(' ') !=
+		if ( best(format_expr(*val, ctx)).Text().find(' ') !=
 		     std::string::npos )
 			return true;
 		}
@@ -149,8 +149,8 @@ static bool AttrListNeedsSpaces(const Node& node, const FmtContext& ctx)
 	}
 
 // Format a single attr: "&name" or "&name=value" / "&name = value".
-static std::string FormatOneAttr(const Node& attr, bool spaced,
-                                 const FmtContext& ctx)
+static std::string format_one_attr(const Node& attr, bool spaced,
+                                   const FmtContext& ctx)
 	{
 	auto text = attr.Arg();
 
@@ -160,29 +160,28 @@ static std::string FormatOneAttr(const Node& attr, bool spaced,
 		text += sep + eq->Text() + sep;
 
 		if ( auto val = get_non_token_child(&attr) )
-			text += Best(FormatExpr(*val, ctx)).Text();
+			text += best(format_expr(*val, ctx)).Text();
 		}
 
 	return text;
 	}
 
-std::vector<std::string> FormatAttrStrings(const Node& node,
-                                           const FmtContext& ctx)
+std::vector<std::string> Node::FormatAttrStrings(const FmtContext& ctx) const
 	{
-	bool spaced = AttrListNeedsSpaces(node, ctx);
+	bool spaced = attr_list_needs_spaces(*this, ctx);
 	std::vector<std::string> result;
 
-	for ( const auto& attr : node.Children() )
+	for ( const auto& attr : Children() )
 		if ( attr->GetTag() == Tag::Attr )
-			result.push_back(FormatOneAttr(*attr, spaced, ctx));
+			result.push_back(format_one_attr(*attr, spaced, ctx));
 
 	return result;
 	}
 
-std::string FormatAttrList(const Node& node, const FmtContext& ctx)
+std::string Node::FormatAttrList(const FmtContext& ctx) const
 	{
 	std::string text;
-	for ( const auto& s : FormatAttrStrings(node, ctx) )
+	for ( const auto& s : FormatAttrStrings(ctx) )
 		{
 		if ( ! text.empty() )
 			text += " ";

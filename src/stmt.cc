@@ -12,7 +12,7 @@ Candidates CommentNode::Format(const FmtContext& ctx) const
 // Append a suffix (semicolon) to each candidate.  When ovf_ctx is
 // provided, single-line candidates recompute overflow against it
 // (needed when the outer context has its own trail).
-static Candidates AppendSuffix(Candidates& cs, const std::string& suffix,
+static Candidates append_suffix(Candidates& cs, const std::string& suffix,
                                int suffix_w, int col,
                                const FmtContext* ovf_ctx = nullptr)
 	{
@@ -20,9 +20,9 @@ static Candidates AppendSuffix(Candidates& cs, const std::string& suffix,
 	for ( auto& c : cs )
 		{
 		int w = c.Width() + suffix_w;
-		int ovf = (ovf_ctx && c.Lines() == 1) ?
-				Ovf(w, *ovf_ctx) : c.Ovf();
-		result.push_back({c.Text() + suffix, w, c.Lines(), ovf, col});
+		int overflow = (ovf_ctx && c.Lines() == 1) ?
+				ovf(w, *ovf_ctx) : c.Ovf();
+		result.push_back({c.Text() + suffix, w, c.Lines(), overflow, col});
 		}
 	return result;
 	}
@@ -36,20 +36,20 @@ Candidates KeywordStmtNode::Format(const FmtContext& ctx) const
 	auto keyword = Child(0, Tag::Keyword)->Text();
 	auto semi = Children().back().get();
 	auto semi_str = semi->Text();
-	auto items = CollectArgs(Children());
+	auto items = collect_args(Children());
 
 	if ( items.empty() )
 		return {Candidate(keyword + semi_str, ctx)};
 
 	if ( items.size() == 1 )
-		return BuildLayout({keyword, SoftSp, items[0].arg,
+		return build_layout({keyword, soft_sp, items[0].arg,
 					semi_str}, ctx);
 
 	int semi_w = semi->Width();
 	FmtContext inner = ctx.Reserve(semi_w);
-	auto cs = FlatOrFill(keyword + " ", "", "", "", items, inner);
+	auto cs = flat_or_fill(keyword + " ", "", "", "", items, inner);
 
-	return AppendSuffix(cs, semi_str, semi_w, ctx.Col());
+	return append_suffix(cs, semi_str, semi_w, ctx.Col());
 	}
 
 // Event statement: event name(args);
@@ -62,17 +62,17 @@ Candidates EventStmtNode::Format(const FmtContext& ctx) const
 	auto prefix = Child(0, Tag::Keyword)->Text() + " " + Arg();
 	auto lp = args_node->Child(0, Tag::LParen)->Text();
 	auto rp = args_node->Children().back()->Text();
-	auto items = CollectArgs(args_node->Children());
+	auto items = collect_args(args_node->Children());
 
 	if ( items.empty() )
 		return {Candidate(prefix + lp + rp + semi_str, ctx)};
 
 	int semi_w = semi->Width();
 	FmtContext inner = ctx.Reserve(semi_w);
-	auto cs = FlatOrFill(prefix, lp, rp, "", items, inner,
+	auto cs = flat_or_fill(prefix, lp, rp, "", items, inner,
 				args_node->TrailingComment());
 
-	return AppendSuffix(cs, semi_str, semi_w, ctx.Col());
+	return append_suffix(cs, semi_str, semi_w, ctx.Col());
 	}
 
 
@@ -82,8 +82,8 @@ Candidates ExprStmtNode::Format(const FmtContext& ctx) const
 	{
 	auto semi = Children().back().get();
 	int semi_w = semi->Width();
-	auto expr_cs = FormatExpr(*Child(0), ctx.Reserve(semi_w));
-	return AppendSuffix(expr_cs, semi->Text(), semi_w, ctx.Col(), &ctx);
+	auto expr_cs = format_expr(*Child(0), ctx.Reserve(semi_w));
+	return append_suffix(expr_cs, semi->Text(), semi_w, ctx.Col(), &ctx);
 	}
 
 // Export declaration: export { decls }
@@ -96,29 +96,29 @@ Candidates ExportNode::Format(const FmtContext& ctx) const
 		if ( ! c->IsToken() )
 			body.push_back(c);
 
-	auto body_text = FormatStmtList(body, ctx.Indented());
-	auto pad = LinePrefix(ctx.Indent(), ctx.Col());
+	auto body_text = format_stmt_list(body, ctx.Indented());
+	auto pad = line_prefix(ctx.Indent(), ctx.Col());
 
 	int up_indent = ctx.Indent() + 1;
-	auto inner_pad = LinePrefix(up_indent, up_indent * INDENT_WIDTH);
+	auto inner_pad = line_prefix(up_indent, up_indent * INDENT_WIDTH);
 
 	auto rb = Children().back().get();
-	auto close = EmitPreComments(*rb, inner_pad) + pad + rb->Text();
+	auto close = rb->EmitPreComments(inner_pad) + pad + rb->Text();
 	auto kw = Child(0, Tag::Keyword)->Text();
 	auto lb = Child(2, Tag::LBrace)->Text();
-	auto head = Best(BuildLayout({kw, SoftSp, lb}, ctx)).Text();
+	auto head = best(build_layout({kw, soft_sp, lb}, ctx)).Text();
 
 	return {Candidate(head + "\n" + body_text + close, ctx)};
 	}
 
 // Switch statement: switch expr { case val: body ... }
-static void AppendCaseBody(const Node* body, std::string& result,
+static void append_case_body(const Node* body, std::string& result,
                            const FmtContext& ctx)
 	{
 	if ( ! body )
 		return;
 
-	auto text = FormatStmtList(body->Children(), ctx.Indented());
+	auto text = format_stmt_list(body->Children(), ctx.Indented());
 	if ( ! text.empty() && text.back() == '\n' )
 		text.pop_back();
 
@@ -141,13 +141,13 @@ Candidates SwitchNode::Format(const FmtContext& ctx) const
 		auto pc = switch_expr->ContentChildren();
 		if ( ! pc.empty() )
 			expr_text = lp + " " +
-				Best(FormatExpr(*pc[0], ctx)).Text() +
+				best(format_expr(*pc[0], ctx)).Text() +
 				" " + rp;
 		}
 	else
-		expr_text = Best(FormatExpr(*switch_expr, ctx)).Text();
+		expr_text = best(format_expr(*switch_expr, ctx)).Text();
 
-	auto pad = LinePrefix(ctx.Indent(), ctx.Col());
+	auto pad = line_prefix(ctx.Indent(), ctx.Col());
 	auto sw_kw = Child(0, Tag::Keyword)->Text();
 	auto lb = Child(3, Tag::LBrace)->Text();
 	auto result = sw_kw + " " + expr_text + " " + lb;
@@ -164,7 +164,7 @@ Candidates SwitchNode::Format(const FmtContext& ctx) const
 			result += "\n" + pad +
 				c->Child(0, Tag::Keyword)->Text() +
 				c->Child(1, Tag::Colon)->Text();
-			AppendCaseBody(c->FindOptChild(Tag::Body), result, ctx);
+			append_case_body(c->FindOptChild(Tag::Body), result, ctx);
 			continue;
 			}
 
@@ -190,14 +190,14 @@ Candidates SwitchNode::Format(const FmtContext& ctx) const
 			if ( vc->IsToken() || vc->IsMarker() )
 				continue;
 
-			vals.push_back(Best(FormatExpr(*vc, ctx)).Text());
+			vals.push_back(best(format_expr(*vc, ctx)).Text());
 			vcommas.push_back(vpending);
 			vpending = nullptr;
 			}
 
 		// Fill-pack values, wrapping at comma.
 		int case_col = ctx.Col() + static_cast<int>(case_text.size());
-		auto vpad = LinePrefix(ctx.Indent(), case_col);
+		auto vpad = line_prefix(ctx.Indent(), case_col);
 		int max_col = ctx.MaxCol();
 		int cur_col = case_col;
 
@@ -227,7 +227,7 @@ Candidates SwitchNode::Format(const FmtContext& ctx) const
 		case_text += c->Child(3, Tag::Colon)->Text();
 
 		result += "\n" + pad + case_text;
-		AppendCaseBody(c->FindOptChild(Tag::Body), result, ctx);
+		append_case_body(c->FindOptChild(Tag::Body), result, ctx);
 		}
 
 	auto rb = Children().back()->Text();
@@ -282,13 +282,13 @@ bool PreprocBaseNode::AtColumnZero() const
 	return d == "@else" || d == "@endif";
 	}
 
-std::string FormatStmtList(const NodeVec& nodes, const FmtContext& ctx,
+std::string format_stmt_list(const NodeVec& nodes, const FmtContext& ctx,
                            bool skip_leading_blanks)
 	{
 	const int max_col = ctx.MaxCol();
 	int preproc_depth = 0;
 	FmtContext cur_ctx = ctx;
-	auto pad = LinePrefix(cur_ctx.Indent(), cur_ctx.Col());
+	auto pad = line_prefix(cur_ctx.Indent(), cur_ctx.Col());
 
 	std::string result;
 	bool seen_content = false;
@@ -308,7 +308,7 @@ std::string FormatStmtList(const NodeVec& nodes, const FmtContext& ctx,
 
 		seen_content = true;
 
-		result += EmitPreComments(node, pad);
+		result += node.EmitPreComments(pad);
 
 		// Preprocessor directives.
 		if ( t == Tag::Preproc || t == Tag::PreprocCond )
@@ -322,7 +322,7 @@ std::string FormatStmtList(const NodeVec& nodes, const FmtContext& ctx,
 				int new_col = new_indent * INDENT_WIDTH;
 				cur_ctx = FmtContext(new_indent, new_col,
 						max_col - new_col);
-				pad = LinePrefix(new_indent, new_col);
+				pad = line_prefix(new_indent, new_col);
 				}
 
 			if ( pp.AtColumnZero() )
@@ -337,7 +337,7 @@ std::string FormatStmtList(const NodeVec& nodes, const FmtContext& ctx,
 				int new_col = new_indent * INDENT_WIDTH;
 				cur_ctx = FmtContext(new_indent, new_col,
 						max_col - new_col);
-				pad = LinePrefix(new_indent, new_col);
+				pad = line_prefix(new_indent, new_col);
 				}
 
 			continue;
@@ -368,7 +368,7 @@ std::string FormatStmtList(const NodeVec& nodes, const FmtContext& ctx,
 		if ( t == Tag::Keyword )
 			stmt_text = node.Arg();
 		else
-			stmt_text = Best(node.Format(
+			stmt_text = best(node.Format(
 					cur_ctx.Reserve(trail_w))).Text();
 
 		result += pad + stmt_text + semi_str + comment_text + "\n";
@@ -378,20 +378,20 @@ std::string FormatStmtList(const NodeVec& nodes, const FmtContext& ctx,
 	}
 
 // Format a BODY or BLOCK node as a Whitesmith-style braced block.
-std::string FormatWhitesmithBlock(const Node* body, const FmtContext& ctx)
+std::string Node::FormatWhitesmithBlock(const FmtContext& ctx) const
 	{
 	auto block_ctx = ctx.Indented();
-	auto brace_pad = LinePrefix(block_ctx.Indent(), block_ctx.Col());
+	auto brace_pad = line_prefix(block_ctx.Indent(), block_ctx.Col());
 
 	// Extract the children between LBRACE and RBRACE, reading
 	// trailing comments from the brace tokens themselves.
-	auto lb = body->FindChild(Tag::LBrace);
-	auto rb = body->FindChild(Tag::RBrace);
+	auto lb = FindChild(Tag::LBrace);
+	auto rb = FindChild(Tag::RBrace);
 	auto close_trail = rb->TrailingComment();
 	NodeVec inner;
 
 	bool past_open = false;
-	for ( const auto& c : body->Children() )
+	for ( const auto& c : Children() )
 		{
 		Tag t = c->GetTag();
 
@@ -409,7 +409,7 @@ std::string FormatWhitesmithBlock(const Node* body, const FmtContext& ctx)
 	     ! rb->MustBreakBefore() )
 		return "\n" + brace_pad + lb->Text() + " " + rb->Text();
 
-	auto body_text = FormatStmtList(inner, block_ctx, true);
+	auto body_text = format_stmt_list(inner, block_ctx, true);
 
 	// If the closing brace has a trailing comment, move it
 	// to the last statement line, not the '}' itself.
@@ -424,16 +424,16 @@ std::string FormatWhitesmithBlock(const Node* body, const FmtContext& ctx)
 			rb_text.size() - close_trail.size());
 		}
 
-	auto rb_comments = EmitPreComments(*rb, brace_pad);
+	auto rb_comments = rb->EmitPreComments(brace_pad);
 	return "\n" + brace_pad + lb->Text() + "\n" +
 		body_text + rb_comments + brace_pad + rb_text;
 	}
 
 // Format a single-statement body (no braces, indented one level).
-static std::string FormatSingleStmtBody(const Node& body, const FmtContext& ctx)
+static std::string format_single_stmt_body(const Node& body, const FmtContext& ctx)
 	{
 
-	auto text = FormatStmtList(body.Children(), ctx.Indented());
+	auto text = format_stmt_list(body.Children(), ctx.Indented());
 
 	// Strip trailing newline - the parent loop adds its own.
 	if ( ! text.empty() && text.back() == '\n' )
@@ -444,11 +444,11 @@ static std::string FormatSingleStmtBody(const Node& body, const FmtContext& ctx)
 
 // Format a BODY node: Whitesmith block if first child is BLOCK,
 // otherwise indented single-statement body.
-std::string FormatBodyText(const Node* body, const FmtContext& ctx)
+std::string Node::FormatBodyText(const FmtContext& ctx) const
 	{
-	auto content = body->ContentChildren();
+	auto content = ContentChildren();
 	if ( content.empty() || content[0]->GetTag() != Tag::Block )
-		return "\n" + FormatSingleStmtBody(*body, ctx);
+		return "\n" + format_single_stmt_body(*this, ctx);
 
-	return FormatWhitesmithBlock(content[0], ctx);
+	return content[0]->FormatWhitesmithBlock(ctx);
 	}

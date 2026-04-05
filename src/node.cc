@@ -166,7 +166,7 @@ std::string Node::Text() const
 	return trailing_comment;
 	}
 
-static void PrintQuoted(const std::string& s)
+static void print_quoted(const std::string& s)
 	{
 	putchar('"');
 
@@ -199,7 +199,7 @@ void Node::Dump(int indent) const
 		{
 		do_indent(indent);
 		printf("COMMENT-LEADING ");
-		PrintQuoted(pc);
+		print_quoted(pc);
 		printf("\n");
 		}
 
@@ -213,7 +213,7 @@ void Node::Dump(int indent) const
 	for ( const auto& a : args )
 		{
 		putchar(' ');
-		PrintQuoted(a);
+		print_quoted(a);
 		}
 
 	if ( ! has_block )
@@ -226,7 +226,7 @@ void Node::Dump(int indent) const
 			{
 			do_indent(indent);
 			printf("COMMENT-TRAILING ");
-			PrintQuoted(trailing_comment.substr(1));
+			print_quoted(trailing_comment.substr(1));
 			printf("\n");
 			}
 
@@ -255,7 +255,7 @@ void Node::Dump(int indent) const
 		{
 		do_indent(indent);
 		printf("COMMENT-TRAILING ");
-		PrintQuoted(trailing_comment.substr(1));
+		print_quoted(trailing_comment.substr(1));
 		printf("\n");
 		}
 	}

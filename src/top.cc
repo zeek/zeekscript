@@ -2,34 +2,34 @@
 
 #include "fmt_internal.h"
 
-Candidates FormatExpr(const Node& node, const FmtContext& ctx)
+Candidates format_expr(const Node& node, const FmtContext& ctx)
 	{
 	return node.Format(ctx);
 	}
 
-Candidates FormatNode(const Node& node, const FmtContext& ctx)
+Candidates format_node(const Node& node, const FmtContext& ctx)
 	{
 	return node.Format(ctx);
 	}
 
 // Collect all trailing comments from node fields.
-static void CollectTrailing(const Node& node,
+static void collect_trailing(const Node& node,
                             std::vector<std::string>& out)
 	{
 	if ( ! node.TrailingComment().empty() )
 		out.push_back(node.TrailingComment());
 	for ( const auto& c : node.Children() )
-		CollectTrailing(*c, out);
+		collect_trailing(*c, out);
 	}
 
 // Check that every trailing comment appears on a line that has
 // preceding content - never as a standalone line.
-static void WarnStandaloneTrailing(const std::string& output,
+static void warn_standalone_trailing(const std::string& output,
                                    const NodeVec& nodes)
 	{
 	std::vector<std::string> trailing;
 	for ( const auto& n : nodes )
-		CollectTrailing(*n, trailing);
+		collect_trailing(*n, trailing);
 
 	for ( const auto& text : trailing )
 		{
@@ -65,7 +65,7 @@ std::string Format(const NodeVec& nodes)
 	static constexpr int MAX_WIDTH = 80;
 	FmtContext ctx(0, 0, MAX_WIDTH);
 
-	auto result = FormatStmtList(nodes, ctx);
-	WarnStandaloneTrailing(result, nodes);
+	auto result = format_stmt_list(nodes, ctx);
+	warn_standalone_trailing(result, nodes);
 	return result;
 	}

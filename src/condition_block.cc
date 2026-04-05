@@ -22,15 +22,15 @@ Candidates ConditionBlockNode::Format(const FmtContext& ctx) const
 				ctx.MaxCol() - cond_col, rp_w);
 	auto cond = BuildCondition(cond_ctx);
 
-	// Build the head via BuildLayout so trailing comments on keyword
+	// Build the head via build_layout so trailing comments on keyword
 	// or lparen correctly force line breaks.
-	LayoutItems los{Tok(kw_node), SoftSp, Tok(lparen_node), SoftSp, cond,
+	LayoutItems los{tok(kw_node), soft_sp, tok(lparen_node), soft_sp, cond,
 			" " + rparen_node->Text()};
-	auto head_cs = BuildLayout(los, ctx);
-	auto head = Best(head_cs).Text();
+	auto head_cs = build_layout(los, ctx);
+	auto head = best(head_cs).Text();
 
 	auto body_node = Child(rp_pos + 1, Tag::Body);
-	auto result = head + FormatBodyText(body_node, ctx) +
+	auto result = head + body_node->FormatBodyText(ctx) +
 			BuildFollowOn(ctx);
 
 	return {Candidate(result, ctx)};
@@ -39,7 +39,7 @@ Candidates ConditionBlockNode::Format(const FmtContext& ctx) const
 // Default: format the single expression between parens.
 std::string ConditionBlockNode::BuildCondition(const FmtContext& cond_ctx) const
 	{
-	return Best(FormatExpr(*ContentChildren()[0], cond_ctx)).Text();
+	return best(format_expr(*ContentChildren()[0], cond_ctx)).Text();
 	}
 
 // ------------------------------------------------------------------
@@ -64,14 +64,14 @@ std::string ForNode::BuildCondition(const FmtContext& cond_ctx) const
 		if ( ! first )
 			vars_text += ", ";
 		first = false;
-		vars_text += Best(FormatExpr(*v, cond_ctx)).Text();
+		vars_text += best(format_expr(*v, cond_ctx)).Text();
 		}
 
 	// Format iterable.
 	std::string iter_text;
 	auto iter_content = iter_node->ContentChildren();
 	if ( ! iter_content.empty() )
-		iter_text = Best(FormatExpr(*iter_content[0], cond_ctx)).Text();
+		iter_text = best(format_expr(*iter_content[0], cond_ctx)).Text();
 
 	return vars_text + " " + in_node->Text() + " " + iter_text;
 	}
@@ -104,8 +104,8 @@ std::string IfElseNode::BuildFollowOn(const FmtContext& ctx) const
 		if ( c->GetTag() == Tag::Blank )
 			has_blank = true;
 
-	auto stmt_pad = LinePrefix(ctx.Indent(), ctx.Col());
-	auto comments = EmitPreComments(*else_node, stmt_pad);
+	auto stmt_pad = line_prefix(ctx.Indent(), ctx.Col());
+	auto comments = else_node->EmitPreComments(stmt_pad);
 
 	// Strip trailing newline - the else line provides its own.
 	if ( ! comments.empty() && comments.back() == '\n' )
@@ -124,22 +124,22 @@ std::string IfElseNode::BuildFollowOn(const FmtContext& ctx) const
 
 	if ( else_node->GetTag() == Tag::ElseIf )
 		{
-		auto inner_cs = FormatExpr(*else_child, ctx);
+		auto inner_cs = format_expr(*else_child, ctx);
 		result += "\n" + stmt_pad + else_kw + " " +
-				Best(inner_cs).Text();
+				best(inner_cs).Text();
 		}
 
 	else if ( else_child->GetTag() == Tag::Block )
 		result += "\n" + stmt_pad + else_kw +
-				FormatWhitesmithBlock(else_child, ctx);
+				else_child->FormatWhitesmithBlock(ctx);
 
 	else
 		{
 		FmtContext else_ctx = ctx.Indented();
-		auto cs = FormatExpr(*else_child, else_ctx);
-		auto epad = LinePrefix(else_ctx.Indent(), else_ctx.Col());
+		auto cs = format_expr(*else_child, else_ctx);
+		auto epad = line_prefix(else_ctx.Indent(), else_ctx.Col());
 		result += "\n" + stmt_pad + else_kw + "\n" +
-				epad + Best(cs).Text();
+				epad + best(cs).Text();
 		}
 
 	return result;

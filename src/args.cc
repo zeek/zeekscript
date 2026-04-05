@@ -6,7 +6,7 @@
 // Arg list collection
 // ------------------------------------------------------------------
 
-bool HasBreaks(const ArgComments& items)
+bool has_breaks(const ArgComments& items)
 	{
 	for ( auto& it : items )
 		if ( it.HasBreak() )
@@ -15,7 +15,7 @@ bool HasBreaks(const ArgComments& items)
 	return false;
 	}
 
-ArgComments CollectArgs(const NodeVec& children)
+ArgComments collect_args(const NodeVec& children)
 	{
 	ArgComments items;
 	const Node* pending_comma = nullptr;
@@ -50,7 +50,7 @@ ArgComments CollectArgs(const NodeVec& children)
 // Arg list formatting
 // ------------------------------------------------------------------
 
-Candidate FormatArgsFlat(const ArgComments& items, const FmtContext& ctx)
+Candidate format_args_flat(const ArgComments& items, const FmtContext& ctx)
 	{
 	std::string text;
 	int w = 0;
@@ -65,9 +65,9 @@ Candidate FormatArgsFlat(const ArgComments& items, const FmtContext& ctx)
 			w += it.comma->Width() + 1;
 			}
 
-		auto best = Best(FormatExpr(*it.arg, ctx.After(w)));
-		text += best.Text();
-		w += best.Width();
+		auto bc = best(format_expr(*it.arg, ctx.After(w)));
+		text += bc.Text();
+		w += bc.Width();
 		}
 
 	return {text};
@@ -76,7 +76,7 @@ Candidate FormatArgsFlat(const ArgComments& items, const FmtContext& ctx)
 // Append trailing material after an item in a fill layout.  Handles
 // the item's own trailing comment and the next comma (which may carry
 // a trailing comment that forces a wrap).
-static void AppendTrailing(const ArgComment& it, const Node* next_comma,
+static void append_trailing(const ArgComment& it, const Node* next_comma,
                            std::string& text, int& cur_col, bool& force_wrap)
 	{
 	// The item's own trailing comment (rare for non-last items).
@@ -112,29 +112,29 @@ static void AppendTrailing(const ArgComment& it, const Node* next_comma,
 
 // Format an arg at the current column, appending to text and
 // updating position/lines/overflow.
-static void FormatFillArg(const Node& arg, int indent, int max_col,
+static void format_fill_arg(const Node& arg, int indent, int max_col,
                            std::string& text, int& cur_col,
                            int& lines, int& total_overflow)
 	{
 	FmtContext sub(indent, cur_col, max_col - cur_col);
-	auto best = Best(FormatExpr(arg, sub));
-	text += best.Text();
+	auto bc = best(format_expr(arg, sub));
+	text += bc.Text();
 
-	if ( best.Lines() > 1 )
+	if ( bc.Lines() > 1 )
 		{
-		lines += best.Lines() - 1;
-		cur_col = LastLineLen(text);
+		lines += bc.Lines() - 1;
+		cur_col = last_line_len(text);
 		}
 	else
-		cur_col += best.Width();
+		cur_col += bc.Width();
 
-	total_overflow += best.Ovf();
+	total_overflow += bc.Ovf();
 	}
 
-Candidate FormatArgsFill(const ArgComments& items, int align_col, int indent,
+Candidate format_args_fill(const ArgComments& items, int align_col, int indent,
                          const FmtContext& first_line_ctx)
 	{
-	auto pad = LinePrefix(indent, align_col);
+	auto pad = line_prefix(indent, align_col);
 	std::string text;
 
 	int max_col = first_line_ctx.MaxCol();
@@ -193,19 +193,19 @@ Candidate FormatArgsFill(const ArgComments& items, int align_col, int indent,
 			cur_col = align_col;
 			force_wrap = false;
 
-			FormatFillArg(*it.arg, indent, max_col,
+			format_fill_arg(*it.arg, indent, max_col,
 			              text, cur_col, lines, total_overflow);
-			AppendTrailing(it, nc, text, cur_col, force_wrap);
+			append_trailing(it, nc, text, cur_col, force_wrap);
 			continue;
 			}
 
 		FmtContext sub(indent, cur_col, max_col - cur_col);
-		auto best = Best(FormatExpr(*it.arg, sub));
-		int aw = best.Width();
+		auto bc = best(format_expr(*it.arg, sub));
+		int aw = bc.Width();
 
 		if ( i == 0 )
 			{
-			text += best.Text();
+			text += bc.Text();
 			cur_col += aw;
 			}
 
@@ -215,17 +215,17 @@ Candidate FormatArgsFill(const ArgComments& items, int align_col, int indent,
 			cur_col = align_col;
 			force_wrap = false;
 
-			FormatFillArg(*it.arg, indent, max_col,
+			format_fill_arg(*it.arg, indent, max_col,
 			              text, cur_col, lines, total_overflow);
 			++lines;
-			AppendTrailing(it, nc, text, cur_col, force_wrap);
+			append_trailing(it, nc, text, cur_col, force_wrap);
 			continue;
 			}
 
 		else
 			{
 			int need = 2 + aw;
-			if ( best.Lines() > 1 )
+			if ( bc.Lines() > 1 )
 				{
 				// Bracketed list args (INDEX-LITERAL) can
 				// start on the current line when the first
@@ -235,12 +235,12 @@ Candidate FormatArgsFill(const ArgComments& items, int align_col, int indent,
 				// correct.
 				need = max_col + 1;
 				if ( it.arg->GetTag() == Tag::IndexLiteral &&
-				     best.Ovf() == 0 )
+				     bc.Ovf() == 0 )
 					{
 					int same_col = cur_col + 2;
 					FmtContext sc(indent, same_col,
 						max_col - same_col);
-					auto sb = Best(FormatExpr(*it.arg, sc));
+					auto sb = best(format_expr(*it.arg, sc));
 					auto nl = sb.Text().find('\n');
 					int first_w = nl != std::string::npos
 						? static_cast<int>(nl)
@@ -253,13 +253,13 @@ Candidate FormatArgsFill(const ArgComments& items, int align_col, int indent,
 						if ( sb.Lines() > 1 )
 							{
 							lines += sb.Lines() - 1;
-							cur_col = LastLineLen(text);
+							cur_col = last_line_len(text);
 							}
 						else
 							cur_col = same_col
 								+ sb.Width();
 						total_overflow += sb.Ovf();
-						AppendTrailing(it, nc, text,
+						append_trailing(it, nc, text,
 							cur_col, force_wrap);
 						continue;
 						}
@@ -267,7 +267,7 @@ Candidate FormatArgsFill(const ArgComments& items, int align_col, int indent,
 				}
 			if ( cur_col + need <= max_col )
 				{
-				text += it.comma->Text() + " " + best.Text();
+				text += it.comma->Text() + " " + bc.Text();
 				cur_col += need;
 				}
 			else
@@ -275,22 +275,22 @@ Candidate FormatArgsFill(const ArgComments& items, int align_col, int indent,
 				text += it.comma->Text() + "\n" + pad;
 				cur_col = align_col;
 
-				FormatFillArg(*it.arg, indent, max_col, text,
+				format_fill_arg(*it.arg, indent, max_col, text,
 						cur_col, lines, total_overflow);
 				++lines;
-				AppendTrailing(it, nc, text, cur_col, force_wrap);
+				append_trailing(it, nc, text, cur_col, force_wrap);
 				continue;
 				}
 			}
 
-		if ( best.Lines() > 1 )
+		if ( bc.Lines() > 1 )
 			{
-			lines += best.Lines() - 1;
-			cur_col = LastLineLen(text);
+			lines += bc.Lines() - 1;
+			cur_col = last_line_len(text);
 			}
 
-		total_overflow += best.Ovf();
-		AppendTrailing(it, nc, text, cur_col, force_wrap);
+		total_overflow += bc.Ovf();
+		append_trailing(it, nc, text, cur_col, force_wrap);
 		}
 
 	int end_ovf = std::max(0, cur_col - max_col);
@@ -300,13 +300,13 @@ Candidate FormatArgsFill(const ArgComments& items, int align_col, int indent,
 	}
 
 // Try flat, then greedy-fill for a bracketed list of items.
-Candidates FlatOrFill(const std::string& prefix, const std::string& open,
+Candidates flat_or_fill(const std::string& prefix, const std::string& open,
                       const std::string& close, const std::string& suffix,
                       const ArgComments& items, const FmtContext& ctx,
                       const std::string& open_comment,
                       const std::string& close_prefix)
 	{
-	bool has_breaks = HasBreaks(items) || ! open_comment.empty();
+	bool any_breaks = has_breaks(items) || ! open_comment.empty();
 	int prefix_w = static_cast<int>(prefix.size());
 	int open_w = static_cast<int>(open.size());
 	int close_w = static_cast<int>(close.size());
@@ -323,9 +323,9 @@ Candidates FlatOrFill(const std::string& prefix, const std::string& open,
 
 	// Try flat (only when no comments - a trailing comment
 	// forces a line break, so flat would lose it).
-	if ( ! has_breaks )
+	if ( ! any_breaks )
 		{
-		auto flat_args = FormatArgsFlat(items, inner_ctx);
+		auto flat_args = format_args_flat(items, inner_ctx);
 		auto flat_text = prefix + open + flat_args.Text() + cb + suffix;
 		Candidate flat_c(flat_text, ctx);
 		result.push_back(flat_c);
@@ -340,11 +340,11 @@ Candidates FlatOrFill(const std::string& prefix, const std::string& open,
 	std::string fill_prefix;
 	if ( ! open_comment.empty() )
 		{
-		auto pad = LinePrefix(ctx.Indent(), open_col);
+		auto pad = line_prefix(ctx.Indent(), open_col);
 		fill_prefix = open_comment + "\n" + pad;
 		}
 
-	auto fill = FormatArgsFill(items, open_col, ctx.Indent(), inner_ctx);
+	auto fill = format_args_fill(items, open_col, ctx.Indent(), inner_ctx);
 
 	// When the last arg is a lambda, put the close bracket on
 	// its own line at the alignment column.
@@ -357,7 +357,7 @@ Candidates FlatOrFill(const std::string& prefix, const std::string& open,
 
 	if ( close_break )
 		{
-		auto close_pad = LinePrefix(ctx.Indent(), open_col);
+		auto close_pad = line_prefix(ctx.Indent(), open_col);
 		fill_text = prefix + open + fill_prefix +
 			fill.Text() + "\n" + close_pad + cb + suffix;
 		flast_w = open_col + close_extra + close_w + suffix_w;
@@ -376,15 +376,15 @@ Candidates FlatOrFill(const std::string& prefix, const std::string& open,
 	return result;
 	}
 
-Candidate FormatArgsVertical(const std::string& open, const std::string& close,
+Candidate format_args_vertical(const std::string& open, const std::string& close,
                              const ArgComments& items, const FmtContext& ctx,
                              bool trailing_comma)
 	{
 	int body_indent = ctx.Indent() + 1;
 	int body_col = body_indent * INDENT_WIDTH;
 	FmtContext body_ctx(body_indent, body_col, ctx.MaxCol() - body_col);
-	auto body_pad = LinePrefix(body_indent, body_col);
-	auto close_pad = LinePrefix(ctx.Indent(), ctx.IndentCol());
+	auto body_pad = line_prefix(body_indent, body_col);
+	auto close_pad = line_prefix(ctx.Indent(), ctx.IndentCol());
 
 	auto text = open;
 	int lines = 1;
@@ -396,10 +396,10 @@ Candidate FormatArgsVertical(const std::string& open, const std::string& close,
 		++lines;
 
 		auto& it = items[i];
-		auto best = Best(FormatExpr(*it.arg, body_ctx));
-		text += best.Text();
+		auto bc = best(format_expr(*it.arg, body_ctx));
+		text += bc.Text();
 
-		int line_w = body_col + best.Width();
+		int line_w = body_col + bc.Width();
 
 		const Node* nc = (i + 1 < items.size()) ?
 					items[i + 1].comma : nullptr;
