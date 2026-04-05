@@ -1,7 +1,7 @@
 #include <cstdio>
 
 #include "fmt_internal.h"
-#include "stmt_nodes.h"
+#include "stmt.h"
 
 // Standalone comment at statement level.
 Candidates CommentNode::Format(const FmtContext& ctx) const

@@ -15,18 +15,18 @@ $(TARGET): $(OBJS)
 	$(CXX) $(CXXFLAGS) -c -o $@ $<
 
 # Header dependencies
-main.o: node.h parser.h tag.h formatter.h
-node.o: node.h tag.h condition_block.h formatter.h
+main.o: formatter.h node.h parser.h tag.h
+node.o: node.h tag.h condition_block.h expr.h formatter.h stmt.h
 parser.o: parser.h node.h tag.h
 tag.o: tag.h
 core.o: fmt_internal.h formatter.h node.h tag.h
 args.o: fmt_internal.h formatter.h node.h tag.h
-expr.o: fmt_internal.h formatter.h node.h tag.h
-type.o: fmt_internal.h formatter.h node.h tag.h
-decl.o: fmt_internal.h formatter.h node.h tag.h
-stmt.o: fmt_internal.h formatter.h node.h tag.h condition_block.h
+expr.o: expr.h fmt_internal.h formatter.h node.h tag.h
+type.o: expr.h fmt_internal.h formatter.h node.h tag.h
+decl.o: fmt_internal.h formatter.h node.h stmt.h tag.h
+stmt.o: fmt_internal.h formatter.h node.h stmt.h tag.h
 top.o: fmt_internal.h formatter.h node.h tag.h
-condition_block.o: condition_block.h formatter.h node.h tag.h
+condition_block.o: condition_block.h fmt_internal.h formatter.h node.h tag.h
 
 SHELL = /bin/bash
 
