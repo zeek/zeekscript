@@ -33,7 +33,7 @@ Candidates ConditionBlockNode::Format(const FmtContext& ctx) const
 	auto result = head + body_node->FormatBodyText(ctx) +
 			BuildFollowOn(ctx);
 
-	return {Candidate(result.Str(), ctx)};
+	return {Candidate(std::move(result), ctx)};
 	}
 
 // Default: format the single expression between parens.

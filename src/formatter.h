@@ -87,17 +87,39 @@ public:
 		overflow = excess > 0 ? excess : 0;
 		}
 
+	Candidate(Formatting t, const FmtContext& ctx)
+		: text(std::move(t)),
+		  width(static_cast<int>(text.size())),
+		  lines(1), spread(0)
+		{
+		int avail = ctx.Width() - ctx.Trail();
+		int excess = width - avail;
+		overflow = excess > 0 ? excess : 0;
+		}
+
 	// Multi-line candidate.  first_col is the absolute column where the
 	// first line starts (needed for balance/spread computation).
 	Candidate(const std::string& t, int w, int l, int ovf,
 	          int first_col = 0)
 		: text(t), width(w), lines(l), overflow(ovf),
-		  spread(l > 1 ? ComputeSpread(t, first_col) : 0) {}
+		  spread(l > 1 ? ComputeSpread(text.Str(), first_col) : 0) {}
 
-	Candidate(std::string t) :
-		Candidate(std::move(t), static_cast<int>(t.size()), 1, 0) { }
+	Candidate(std::string&& t, int w, int l, int ovf,
+	          int first_col = 0)
+		: text(std::move(t)), width(w), lines(l), overflow(ovf),
+		  spread(l > 1 ? ComputeSpread(text.Str(), first_col) : 0) {}
 
-	const std::string& Text() const { return text; }
+	Candidate(Formatting t, int w, int l, int ovf,
+	          int first_col = 0)
+		: text(std::move(t)), width(w), lines(l), overflow(ovf),
+		  spread(l > 1 ? ComputeSpread(text.Str(), first_col) : 0) {}
+
+	Candidate(std::string t)
+		: text(std::move(t)),
+		  width(static_cast<int>(text.size())),
+		  lines(1), overflow(0), spread(0) { }
+
+	const std::string& Text() const { return text.Str(); }
 	int Width() const { return width; }
 	int Lines() const { return lines; }
 	int Ovf() const { return overflow; }
@@ -106,16 +128,16 @@ public:
 	// Build a new single-line candidate by appending a literal string.
 	// Overflow is not set; use In() to finalize.
 	Candidate Cat(const std::string& s) const
-		{ return Candidate(text + s); }
+		{ return Candidate(Text() + s); }
 
 	// Build a new single-line candidate by appending another candidate.
 	// Overflow is not set; use In() to finalize.
 	Candidate Cat(const Candidate& o) const
-		{ return Candidate(text + o.Text()); }
+		{ return Candidate(Text() + o.Text()); }
 
 	// Return a copy with overflow computed against a context.
 	Candidate In(const FmtContext& ctx) const
-		{ return Candidate(text, ctx); }
+		{ return Candidate(Text(), ctx); }
 
 	// Is this a clean single-line result?
 	bool Fits() const { return lines == 1 && overflow <= 0; }
@@ -129,7 +151,7 @@ private:
 	// first_col is the absolute column where the first line starts.
 	static int ComputeSpread(const std::string& text, int first_col);
 
-	std::string text;
+	Formatting text;
 	int width;	// width of last (or only) line
 	int lines;	// number of lines (1 = single line)
 	int overflow;	// columns past the allowed width

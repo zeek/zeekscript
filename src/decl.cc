@@ -407,7 +407,7 @@ Candidates FuncDeclNode::Format(const FmtContext& ctx) const
 	auto block = body->FormatWhitesmithBlock(ctx);
 
 	Candidates result;
-	result.push_back(Candidate(sig + block.Str(), ctx));
+	result.push_back(Candidate(sig + block, ctx));
 
 	if ( result[0].Ovf() <= 0 )
 		return result;
@@ -566,8 +566,8 @@ Candidates TypeDeclBracedNode::Format(const FmtContext& ctx) const
 
 	auto close_pad = line_prefix(ctx.Indent(), ctx.Col());
 	auto rb = inner->Children().back()->Text();
-	auto text = head + "\n" + body.Str() + close_pad + rb + semi;
-	return {Candidate(text, ctx)};
+	auto text = head + "\n" + body + close_pad + rb + semi;
+	return {Candidate(std::move(text), ctx)};
 	}
 
 // Enum body: collect values with commas, one per line.

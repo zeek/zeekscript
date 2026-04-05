@@ -109,7 +109,7 @@ Candidates ExportNode::Format(const FmtContext& ctx) const
 	auto head = best(build_layout({kw, soft_sp, lb}, ctx)).Text();
 
 	auto text = head + "\n" + body_text + close;
-	return {Candidate(text.Str(), ctx)};
+	return {Candidate(std::move(text), ctx)};
 	}
 
 // Switch statement: switch expr { case val: body ... }
@@ -234,7 +234,7 @@ Candidates SwitchNode::Format(const FmtContext& ctx) const
 	auto rb = Children().back()->Text();
 	result += "\n" + pad + rb;
 
-	return {Candidate(result.Str(), ctx)};
+	return {Candidate(std::move(result), ctx)};
 	}
 
 // PreprocBaseNode methods.  PREPROC-COND (@if/@ifdef/@ifndef) always
