@@ -16,7 +16,7 @@ LayoutItem tok(const NodePtr& n)
 static constexpr int BEAM_WIDTH = 4;
 
 struct Partial {
-	std::string text;
+	Formatting fmt;
 	int col;      // current column (end of last line)
 	int lines;
 	int overflow;
@@ -39,7 +39,7 @@ static Partials layout_one_item(const LayoutItem& item, Partials& beam,
 		case LayoutItem::Kind::Lit:
 			{
 			Partial np = p;
-			np.text += item.Text();
+			np.fmt += item.Text();
 			np.col += static_cast<int>(item.Text().size());
 			np.overflow += ovf_at(np.col);
 			np.must_break = item.MustBreak();
@@ -55,7 +55,7 @@ static Partials layout_one_item(const LayoutItem& item, Partials& beam,
 			for ( const auto& c : cs )
 				{
 				Partial np = p;
-				np.text += c.Text();
+				np.fmt += c.Fmt();
 				np.overflow += c.Ovf();
 				np.must_break = false;
 				if ( c.Lines() > 1 )
@@ -77,7 +77,7 @@ static Partials layout_one_item(const LayoutItem& item, Partials& beam,
 			if ( ! p.must_break )
 				{
 				Partial sp = p;
-				sp.text += " ";
+				sp.fmt += " ";
 				++sp.col;
 				sp.must_break = false;
 				next.push_back(std::move(sp));
@@ -88,7 +88,7 @@ static Partials layout_one_item(const LayoutItem& item, Partials& beam,
 			auto pad = "\n" + line_prefix(brk.Indent(),
 							brk.IndentCol());
 			Partial bp = p;
-			bp.text += pad;
+			bp.fmt += pad;
 			bp.col = brk.IndentCol();
 			++bp.lines;
 			bp.must_break = false;
@@ -142,7 +142,7 @@ Candidates build_layout(LayoutItems items_init, const FmtContext& ctx)
 		return w;
 		};
 
-	Partials beam = {{"", ctx.Col(), 1, 0, false}};
+	Partials beam = {{Formatting(), ctx.Col(), 1, 0, false}};
 
 	for ( size_t i = 0; i < items.size(); ++i )
 		beam = layout_one_item(items[i], beam, ctx, trail_after(i));
@@ -152,8 +152,8 @@ Candidates build_layout(LayoutItems items_init, const FmtContext& ctx)
 	Candidates result;
 	for ( auto& p : beam )
 		{
-		int w = (p.lines == 1) ? static_cast<int>(p.text.size()) : p.col;
-		result.push_back({std::move(p.text), w, p.lines,
+		int w = (p.lines == 1) ? p.fmt.Size() : p.col;
+		result.push_back({std::move(p.fmt), w, p.lines,
 		                  p.overflow, ctx.Col()});
 		}
 
