@@ -2,11 +2,13 @@ LOCAL-DECL {
   KEYWORD "local"
   SP
   IDENTIFIER "x"
-  ASSIGN "="
-  CONSTRUCTOR {
-    KEYWORD "set"
-    LPAREN
-    RPAREN
+  DECL-INIT {
+    ASSIGN "="
+    CONSTRUCTOR {
+      KEYWORD "set"
+      LPAREN
+      RPAREN
+    }
   }
   SEMI
 }

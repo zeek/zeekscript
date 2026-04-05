@@ -20,11 +20,13 @@ FUNC-DECL {
       KEYWORD "local"
       SP
       IDENTIFIER "rec"
-      ASSIGN "="
-      FIELD-ACCESS {
-        IDENTIFIER "c"
-        DOLLAR
-        IDENTIFIER "some_rec"
+      DECL-INIT {
+        ASSIGN "="
+        FIELD-ACCESS {
+          IDENTIFIER "c"
+          DOLLAR
+          IDENTIFIER "some_rec"
+        }
       }
       SEMI
     }

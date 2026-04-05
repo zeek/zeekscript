@@ -2,39 +2,41 @@ GLOBAL-DECL {
   KEYWORD "global"
   SP
   IDENTIFIER "some_event_decl"
-  COLON
-  TYPE-FUNC "event" {
-    PARAMS {
-      LPAREN
-      PARAM "o" {
-        COLON
-        TYPE-ATOM "string"
-      }
-      COMMA
-      PARAM "label" {
-        COLON
-        TYPE-ATOM "string"
-      }
-      COMMA
-      PARAM "conf" {
-        COLON
-        TYPE-ATOM "score"
-      }
-      COMMA
-      PARAM "sources" {
-        COLON
-        TYPE-PARAMETERIZED "set" {
-          LBRACKET
+  DECL-TYPE {
+    COLON
+    TYPE-FUNC "event" {
+      PARAMS {
+        LPAREN
+        PARAM "o" {
+          COLON
           TYPE-ATOM "string"
-          RBRACKET
         }
+        COMMA
+        PARAM "label" {
+          COLON
+          TYPE-ATOM "string"
+        }
+        COMMA
+        PARAM "conf" {
+          COLON
+          TYPE-ATOM "score"
+        }
+        COMMA
+        PARAM "sources" {
+          COLON
+          TYPE-PARAMETERIZED "set" {
+            LBRACKET
+            TYPE-ATOM "string"
+            RBRACKET
+          }
+        }
+        COMMA
+        PARAM "caller" {
+          COLON
+          TYPE-ATOM "string"
+        }
+        RPAREN
       }
-      COMMA
-      PARAM "caller" {
-        COLON
-        TYPE-ATOM "string"
-      }
-      RPAREN
     }
   }
   SEMI

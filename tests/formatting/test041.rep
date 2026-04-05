@@ -6,17 +6,19 @@ EXPORT {
     KEYWORD "option"
     SP
     IDENTIFIER "some_hosts"
-    ASSIGN "="
-    CALL {
-      IDENTIFIER "set"
-      ARGS {
-        LPAREN
-        CONSTANT "\"some.host.example.com\""
-        COMMA
-        CONSTANT "\"another.longer.hostname.example.org\""
-        COMMA
-        CONSTANT "\"yet.another.host.example.net\""
-        RPAREN
+    DECL-INIT {
+      ASSIGN "="
+      CALL {
+        IDENTIFIER "set"
+        ARGS {
+          LPAREN
+          CONSTANT "\"some.host.example.com\""
+          COMMA
+          CONSTANT "\"another.longer.hostname.example.org\""
+          COMMA
+          CONSTANT "\"yet.another.host.example.net\""
+          RPAREN
+        }
       }
     }
     SEMI

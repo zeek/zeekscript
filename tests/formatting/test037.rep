@@ -6,8 +6,10 @@ EXPORT {
     KEYWORD "const"
     SP
     IDENTIFIER "cert_hygiene_server_wl_source"
-    ASSIGN "="
-    CONSTANT "\"cert-hygiene-server-wl.txt\""
+    DECL-INIT {
+      ASSIGN "="
+      CONSTANT "\"cert-hygiene-server-wl.txt\""
+    }
     ATTR-LIST {
       ATTR "&redef"
     }

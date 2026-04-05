@@ -2,15 +2,17 @@ GLOBAL-DECL {
   KEYWORD "global"
   SP
   IDENTIFIER "ftp_connections_cache"
-  COLON
-  TYPE-PARAMETERIZED "set" {
-    LBRACKET
-    TYPE-ATOM "string"
-    COMMA
-    TYPE-ATOM "string"
-    COMMA
-    TYPE-ATOM "string"
-    RBRACKET
+  DECL-TYPE {
+    COLON
+    TYPE-PARAMETERIZED "set" {
+      LBRACKET
+      TYPE-ATOM "string"
+      COMMA
+      TYPE-ATOM "string"
+      COMMA
+      TYPE-ATOM "string"
+      RBRACKET
+    }
   }
   ATTR-LIST {
     ATTR "&read_expire" {

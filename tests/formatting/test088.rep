@@ -2,15 +2,17 @@ GLOBAL-DECL {
   KEYWORD "global"
   SP
   IDENTIFIER "x"
-  ASSIGN "="
-  INDEX-LITERAL {
-    LBRACKET
-    CONSTANT "1"
-    COMMA
-    COMMENT-TRAILING "# Comment one"
-    CONSTANT "2"
-    COMMENT-TRAILING "# Comment two"
-    RBRACKET
+  DECL-INIT {
+    ASSIGN "="
+    INDEX-LITERAL {
+      LBRACKET
+      CONSTANT "1"
+      COMMA
+      COMMENT-TRAILING "# Comment one"
+      CONSTANT "2"
+      COMMENT-TRAILING "# Comment two"
+      RBRACKET
+    }
   }
   SEMI
 }

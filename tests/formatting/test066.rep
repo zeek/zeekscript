@@ -2,19 +2,21 @@ GLOBAL-DECL {
   KEYWORD "global"
   SP
   IDENTIFIER "some_long_cache_name"
-  COLON
-  TYPE-PARAMETERIZED "set" {
-    LBRACKET
-    TYPE-ATOM "string"
-    COMMA
-    TYPE-ATOM "subnet"
-    COMMA
-    TYPE-ATOM "subnet"
-    COMMA
-    TYPE-ATOM "transport_proto"
-    COMMA
-    TYPE-ATOM "SomeModule::SomeType"
-    RBRACKET
+  DECL-TYPE {
+    COLON
+    TYPE-PARAMETERIZED "set" {
+      LBRACKET
+      TYPE-ATOM "string"
+      COMMA
+      TYPE-ATOM "subnet"
+      COMMA
+      TYPE-ATOM "subnet"
+      COMMA
+      TYPE-ATOM "transport_proto"
+      COMMA
+      TYPE-ATOM "SomeModule::SomeType"
+      RBRACKET
+    }
   }
   ATTR-LIST {
     ATTR "&read_expire" {

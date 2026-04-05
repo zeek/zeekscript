@@ -2,8 +2,10 @@ GLOBAL-DECL {
   KEYWORD "global"
   SP
   IDENTIFIER "x"
-  ASSIGN "="
-  CONSTANT "42"
+  DECL-INIT {
+    ASSIGN "="
+    CONSTANT "42"
+  }
   SEMI
 }
 COMMENT-TRAILING "# Inline."

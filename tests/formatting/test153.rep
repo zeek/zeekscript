@@ -2,25 +2,29 @@ GLOBAL-DECL {
   KEYWORD "const"
   SP
   IDENTIFIER "tbl"
-  COLON
-  TYPE-PARAMETERIZED "table" {
-    LBRACKET
-    TYPE-ATOM "count"
-    RBRACKET
-    KEYWORD "of"
-    SP
-    TYPE-ATOM "string"
-  }
-  ASSIGN "="
-  CONSTRUCTOR {
-    KEYWORD "table"
-    LPAREN
-    BINARY-OP "=" {
-      CONSTANT "[1]"
-      OP "="
-      CONSTANT "\"a\""
+  DECL-TYPE {
+    COLON
+    TYPE-PARAMETERIZED "table" {
+      LBRACKET
+      TYPE-ATOM "count"
+      RBRACKET
+      KEYWORD "of"
+      SP
+      TYPE-ATOM "string"
     }
-    RPAREN
+  }
+  DECL-INIT {
+    ASSIGN "="
+    CONSTRUCTOR {
+      KEYWORD "table"
+      LPAREN
+      BINARY-OP "=" {
+        CONSTANT "[1]"
+        OP "="
+        CONSTANT "\"a\""
+      }
+      RPAREN
+    }
   }
   SEMI
 }

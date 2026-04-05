@@ -43,6 +43,8 @@ enum class Tag {
 	// Declarations
 	GlobalDecl,
 	LocalDecl,
+	DeclType,
+	DeclInit,
 	TypeDecl,
 	TypeDeclAlias,
 	TypeDeclEnum,

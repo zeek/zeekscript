@@ -2,50 +2,52 @@ LOCAL-DECL {
   KEYWORD "local"
   SP
   IDENTIFIER "filter"
-  ASSIGN "="
-  CALL {
-    IDENTIFIER "Log::Filter"
-    ARGS {
-      LPAREN
-      FIELD-ASSIGN "name" {
-        DOLLAR
-        ASSIGN "="
-        CONSTANT "\"log-name\""
-      }
-      COMMA
-      FIELD-ASSIGN "path" {
-        DOLLAR
-        ASSIGN "="
-        CONSTANT "\"log_path\""
-      }
-      COMMA
-      FIELD-ASSIGN "include" {
-        DOLLAR
-        ASSIGN "="
-        CALL {
-          IDENTIFIER "set"
-          ARGS {
-            LPAREN
-            CONSTANT "\"id.orig_h\""
-            COMMA
-            CONSTANT "\"id.orig_p\""
-            COMMA
-            CONSTANT "\"id.resp_h\""
-            COMMA
-            CONSTANT "\"id.resp_p\""
-            COMMA
-            CONSTANT "\"app\""
-            RPAREN
+  DECL-INIT {
+    ASSIGN "="
+    CALL {
+      IDENTIFIER "Log::Filter"
+      ARGS {
+        LPAREN
+        FIELD-ASSIGN "name" {
+          DOLLAR
+          ASSIGN "="
+          CONSTANT "\"log-name\""
+        }
+        COMMA
+        FIELD-ASSIGN "path" {
+          DOLLAR
+          ASSIGN "="
+          CONSTANT "\"log_path\""
+        }
+        COMMA
+        FIELD-ASSIGN "include" {
+          DOLLAR
+          ASSIGN "="
+          CALL {
+            IDENTIFIER "set"
+            ARGS {
+              LPAREN
+              CONSTANT "\"id.orig_h\""
+              COMMA
+              CONSTANT "\"id.orig_p\""
+              COMMA
+              CONSTANT "\"id.resp_h\""
+              COMMA
+              CONSTANT "\"id.resp_p\""
+              COMMA
+              CONSTANT "\"app\""
+              RPAREN
+            }
           }
         }
+        COMMA
+        FIELD-ASSIGN "policy" {
+          DOLLAR
+          ASSIGN "="
+          IDENTIFIER "some_policy_fn"
+        }
+        RPAREN
       }
-      COMMA
-      FIELD-ASSIGN "policy" {
-        DOLLAR
-        ASSIGN "="
-        IDENTIFIER "some_policy_fn"
-      }
-      RPAREN
     }
   }
   SEMI

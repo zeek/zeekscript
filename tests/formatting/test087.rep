@@ -2,20 +2,22 @@ GLOBAL-DECL {
   KEYWORD "global"
   SP
   IDENTIFIER "x"
-  ASSIGN "="
-  CONSTRUCTOR {
-    KEYWORD "table"
-    LPAREN
-    BINARY-OP "=" {
-      INDEX-LITERAL {
-        LBRACKET
-        CONSTANT "1"
-        RBRACKET
+  DECL-INIT {
+    ASSIGN "="
+    CONSTRUCTOR {
+      KEYWORD "table"
+      LPAREN
+      BINARY-OP "=" {
+        INDEX-LITERAL {
+          LBRACKET
+          CONSTANT "1"
+          RBRACKET
+        }
+        OP "="
+        CONSTANT "\"one\""
       }
-      OP "="
-      CONSTANT "\"one\""
+      RPAREN
     }
-    RPAREN
   }
   SEMI
 }

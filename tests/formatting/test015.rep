@@ -2,14 +2,16 @@ GLOBAL-DECL {
   KEYWORD "global"
   SP
   IDENTIFIER "some_table"
-  COLON
-  TYPE-PARAMETERIZED "table" {
-    LBRACKET
-    TYPE-ATOM "string"
-    RBRACKET
-    KEYWORD "of"
-    SP
-    TYPE-ATOM "count"
+  DECL-TYPE {
+    COLON
+    TYPE-PARAMETERIZED "table" {
+      LBRACKET
+      TYPE-ATOM "string"
+      RBRACKET
+      KEYWORD "of"
+      SP
+      TYPE-ATOM "count"
+    }
   }
   ATTR-LIST {
     ATTR "&default" {

@@ -16,17 +16,19 @@ FUNC-DECL {
       KEYWORD "local"
       SP
       IDENTIFIER "some_name"
-      ASSIGN "="
-      CALL {
-        IDENTIFIER "some_func"
-        ARGS {
-          LPAREN
-          IDENTIFIER "arg_one"
-          COMMA
-          IDENTIFIER "arg_two"
-          COMMA
-          IDENTIFIER "arg_three"
-          RPAREN
+      DECL-INIT {
+        ASSIGN "="
+        CALL {
+          IDENTIFIER "some_func"
+          ARGS {
+            LPAREN
+            IDENTIFIER "arg_one"
+            COMMA
+            IDENTIFIER "arg_two"
+            COMMA
+            IDENTIFIER "arg_three"
+            RPAREN
+          }
         }
       }
       SEMI

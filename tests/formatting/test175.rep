@@ -6,10 +6,14 @@ EXPORT {
     KEYWORD "const"
     SP
     IDENTIFIER "default_analyzer"
-    COLON
-    TYPE-ATOM "PacketAnalyzer::Tag"
-    ASSIGN "="
-    IDENTIFIER "PacketAnalyzer::ANALYZER_IP"
+    DECL-TYPE {
+      COLON
+      TYPE-ATOM "PacketAnalyzer::Tag"
+    }
+    DECL-INIT {
+      ASSIGN "="
+      IDENTIFIER "PacketAnalyzer::ANALYZER_IP"
+    }
     ATTR-LIST {
       ATTR "&redef"
     }

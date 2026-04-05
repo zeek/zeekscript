@@ -28,15 +28,17 @@ FUNC-DECL {
             KEYWORD "local"
             SP
             IDENTIFIER "pt"
-            ASSIGN "="
-            CALL {
-              IDENTIFIER "Cluster::rr_topic"
-              ARGS {
-                LPAREN
-                IDENTIFIER "Cluster::proxy_pool"
-                COMMA
-                CONSTANT "\"application-identification\""
-                RPAREN
+            DECL-INIT {
+              ASSIGN "="
+              CALL {
+                IDENTIFIER "Cluster::rr_topic"
+                ARGS {
+                  LPAREN
+                  IDENTIFIER "Cluster::proxy_pool"
+                  COMMA
+                  CONSTANT "\"application-identification\""
+                  RPAREN
+                }
               }
             }
             SEMI

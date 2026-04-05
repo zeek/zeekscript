@@ -2,26 +2,28 @@ LOCAL-DECL {
   KEYWORD "local"
   SP
   IDENTIFIER "x"
-  ASSIGN "="
-  INDEX-LITERAL {
-    LBRACKET
-    FIELD-ASSIGN "msg" {
-      DOLLAR
-      ASSIGN "="
-      CALL {
-        IDENTIFIER "fmt"
-        ARGS {
-          LPAREN
-          CONSTANT "\"Host uses protocol version %s which is lower than the safe minimum %s\""
-          COMMA
-          IDENTIFIER "some_string"
-          COMMA
-          IDENTIFIER "other_string_a"
-          RPAREN
+  DECL-INIT {
+    ASSIGN "="
+    INDEX-LITERAL {
+      LBRACKET
+      FIELD-ASSIGN "msg" {
+        DOLLAR
+        ASSIGN "="
+        CALL {
+          IDENTIFIER "fmt"
+          ARGS {
+            LPAREN
+            CONSTANT "\"Host uses protocol version %s which is lower than the safe minimum %s\""
+            COMMA
+            IDENTIFIER "some_string"
+            COMMA
+            IDENTIFIER "other_string_a"
+            RPAREN
+          }
         }
       }
+      RBRACKET
     }
-    RBRACKET
   }
   SEMI
 }

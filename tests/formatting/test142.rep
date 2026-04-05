@@ -2,13 +2,15 @@ GLOBAL-DECL {
   KEYWORD "redef"
   SP
   IDENTIFIER "SomeModule::some_generic_packet_thresholds"
-  ASSIGN "+="
-  CALL {
-    IDENTIFIER "set"
-    ARGS {
-      LPAREN
-      IDENTIFIER "skip_conn_packet_threshold"
-      RPAREN
+  DECL-INIT {
+    ASSIGN "+="
+    CALL {
+      IDENTIFIER "set"
+      ARGS {
+        LPAREN
+        IDENTIFIER "skip_conn_packet_threshold"
+        RPAREN
+      }
     }
   }
   SEMI

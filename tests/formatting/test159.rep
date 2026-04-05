@@ -26,21 +26,23 @@ FUNC-DECL {
       KEYWORD "local"
       SP
       IDENTIFIER "endpoints"
-      ASSIGN "="
-      TERNARY {
-        BINARY-OP ">" {
-          IDENTIFIER "some_long_variable_ab"
-          OP ">"
-          CONSTANT "0"
+      DECL-INIT {
+        ASSIGN "="
+        TERNARY {
+          BINARY-OP ">" {
+            IDENTIFIER "some_long_variable_ab"
+            OP ">"
+            CONSTANT "0"
+          }
+          QUESTION
+          FIELD-ACCESS {
+            IDENTIFIER "calls"
+            DOLLAR
+            IDENTIFIER "some_fld"
+          }
+          COLON
+          CONSTANT "\"Disabled\""
         }
-        QUESTION
-        FIELD-ACCESS {
-          IDENTIFIER "calls"
-          DOLLAR
-          IDENTIFIER "some_fld"
-        }
-        COLON
-        CONSTANT "\"Disabled\""
       }
       SEMI
     }

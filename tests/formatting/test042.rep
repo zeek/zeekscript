@@ -2,21 +2,23 @@ LOCAL-DECL {
   KEYWORD "local"
   SP
   IDENTIFIER "x"
-  ASSIGN "="
-  CALL {
-    IDENTIFIER "set"
-    ARGS {
-      LPAREN
-      CONSTANT "\"a\""
-      COMMA
-      CONSTANT "\"b\""
-      COMMA
-      CONSTANT "\"c\""
-      COMMA
-      CONSTANT "\"d\""
-      COMMA
-      CONSTANT "\"e\""
-      RPAREN
+  DECL-INIT {
+    ASSIGN "="
+    CALL {
+      IDENTIFIER "set"
+      ARGS {
+        LPAREN
+        CONSTANT "\"a\""
+        COMMA
+        CONSTANT "\"b\""
+        COMMA
+        CONSTANT "\"c\""
+        COMMA
+        CONSTANT "\"d\""
+        COMMA
+        CONSTANT "\"e\""
+        RPAREN
+      }
     }
   }
   SEMI

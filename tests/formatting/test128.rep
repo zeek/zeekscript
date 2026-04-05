@@ -12,76 +12,78 @@ FUNC-DECL {
       KEYWORD "local"
       SP
       IDENTIFIER "info"
-      ASSIGN "="
-      CALL {
-        IDENTIFIER "SomeModule::SomeFn"
-        ARGS {
-          LPAREN
-          FIELD-ASSIGN "note" {
-            DOLLAR
-            ASSIGN "="
-            IDENTIFIER "Found"
-          }
-          COMMA
-          FIELD-ASSIGN "uid" {
-            DOLLAR
-            ASSIGN "="
-            IDENTIFIER "uid"
-          }
-          COMMA
-          FIELD-ASSIGN "msg" {
-            DOLLAR
-            ASSIGN "="
-            CALL {
-              IDENTIFIER "fmt"
-              ARGS {
-                LPAREN
-                CONSTANT "\"%s found on %s entity using %s item.\""
-                COMMA
-                IDENTIFIER "usecase_desc"
-                COMMA
-                IDENTIFIER "orig_entity"
-                COMMA
-                IDENTIFIER "item"
-                RPAREN
+      DECL-INIT {
+        ASSIGN "="
+        CALL {
+          IDENTIFIER "SomeModule::SomeFn"
+          ARGS {
+            LPAREN
+            FIELD-ASSIGN "note" {
+              DOLLAR
+              ASSIGN "="
+              IDENTIFIER "Found"
+            }
+            COMMA
+            FIELD-ASSIGN "uid" {
+              DOLLAR
+              ASSIGN "="
+              IDENTIFIER "uid"
+            }
+            COMMA
+            FIELD-ASSIGN "msg" {
+              DOLLAR
+              ASSIGN "="
+              CALL {
+                IDENTIFIER "fmt"
+                ARGS {
+                  LPAREN
+                  CONSTANT "\"%s found on %s entity using %s item.\""
+                  COMMA
+                  IDENTIFIER "usecase_desc"
+                  COMMA
+                  IDENTIFIER "orig_entity"
+                  COMMA
+                  IDENTIFIER "item"
+                  RPAREN
+                }
               }
             }
-          }
-          COMMA
-          FIELD-ASSIGN "sub" {
-            DOLLAR
-            ASSIGN "="
-            CALL {
-              IDENTIFIER "fmt"
-              ARGS {
-                LPAREN
-                CONSTANT "\"Score: %s. Days: %s\""
-                COMMA
-                IDENTIFIER "item_score"
-                COMMA
-                IDENTIFIER "history_days"
-                RPAREN
+            COMMA
+            FIELD-ASSIGN "sub" {
+              DOLLAR
+              ASSIGN "="
+              CALL {
+                IDENTIFIER "fmt"
+                ARGS {
+                  LPAREN
+                  CONSTANT "\"Score: %s. Days: %s\""
+                  COMMA
+                  IDENTIFIER "item_score"
+                  COMMA
+                  IDENTIFIER "history_days"
+                  RPAREN
+                }
               }
             }
-          }
-          COMMA
-          FIELD-ASSIGN "identifier" {
-            DOLLAR
-            ASSIGN "="
-            CALL {
-              IDENTIFIER "cat"
-              ARGS {
-                LPAREN
-                IDENTIFIER "orig_entity"
-                COMMA
-                IDENTIFIER "usecase"
-                COMMA
-                IDENTIFIER "item"
-                RPAREN
+            COMMA
+            FIELD-ASSIGN "identifier" {
+              DOLLAR
+              ASSIGN "="
+              CALL {
+                IDENTIFIER "cat"
+                ARGS {
+                  LPAREN
+                  IDENTIFIER "orig_entity"
+                  COMMA
+                  IDENTIFIER "usecase"
+                  COMMA
+                  IDENTIFIER "item"
+                  RPAREN
+                }
               }
             }
+            RPAREN
           }
-          RPAREN
         }
       }
       SEMI

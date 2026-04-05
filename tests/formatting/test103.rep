@@ -12,56 +12,58 @@ FUNC-DECL {
       KEYWORD "local"
       SP
       IDENTIFIER "val"
-      ASSIGN "="
-      CALL {
-        IDENTIFIER "some_long_func_name"
-        ARGS {
-          LPAREN
-          SLICE {
-            IDENTIFIER "data"
-            LBRACKET
-            BINARY-OP "+" {
-              BINARY-OP "-" {
-                FIELD-ACCESS {
-                  IDENTIFIER "some"
-                  DOLLAR
-                  IDENTIFIER "off"
-                }
-                OP "-"
-                CONSTANT "1"
-              }
-              OP "+"
-              CONSTANT "8"
-            }
-            COLON
-            BINARY-OP "-" {
+      DECL-INIT {
+        ASSIGN "="
+        CALL {
+          IDENTIFIER "some_long_func_name"
+          ARGS {
+            LPAREN
+            SLICE {
+              IDENTIFIER "data"
+              LBRACKET
               BINARY-OP "+" {
-                BINARY-OP "+" {
-                  BINARY-OP "-" {
-                    FIELD-ACCESS {
-                      IDENTIFIER "some"
-                      DOLLAR
-                      IDENTIFIER "off"
-                    }
-                    OP "-"
-                    CONSTANT "1"
+                BINARY-OP "-" {
+                  FIELD-ACCESS {
+                    IDENTIFIER "some"
+                    DOLLAR
+                    IDENTIFIER "off"
                   }
-                  OP "+"
-                  CONSTANT "10"
+                  OP "-"
+                  CONSTANT "1"
                 }
                 OP "+"
-                DIV {
-                  CONSTANT "23"
-                  OP "/"
-                  CONSTANT "15"
-                }
+                CONSTANT "8"
               }
-              OP "-"
-              CONSTANT "3"
+              COLON
+              BINARY-OP "-" {
+                BINARY-OP "+" {
+                  BINARY-OP "+" {
+                    BINARY-OP "-" {
+                      FIELD-ACCESS {
+                        IDENTIFIER "some"
+                        DOLLAR
+                        IDENTIFIER "off"
+                      }
+                      OP "-"
+                      CONSTANT "1"
+                    }
+                    OP "+"
+                    CONSTANT "10"
+                  }
+                  OP "+"
+                  DIV {
+                    CONSTANT "23"
+                    OP "/"
+                    CONSTANT "15"
+                  }
+                }
+                OP "-"
+                CONSTANT "3"
+              }
+              RBRACKET
             }
-            RBRACKET
+            RPAREN
           }
-          RPAREN
         }
       }
       SEMI

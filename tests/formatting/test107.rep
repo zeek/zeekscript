@@ -12,32 +12,34 @@ FUNC-DECL {
       KEYWORD "local"
       SP
       IDENTIFIER "next_orig_multiplier"
-      ASSIGN "="
-      CALL {
-        IDENTIFIER "double_to_count"
-        ARGS {
-          LPAREN
-          CALL {
-            IDENTIFIER "floor"
-            ARGS {
-              LPAREN
-              DIV {
-                FIELD-ACCESS {
+      DECL-INIT {
+        ASSIGN "="
+        CALL {
+          IDENTIFIER "double_to_count"
+          ARGS {
+            LPAREN
+            CALL {
+              IDENTIFIER "floor"
+              ARGS {
+                LPAREN
+                DIV {
                   FIELD-ACCESS {
-                    IDENTIFIER "c"
+                    FIELD-ACCESS {
+                      IDENTIFIER "c"
+                      DOLLAR
+                      IDENTIFIER "orig"
+                    }
                     DOLLAR
-                    IDENTIFIER "orig"
+                    IDENTIFIER "size"
                   }
-                  DOLLAR
-                  IDENTIFIER "size"
+                  OP "/"
+                  IDENTIFIER "size_threshold_in_bytes"
                 }
-                OP "/"
-                IDENTIFIER "size_threshold_in_bytes"
+                RPAREN
               }
-              RPAREN
             }
+            RPAREN
           }
-          RPAREN
         }
       }
       SEMI

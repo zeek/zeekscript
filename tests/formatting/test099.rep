@@ -12,23 +12,25 @@ FUNC-DECL {
       KEYWORD "local"
       SP
       IDENTIFIER "info"
-      ASSIGN "="
-      CALL {
-        IDENTIFIER "SomeModule::SomeRecord"
-        ARGS {
-          LPAREN
-          FIELD-ASSIGN "field1" {
-            DOLLAR
-            ASSIGN "="
-            IDENTIFIER "some_very_long_value"
+      DECL-INIT {
+        ASSIGN "="
+        CALL {
+          IDENTIFIER "SomeModule::SomeRecord"
+          ARGS {
+            LPAREN
+            FIELD-ASSIGN "field1" {
+              DOLLAR
+              ASSIGN "="
+              IDENTIFIER "some_very_long_value"
+            }
+            COMMA
+            FIELD-ASSIGN "field2" {
+              DOLLAR
+              ASSIGN "="
+              IDENTIFIER "another_long_value"
+            }
+            RPAREN
           }
-          COMMA
-          FIELD-ASSIGN "field2" {
-            DOLLAR
-            ASSIGN "="
-            IDENTIFIER "another_long_value"
-          }
-          RPAREN
         }
       }
       SEMI

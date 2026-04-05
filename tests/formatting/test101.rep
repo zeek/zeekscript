@@ -22,22 +22,24 @@ FUNC-DECL {
             KEYWORD "local"
             SP
             IDENTIFIER "some_val"
-            ASSIGN "="
-            CALL {
-              IDENTIFIER "some_long_func_name"
-              ARGS {
-                LPAREN
-                INDEX {
-                  IDENTIFIER "result_chain"
-                  SUBSCRIPTS {
-                    LBRACKET
-                    CONSTANT "1"
-                    RBRACKET
+            DECL-INIT {
+              ASSIGN "="
+              CALL {
+                IDENTIFIER "some_long_func_name"
+                ARGS {
+                  LPAREN
+                  INDEX {
+                    IDENTIFIER "result_chain"
+                    SUBSCRIPTS {
+                      LBRACKET
+                      CONSTANT "1"
+                      RBRACKET
+                    }
                   }
+                  COMMA
+                  CONSTANT "4"
+                  RPAREN
                 }
-                COMMA
-                CONSTANT "4"
-                RPAREN
               }
             }
             SEMI

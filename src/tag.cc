@@ -47,6 +47,8 @@ static const std::unordered_map<std::string, TagEntry> tag_map = {
 	// Declarations
 	{"GLOBAL-DECL", {Tag::GlobalDecl, false}},
 	{"LOCAL-DECL", {Tag::LocalDecl, false}},
+	{"DECL-TYPE", {Tag::DeclType, false}},
+	{"DECL-INIT", {Tag::DeclInit, false}},
 	{"TYPE-DECL", {Tag::TypeDecl, false}},
 	{"TYPEDECL-ALIAS", {Tag::TypeDeclAlias, false}},
 	{"TYPEDECL-ENUM", {Tag::TypeDeclEnum, false}},

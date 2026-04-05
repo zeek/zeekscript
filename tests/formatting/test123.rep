@@ -14,8 +14,10 @@ GLOBAL-DECL {
   KEYWORD "const"
   SP
   IDENTIFIER "some_var"
-  ASSIGN "="
-  CONSTANT "\"some-value\""
+  DECL-INIT {
+    ASSIGN "="
+    CONSTANT "\"some-value\""
+  }
   SEMI
 }
 BLANK

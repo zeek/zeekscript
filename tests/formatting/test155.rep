@@ -2,22 +2,24 @@ GLOBAL-DECL {
   KEYWORD "const"
   SP
   IDENTIFIER "tbl"
-  ASSIGN "="
-  CONSTRUCTOR {
-    KEYWORD "table"
-    LPAREN
-    BINARY-OP "=" {
-      CONSTANT "[1]"
-      OP "="
-      CONSTANT "\"a\""
+  DECL-INIT {
+    ASSIGN "="
+    CONSTRUCTOR {
+      KEYWORD "table"
+      LPAREN
+      BINARY-OP "=" {
+        CONSTANT "[1]"
+        OP "="
+        CONSTANT "\"a\""
+      }
+      COMMA
+      BINARY-OP "=" {
+        CONSTANT "[2]"
+        OP "="
+        CONSTANT "\"b\""
+      }
+      RPAREN
     }
-    COMMA
-    BINARY-OP "=" {
-      CONSTANT "[2]"
-      OP "="
-      CONSTANT "\"b\""
-    }
-    RPAREN
   }
   SEMI
 }

@@ -2,16 +2,18 @@ GLOBAL-DECL {
   KEYWORD "global"
   SP
   IDENTIFIER "some_table_name_a"
-  COLON
-  TYPE-PARAMETERIZED "table" {
-    LBRACKET
-    TYPE-ATOM "count"
-    COMMA
-    TYPE-ATOM "string"
-    RBRACKET
-    KEYWORD "of"
-    SP
-    TYPE-ATOM "TrackingRec"
+  DECL-TYPE {
+    COLON
+    TYPE-PARAMETERIZED "table" {
+      LBRACKET
+      TYPE-ATOM "count"
+      COMMA
+      TYPE-ATOM "string"
+      RBRACKET
+      KEYWORD "of"
+      SP
+      TYPE-ATOM "TrackingRec"
+    }
   }
   ATTR-LIST {
     ATTR "&default_insert" {

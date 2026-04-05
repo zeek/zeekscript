@@ -256,45 +256,20 @@ Candidates FormatDecl(const Node& node, const FmtContext& ctx)
 	d.attrs_node = node.FindOptChild(Tag::AttrList);
 	d.semi_node = node.FindChild(Tag::Semi);
 
-	// Scan children sequentially: COLON precedes type, ASSIGN
-	// precedes init value.  Skip the head keyword and name nodes.
-	bool expect_type = false;
-	bool expect_init = false;
-
-	for ( const auto& c : node.Children() )
+	if ( auto dt = node.FindOptChild(Tag::DeclType) )
 		{
-		if ( c.get() == kw_node || c.get() == id_node )
-			continue;
+		d.colon_node = dt->FindChild(Tag::Colon);
+		if ( auto tc = FindTypeChild(*dt) )
+			d.type_node = tc;
+		}
 
-		Tag t = c->GetTag();
-
-		if ( t == Tag::Colon )
-			{
-			d.colon_node = c.get();
-			expect_type = true;
-			continue;
-			}
-
-		if ( t == Tag::Assign )
-			{
-			d.assign_op = c->Arg();
-			expect_init = true;
-			continue;
-			}
-
-		if ( expect_type && ! c->IsToken() )
-			{
-			d.type_node = c.get();
-			expect_type = false;
-			continue;
-			}
-
-		if ( expect_init && ! c->IsToken() )
-			{
-			d.init_val = c.get();
-			expect_init = false;
-			continue;
-			}
+	if ( auto di = node.FindOptChild(Tag::DeclInit) )
+		{
+		auto assign = di->FindChild(Tag::Assign);
+		d.assign_op = assign->Arg();
+		auto cc = di->ContentChildren();
+		if ( ! cc.empty() )
+			d.init_val = cc[0];
 		}
 
 	if ( d.type_node )

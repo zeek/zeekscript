@@ -48,8 +48,10 @@ FUNC-DECL {
               KEYWORD "local"
               SP
               IDENTIFIER "x"
-              ASSIGN "="
-              CONSTANT "1"
+              DECL-INIT {
+                ASSIGN "="
+                CONSTANT "1"
+              }
               SEMI
             }
           }

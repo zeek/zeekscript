@@ -36,13 +36,15 @@ FUNC-DECL {
                   KEYWORD "local"
                   SP
                   IDENTIFIER "some_long_name"
-                  ASSIGN "="
-                  CALL {
-                    IDENTIFIER "SomeModule::some_function"
-                    ARGS {
-                      LPAREN
-                      IDENTIFIER "some_really_long_argument"
-                      RPAREN
+                  DECL-INIT {
+                    ASSIGN "="
+                    CALL {
+                      IDENTIFIER "SomeModule::some_function"
+                      ARGS {
+                        LPAREN
+                        IDENTIFIER "some_really_long_argument"
+                        RPAREN
+                      }
                     }
                   }
                   SEMI

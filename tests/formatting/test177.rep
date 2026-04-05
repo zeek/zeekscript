@@ -2,22 +2,26 @@ GLOBAL-DECL {
   KEYWORD "const"
   SP
   IDENTIFIER "xs"
-  COLON
-  TYPE-PARAMETERIZED "vector" {
-    KEYWORD "of"
-    SP
-    TYPE-ATOM "count"
+  DECL-TYPE {
+    COLON
+    TYPE-PARAMETERIZED "vector" {
+      KEYWORD "of"
+      SP
+      TYPE-ATOM "count"
+    }
   }
-  ASSIGN "="
-  CONSTRUCTOR {
-    KEYWORD "vector"
-    LPAREN
-    CONSTANT "1"
-    COMMA
-    CONSTANT "2"
-    COMMA
-    CONSTANT "3"
-    RPAREN
+  DECL-INIT {
+    ASSIGN "="
+    CONSTRUCTOR {
+      KEYWORD "vector"
+      LPAREN
+      CONSTANT "1"
+      COMMA
+      CONSTANT "2"
+      COMMA
+      CONSTANT "3"
+      RPAREN
+    }
   }
   SEMI
 }

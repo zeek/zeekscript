@@ -12,18 +12,20 @@ FUNC-DECL {
       KEYWORD "local"
       SP
       IDENTIFIER "some_services"
-      ASSIGN "="
-      BINARY-OP "|" {
-        FIELD-ACCESS {
-          IDENTIFIER "worker_si"
-          DOLLAR
-          IDENTIFIER "some_entities"
-        }
-        OP "|"
-        FIELD-ACCESS {
-          IDENTIFIER "worker_si"
-          DOLLAR
-          IDENTIFIER "other_entities"
+      DECL-INIT {
+        ASSIGN "="
+        BINARY-OP "|" {
+          FIELD-ACCESS {
+            IDENTIFIER "worker_si"
+            DOLLAR
+            IDENTIFIER "some_entities"
+          }
+          OP "|"
+          FIELD-ACCESS {
+            IDENTIFIER "worker_si"
+            DOLLAR
+            IDENTIFIER "other_entities"
+          }
         }
       }
       SEMI

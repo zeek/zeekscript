@@ -1036,11 +1036,15 @@ class Emitter:
         self._kw(keyword)
         self._w(f'IDENTIFIER {_quote(name)}')
         if typ:
+            self._open('DECL-TYPE')
             self._w('COLON')
             self._emit_type(typ)
+            self._close()
         if init_expr:
+            self._open('DECL-INIT')
             self._w(f'ASSIGN {_quote(init_op)}')
             self._emit_init_expr(init_expr, typ)
+            self._close()
         if attrs:
             self._emit_attr_list(attrs)
         self._emit_extras_in(node)
@@ -1334,11 +1338,15 @@ class Emitter:
         self._kw(keyword)
         self._w(f'IDENTIFIER {_quote(name)}')
         if typ:
+            self._open('DECL-TYPE')
             self._w('COLON')
             self._emit_type(typ)
+            self._close()
         if init_expr:
+            self._open('DECL-INIT')
             self._w(f'ASSIGN {_quote(init_op)}')
             self._emit_init_expr(init_expr, typ)
+            self._close()
         if attrs:
             self._emit_attr_list(attrs)
         self._emit_extras_in(node)

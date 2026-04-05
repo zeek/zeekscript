@@ -6,15 +6,17 @@ EXPORT {
     KEYWORD "global"
     SP
     IDENTIFIER "SomeModule::some_long_handler"
-    COLON
-    TYPE-FUNC "event" {
-      PARAMS {
-        LPAREN
-        PARAM "anomaly_data" {
-          COLON
-          TYPE-ATOM "SomePredictions"
+    DECL-TYPE {
+      COLON
+      TYPE-FUNC "event" {
+        PARAMS {
+          LPAREN
+          PARAM "anomaly_data" {
+            COLON
+            TYPE-ATOM "SomePredictions"
+          }
+          RPAREN
         }
-        RPAREN
       }
     }
     SEMI

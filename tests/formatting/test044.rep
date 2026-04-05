@@ -28,58 +28,60 @@ FUNC-DECL {
             KEYWORD "local"
             SP
             IDENTIFIER "published"
-            ASSIGN "="
-            CALL {
-              IDENTIFIER "Some::long_func_name"
-              ARGS {
-                LPAREN
-                IDENTIFIER "proxy_pool"
-                COMMA
-                CALL {
-                  IDENTIFIER "cat"
-                  ARGS {
-                    LPAREN
-                    FIELD-ACCESS {
+            DECL-INIT {
+              ASSIGN "="
+              CALL {
+                IDENTIFIER "Some::long_func_name"
+                ARGS {
+                  LPAREN
+                  IDENTIFIER "proxy_pool"
+                  COMMA
+                  CALL {
+                    IDENTIFIER "cat"
+                    ARGS {
+                      LPAREN
                       FIELD-ACCESS {
-                        IDENTIFIER "c"
+                        FIELD-ACCESS {
+                          IDENTIFIER "c"
+                          DOLLAR
+                          IDENTIFIER "id"
+                        }
                         DOLLAR
-                        IDENTIFIER "id"
+                        IDENTIFIER "orig_h"
                       }
-                      DOLLAR
-                      IDENTIFIER "orig_h"
+                      COMMA
+                      IDENTIFIER "fqdn"
+                      RPAREN
                     }
-                    COMMA
-                    IDENTIFIER "fqdn"
-                    RPAREN
                   }
-                }
-                COMMA
-                IDENTIFIER "SomeModule::some_handler"
-                COMMA
-                FIELD-ACCESS {
+                  COMMA
+                  IDENTIFIER "SomeModule::some_handler"
+                  COMMA
+                  FIELD-ACCESS {
+                    FIELD-ACCESS {
+                      IDENTIFIER "c"
+                      DOLLAR
+                      IDENTIFIER "id"
+                    }
+                    DOLLAR
+                    IDENTIFIER "orig_h"
+                  }
+                  COMMA
                   FIELD-ACCESS {
                     IDENTIFIER "c"
                     DOLLAR
-                    IDENTIFIER "id"
+                    IDENTIFIER "uid"
                   }
-                  DOLLAR
-                  IDENTIFIER "orig_h"
+                  COMMA
+                  IDENTIFIER "fqdn"
+                  COMMA
+                  FIELD-ACCESS {
+                    IDENTIFIER "conn"
+                    DOLLAR
+                    IDENTIFIER "orig_bytes"
+                  }
+                  RPAREN
                 }
-                COMMA
-                FIELD-ACCESS {
-                  IDENTIFIER "c"
-                  DOLLAR
-                  IDENTIFIER "uid"
-                }
-                COMMA
-                IDENTIFIER "fqdn"
-                COMMA
-                FIELD-ACCESS {
-                  IDENTIFIER "conn"
-                  DOLLAR
-                  IDENTIFIER "orig_bytes"
-                }
-                RPAREN
               }
             }
             SEMI
