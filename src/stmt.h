@@ -69,24 +69,24 @@ public:
 	TypeDeclBracedNode(Tag t) : StmtNode(t) { }
 	Candidates Format(const FmtContext& ctx) const override;
 protected:
-	virtual std::string FormatBody(const Node* inner,
-	                               const FmtContext& ctx) const = 0;
+	virtual Formatting FormatBody(const Node* inner,
+	                              const FmtContext& ctx) const = 0;
 };
 
 class TypeDeclEnumNode : public TypeDeclBracedNode {
 public:
 	TypeDeclEnumNode() : TypeDeclBracedNode(Tag::TypeDeclEnum) { }
 protected:
-	std::string FormatBody(const Node* inner,
-	                        const FmtContext& ctx) const override;
+	Formatting FormatBody(const Node* inner,
+	                       const FmtContext& ctx) const override;
 };
 
 class TypeDeclRecordNode : public TypeDeclBracedNode {
 public:
 	TypeDeclRecordNode() : TypeDeclBracedNode(Tag::TypeDeclRecord) { }
 protected:
-	std::string FormatBody(const Node* inner,
-	                        const FmtContext& ctx) const override;
+	Formatting FormatBody(const Node* inner,
+	                       const FmtContext& ctx) const override;
 };
 
 // Preprocessor directives.  Not StmtNodes (no Candidates), but
@@ -97,7 +97,7 @@ protected:
 class PreprocBaseNode : public Node {
 public:
 	PreprocBaseNode(Tag t) : Node(t) { }
-	virtual std::string FormatText() const = 0;
+	virtual Formatting FormatText() const = 0;
 	bool OpensDepth() const;
 	bool ClosesDepth() const;
 	bool AtColumnZero() const;
@@ -106,13 +106,13 @@ public:
 class PreprocNode : public PreprocBaseNode {
 public:
 	PreprocNode() : PreprocBaseNode(Tag::Preproc) { }
-	std::string FormatText() const override;
+	Formatting FormatText() const override;
 };
 
 class PreprocCondNode : public PreprocBaseNode {
 public:
 	PreprocCondNode() : PreprocBaseNode(Tag::PreprocCond) { }
-	std::string FormatText() const override;
+	Formatting FormatText() const override;
 };
 
 // Global/local declarations: keyword name [: type] [= init] [attrs] ;

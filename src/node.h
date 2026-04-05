@@ -104,13 +104,13 @@ public:
 	bool HasChildren() const { return ! children.empty(); }
 
 	// Emit pre-comments and pre-markers as indented lines.
-	std::string EmitPreComments(const std::string& pad) const;
+	Formatting EmitPreComments(const std::string& pad) const;
 
 	// Find the first type child (TypeAtom, TypeParameterized, TypeFunc).
 	const Node* FindTypeChild() const;
 
 	// Format an ATTR-LIST node as a single string.
-	std::string FormatAttrList(const FmtContext& ctx) const;
+	Formatting FormatAttrList(const FmtContext& ctx) const;
 
 	// Format an ATTR-LIST node as individual attr strings.
 	std::vector<std::string> FormatAttrStrings(const FmtContext& ctx) const;

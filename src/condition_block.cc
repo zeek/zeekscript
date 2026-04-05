@@ -24,8 +24,8 @@ Candidates ConditionBlockNode::Format(const FmtContext& ctx) const
 
 	// Build the head via build_layout so trailing comments on keyword
 	// or lparen correctly force line breaks.
-	LayoutItems los{tok(kw_node), soft_sp, tok(lparen_node), soft_sp, cond,
-			" " + rparen_node->Text()};
+	LayoutItems los{tok(kw_node), soft_sp, tok(lparen_node), soft_sp,
+			cond.Str(), " " + rparen_node->Text()};
 	auto head_cs = build_layout(los, ctx);
 	auto head = best(head_cs).Text();
 
@@ -37,7 +37,7 @@ Candidates ConditionBlockNode::Format(const FmtContext& ctx) const
 	}
 
 // Default: format the single expression between parens.
-std::string ConditionBlockNode::BuildCondition(const FmtContext& cond_ctx) const
+Formatting ConditionBlockNode::BuildCondition(const FmtContext& cond_ctx) const
 	{
 	return best(format_expr(*ContentChildren()[0], cond_ctx)).Text();
 	}
@@ -48,7 +48,7 @@ std::string ConditionBlockNode::BuildCondition(const FmtContext& cond_ctx) const
 
 // FOR children: [0]=KEYWORD [1]=SP [2]=LPAREN [3]=VARS
 //   [4]=KEYWORD("in") [5]=SP [6]=ITERABLE [7]=RPAREN [8]=BODY
-std::string ForNode::BuildCondition(const FmtContext& cond_ctx) const
+Formatting ForNode::BuildCondition(const FmtContext& cond_ctx) const
 	{
 	auto vars_node = Child(3, Tag::Vars);
 	auto in_node = Child(4, Tag::Keyword);
@@ -93,7 +93,7 @@ static const Node* find_else(const Node& node)
 	return nullptr;
 	}
 
-std::string IfElseNode::BuildFollowOn(const FmtContext& ctx) const
+Formatting IfElseNode::BuildFollowOn(const FmtContext& ctx) const
 	{
 	auto else_node = find_else(*this);
 
@@ -111,7 +111,7 @@ std::string IfElseNode::BuildFollowOn(const FmtContext& ctx) const
 	if ( ! comments.empty() && comments.back() == '\n' )
 		comments.pop_back();
 
-	std::string result;
+	Formatting result;
 
 	if ( has_blank || ! comments.empty() )
 		result += "\n";

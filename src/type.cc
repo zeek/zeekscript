@@ -178,9 +178,9 @@ std::vector<std::string> Node::FormatAttrStrings(const FmtContext& ctx) const
 	return result;
 	}
 
-std::string Node::FormatAttrList(const FmtContext& ctx) const
+Formatting Node::FormatAttrList(const FmtContext& ctx) const
 	{
-	std::string text;
+	Formatting text;
 	for ( const auto& s : FormatAttrStrings(ctx) )
 		{
 		if ( ! text.empty() )

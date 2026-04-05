@@ -241,7 +241,7 @@ Candidates SwitchNode::Format(const FmtContext& ctx) const
 // opens depth and sits at column 0.  Plain PREPROC checks the
 // directive string for @else/@endif.
 
-std::string PreprocNode::FormatText() const
+Formatting PreprocNode::FormatText() const
 	{
 	const auto& directive = Arg(0);
 	const auto& arg = Arg(1);
@@ -253,7 +253,7 @@ std::string PreprocNode::FormatText() const
 	}
 
 // Children: [0]=LPAREN [1]=RPAREN
-std::string PreprocCondNode::FormatText() const
+Formatting PreprocCondNode::FormatText() const
 	{
 	const auto& directive = Arg(0);
 	const auto& arg = Arg(1);

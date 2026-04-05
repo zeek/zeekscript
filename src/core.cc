@@ -16,9 +16,9 @@ std::string line_prefix(int indent, int col)
 	}
 
 // Pre-comment / pre-marker emission
-std::string Node::EmitPreComments(const std::string& pad) const
+Formatting Node::EmitPreComments(const std::string& pad) const
 	{
-	std::string result;
+	Formatting result;
 
 	for ( const auto& pc : PreComments() )
 		{

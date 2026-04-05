@@ -13,7 +13,7 @@ static std::string decl_suffix(const Node* attrs_node, const Node* semi_node,
 		{
 		auto as = attrs_node->FormatAttrList(ctx);
 		if ( ! as.empty() )
-			suffix += " " + as;
+			suffix += " " + as.Str();
 		}
 
 	if ( semi_node )
@@ -389,7 +389,7 @@ Candidates FuncDeclNode::Format(const FmtContext& ctx) const
 		{
 		auto as = attrs->FormatAttrList(ctx);
 		if ( ! as.empty() )
-			attr_str = " " + as;
+			attr_str = " " + as.Str();
 		}
 
 	// Trailing comment on the func decl (attached to body).
@@ -481,8 +481,8 @@ Candidates FuncDeclNode::Format(const FmtContext& ctx) const
 // Format a record field.  suffix includes ";" and any trailing
 // comment so we can measure overflow and wrap attrs if needed.
 // FIELD: [0]=COLON [1]=type_expr [optional ATTR-LIST] [last]=SEMI
-static std::string format_field(const Node& node, const std::string& suffix,
-                               const FmtContext& ctx)
+static Formatting format_field(const Node& node, const std::string& suffix,
+                              const FmtContext& ctx)
 	{
 	auto fcol = node.Child(0, Tag::Colon)->Text();
 	auto head = node.Arg() + fcol + " ";
@@ -497,7 +497,7 @@ static std::string format_field(const Node& node, const std::string& suffix,
 		{
 		auto as = attrs->FormatAttrList(ctx);
 		if ( ! as.empty() )
-			attr_str = " " + as;
+			attr_str = " " + as.Str();
 		}
 
 	// Try flat.
@@ -566,13 +566,13 @@ Candidates TypeDeclBracedNode::Format(const FmtContext& ctx) const
 
 	auto close_pad = line_prefix(ctx.Indent(), ctx.Col());
 	auto rb = inner->Children().back()->Text();
-	auto text = head + "\n" + body + close_pad + rb + semi;
+	auto text = head + "\n" + body.Str() + close_pad + rb + semi;
 	return {Candidate(text, ctx)};
 	}
 
 // Enum body: collect values with commas, one per line.
-std::string TypeDeclEnumNode::FormatBody(const Node* inner,
-                                         const FmtContext& ctx) const
+Formatting TypeDeclEnumNode::FormatBody(const Node* inner,
+                                        const FmtContext& ctx) const
 	{
 	std::vector<std::string> values;
 	Nodes commas;
@@ -601,7 +601,7 @@ std::string TypeDeclEnumNode::FormatBody(const Node* inner,
 
 	auto pad = line_prefix(ctx.Indent() + 1,
 				(ctx.Indent() + 1) * INDENT_WIDTH);
-	std::string body;
+	Formatting body;
 	for ( size_t i = 0; i < values.size(); ++i )
 		{
 		body += pad + values[i];
@@ -615,15 +615,15 @@ std::string TypeDeclEnumNode::FormatBody(const Node* inner,
 	}
 
 // Record body: fields, comments, blanks.
-std::string TypeDeclRecordNode::FormatBody(const Node* inner,
-                                           const FmtContext& ctx) const
+Formatting TypeDeclRecordNode::FormatBody(const Node* inner,
+                                          const FmtContext& ctx) const
 	{
 	int field_indent = ctx.Indent() + 1;
 	int field_col = field_indent * INDENT_WIDTH;
 	FmtContext field_ctx(field_indent, field_col, ctx.MaxCol() - field_col);
 	auto field_pad = line_prefix(field_indent, field_col);
 
-	std::string body;
+	Formatting body;
 	for ( const auto& ki : inner->Children() )
 		{
 		Tag t = ki->GetTag();

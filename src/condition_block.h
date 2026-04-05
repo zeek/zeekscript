@@ -17,10 +17,10 @@ protected:
 		{ return GetTag() == Tag::For ? 7 : 4; }
 
 	// Returns formatted text for the condition between parens.
-	virtual std::string BuildCondition(const FmtContext& cond_ctx) const;
+	virtual Formatting BuildCondition(const FmtContext& cond_ctx) const;
 
 	// Returns any follow-on text after the body (e.g., else clause).
-	virtual std::string BuildFollowOn(const FmtContext& /* ctx */) const
+	virtual Formatting BuildFollowOn(const FmtContext& /* ctx */) const
 		{ return ""; }
 };
 
@@ -34,7 +34,7 @@ public:
 	IfElseNode() : ConditionBlockNode(Tag::IfElse) { }
 
 protected:
-	std::string BuildFollowOn(const FmtContext& ctx) const override;
+	Formatting BuildFollowOn(const FmtContext& ctx) const override;
 };
 
 class ForNode : public ConditionBlockNode {
@@ -42,8 +42,7 @@ public:
 	ForNode() : ConditionBlockNode(Tag::For) { }
 
 protected:
-	std::string BuildCondition(
-		const FmtContext& cond_ctx) const override;
+	Formatting BuildCondition(const FmtContext& cond_ctx) const override;
 };
 
 class WhileNode : public ConditionBlockNode {
