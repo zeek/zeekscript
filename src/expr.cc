@@ -326,14 +326,14 @@ Candidates SliceNode::Format(const FmtContext& ctx) const
 	// Split after ":" - continuation aligns after "[".
 	int bracket_col = ctx.Col() + base.Width() + lb->Width();
 	FmtContext hi_ctx = ctx.AtCol(bracket_col);
-	auto hi2 = best(format_expr(*Child(4), hi_ctx)).Text();
+	auto hi2 = best(format_expr(*Child(4), hi_ctx)).Fmt();
 
 	auto prefix = line_prefix(hi_ctx.Indent(), bracket_col);
-	auto split = base.Text() + lb->Text() + lo + " " + colon +
-			"\n" + prefix + hi2 + rb->Text();
-	int last_w = static_cast<int>(hi2.size()) + rb->Width();
+	Formatting split = base.Fmt() + lb + lo + " " + colon +
+			"\n" + prefix + hi2 + rb;
+	int last_w = hi2.Size() + rb->Width();
 	int split_ovf = ovf(last_w, hi_ctx);
-	int lines = 1 + count_lines(hi2);
+	int lines = 1 + hi2.CountLines();
 
 	return {flat, {split, last_w, lines, split_ovf, ctx.Col()}};
 	}
@@ -396,7 +396,7 @@ Candidates BoolChainNode::Format(const FmtContext& ctx) const
 	int sep_w = static_cast<int>(sep.size());
 
 	// Try flat.  Only use when every operand fits on one line.
-	std::string flat;
+	Formatting flat;
 	int flat_w = 0;
 	bool any_multiline = false;
 
@@ -414,7 +414,7 @@ Candidates BoolChainNode::Format(const FmtContext& ctx) const
 			flat_w += sep_w;
 			}
 
-		flat += bc.Text();
+		flat += bc.Fmt();
 		flat_w += bc.Width();
 		}
 
@@ -428,7 +428,7 @@ Candidates BoolChainNode::Format(const FmtContext& ctx) const
 	auto pad = line_prefix(cont_ctx.Indent(), cont_ctx.Col());
 	int max_col = ctx.MaxCol() - ctx.Trail();
 
-	std::string text;
+	Formatting text;
 	int cur_col = ctx.Col();
 	int lines = 1;
 	int total_overflow = 0;
@@ -441,7 +441,7 @@ Candidates BoolChainNode::Format(const FmtContext& ctx) const
 
 		if ( i == 0 )
 			{
-			text += bc.Text();
+			text += bc.Fmt();
 			cur_col += w;
 			}
 
@@ -451,7 +451,7 @@ Candidates BoolChainNode::Format(const FmtContext& ctx) const
 
 			if ( cur_col + need <= max_col )
 				{
-				text += sep + bc.Text();
+				text += sep + bc.Fmt();
 				cur_col += need;
 				}
 
@@ -466,7 +466,7 @@ Candidates BoolChainNode::Format(const FmtContext& ctx) const
 
 				auto wcs = format_expr(*operands[i], wrap_sub);
 				auto wb = best(wcs);
-				text += wb.Text();
+				text += wb.Fmt();
 				cur_col += wb.Width();
 				total_overflow += wb.Ovf();
 				}
@@ -475,7 +475,7 @@ Candidates BoolChainNode::Format(const FmtContext& ctx) const
 		if ( bc.Lines() > 1 )
 			{
 			lines += bc.Lines() - 1;
-			cur_col = last_line_len(text);
+			cur_col = text.LastLineLen();
 			}
 
 		total_overflow += bc.Ovf();

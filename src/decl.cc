@@ -4,31 +4,31 @@
 // Declarations: global/local/const/redef name [: type] [= init] [attrs] ;
 
 // Build the suffix: attrs + optional semicolon.
-static std::string decl_suffix(const NodePtr& attrs_node,
+static Formatting decl_suffix(const NodePtr& attrs_node,
                               const NodePtr& semi_node,
                               const FmtContext& ctx)
 	{
-	std::string suffix;
+	Formatting suffix;
 
 	if ( attrs_node )
 		{
 		auto as = attrs_node->FormatAttrList(ctx);
 		if ( ! as.Empty() )
-			suffix += " " + as.Str();
+			suffix += " " + as;
 		}
 
 	if ( semi_node )
-		suffix += semi_node->Text();
+		suffix += semi_node;
 
 	return suffix;
 	}
 
 // Shared state for declaration candidate generation.
 struct DeclParts {
-	std::string head;	// "global foo", "local bar", etc.
-	std::string type_str;	// ": type" or ""
-	std::string suffix;	// " &attr1 &attr2;" or ";" or ""
-	std::string assign_op;	// "=", "+=", or ""
+	Formatting head;	// "global foo", "local bar", etc.
+	Formatting type_str;	// ": type" or ""
+	Formatting suffix;	// " &attr1 &attr2;" or ";" or ""
+	Formatting assign_op;	// "=", "+=", or ""
 	NodePtr type_node;	// direct type child (after COLON)
 	NodePtr colon_node;	// COLON before type
 	NodePtr init_val;		// direct init value (after ASSIGN)
@@ -41,22 +41,21 @@ static void decl_with_init(const DeclParts& d, Candidates& result,
                          const FmtContext& ctx)
 	{
 	auto before_val = d.head + d.type_str + " " + d.assign_op + " ";
-	int before_w = static_cast<int>(before_val.size());
-	int suffix_w = static_cast<int>(d.suffix.size());
+	int before_w = before_val.Size();
+	int suffix_w = d.suffix.Size();
 
 	FmtContext val_ctx = ctx.After(before_w).Reserve(suffix_w);
 	auto val = best(format_expr(*d.init_val, val_ctx));
 
-	auto flat = before_val + val.Text() + d.suffix;
+	auto flat = before_val + val.Fmt() + d.suffix;
 
 	if ( val.Lines() > 1 )
 		{
-		int last_w = last_line_len(flat);
-		int lines = count_lines(flat);
+		int last_w = flat.LastLineLen();
+		int lines = flat.CountLines();
 
-		auto nl = val.Text().find('\n');
-		int first_val_w = (nl != std::string::npos) ?
-					static_cast<int>(nl) : val.Width();
+		int nl = val.Fmt().Find('\n');
+		int first_val_w = (nl < 0) ? val.Width() : nl;
 		int ovf = ovf_no_trail(before_w + first_val_w, ctx) + val.Ovf();
 
 		if ( last_w > ctx.MaxCol() )
@@ -73,8 +72,7 @@ static void decl_with_init(const DeclParts& d, Candidates& result,
 		// The split moves the value from col before_w to
 		// col indent_col.  Skip if the worst-line overflow
 		// barely improves.
-		int flat_mlo = max_line_overflow(flat, ctx.Col(),
-		                               ctx.MaxCol());
+		int flat_mlo = flat.MaxLineOverflow(ctx.Col(), ctx.MaxCol());
 		int savings = before_w - ctx.Indented().Col();
 
 		if ( flat_mlo == 0 && val.Lines() > 1 )
@@ -88,10 +86,10 @@ static void decl_with_init(const DeclParts& d, Candidates& result,
 
 		auto line1 = d.head + d.type_str + " " + d.assign_op;
 		auto pad = line_prefix(cont.Indent(), cont.Col());
-		auto split = line1 + "\n" + pad + val2.Text() + d.suffix;
-		int last_w = last_line_len(split);
-		int lines = count_lines(split);
-		int ovf = text_overflow(split, ctx.Col(), ctx.MaxCol());
+		auto split = line1 + "\n" + pad + val2.Fmt() + d.suffix;
+		int last_w = split.LastLineLen();
+		int lines = split.CountLines();
+		int ovf = split.TextOverflow(ctx.Col(), ctx.MaxCol());
 
 		result.push_back({split, last_w, lines, ovf, ctx.Col()});
 		}
@@ -105,29 +103,28 @@ static void decl_no_init(const DeclParts& d, Candidates& result,
 	result.push_back(Candidate(flat, ctx));
 
 	// Split after ":" when head + type overflows.
-	int head_type_w = static_cast<int>((d.head + d.type_str).size());
-	if ( head_type_w <= ctx.MaxCol() || d.type_str.empty() )
+	int head_type_w = (d.head + d.type_str).Size();
+	if ( head_type_w <= ctx.MaxCol() || d.type_str.Empty() )
 		return;
 
 	FmtContext cont = ctx.Indented();
-	auto tv = best(format_expr(*d.type_node, cont)).Text();
-	auto line1 = d.head + d.colon_node->Text();
+	auto tv = best(format_expr(*d.type_node, cont)).Fmt();
+	auto line1 = d.head + d.colon_node;
 	auto pad = line_prefix(cont.Indent(), cont.Col());
 
 	// Try type + suffix on one continuation line.
 	auto oneline = tv + d.suffix;
-	if ( cont.Col() + static_cast<int>(oneline.size()) <= ctx.MaxCol() )
+	if ( cont.Col() + oneline.Size() <= ctx.MaxCol() )
 		{
 		auto split = line1 + "\n" + pad + oneline;
-		int last_w = last_line_len(split);
-		result.push_back({split, last_w, count_lines(split),
+		int last_w = split.LastLineLen();
+		result.push_back({split, last_w, split.CountLines(),
 					ovf(last_w, ctx), ctx.Col()});
 		return;
 		}
 
 	// Type alone, attrs on separate lines.
-	auto semi_str = d.semi_node->Text();
-	auto type_suffix = d.attrs_node ? "" : d.suffix;
+	Formatting type_suffix = d.attrs_node ? Formatting() : d.suffix;
 	auto split = line1 + "\n" + pad + tv + type_suffix;
 
 	if ( d.attrs_node )
@@ -136,11 +133,11 @@ static void decl_no_init(const DeclParts& d, Candidates& result,
 		auto astrs = d.attrs_node->FormatAttrStrings(ctx);
 		for ( const auto& a : astrs )
 			split += "\n" + apad + a;
-		split += semi_str;
+		split += d.semi_node;
 		}
 
-	int last_w = last_line_len(split);
-	result.push_back({split, last_w, count_lines(split), ovf(last_w, ctx),
+	int last_w = split.LastLineLen();
+	result.push_back({split, last_w, split.CountLines(), ovf(last_w, ctx),
 				ctx.Col()});
 	}
 
@@ -148,7 +145,7 @@ static void decl_no_init(const DeclParts& d, Candidates& result,
 static void decl_wrapped_attrs(const DeclParts& d, Candidates& result,
                              const FmtContext& ctx)
 	{
-	if ( ! d.attrs_node || d.type_str.empty() )
+	if ( ! d.attrs_node || d.type_str.Empty() )
 		return;
 
 	auto attr_strs = d.attrs_node->FormatAttrStrings(ctx);
@@ -156,18 +153,18 @@ static void decl_wrapped_attrs(const DeclParts& d, Candidates& result,
 		return;
 
 	// First line: everything except attrs and semi.
-	std::string line1 = d.head + d.type_str;
+	Formatting line1 = d.head + d.type_str;
 
 	if ( d.init_val )
 		{
-		auto after = line1.size() + d.assign_op.size() + 2;
-		FmtContext val_ctx = ctx.After(static_cast<int>(after));
+		int after = line1.Size() + d.assign_op.Size() + 2;
+		FmtContext val_ctx = ctx.After(after);
 		auto vcs = format_expr(*d.init_val, val_ctx);
-		line1 += " " + d.assign_op + " " + best(vcs).Text();
+		line1 += " " + d.assign_op + " " + best(vcs).Fmt();
 		}
 
 	// Attrs aligned one column past where the type starts.
-	int attr_col = static_cast<int>(d.head.size()) + 3;
+	int attr_col = d.head.Size() + 3;
 	auto attr_pad = line_prefix(ctx.Indent(), attr_col);
 	int max_col = ctx.MaxCol();
 	int semi_w = d.semi_node->Width();
@@ -181,8 +178,8 @@ static void decl_wrapped_attrs(const DeclParts& d, Candidates& result,
 		all_attrs += attr_strs[i];
 		}
 
-	std::string wrapped = line1;
-	int ovf = ovf_no_trail(static_cast<int>(line1.size()), ctx);
+	Formatting wrapped = line1;
+	int ovf = ovf_no_trail(line1.Size(), ctx);
 
 	if ( attr_col + static_cast<int>(all_attrs.size()) + semi_w <= max_col )
 		{
@@ -205,10 +202,10 @@ static void decl_wrapped_attrs(const DeclParts& d, Candidates& result,
 			}
 		}
 
-	wrapped += d.semi_node->Text();
+	wrapped += d.semi_node;
 
-	int last_w = last_line_len(wrapped);
-	int lines = count_lines(wrapped);
+	int last_w = wrapped.LastLineLen();
+	int lines = wrapped.CountLines();
 
 	result.push_back({wrapped, last_w, lines, ovf, ctx.Col()});
 	}
@@ -217,32 +214,30 @@ static void decl_wrapped_attrs(const DeclParts& d, Candidates& result,
 static void decl_type_split(const DeclParts& d, Candidates& result,
                           const FmtContext& ctx)
 	{
-	if ( d.type_str.empty() )
+	if ( d.type_str.Empty() )
 		return;
 
 	FmtContext cont = ctx.Indented();
-	auto bare_type = best(format_expr(*d.type_node, cont)).Text();
+	auto bare_type = best(format_expr(*d.type_node, cont)).Fmt();
 
-	auto line1 = d.head + d.colon_node->Text();
+	auto line1 = d.head + d.colon_node;
 	auto pad = line_prefix(cont.Indent(), cont.Col());
 	auto split = line1 + "\n" + pad + bare_type;
 
 	if ( d.init_val )
 		{
-		int suffix_w = static_cast<int>(d.suffix.size());
-		auto after = bare_type.size() + d.assign_op.size() + 2;
-		FmtContext val_ctx =
-			cont.After(static_cast<int>(after)).Reserve(suffix_w);
+		int suffix_w = d.suffix.Size();
+		int after = bare_type.Size() + d.assign_op.Size() + 2;
+		FmtContext val_ctx = cont.After(after).Reserve(suffix_w);
 		auto val_cs = format_expr(*d.init_val, val_ctx);
-		split += " " + d.assign_op + " " + best(val_cs).Text();
+		split += " " + d.assign_op + " " + best(val_cs).Fmt();
 		}
 
 	split += d.suffix;
 
-	int last_w = last_line_len(split);
-	int lines = count_lines(split);
-	int overflow = ovf_no_trail(static_cast<int>(line1.size()), ctx) +
-				ovf(last_w, ctx);
+	int last_w = split.LastLineLen();
+	int lines = split.CountLines();
+	int overflow = ovf_no_trail(line1.Size(), ctx) + ovf(last_w, ctx);
 	result.push_back({split, last_w, lines, overflow, ctx.Col()});
 	}
 
@@ -254,7 +249,7 @@ Candidates DeclNode::Format(const FmtContext& ctx) const
 	auto id_node = Child(2, Tag::Identifier);
 
 	DeclParts d;
-	d.head = kw_node->Text() + " " + id_node->Text();
+	d.head = Formatting(kw_node) + " " + id_node;
 	d.attrs_node = FindOptChild(Tag::AttrList);
 	d.semi_node = FindChild(Tag::Semi);
 
@@ -276,9 +271,9 @@ Candidates DeclNode::Format(const FmtContext& ctx) const
 
 	if ( d.type_node )
 		{
-		auto ts = best(format_expr(*d.type_node, ctx)).Text();
-		if ( ! ts.empty() )
-			d.type_str = d.colon_node->Text() + " " + ts;
+		auto ts = best(format_expr(*d.type_node, ctx));
+		if ( ! ts.Fmt().Empty() )
+			d.type_str = Formatting(d.colon_node) + " " + ts.Fmt();
 		}
 
 	d.suffix = decl_suffix(d.attrs_node, d.semi_node, ctx);
