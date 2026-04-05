@@ -93,6 +93,18 @@ public:
 		return *this;
 		}
 
+	Formatting& operator+=(const std::shared_ptr<Formatting>& p)
+		{
+		if ( p && p->total > 0 )
+			{
+			pieces.emplace_back(p);
+			total += p->total;
+			dirty = true;
+			}
+
+		return *this;
+		}
+
 	Formatting& operator+=(const std::string& s)
 		{
 		if ( ! s.empty() )
@@ -124,6 +136,8 @@ public:
 		{ Formatting r(*this); r += s; return r; }
 	Formatting operator+(const char* s) const
 		{ Formatting r(*this); r += s; return r; }
+	Formatting operator+(const std::shared_ptr<Formatting>& p) const
+		{ Formatting r(*this); r += p; return r; }
 
 	// Materialize the cord into a single string.
 	const std::string& Str() const
@@ -172,6 +186,18 @@ inline Formatting operator+(const std::string& lhs, const Formatting& rhs)
 	{ return Formatting(lhs) += rhs; }
 inline Formatting operator+(const char* lhs, const Formatting& rhs)
 	{ return Formatting(lhs) += rhs; }
+
+// Allow mixing shared_ptr<Formatting> in concatenation chains.
+using FmtPtr = std::shared_ptr<Formatting>;
+
+inline Formatting operator+(const std::string& lhs, const FmtPtr& rhs)
+	{ Formatting r(lhs); r += rhs; return r; }
+inline Formatting operator+(const char* lhs, const FmtPtr& rhs)
+	{ Formatting r(lhs); r += rhs; return r; }
+inline Formatting operator+(const FmtPtr& lhs, const std::string& rhs)
+	{ Formatting r; r += lhs; r += rhs; return r; }
+inline Formatting operator+(const FmtPtr& lhs, const char* rhs)
+	{ Formatting r; r += lhs; r += rhs; return r; }
 
 // Deferred FmtPiece method implementations (need complete Formatting).
 
