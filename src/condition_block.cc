@@ -93,7 +93,7 @@ static const Node* find_else(const Node& node)
 	return nullptr;
 	}
 
-Formatting IfElseNode::BuildFollowOn(const FmtContext& ctx) const
+FmtPtr IfElseNode::BuildFollowOn(const FmtContext& ctx) const
 	{
 	auto else_node = find_else(*this);
 
@@ -108,15 +108,15 @@ Formatting IfElseNode::BuildFollowOn(const FmtContext& ctx) const
 	auto comments = else_node->EmitPreComments(stmt_pad);
 
 	// Strip trailing newline - the else line provides its own.
-	if ( ! comments.empty() && comments.back() == '\n' )
-		comments.pop_back();
+	if ( ! comments->empty() && comments->back() == '\n' )
+		comments->pop_back();
 
-	Formatting result;
+	auto result = std::make_shared<Formatting>();
 
-	if ( has_blank || ! comments.empty() )
-		result += "\n";
+	if ( has_blank || ! comments->empty() )
+		*result += "\n";
 
-	result += comments;
+	*result += comments;
 
 	// ELSE-IF/ELSE-BODY: [0]=KEYWORD [1]=SP [2]=content
 	auto else_child = else_node->Child(2);
@@ -125,12 +125,12 @@ Formatting IfElseNode::BuildFollowOn(const FmtContext& ctx) const
 	if ( else_node->GetTag() == Tag::ElseIf )
 		{
 		auto inner_cs = format_expr(*else_child, ctx);
-		result += "\n" + stmt_pad + else_kw + " " +
+		*result += "\n" + stmt_pad + else_kw + " " +
 				best(inner_cs).Text();
 		}
 
 	else if ( else_child->GetTag() == Tag::Block )
-		result += "\n" + stmt_pad + else_kw +
+		*result += "\n" + stmt_pad + else_kw +
 				else_child->FormatWhitesmithBlock(ctx).Str();
 
 	else
@@ -138,7 +138,7 @@ Formatting IfElseNode::BuildFollowOn(const FmtContext& ctx) const
 		FmtContext else_ctx = ctx.Indented();
 		auto cs = format_expr(*else_child, else_ctx);
 		auto epad = line_prefix(else_ctx.Indent(), else_ctx.Col());
-		result += "\n" + stmt_pad + else_kw + "\n" +
+		*result += "\n" + stmt_pad + else_kw + "\n" +
 				epad + best(cs).Text();
 		}
 

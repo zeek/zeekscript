@@ -16,9 +16,9 @@ std::string line_prefix(int indent, int col)
 	}
 
 // Pre-comment / pre-marker emission
-Formatting Node::EmitPreComments(const std::string& pad) const
+FmtPtr Node::EmitPreComments(const std::string& pad) const
 	{
-	Formatting result;
+	auto result = std::make_shared<Formatting>();
 
 	for ( const auto& pc : PreComments() )
 		{
@@ -26,7 +26,7 @@ Formatting Node::EmitPreComments(const std::string& pad) const
 		size_t start = 0;
 		while ( start < pc.size() && pc[start] == '\n' )
 			{
-			result += "\n";
+			*result += "\n";
 			++start;
 			}
 
@@ -35,16 +35,16 @@ Formatting Node::EmitPreComments(const std::string& pad) const
 		while ( end > start && pc[end - 1] == '\n' )
 			--end;
 
-		result += pad + pc.substr(start, end - start) + "\n";
+		*result += pad + pc.substr(start, end - start) + "\n";
 
 		// Trailing '\n' = blank line after this comment.
 		for ( size_t j = end; j < pc.size(); ++j )
-			result += "\n";
+			*result += "\n";
 		}
 
 	for ( const auto& pm : PreMarkers() )
 		if ( pm->GetTag() == Tag::Blank )
-			result += "\n";
+			*result += "\n";
 
 	return result;
 	}

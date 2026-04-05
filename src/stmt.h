@@ -97,7 +97,7 @@ protected:
 class PreprocBaseNode : public Node {
 public:
 	PreprocBaseNode(Tag t) : Node(t) { }
-	virtual Formatting FormatText() const = 0;
+	virtual FmtPtr FormatText() const = 0;
 	bool OpensDepth() const;
 	bool ClosesDepth() const;
 	bool AtColumnZero() const;
@@ -106,13 +106,13 @@ public:
 class PreprocNode : public PreprocBaseNode {
 public:
 	PreprocNode() : PreprocBaseNode(Tag::Preproc) { }
-	Formatting FormatText() const override;
+	FmtPtr FormatText() const override;
 };
 
 class PreprocCondNode : public PreprocBaseNode {
 public:
 	PreprocCondNode() : PreprocBaseNode(Tag::PreprocCond) { }
-	Formatting FormatText() const override;
+	FmtPtr FormatText() const override;
 };
 
 // Global/local declarations: keyword name [: type] [= init] [attrs] ;

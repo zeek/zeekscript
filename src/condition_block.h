@@ -20,8 +20,8 @@ protected:
 	virtual Formatting BuildCondition(const FmtContext& cond_ctx) const;
 
 	// Returns any follow-on text after the body (e.g., else clause).
-	virtual Formatting BuildFollowOn(const FmtContext& /* ctx */) const
-		{ return ""; }
+	virtual FmtPtr BuildFollowOn(const FmtContext& /* ctx */) const
+		{ return std::make_shared<Formatting>(""); }
 };
 
 class IfNoElseNode : public ConditionBlockNode {
@@ -34,7 +34,7 @@ public:
 	IfElseNode() : ConditionBlockNode(Tag::IfElse) { }
 
 protected:
-	Formatting BuildFollowOn(const FmtContext& ctx) const override;
+	FmtPtr BuildFollowOn(const FmtContext& ctx) const override;
 };
 
 class ForNode : public ConditionBlockNode {

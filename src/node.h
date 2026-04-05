@@ -104,7 +104,7 @@ public:
 	bool HasChildren() const { return ! children.empty(); }
 
 	// Emit pre-comments and pre-markers as indented lines.
-	Formatting EmitPreComments(const std::string& pad) const;
+	FmtPtr EmitPreComments(const std::string& pad) const;
 
 	// Find the first type child (TypeAtom, TypeParameterized, TypeFunc).
 	const Node* FindTypeChild() const;
@@ -116,7 +116,7 @@ public:
 	std::vector<std::string> FormatAttrStrings(const FmtContext& ctx) const;
 
 	// Format a BODY node: Whitesmith block or indented single stmt.
-	Formatting FormatBodyText(const FmtContext& ctx) const;
+	FmtPtr FormatBodyText(const FmtContext& ctx) const;
 
 	// Format a Whitesmith-style braced block.
 	Formatting FormatWhitesmithBlock(const FmtContext& ctx) const;

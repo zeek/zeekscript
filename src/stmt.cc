@@ -241,25 +241,26 @@ Candidates SwitchNode::Format(const FmtContext& ctx) const
 // opens depth and sits at column 0.  Plain PREPROC checks the
 // directive string for @else/@endif.
 
-Formatting PreprocNode::FormatText() const
+FmtPtr PreprocNode::FormatText() const
 	{
 	const auto& directive = Arg(0);
 	const auto& arg = Arg(1);
 
 	if ( arg.empty() )
-		return directive;
+		return std::make_shared<Formatting>(directive);
 
-	return directive + " " + arg;
+	return std::make_shared<Formatting>(directive + " " + arg);
 	}
 
 // Children: [0]=LPAREN [1]=RPAREN
-Formatting PreprocCondNode::FormatText() const
+FmtPtr PreprocCondNode::FormatText() const
 	{
 	const auto& directive = Arg(0);
 	const auto& arg = Arg(1);
 	auto lp = Child(0, Tag::LParen)->Text();
 	auto rp = Child(1, Tag::RParen)->Text();
-	return directive + " " + lp + " " + arg + " " + rp;
+	return std::make_shared<Formatting>(directive + " " + lp +
+						" " + arg + " " + rp);
 	}
 
 bool PreprocBaseNode::OpensDepth() const
@@ -350,11 +351,13 @@ static Formatting format_single_stmt_body(const Node& body, const FmtContext& ct
 
 // Format a BODY node: Whitesmith block if first child is BLOCK,
 // otherwise indented single-statement body.
-Formatting Node::FormatBodyText(const FmtContext& ctx) const
+FmtPtr Node::FormatBodyText(const FmtContext& ctx) const
 	{
 	auto content = ContentChildren();
 	if ( content.empty() || content[0]->GetTag() != Tag::Block )
-		return "\n" + format_single_stmt_body(*this, ctx);
+		return std::make_shared<Formatting>("\n" +
+					format_single_stmt_body(*this, ctx));
 
-	return content[0]->FormatWhitesmithBlock(ctx);
+	return std::make_shared<Formatting>(
+			content[0]->FormatWhitesmithBlock(ctx));
 	}
