@@ -2,8 +2,8 @@ CXX ?= c++
 CXXFLAGS ?= -std=c++17 -Wall -Wextra -g
 TARGET = zeek-format
 
-SRCS = main.cc node.cc parser.cc tag.cc formatting.cc core.cc fmt_util.cc \
-       expr.cc type.cc decl.cc stmt.cc top.cc condition_block.cc
+SRCS = main.cc node.cc parser.cc tag.cc formatting.cc cand.cc core.cc \
+       fmt_util.cc expr.cc type.cc decl.cc stmt.cc top.cc condition_block.cc
 OBJS = $(SRCS:.cc=.o)
 
 all: $(TARGET)
@@ -15,19 +15,20 @@ $(TARGET): $(OBJS)
 	$(CXX) $(CXXFLAGS) -c -o $@ $<
 
 # Header dependencies
-main.o: layout.h formatting.h node.h parser.h tag.h
-node.o: condition_block.h expr.h layout.h formatting.h node.h stmt.h tag.h
-parser.o: formatting.h node.h parser.h tag.h
+main.o: cand.h layout.h formatting.h node.h parser.h tag.h
+node.o: cand.h condition_block.h expr.h layout.h formatting.h node.h stmt.h tag.h
+parser.o: cand.h formatting.h node.h parser.h tag.h
 tag.o: tag.h
-formatting.o: formatting.h node.h
-core.o: fmt_util.h layout.h formatting.h node.h tag.h
-fmt_util.o: fmt_util.h layout.h formatting.h node.h stmt.h tag.h
-expr.o: expr.h fmt_util.h layout.h formatting.h node.h tag.h
-type.o: expr.h fmt_util.h layout.h formatting.h node.h tag.h
-decl.o: fmt_util.h layout.h formatting.h node.h stmt.h tag.h
-stmt.o: fmt_util.h layout.h formatting.h node.h stmt.h tag.h
-top.o: fmt_util.h layout.h formatting.h node.h tag.h
-condition_block.o: condition_block.h fmt_util.h layout.h formatting.h node.h tag.h
+formatting.o: formatting.h layout.h node.h
+cand.o: cand.h layout.h formatting.h node.h
+core.o: cand.h fmt_util.h layout.h formatting.h node.h tag.h
+fmt_util.o: cand.h fmt_util.h layout.h formatting.h node.h stmt.h tag.h
+expr.o: cand.h expr.h fmt_util.h layout.h formatting.h node.h tag.h
+type.o: cand.h expr.h fmt_util.h layout.h formatting.h node.h tag.h
+decl.o: cand.h fmt_util.h layout.h formatting.h node.h stmt.h tag.h
+stmt.o: cand.h fmt_util.h layout.h formatting.h node.h stmt.h tag.h
+top.o: cand.h fmt_util.h layout.h formatting.h node.h tag.h
+condition_block.o: cand.h condition_block.h fmt_util.h layout.h formatting.h node.h tag.h
 
 SHELL = /bin/bash
 

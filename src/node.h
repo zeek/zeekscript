@@ -1,5 +1,6 @@
 #pragma once
 
+#include "cand.h"
 #include "formatting.h"
 #include "tag.h"
 
@@ -8,8 +9,6 @@
 #include <vector>
 
 class FmtContext;
-class Candidate;
-using Candidates = std::vector<Candidate>;
 
 // A node in the representation tree.  Each node has:
 //   - tag:      semantic type (e.g. Tag::BinaryOp)
