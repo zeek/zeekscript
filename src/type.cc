@@ -9,8 +9,8 @@ Candidates TypeParamNode::Format(const FmtContext& ctx) const
 	// Collect bracketed type args (between LBRACKET/RBRACKET)
 	// and "of" type (after KEYWORD "of").
 	ArgComments bt_items;
-	const Node* of_type = nullptr;
-	const Node* pending_comma = nullptr;
+	NodePtr of_type;
+	NodePtr pending_comma;
 	bool in_brackets = false;
 	bool past_of = false;
 
@@ -38,7 +38,7 @@ Candidates TypeParamNode::Format(const FmtContext& ctx) const
 
 		if ( t == Tag::Comma )
 			{
-			pending_comma = c.get();
+			pending_comma = c;
 			continue;
 			}
 
@@ -46,11 +46,11 @@ Candidates TypeParamNode::Format(const FmtContext& ctx) const
 			continue;
 
 		if ( past_of )
-			of_type = c.get();
+			of_type = c;
 
 		else if ( in_brackets )
 			{
-			bt_items.push_back({c.get(), "", {}, pending_comma});
+			bt_items.push_back({c, "", {}, pending_comma});
 			pending_comma = nullptr;
 			}
 		}
@@ -118,13 +118,12 @@ Candidates TypeFuncNode::Format(const FmtContext& ctx) const
 	return flat_or_fill(keyword, lp, rp, ret_str, items, ctx);
 	}
 
-static const Node* get_non_token_child(const Node* parent)
+static const NodePtr& get_non_token_child(const Node& parent)
 	{
-	for ( const auto& c : parent->Children() )
+	for ( const auto& c : parent.Children() )
 		if ( ! c->IsToken() )
-			return c.get();
-
-	return nullptr;
+			return c;
+	return null_node;
 	}
 
 // Check whether any attr value in an ATTR-LIST contains blanks.
@@ -137,7 +136,7 @@ static bool attr_list_needs_spaces(const Node& node, const FmtContext& ctx)
 			continue;
 
 		// Find the value expression (first non-token child).
-		auto val = get_non_token_child(attr.get());
+		auto val = get_non_token_child(*attr);
 		if ( ! val )
 			continue;
 
@@ -160,7 +159,7 @@ static std::string format_one_attr(const Node& attr, bool spaced,
 		auto sep = spaced ? " " : "";
 		text += sep + eq->Text() + sep;
 
-		if ( auto val = get_non_token_child(&attr) )
+		if ( auto val = get_non_token_child(attr) )
 			text += best(format_expr(*val, ctx)).Text();
 		}
 

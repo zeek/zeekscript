@@ -66,17 +66,17 @@ const NodePtr& Node::FindChild(Tag t, const NodePtr& after) const
 	return null_node;
 	}
 
-Nodes Node::ContentChildren() const
+NodeVec Node::ContentChildren() const
 	{
-	Nodes result;
+	NodeVec result;
 	for ( const auto& c : children )
 		if ( ! c->IsToken() && ! c->IsMarker() )
-			result.push_back(c.get());
+			result.push_back(c);
 
 	return result;
 	}
 
-Nodes Node::ContentChildren(const char* name, int n) const
+NodeVec Node::ContentChildren(const char* name, int n) const
 	{
 	auto result = ContentChildren();
 	if ( static_cast<int>(result.size()) < n )

@@ -112,7 +112,7 @@ bool has_breaks(const ArgComments& items)
 ArgComments collect_args(const NodeVec& children)
 	{
 	ArgComments items;
-	const Node* pending_comma = nullptr;
+	NodePtr pending_comma;
 
 	for ( size_t i = 0; i < children.size(); ++i )
 		{
@@ -125,14 +125,14 @@ ArgComments collect_args(const NodeVec& children)
 			{
 			Tag t = c->GetTag();
 			if ( t == Tag::Comma )
-				pending_comma = c.get();
+				pending_comma = c;
 			continue;
 			}
 
 		std::vector<std::string> leading(c->PreComments().begin(),
 		                                 c->PreComments().end());
 
-		items.push_back({c.get(), c->TrailingComment(),
+		items.push_back({c, c->TrailingComment(),
 		                 std::move(leading), pending_comma});
 		pending_comma = nullptr;
 		}
@@ -170,7 +170,7 @@ Candidate format_args_flat(const ArgComments& items, const FmtContext& ctx)
 // Append trailing material after an item in a fill layout.  Handles
 // the item's own trailing comment and the next comma (which may carry
 // a trailing comment that forces a wrap).
-static void append_trailing(const ArgComment& it, const Node* next_comma,
+static void append_trailing(const ArgComment& it, const NodePtr& next_comma,
                            std::string& text, int& cur_col, bool& force_wrap)
 	{
 	// The item's own trailing comment (rare for non-last items).
@@ -495,7 +495,7 @@ Candidate format_args_vertical(const std::string& open, const std::string& close
 
 		int line_w = body_col + bc.Width();
 
-		const Node* nc = (i + 1 < items.size()) ?
+		auto nc = (i + 1 < items.size()) ?
 					items[i + 1].comma : nullptr;
 
 		if ( nc || trailing_comma )
@@ -585,11 +585,11 @@ Formatting format_stmt_list(const NodeVec& nodes, const FmtContext& ctx,
 			}
 
 		// Consume a following SEMI sibling.
-		const Node* sibling_semi = nullptr;
+		NodePtr sibling_semi;
 		if ( i + 1 < nodes.size() &&
 		     nodes[i + 1]->GetTag() == Tag::Semi )
 			{
-			sibling_semi = nodes[i + 1].get();
+			sibling_semi = nodes[i + 1];
 			++i;
 			}
 

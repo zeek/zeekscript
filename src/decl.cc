@@ -31,7 +31,7 @@ struct DeclParts {
 	std::string assign_op;	// "=", "+=", or ""
 	NodePtr type_node;	// direct type child (after COLON)
 	NodePtr colon_node;	// COLON before type
-	const Node* init_val = nullptr; // direct init value (after ASSIGN)
+	NodePtr init_val;		// direct init value (after ASSIGN)
 	NodePtr attrs_node;	// ATTR-LIST child
 	NodePtr semi_node;	// SEMI child
 };
@@ -318,21 +318,21 @@ Candidates ModuleDeclNode::Format(const FmtContext& ctx) const
 
 struct ParamEntry {
 	std::string text;
-	const Node* comma = nullptr;	// COMMA before this param
+	NodePtr comma;		// COMMA before this param
 };
 
 static std::vector<ParamEntry> format_param_entries(const Node& params,
                                                    const FmtContext& ctx)
 	{
 	std::vector<ParamEntry> result;
-	const Node* pending_comma = nullptr;
+	NodePtr pending_comma;
 	for ( const auto& p : params.Children() )
 		{
 		Tag t = p->GetTag();
 
 		if ( t == Tag::Comma )
 			{
-			pending_comma = p.get();
+			pending_comma = p;
 			continue;
 			}
 
@@ -576,9 +576,9 @@ Formatting TypeDeclEnumNode::FormatBody(const NodePtr& inner,
                                         const FmtContext& ctx) const
 	{
 	std::vector<std::string> values;
-	Nodes commas;
+	NodeVec commas;
 	bool has_trailing_comma = false;
-	const Node* pending_comma = nullptr;
+	NodePtr pending_comma;
 
 	for ( const auto& c : inner->Children() )
 		{
@@ -594,7 +594,7 @@ Formatting TypeDeclEnumNode::FormatBody(const NodePtr& inner,
 			}
 
 		else if ( c->GetTag() == Tag::Comma )
-			pending_comma = c.get();
+			pending_comma = c;
 
 		else if ( c->GetTag() == Tag::TrailingComma )
 			has_trailing_comma = true;

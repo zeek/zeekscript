@@ -100,14 +100,12 @@ const Candidate& best(const Candidates& cs)
 // Layout combinator
 const LayoutItem soft_sp{LayoutItem::Kind::Sp};
 
-LayoutItem tok(const Node* n)
+LayoutItem tok(const NodePtr& n)
 	{
 	LayoutItem item(n->Text());
 	item.SetMustBreak(n->MustBreakAfter());
 	return item;
 	}
-
-LayoutItem tok(const NodePtr& n) { return tok(n.get()); }
 
 static constexpr int BEAM_WIDTH = 4;
 

@@ -175,8 +175,8 @@ Candidates SwitchNode::Format(const FmtContext& ctx) const
 
 		// Collect formatted values and commas.
 		std::vector<std::string> vals;
-		Nodes vcommas;
-		const Node* vpending = nullptr;
+		NodeVec vcommas;
+		NodePtr vpending;
 
 		for ( const auto& vc : values->Children() )
 			{
@@ -184,7 +184,7 @@ Candidates SwitchNode::Format(const FmtContext& ctx) const
 
 			if ( vt == Tag::Comma )
 				{
-				vpending = vc.get();
+				vpending = vc;
 				continue;
 				}
 

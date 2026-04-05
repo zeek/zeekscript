@@ -187,28 +187,26 @@ public:
 
 	// Literal string.
 	LayoutItem(const std::string& s)
-		: kind(Kind::Lit), text(s), node(nullptr), must_break(false) {}
+		: kind(Kind::Lit), text(s), must_break(false) {}
 	LayoutItem(const char* s)
-		: kind(Kind::Lit), text(s), node(nullptr), must_break(false) {}
+		: kind(Kind::Lit), text(s), must_break(false) {}
 
 	// Node to format (produces candidates).
-	LayoutItem(const Node* n)
-		: kind(Kind::Fmt), node(n), must_break(false) {}
 	LayoutItem(const NodePtr& n)
-		: kind(Kind::Fmt), node(n.get()), must_break(false) {}
+		: kind(Kind::Fmt), node(n), must_break(false) {}
 
 	// Soft space (private; use soft_sp constant).
-	LayoutItem(Kind k) : kind(k), node(nullptr), must_break(false) {}
+	LayoutItem(Kind k) : kind(k), must_break(false) {}
 
 	const std::string& Text() const { return text; }
-	const Node* LI_Node() const { return node; }
+	const NodePtr& LI_Node() const { return node; }
 	bool MustBreak() const { return must_break; }
 
 	void SetMustBreak(bool _must_break) { must_break = _must_break; }
 
 private:
 	std::string text;
-	const Node* node;
+	NodePtr node;
 	bool must_break;	// force next Sp to break (trailing comment)
 	};
 
@@ -216,7 +214,6 @@ extern const LayoutItem soft_sp;
 
 // Token literal: emits node->Text() and forces the next soft_sp
 // to break if the token has a trailing comment.
-LayoutItem tok(const Node* n);
 LayoutItem tok(const NodePtr& n);
 
 // Build layout candidates from a sequence of components using

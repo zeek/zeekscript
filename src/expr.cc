@@ -240,7 +240,7 @@ Candidates IndexNode::Format(const FmtContext& ctx) const
 	auto subs_node = Child(1, Tag::Subscripts);
 
 	auto lb = subs_node->Child(0, Tag::LBracket);
-	auto rb = subs_node->Children().back().get();
+	const auto& rb = subs_node->Children().back();
 
 	auto subs_content = subs_node->ContentChildren();
 	if ( subs_content.empty() )

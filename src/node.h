@@ -24,8 +24,6 @@ using Candidates = std::vector<Candidate>;
 class Node;
 using NodePtr = std::shared_ptr<Node>;
 using NodeVec = std::vector<NodePtr>;
-using Nodes = std::vector<const Node*>;
-
 extern const NodePtr null_node;
 
 class Node {
@@ -61,10 +59,10 @@ public:
 	const NodePtr& FindChild(Tag tag, const NodePtr& after) const;
 
 	// Collect non-token, non-comment children.
-	Nodes ContentChildren() const;
+	NodeVec ContentChildren() const;
 
 	// Same but there must be at least n or throw an exception.
-	Nodes ContentChildren(const char* name, int n) const;
+	NodeVec ContentChildren(const char* name, int n) const;
 
 	const std::string& TrailingComment() const { return trailing_comment; }
 	void SetTrailingComment(std::string c)

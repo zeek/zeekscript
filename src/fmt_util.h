@@ -22,10 +22,10 @@ int max_line_overflow(const std::string& text, int start_col, int max_col);
 // Arg lists with trailing comments.
 struct ArgComment
 	{
-	const Node* arg;
+	NodePtr arg;
 	std::string comment;	// trailing: empty or " # ..."
 	std::vector<std::string> leading;	// leading comments before item
-	const Node* comma = nullptr;	// preceding COMMA token, if any
+	NodePtr comma;			// preceding COMMA token, if any
 
 	bool HasBreak() const
 		{

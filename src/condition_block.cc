@@ -59,7 +59,7 @@ Formatting ForNode::BuildCondition(const FmtContext& cond_ctx) const
 	auto vars_content = vars_node->ContentChildren();
 	bool first = true;
 
-	for ( const auto* v : vars_content )
+	for ( const auto& v : vars_content )
 		{
 		if ( ! first )
 			vars_text += ", ";
