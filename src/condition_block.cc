@@ -33,7 +33,7 @@ Candidates ConditionBlockNode::Format(const FmtContext& ctx) const
 	auto result = head + body_node->FormatBodyText(ctx) +
 			BuildFollowOn(ctx);
 
-	return {Candidate(result, ctx)};
+	return {Candidate(result.Str(), ctx)};
 	}
 
 // Default: format the single expression between parens.
@@ -131,7 +131,7 @@ std::string IfElseNode::BuildFollowOn(const FmtContext& ctx) const
 
 	else if ( else_child->GetTag() == Tag::Block )
 		result += "\n" + stmt_pad + else_kw +
-				else_child->FormatWhitesmithBlock(ctx);
+				else_child->FormatWhitesmithBlock(ctx).Str();
 
 	else
 		{

@@ -170,7 +170,7 @@ Candidates LambdaNode::FormatLambda(const std::string& prefix,
 	auto body = Children().back().get();
 	auto block = body->FormatWhitesmithBlock(body_ctx);
 
-	auto text = sig + block;
+	auto text = sig + block.Str();
 	int last_w = last_line_len(text);
 	int lines = count_lines(text);
 	int ovf = text_overflow(text, ctx.Col(), ctx.MaxCol());

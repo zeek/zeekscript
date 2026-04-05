@@ -58,5 +58,5 @@ Candidate format_args_vertical(const std::string& open, const std::string& close
                              const ArgComments& items, const FmtContext& ctx,
                              bool trailing_comma = false);
 
-std::string format_stmt_list(const NodeVec& nodes, const FmtContext& ctx,
+Formatting format_stmt_list(const NodeVec& nodes, const FmtContext& ctx,
                            bool skip_leading_blanks = false);

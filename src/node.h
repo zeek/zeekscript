@@ -8,6 +8,7 @@
 
 class FmtContext;
 class Candidate;
+class Formatting;
 using Candidates = std::vector<Candidate>;
 
 // A node in the representation tree.  Each node has:
@@ -115,10 +116,10 @@ public:
 	std::vector<std::string> FormatAttrStrings(const FmtContext& ctx) const;
 
 	// Format a BODY node: Whitesmith block or indented single stmt.
-	std::string FormatBodyText(const FmtContext& ctx) const;
+	Formatting FormatBodyText(const FmtContext& ctx) const;
 
 	// Format a Whitesmith-style braced block.
-	std::string FormatWhitesmithBlock(const FmtContext& ctx) const;
+	Formatting FormatWhitesmithBlock(const FmtContext& ctx) const;
 
 	// Debug: print tree to stdout.
 	void Dump(int indent = 0) const;

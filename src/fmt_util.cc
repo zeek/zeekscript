@@ -523,7 +523,7 @@ Candidate format_args_vertical(const std::string& open, const std::string& close
 // Statement list formatting
 // ------------------------------------------------------------------
 
-std::string format_stmt_list(const NodeVec& nodes, const FmtContext& ctx,
+Formatting format_stmt_list(const NodeVec& nodes, const FmtContext& ctx,
                            bool skip_leading_blanks)
 	{
 	const int max_col = ctx.MaxCol();
@@ -531,7 +531,7 @@ std::string format_stmt_list(const NodeVec& nodes, const FmtContext& ctx,
 	FmtContext cur_ctx = ctx;
 	auto pad = line_prefix(cur_ctx.Indent(), cur_ctx.Col());
 
-	std::string result;
+	Formatting result;
 	bool seen_content = false;
 
 	for ( size_t i = 0; i < nodes.size(); ++i )

@@ -66,6 +66,6 @@ std::string Format(const NodeVec& nodes)
 	FmtContext ctx(0, 0, MAX_WIDTH);
 
 	auto result = format_stmt_list(nodes, ctx);
-	warn_standalone_trailing(result, nodes);
-	return result;
+	warn_standalone_trailing(result.Str(), nodes);
+	return result.Str();
 	}

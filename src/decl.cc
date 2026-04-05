@@ -407,7 +407,7 @@ Candidates FuncDeclNode::Format(const FmtContext& ctx) const
 	auto block = body->FormatWhitesmithBlock(ctx);
 
 	Candidates result;
-	result.push_back(Candidate(sig + block, ctx));
+	result.push_back(Candidate(sig + block.Str(), ctx));
 
 	if ( result[0].Ovf() <= 0 )
 		return result;
@@ -463,7 +463,7 @@ Candidates FuncDeclNode::Format(const FmtContext& ctx) const
 		wrapped += "\n" + attr_pad + bare_attr;
 		}
 
-	wrapped += trail_str + block;
+	wrapped += trail_str + block.Str();
 
 	int last_w = last_line_len(wrapped);
 	int lines = count_lines(wrapped);

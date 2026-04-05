@@ -108,11 +108,12 @@ Candidates ExportNode::Format(const FmtContext& ctx) const
 	auto lb = Child(2, Tag::LBrace)->Text();
 	auto head = best(build_layout({kw, soft_sp, lb}, ctx)).Text();
 
-	return {Candidate(head + "\n" + body_text + close, ctx)};
+	auto text = head + "\n" + body_text + close;
+	return {Candidate(text.Str(), ctx)};
 	}
 
 // Switch statement: switch expr { case val: body ... }
-static void append_case_body(const Node* body, std::string& result,
+static void append_case_body(const Node* body, Formatting& result,
                            const FmtContext& ctx)
 	{
 	if ( ! body )
@@ -150,7 +151,7 @@ Candidates SwitchNode::Format(const FmtContext& ctx) const
 	auto pad = line_prefix(ctx.Indent(), ctx.Col());
 	auto sw_kw = Child(0, Tag::Keyword)->Text();
 	auto lb = Child(3, Tag::LBrace)->Text();
-	auto result = sw_kw + " " + expr_text + " " + lb;
+	Formatting result = sw_kw + " " + expr_text + " " + lb;
 
 	// Format each CASE/DEFAULT.
 	for ( const auto& c : Children() )
@@ -233,7 +234,7 @@ Candidates SwitchNode::Format(const FmtContext& ctx) const
 	auto rb = Children().back()->Text();
 	result += "\n" + pad + rb;
 
-	return {Candidate(result, ctx)};
+	return {Candidate(result.Str(), ctx)};
 	}
 
 // PreprocBaseNode methods.  PREPROC-COND (@if/@ifdef/@ifndef) always
@@ -283,7 +284,7 @@ bool PreprocBaseNode::AtColumnZero() const
 	}
 
 // Format a BODY or BLOCK node as a Whitesmith-style braced block.
-std::string Node::FormatWhitesmithBlock(const FmtContext& ctx) const
+Formatting Node::FormatWhitesmithBlock(const FmtContext& ctx) const
 	{
 	auto block_ctx = ctx.Indented();
 	auto brace_pad = line_prefix(block_ctx.Indent(), block_ctx.Col());
@@ -335,7 +336,7 @@ std::string Node::FormatWhitesmithBlock(const FmtContext& ctx) const
 	}
 
 // Format a single-statement body (no braces, indented one level).
-static std::string format_single_stmt_body(const Node& body, const FmtContext& ctx)
+static Formatting format_single_stmt_body(const Node& body, const FmtContext& ctx)
 	{
 
 	auto text = format_stmt_list(body.Children(), ctx.Indented());
@@ -349,7 +350,7 @@ static std::string format_single_stmt_body(const Node& body, const FmtContext& c
 
 // Format a BODY node: Whitesmith block if first child is BLOCK,
 // otherwise indented single-statement body.
-std::string Node::FormatBodyText(const FmtContext& ctx) const
+Formatting Node::FormatBodyText(const FmtContext& ctx) const
 	{
 	auto content = ContentChildren();
 	if ( content.empty() || content[0]->GetTag() != Tag::Block )
