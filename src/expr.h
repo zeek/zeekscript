@@ -1,5 +1,6 @@
 #pragma once
 
+#include "flat_split.h"
 #include "layout.h"
 #include "node.h"
 
@@ -64,12 +65,10 @@ class BinaryExprNode : public ExprNode {
 public:
 	BinaryExprNode(Tag t) : ExprNode(t) { }
 protected:
-	// Format "lhs sep op sep rhs" with optional split after op.
-	// split_multiline: if false, skip split when either side is
-	// multi-line (used by Div for subnet notation).
+	// Format "lhs sep op sep rhs" via flat_or_split.
 	Candidates FormatBinaryOp(const FmtContext& ctx,
 	                          const std::string& sep,
-	                          bool split_multiline) const;
+	                          const std::vector<SplitAt>& splits) const;
 };
 
 class BinaryNode : public BinaryExprNode {

@@ -3,8 +3,8 @@ CXXFLAGS ?= -std=c++17 -Wall -Wextra -g
 TARGET = zeek-format
 
 SRCS = main.cc node.cc parser.cc tag.cc formatting.cc cand.cc core.cc \
-       layout.cc fmt_util.cc expr.cc type.cc decl.cc stmt.cc top.cc \
-       condition_block.cc
+       layout.cc flat_split.cc fmt_util.cc expr.cc type.cc decl.cc \
+       stmt.cc top.cc condition_block.cc
 OBJS = $(SRCS:.cc=.o)
 
 all: $(TARGET)
@@ -24,8 +24,9 @@ formatting.o: formatting.h layout.h node.h
 cand.o: cand.h layout.h formatting.h node.h
 core.o: cand.h fmt_util.h layout.h formatting.h node.h tag.h
 layout.o: cand.h fmt_util.h layout.h formatting.h node.h tag.h
+flat_split.o: cand.h flat_split.h fmt_util.h layout.h formatting.h node.h tag.h
 fmt_util.o: cand.h fmt_util.h layout.h formatting.h node.h stmt.h tag.h
-expr.o: cand.h expr.h fmt_util.h layout.h formatting.h node.h tag.h
+expr.o: cand.h expr.h flat_split.h fmt_util.h layout.h formatting.h node.h tag.h
 type.o: cand.h expr.h fmt_util.h layout.h formatting.h node.h tag.h
 decl.o: cand.h fmt_util.h layout.h formatting.h node.h stmt.h tag.h
 stmt.o: cand.h fmt_util.h layout.h formatting.h node.h stmt.h tag.h

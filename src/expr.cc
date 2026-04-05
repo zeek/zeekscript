@@ -508,93 +508,30 @@ Candidates HasFieldNode::Format(const FmtContext& ctx) const
 	}
 
 // Shared binary-op formatter.  sep is "" for tight (Div) or " "
-// for spaced (Binary).  split_multiline controls whether we offer
-// a split candidate when either side is already multi-line.
+// for spaced (Binary).
 Candidates BinaryExprNode::FormatBinaryOp(const FmtContext& ctx,
                                           const std::string& sep,
-                                          bool split_multiline) const
+                                          const std::vector<SplitAt>& splits) const
 	{
-	auto op = Child(1);
-	int sep_w = static_cast<int>(sep.size());
-	int op_w = op->Width() + 2 * sep_w;
-
-	auto lhs = best(format_expr(*Child(0), ctx));
-	auto rhs = best(format_expr(*Child(2), ctx.After(lhs.Width() + op_w)));
-
-	auto flat = lhs.Fmt() + sep + op + sep + rhs.Fmt();
-	int flat_w = lhs.Width() + op_w + rhs.Width();
-	int flat_ovf = ovf(flat_w, ctx);
-	bool need_split = flat_ovf > 0;
-	bool multiline = lhs.Lines() > 1 || rhs.Lines() > 1;
-
-	Candidates result;
-
-	if ( multiline )
-		{
-		int last_w = flat.LastLineLen();
-		int lines = flat.CountLines();
-		int ovf = flat.TextOverflow(ctx.Col(), ctx.MaxCol());
-		result.push_back({std::move(flat), last_w, lines, ovf,
-					ctx.Col()});
-
-		if ( ! split_multiline )
-			return result;
-
-		if ( ovf > 0 )
-			need_split = true;
-		}
-	else
-		result.push_back({std::move(flat), flat_w, 1, flat_ovf});
-
-	if ( ! need_split )
-		return result;
-
-	// Split after operator.  Continuation column: indent one
-	// more level when at indent column, otherwise align to
-	// expression start.
-	FmtContext cont_ctx = ctx.Col() == ctx.IndentCol() ?
-				ctx.Indented() : ctx.AtCol(ctx.Col());
-
-	auto rhs2 = best(format_expr(*Child(2), cont_ctx));
-	auto cont_prefix = line_prefix(cont_ctx.Indent(), cont_ctx.Col());
-	auto split = lhs.Fmt() + sep + op + "\n" + cont_prefix + rhs2.Fmt();
-	int line1_w = lhs.Width() + sep_w + op->Width();
-	int split_lines = 1 + rhs2.Lines();
-
-	int last_w;
-	int line2_ovf;
-
-	if ( rhs2.Lines() > 1 )
-		{
-		last_w = split.LastLineLen();
-		line2_ovf = rhs2.Ovf();
-		}
-	else
-		{
-		last_w = cont_ctx.Col() + rhs2.Fmt().Size();
-		line2_ovf = std::max(0, last_w + cont_ctx.Trail() -
-					cont_ctx.MaxCol());
-		}
-
-	int split_ovf = ovf_no_trail(line1_w, ctx) + line2_ovf;
-	result.push_back({std::move(split), last_w, split_lines,
-				split_ovf, ctx.Col()});
-
-	return result;
+	return flat_or_split({
+		FmtStep::E(Child(0)),
+		FmtStep::L(sep), FmtStep::L(Child(1)), FmtStep::S(sep),
+		FmtStep::E(Child(2)),
+	}, splits, ctx);
 	}
 
 // Division with atomic RHS: no spaces (subnet masking notation)
 // Children: [0]=left [1]=OP("/") [2]=right
 Candidates DivNode::Format(const FmtContext& ctx) const
 	{
-	return FormatBinaryOp(ctx, "", false);
+	return FormatBinaryOp(ctx, "", {{2, SplitAt::IndentedOrSame, true}});
 	}
 
 // Binary: lhs op rhs
 // Children: [0]=left [1]=OP [2]=right
 Candidates BinaryNode::Format(const FmtContext& ctx) const
 	{
-	return FormatBinaryOp(ctx, " ", true);
+	return FormatBinaryOp(ctx, " ", {{2, SplitAt::IndentedOrSame}});
 	}
 
 // Interval constant: always a space before the unit
