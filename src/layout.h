@@ -72,14 +72,14 @@ private:
 	int trail;	// columns reserved after last line (comment, etc.)
 };
 
-// A single formatting candidate: the actual text plus metrics that let
+// A single formatting candidate: the actual fmt plus metrics that let
 // a parent choose among alternatives.
 class Candidate {
 public:
 	// Single-line candidate with overflow computed from context.
 	// Accounts for trailing reservation (e.g. comment after stmt).
 	Candidate(const std::string& t, const FmtContext& ctx)
-		: text(t), width(static_cast<int>(t.size())),
+		: fmt(t), width(static_cast<int>(t.size())),
 		  lines(1), spread(0)
 		{
 		int avail = ctx.Width() - ctx.Trail();
@@ -88,7 +88,7 @@ public:
 		}
 
 	Candidate(Formatting t, const FmtContext& ctx)
-		: text(std::move(t)), width(text.Size()), lines(1), spread(0)
+		: fmt(std::move(t)), width(fmt.Size()), lines(1), spread(0)
 		{
 		int avail = ctx.Width() - ctx.Trail();
 		int excess = width - avail;
@@ -99,24 +99,24 @@ public:
 	// first line starts (needed for balance/spread computation).
 	Candidate(const std::string& t, int w, int l, int ovf,
 	          int first_col = 0)
-		: text(t), width(w), lines(l), overflow(ovf),
-		  spread(l > 1 ? ComputeSpread(text.Str(), first_col) : 0) {}
+		: fmt(t), width(w), lines(l), overflow(ovf),
+		  spread(l > 1 ? ComputeSpread(fmt.Str(), first_col) : 0) {}
 
 	Candidate(std::string&& t, int w, int l, int ovf, int first_col = 0)
-		: text(std::move(t)), width(w), lines(l), overflow(ovf),
-		  spread(l > 1 ? ComputeSpread(text.Str(), first_col) : 0) {}
+		: fmt(std::move(t)), width(w), lines(l), overflow(ovf),
+		  spread(l > 1 ? ComputeSpread(fmt.Str(), first_col) : 0) {}
 
 	Candidate(Formatting t, int w, int l, int ovf, int first_col = 0)
-		: text(std::move(t)), width(w), lines(l), overflow(ovf),
-		  spread(l > 1 ? ComputeSpread(text.Str(), first_col) : 0) {}
+		: fmt(std::move(t)), width(w), lines(l), overflow(ovf),
+		  spread(l > 1 ? ComputeSpread(fmt.Str(), first_col) : 0) {}
 
-	Candidate(std::string t) : text(std::move(t)), width(text.Size()),
+	Candidate(std::string t) : fmt(std::move(t)), width(fmt.Size()),
 		  lines(1), overflow(0), spread(0) { }
 
-	Candidate(Formatting t) : text(std::move(t)), width(text.Size()),
+	Candidate(Formatting t) : fmt(std::move(t)), width(fmt.Size()),
 		  lines(1), overflow(0), spread(0) { }
 
-	const std::string& Text() const { return text.Str(); }
+	const std::string& Text() const { return fmt.Str(); }
 	int Width() const { return width; }
 	int Lines() const { return lines; }
 	int Ovf() const { return overflow; }
@@ -125,15 +125,15 @@ public:
 	// Build a new single-line candidate by appending.
 	// Overflow is not set; use In() to finalize.
 	Candidate Cat(const std::string& s) const
-		{ return Candidate(text + s); }
+		{ return Candidate(fmt + s); }
 	Candidate Cat(const Candidate& o) const
-		{ return Candidate(text + o.text); }
+		{ return Candidate(fmt + o.fmt); }
 	Candidate Cat(const NodePtr& n) const
-		{ return Candidate(text + n); }
+		{ return Candidate(fmt + n); }
 
 	// Return a copy with overflow computed against a context.
 	Candidate In(const FmtContext& ctx) const
-		{ return Candidate(text, ctx); }
+		{ return Candidate(fmt, ctx); }
 
 	// Is this a clean single-line result?
 	bool Fits() const { return lines == 1 && overflow <= 0; }
@@ -143,11 +143,11 @@ public:
 	bool BetterThan(const Candidate& o) const;
 
 private:
-	// Compute spread (max line width - min line width) from text.
+	// Compute spread (max line width - min line width).
 	// first_col is the absolute column where the first line starts.
 	static int ComputeSpread(const std::string& text, int first_col);
 
-	Formatting text;
+	Formatting fmt;
 	int width;	// width of last (or only) line
 	int lines;	// number of lines (1 = single line)
 	int overflow;	// columns past the allowed width
