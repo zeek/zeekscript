@@ -1,41 +1,36 @@
 #pragma once
 
+#include <memory>
 #include <string>
 #include <string_view>
 #include <variant>
 #include <vector>
 
-// A piece of formatted output: either a borrowed view (for string
-// literals and other long-lived text) or an owned string.
+class Formatting;
+
+// A piece of formatted output: a borrowed view (for string literals),
+// an owned string, or a shared reference to another Formatting.
 class FmtPiece {
 public:
 	FmtPiece(std::string_view sv) : data(sv) {}
 	FmtPiece(std::string s) : data(std::move(s)) {}
+	FmtPiece(std::shared_ptr<Formatting> f) : data(std::move(f)) {}
 
-	std::string_view view() const
-		{
-		if ( auto* sv = std::get_if<std::string_view>(&data) )
-			return *sv;
-		return std::get<std::string>(data);
-		}
-
-	size_t size() const { return view().size(); }
-
-	void pop_back()
-		{
-		if ( auto* sv = std::get_if<std::string_view>(&data) )
-			sv->remove_suffix(1);
-		else
-			std::get<std::string>(data).pop_back();
-		}
+	// Defined after Formatting (needs complete type).
+	size_t size() const;
+	void append_to(std::string& out) const;
+	void pop_back();
 
 private:
-	std::variant<std::string_view, std::string> data;
+	std::variant<std::string_view, std::string,
+	             std::shared_ptr<Formatting>> data;
 };
 
 // A string of formatted output being assembled.  Internally a
 // segmented cord: append is O(1), and string literals are stored
-// as views (zero-copy).  Call Str() to materialize the final string.
+// as views (zero-copy).  Appending a Formatting stores a shared
+// reference rather than copying pieces.  Call Str() to materialize
+// the final string.
 class Formatting {
 public:
 	Formatting() = default;
@@ -76,9 +71,22 @@ public:
 		{
 		if ( o.total > 0 )
 			{
-			pieces.insert(pieces.end(),
-				o.pieces.begin(), o.pieces.end());
+			pieces.emplace_back(std::make_shared<Formatting>(o));
 			total += o.total;
+			dirty = true;
+			}
+
+		return *this;
+		}
+
+	Formatting& operator+=(Formatting&& o)
+		{
+		auto n = o.total;
+		if ( n > 0 )
+			{
+			pieces.emplace_back(
+				std::make_shared<Formatting>(std::move(o)));
+			total += n;
 			dirty = true;
 			}
 
@@ -125,7 +133,7 @@ public:
 			cache.clear();
 			cache.reserve(total);
 			for ( const auto& p : pieces )
-				cache += p.view();
+				p.append_to(cache);
 			dirty = false;
 			}
 
@@ -164,3 +172,41 @@ inline Formatting operator+(const std::string& lhs, const Formatting& rhs)
 	{ return Formatting(lhs) += rhs; }
 inline Formatting operator+(const char* lhs, const Formatting& rhs)
 	{ return Formatting(lhs) += rhs; }
+
+// Deferred FmtPiece method implementations (need complete Formatting).
+
+inline size_t FmtPiece::size() const
+	{
+	if ( auto* sv = std::get_if<std::string_view>(&data) )
+		return sv->size();
+	if ( auto* s = std::get_if<std::string>(&data) )
+		return s->size();
+	return std::get<std::shared_ptr<Formatting>>(data)->size();
+	}
+
+inline void FmtPiece::append_to(std::string& out) const
+	{
+	if ( auto* sv = std::get_if<std::string_view>(&data) )
+		out += *sv;
+	else if ( auto* s = std::get_if<std::string>(&data) )
+		out += *s;
+	else
+		out += std::get<std::shared_ptr<Formatting>>(data)->Str();
+	}
+
+inline void FmtPiece::pop_back()
+	{
+	if ( auto* sv = std::get_if<std::string_view>(&data) )
+		sv->remove_suffix(1);
+	else if ( auto* s = std::get_if<std::string>(&data) )
+		s->pop_back();
+	else
+		{
+		// Materialize the shared Formatting and replace
+		// with an owned string.
+		auto& fp = std::get<std::shared_ptr<Formatting>>(data);
+		std::string materialized = fp->Str();
+		materialized.pop_back();
+		data = std::move(materialized);
+		}
+	}
