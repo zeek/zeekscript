@@ -1,5 +1,6 @@
 #pragma once
 
+#include "formatting.h"
 #include "tag.h"
 
 #include <memory>
@@ -8,7 +9,6 @@
 
 class FmtContext;
 class Candidate;
-class Formatting;
 using Candidates = std::vector<Candidate>;
 
 // A node in the representation tree.  Each node has:
