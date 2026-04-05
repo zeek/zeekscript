@@ -57,48 +57,11 @@ public:
 			pieces.emplace_back(std::move(s));
 		}
 
-	Formatting& operator+=(const Formatting& o)
-		{
-		pieces.emplace_back(std::make_shared<Formatting>(o));
-		total += o.total;
-		dirty = true;
-		return *this;
-		}
-
-	Formatting& operator+=(Formatting&& o)
-		{
-		auto n = o.total;
-		pieces.emplace_back(
-			std::make_shared<Formatting>(std::move(o)));
-		total += n;
-		dirty = true;
-		return *this;
-		}
-
-	Formatting& operator+=(const std::shared_ptr<Formatting>& p)
-		{
-		pieces.emplace_back(p);
-		total += p->total;
-		dirty = true;
-		return *this;
-		}
-
-	Formatting& operator+=(const std::string& s)
-		{
-		pieces.emplace_back(s);
-		total += s.size();
-		dirty = true;
-		return *this;
-		}
-
-	Formatting& operator+=(const char* s)
-		{
-		std::string_view sv(s);
-		pieces.emplace_back(sv);
-		total += sv.size();
-		dirty = true;
-		return *this;
-		}
+	Formatting& operator+=(const Formatting& o);
+	Formatting& operator+=(Formatting&& o);
+	Formatting& operator+=(const std::shared_ptr<Formatting>& p);
+	Formatting& operator+=(const std::string& s);
+	Formatting& operator+=(const char* s);
 
 	Formatting operator+(const Formatting& o) const
 		{ Formatting r(*this); r += o; return r; }

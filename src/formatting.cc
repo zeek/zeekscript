@@ -1,50 +1,5 @@
 #include "formatting.h"
 
-const std::string& Formatting::Str() const
-	{
-	if ( dirty )
-		{
-		cache.clear();
-		cache.reserve(total);
-		for ( const auto& p : pieces )
-			p.AppendTo(cache);
-		dirty = false;
-		}
-
-	return cache;
-	}
-
-int Formatting::Find(char c) const
-	{
-	int offset = 0;
-	for ( const auto& p : pieces )
-		{
-		int pos = p.Find(c);
-		if ( pos >= 0 )
-			return offset + pos;
-		offset += static_cast<int>(p.Size());
-		}
-	return -1;
-	}
-
-void Formatting::PopBack()
-	{
-	while ( ! pieces.empty() && pieces.back().Size() == 0 )
-		pieces.pop_back();
-
-	if ( ! pieces.empty() )
-		{
-		pieces.back().PopBack();
-		--total;
-		dirty = true;
-		}
-	}
-
-Formatting Formatting::Substr(size_t pos, size_t len) const
-	{
-	return {Str().substr(pos, len)};
-	}
-
 // FmtPiece methods (need complete Formatting type).
 
 size_t FmtPiece::Size() const
@@ -100,4 +55,94 @@ void FmtPiece::PopBack()
 		materialized.pop_back();
 		data = std::move(materialized);
 		}
+	}
+
+// Formatting methods.
+
+Formatting& Formatting::operator+=(const Formatting& o)
+	{
+	pieces.emplace_back(std::make_shared<Formatting>(o));
+	total += o.total;
+	dirty = true;
+	return *this;
+	}
+
+Formatting& Formatting::operator+=(Formatting&& o)
+	{
+	auto n = o.total;
+	pieces.emplace_back(
+		std::make_shared<Formatting>(std::move(o)));
+	total += n;
+	dirty = true;
+	return *this;
+	}
+
+Formatting& Formatting::operator+=(const std::shared_ptr<Formatting>& p)
+	{
+	pieces.emplace_back(p);
+	total += p->total;
+	dirty = true;
+	return *this;
+	}
+
+Formatting& Formatting::operator+=(const std::string& s)
+	{
+	pieces.emplace_back(s);
+	total += s.size();
+	dirty = true;
+	return *this;
+	}
+
+Formatting& Formatting::operator+=(const char* s)
+	{
+	std::string_view sv(s);
+	pieces.emplace_back(sv);
+	total += sv.size();
+	dirty = true;
+	return *this;
+	}
+
+const std::string& Formatting::Str() const
+	{
+	if ( dirty )
+		{
+		cache.clear();
+		cache.reserve(total);
+		for ( const auto& p : pieces )
+			p.AppendTo(cache);
+		dirty = false;
+		}
+
+	return cache;
+	}
+
+int Formatting::Find(char c) const
+	{
+	int offset = 0;
+	for ( const auto& p : pieces )
+		{
+		int pos = p.Find(c);
+		if ( pos >= 0 )
+			return offset + pos;
+		offset += static_cast<int>(p.Size());
+		}
+	return -1;
+	}
+
+void Formatting::PopBack()
+	{
+	while ( ! pieces.empty() && pieces.back().Size() == 0 )
+		pieces.pop_back();
+
+	if ( ! pieces.empty() )
+		{
+		pieces.back().PopBack();
+		--total;
+		dirty = true;
+		}
+	}
+
+Formatting Formatting::Substr(size_t pos, size_t len) const
+	{
+	return {Str().substr(pos, len)};
 	}
