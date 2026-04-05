@@ -113,7 +113,7 @@ public:
 	Formatting FormatAttrList(const FmtContext& ctx) const;
 
 	// Format an ATTR-LIST node as individual attr strings.
-	std::vector<std::string> FormatAttrStrings(const FmtContext& ctx) const;
+	std::vector<Formatting> FormatAttrStrings(const FmtContext& ctx) const;
 
 	// Format a BODY node: Whitesmith block or indented single stmt.
 	FmtPtr FormatBodyText(const FmtContext& ctx) const;

@@ -146,27 +146,27 @@ static bool attr_list_needs_spaces(const Node& node, const FmtContext& ctx)
 	}
 
 // Format a single attr: "&name" or "&name=value" / "&name = value".
-static std::string format_one_attr(const Node& attr, bool spaced,
-                                   const FmtContext& ctx)
+static Formatting format_one_attr(const Node& attr, bool spaced,
+                                  const FmtContext& ctx)
 	{
-	auto text = attr.Arg();
+	Formatting fmt(attr.Arg());
 
 	if ( auto eq = attr.FindOptChild(Tag::Assign) )
 		{
 		auto sep = spaced ? " " : "";
-		text += sep + eq->Text() + sep;
+		fmt += sep + Formatting(eq) + sep;
 
 		if ( auto val = get_non_token_child(attr) )
-			text += best(format_expr(*val, ctx)).Text();
+			fmt += best(format_expr(*val, ctx)).Fmt();
 		}
 
-	return text;
+	return fmt;
 	}
 
-std::vector<std::string> Node::FormatAttrStrings(const FmtContext& ctx) const
+std::vector<Formatting> Node::FormatAttrStrings(const FmtContext& ctx) const
 	{
 	bool spaced = attr_list_needs_spaces(*this, ctx);
-	std::vector<std::string> result;
+	std::vector<Formatting> result;
 
 	for ( const auto& attr : Children() )
 		if ( attr->GetTag() == Tag::Attr )
@@ -178,11 +178,11 @@ std::vector<std::string> Node::FormatAttrStrings(const FmtContext& ctx) const
 Formatting Node::FormatAttrList(const FmtContext& ctx) const
 	{
 	Formatting fmt;
-	for ( const auto& s : FormatAttrStrings(ctx) )
+	for ( const auto& a : FormatAttrStrings(ctx) )
 		{
 		if ( ! fmt.Empty() )
 			fmt += " ";
-		fmt += s;
+		fmt += a;
 		}
 	return fmt;
 	}

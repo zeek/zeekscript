@@ -170,7 +170,7 @@ static void decl_wrapped_attrs(const DeclParts& d, Candidates& result,
 	int semi_w = d.semi_node->Width();
 
 	// Check if all attrs fit on one continuation line.
-	std::string all_attrs;
+	Formatting all_attrs;
 	for ( size_t i = 0; i < attr_strs.size(); ++i )
 		{
 		if ( i > 0 )
@@ -181,10 +181,10 @@ static void decl_wrapped_attrs(const DeclParts& d, Candidates& result,
 	Formatting wrapped = line1;
 	int ovf = ovf_no_trail(line1.Size(), ctx);
 
-	if ( attr_col + static_cast<int>(all_attrs.size()) + semi_w <= max_col )
+	if ( attr_col + all_attrs.Size() + semi_w <= max_col )
 		{
 		wrapped += "\n" + attr_pad + all_attrs;
-		int aw = attr_col + static_cast<int>(all_attrs.size()) + semi_w;
+		int aw = attr_col + all_attrs.Size() + semi_w;
 		if ( aw > max_col )
 			ovf += aw - max_col;
 		}
@@ -193,8 +193,7 @@ static void decl_wrapped_attrs(const DeclParts& d, Candidates& result,
 		for ( size_t i = 0; i < attr_strs.size(); ++i )
 			{
 			wrapped += "\n" + attr_pad + attr_strs[i];
-			int aw = attr_col +
-				static_cast<int>(attr_strs[i].size());
+			int aw = attr_col + attr_strs[i].Size();
 			if ( i + 1 == attr_strs.size() )
 				aw += semi_w;
 			if ( aw > max_col )
@@ -506,7 +505,7 @@ static Formatting format_field(const Node& node, const Formatting& suffix,
 	auto pad = line_prefix(ctx.Indent(), ctx.Col() + attr_col);
 	auto attr_strs = attrs->FormatAttrStrings(ctx);
 
-	std::string all_attrs;
+	Formatting all_attrs;
 	for ( size_t i = 0; i < attr_strs.size(); ++i )
 		{
 		if ( i > 0 )
