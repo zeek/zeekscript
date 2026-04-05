@@ -12,17 +12,17 @@ Candidates CommentNode::Format(const FmtContext& ctx) const
 // Append a suffix (semicolon) to each candidate.  When ovf_ctx is
 // provided, single-line candidates recompute overflow against it
 // (needed when the outer context has its own trail).
-static Candidates append_suffix(Candidates& cs, const std::string& suffix,
-                               int suffix_w, int col,
+static Candidates append_suffix(Candidates& cs, const NodePtr& suffix, int col,
                                const FmtContext* ovf_ctx = nullptr)
 	{
+	int suffix_w = suffix->Width();
 	Candidates result;
 	for ( auto& c : cs )
 		{
 		int w = c.Width() + suffix_w;
 		int overflow = (ovf_ctx && c.Lines() == 1) ?
 				ovf(w, *ovf_ctx) : c.Ovf();
-		result.push_back({c.Text() + suffix, w, c.Lines(), overflow, col});
+		result.push_back({c.Fmt() + suffix, w, c.Lines(), overflow, col});
 		}
 	return result;
 	}
@@ -49,7 +49,7 @@ Candidates KeywordStmtNode::Format(const FmtContext& ctx) const
 	FmtContext inner = ctx.Reserve(semi_w);
 	auto cs = flat_or_fill(keyword + " ", "", "", "", items, inner);
 
-	return append_suffix(cs, semi->Text(), semi_w, ctx.Col());
+	return append_suffix(cs, semi, ctx.Col());
 	}
 
 // Event statement: event name(args);
@@ -72,7 +72,7 @@ Candidates EventStmtNode::Format(const FmtContext& ctx) const
 	auto cs = flat_or_fill(prefix, lp, rp, "", items, inner,
 				args_node->TrailingComment());
 
-	return append_suffix(cs, semi_str, semi_w, ctx.Col());
+	return append_suffix(cs, semi, ctx.Col());
 	}
 
 
@@ -83,7 +83,7 @@ Candidates ExprStmtNode::Format(const FmtContext& ctx) const
 	const auto& semi = Children().back();
 	int semi_w = semi->Width();
 	auto expr_cs = format_expr(*Child(0), ctx.Reserve(semi_w));
-	return append_suffix(expr_cs, semi->Text(), semi_w, ctx.Col(), &ctx);
+	return append_suffix(expr_cs, semi, ctx.Col(), &ctx);
 	}
 
 // Export declaration: export { decls }

@@ -117,6 +117,7 @@ public:
 		  lines(1), overflow(0), spread(0) { }
 
 	const std::string& Text() const { return fmt.Str(); }
+	const Formatting& Fmt() const { return fmt; }
 	int Width() const { return width; }
 	int Lines() const { return lines; }
 	int Ovf() const { return overflow; }
