@@ -125,7 +125,18 @@ public:
 
 	bool empty() const { return total == 0; }
 	size_t size() const { return total; }
+	int Size() const { return static_cast<int>(total); }
 	char back() const { return Str().back(); }
+
+	// Search for a character in the materialized string.
+	// Returns position as int, or -1 if not found.
+	int Find(char c) const
+		{
+		auto pos = Str().find(c);
+		return pos == std::string::npos ? -1 : static_cast<int>(pos);
+		}
+
+	bool Contains(char c) const { return Find(c) >= 0; }
 
 	void pop_back()
 		{
