@@ -27,7 +27,7 @@ Candidates ConditionBlockNode::Format(const FmtContext& ctx) const
 	LayoutItems los{tok(kw_node), soft_sp, tok(lparen_node), soft_sp,
 			cond.Str(), " " + rparen_node->Text()};
 	auto head_cs = build_layout(los, ctx);
-	auto head = best(head_cs).Text();
+	auto head = best(head_cs).Fmt();
 
 	auto body_node = Child(rp_pos + 1, Tag::Body);
 	auto result = head + body_node->FormatBodyText(ctx) +

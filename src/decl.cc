@@ -554,12 +554,12 @@ Candidates TypeDeclBracedNode::Format(const FmtContext& ctx) const
 		 tok(Child(2, Tag::Identifier)),
 		 tok(Child(3, Tag::Colon)),
 		 soft_sp, tok(inner->Child(0, Tag::Keyword)),
-		 soft_sp, tok(inner->Child(2, Tag::LBrace))}, ctx)).Text();
+		 soft_sp, tok(inner->Child(2, Tag::LBrace))}, ctx)).Fmt();
 
 	auto body = FormatBody(inner, ctx);
 
 	auto close_pad = line_prefix(ctx.Indent(), ctx.Col());
-	auto fmt = Formatting(head) + "\n" + body + close_pad +
+	auto fmt = head + "\n" + body + close_pad +
 			inner->Children().back() + Child(6, Tag::Semi);
 	return {Candidate(std::move(fmt), ctx)};
 	}

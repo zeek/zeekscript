@@ -420,7 +420,7 @@ Candidates flat_or_fill(const Formatting& prefix, const Formatting& open,
 	if ( ! any_breaks )
 		{
 		auto flat_args = format_args_flat(items, inner_ctx);
-		auto flat_fmt = prefix + open + flat_args.Text() + cb + suffix;
+		auto flat_fmt = prefix + open + flat_args.Fmt() + cb + suffix;
 		Candidate flat_c(std::move(flat_fmt), ctx);
 		result.push_back(flat_c);
 
@@ -453,14 +453,14 @@ Candidates flat_or_fill(const Formatting& prefix, const Formatting& open,
 		{
 		auto close_pad = line_prefix(ctx.Indent(), open_col);
 		fill_fmt = prefix + open + fill_prefix +
-			fill.Text() + "\n" + close_pad + cb + suffix;
+			fill.Fmt() + "\n" + close_pad + cb + suffix;
 		flast_w = open_col + close_extra + close_w + suffix_w;
 		++fill_lines;
 		}
 	else
 		{
 		fill_fmt = prefix + open + fill_prefix +
-			fill.Text() + cb + suffix;
+			fill.Fmt() + cb + suffix;
 		flast_w = fill.Width() + close_extra + close_w + suffix_w;
 		}
 
@@ -491,7 +491,7 @@ Candidate format_args_vertical(const Formatting& open, const Formatting& close,
 
 		auto& it = items[i];
 		auto bc = best(format_expr(*it.arg, body_ctx));
-		fmt += bc.Text();
+		fmt += bc.Fmt();
 
 		int line_w = body_col + bc.Width();
 
@@ -610,16 +610,15 @@ Formatting format_stmt_list(const NodeVec& nodes, const FmtContext& ctx,
 		int comment_w = static_cast<int>(comment_text.size());
 		int trail_w = semi_w + comment_w;
 
-		std::string stmt_text;
-
 		// Bare KEYWORD at statement level: break, next, etc.
+		Formatting stmt_fmt;
 		if ( t == Tag::Keyword )
-			stmt_text = node.Arg();
+			stmt_fmt = node.Arg();
 		else
-			stmt_text = best(node.Format(
-					cur_ctx.Reserve(trail_w))).Text();
+			stmt_fmt = best(node.Format(
+					cur_ctx.Reserve(trail_w))).Fmt();
 
-		result += pad + stmt_text;
+		result += pad + stmt_fmt;
 		if ( sibling_semi )
 			result += sibling_semi;
 		result += comment_text + "\n";

@@ -34,7 +34,7 @@ Candidates FieldAssignNode::Format(const FmtContext& ctx) const
 	auto val_cs = format_expr(*Child(2), ctx.After(pw));
 	auto val = best(val_cs);
 
-	return {Candidate(prefix + val.Text(), ctx)};
+	return {Candidate(prefix + val.Fmt(), ctx)};
 	}
 
 static Candidates FormatConstructor_args(const Formatting& open,
@@ -58,11 +58,11 @@ Candidates CallNode::Format(const FmtContext& ctx) const
 		return {func.Cat(lp).Cat(rp).In(ctx)};
 
 	// Trailing comma signals one-per-line intent.
-	auto open = Formatting(func.Text()) + lp;
+	auto open = func.Fmt() + lp;
 	if ( args_node->FindOptChild(Tag::TrailingComma) )
 		return {format_args_vertical(open, rp, items, ctx, true)};
 
-	auto result = flat_or_fill(func.Text(), lp, rp, "", items, ctx,
+	auto result = flat_or_fill(func.Fmt(), lp, rp, "", items, ctx,
 				args_node->TrailingComment());
 
 	// When fill wraps every single-line item to its own line,
@@ -188,7 +188,7 @@ static Candidates FormatConstructor_args(const Formatting& open,
 		FmtContext args_ctx(ctx.Indent(), ctx.Col() + open_w,
 		                    ctx.Width() - open_w - close_w);
 		auto flat_args = format_args_flat(items, args_ctx);
-		auto flat_fmt = open + flat_args.Text() + close;
+		auto flat_fmt = open + flat_args.Fmt() + close;
 		Candidate flat_c(std::move(flat_fmt), ctx);
 		result.push_back(flat_c);
 
@@ -258,7 +258,7 @@ Candidates IndexNode::Format(const FmtContext& ctx) const
 
 	// Multiple subscripts: format as comma-separated list.
 	auto items = collect_args(subs_node->Children());
-	return flat_or_fill(base.Text(), lb, rb, "", items, ctx);
+	return flat_or_fill(base.Fmt(), lb, rb, "", items, ctx);
 	}
 
 // Index literal: [$field=expr, ...]

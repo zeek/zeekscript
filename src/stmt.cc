@@ -103,10 +103,10 @@ Candidates ExportNode::Format(const FmtContext& ctx) const
 	const auto& rb = Children().back();
 	auto close = rb->EmitPreComments(inner_pad) + pad + rb;
 	auto head = best(build_layout({tok(Child(0, Tag::Keyword)),
-		soft_sp, tok(Child(2, Tag::LBrace))}, ctx)).Text();
+		soft_sp, tok(Child(2, Tag::LBrace))}, ctx)).Fmt();
 
-	auto text = head + "\n" + body_text + close;
-	return {Candidate(std::move(text), ctx)};
+	auto fmt = head + "\n" + body_text + close;
+	return {Candidate(std::move(fmt), ctx)};
 	}
 
 // Switch statement: switch expr { case val: body ... }
