@@ -84,7 +84,7 @@ Nodes Node::ContentChildren(const char* name, int n) const
 	return result;
 	}
 
-std::shared_ptr<Node> MakeNode(Tag tag)
+NodePtr MakeNode(Tag tag)
 	{
 	switch ( tag ) {
 	case Tag::IfNoElse: return std::make_shared<IfNoElseNode>();

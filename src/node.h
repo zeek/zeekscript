@@ -22,7 +22,8 @@ using Candidates = std::vector<Candidate>;
 // Bare markers like  SEMI  or  BLANK  have neither.
 
 class Node;
-using NodeVec = std::vector<std::shared_ptr<Node>>;
+using NodePtr = std::shared_ptr<Node>;
+using NodeVec = std::vector<NodePtr>;
 using Nodes = std::vector<const Node*>;
 
 class Node {
@@ -76,11 +77,11 @@ public:
 	// Marker nodes (BLANK, etc.) that appeared between the
 	// pre-comments and this node - preserved for round-trip.
 	const NodeVec& PreMarkers() const { return pre_markers; }
-	void AddPreMarker(std::shared_ptr<Node> m)
+	void AddPreMarker(NodePtr m)
 		{ pre_markers.push_back(std::move(m)); }
 
 	void AddArg(std::string a) { args.push_back(std::move(a)); }
-	void AddChild(std::shared_ptr<Node> child)
+	void AddChild(NodePtr child)
 		{ children.push_back(std::move(child)); }
 
 	// Convenience: i-th arg, or empty string if absent.
@@ -135,4 +136,4 @@ private:
 };
 
 // Factory: creates the appropriate Node subclass based on tag.
-std::shared_ptr<Node> MakeNode(Tag tag);
+NodePtr MakeNode(Tag tag);

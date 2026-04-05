@@ -111,7 +111,7 @@ NodeVec Parser::ParseFile()
 	return nodes;
 	}
 
-std::shared_ptr<Node> Parser::ParseNode()
+NodePtr Parser::ParseNode()
 	{
 	SkipWhitespace();
 

@@ -25,7 +25,7 @@ private:
 	Parser(const std::string& input) : input(input) {}
 
 	NodeVec ParseFile();
-	std::shared_ptr<Node> ParseNode();
+	NodePtr ParseNode();
 	std::string ParseTag();
 	std::string ParseQuotedString();
 
