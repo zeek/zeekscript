@@ -131,7 +131,7 @@ FmtPtr IfElseNode::BuildFollowOn(const FmtContext& ctx) const
 
 	else if ( else_child->GetTag() == Tag::Block )
 		*result += "\n" + stmt_pad + else_kw +
-				else_child->FormatWhitesmithBlock(ctx).Str();
+				else_child->FormatWhitesmithBlock(ctx);
 
 	else
 		{
