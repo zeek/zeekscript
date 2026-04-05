@@ -115,6 +115,21 @@ public:
 	std::string FormatText() const override;
 };
 
+// Global/local declarations: keyword name [: type] [= init] [attrs] ;
+// Children: [0]=KEYWORD [1]=SP [2]=IDENTIFIER
+//   [optional DECL-TYPE, DECL-INIT, ATTR-LIST] SEMI
+
+class DeclNode : public StmtNode {
+public:
+	DeclNode(Tag t) : StmtNode(t) { }
+	Candidates Format(const FmtContext& ctx) const override;
+
+	const Node* TypeWrapper() const
+		{ return FindOptChild(Tag::DeclType); }
+	const Node* InitWrapper() const
+		{ return FindOptChild(Tag::DeclInit); }
+};
+
 // Switch statement: switch expr { case val: body ... }
 
 class SwitchNode : public StmtNode {

@@ -245,25 +245,26 @@ static void DeclTypeSplit(const DeclParts& d, Candidates& result,
 	result.push_back({split, last_w, lines, ovf, ctx.Col()});
 	}
 
-// GLOBAL-DECL/LOCAL-DECL: [0]=KEYWORD [1]=SP [2]=IDENTIFIER ...
-Candidates FormatDecl(const Node& node, const FmtContext& ctx)
+// GLOBAL-DECL/LOCAL-DECL: [0]=KEYWORD [1]=SP [2]=IDENTIFIER
+//   [optional DECL-TYPE, DECL-INIT, ATTR-LIST] SEMI
+Candidates DeclNode::Format(const FmtContext& ctx) const
 	{
-	auto kw_node = node.Child(0, Tag::Keyword);
-	auto id_node = node.Child(2, Tag::Identifier);
+	auto kw_node = Child(0, Tag::Keyword);
+	auto id_node = Child(2, Tag::Identifier);
 
 	DeclParts d;
 	d.head = kw_node->Text() + " " + id_node->Text();
-	d.attrs_node = node.FindOptChild(Tag::AttrList);
-	d.semi_node = node.FindChild(Tag::Semi);
+	d.attrs_node = FindOptChild(Tag::AttrList);
+	d.semi_node = FindChild(Tag::Semi);
 
-	if ( auto dt = node.FindOptChild(Tag::DeclType) )
+	if ( auto dt = TypeWrapper() )
 		{
 		d.colon_node = dt->FindChild(Tag::Colon);
 		if ( auto tc = FindTypeChild(*dt) )
 			d.type_node = tc;
 		}
 
-	if ( auto di = node.FindOptChild(Tag::DeclInit) )
+	if ( auto di = InitWrapper() )
 		{
 		auto assign = di->FindChild(Tag::Assign);
 		d.assign_op = assign->Arg();

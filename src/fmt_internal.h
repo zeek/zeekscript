@@ -80,7 +80,6 @@ std::vector<std::string> FormatAttrStrings(const Node& node,
                                            const FmtContext& ctx);
 
 // decl.cc
-Candidates FormatDecl(const Node& node, const FmtContext& ctx);
 Candidates FormatFuncDecl(const Node& node, const FmtContext& ctx);
 Candidates FormatModuleDecl(const Node& node, const FmtContext& ctx);
 
