@@ -25,7 +25,7 @@ Candidates ConditionBlockNode::Format(const FmtContext& ctx) const
 	// Build the head via build_layout so trailing comments on keyword
 	// or lparen correctly force line breaks.
 	LayoutItems los{tok(kw_node), soft_sp, tok(lparen_node), soft_sp,
-			cond.Str(), " " + rparen_node->Text()};
+			cond, Formatting(" ") + rparen_node};
 	auto head_cs = build_layout(los, ctx);
 	auto head = best(head_cs).Fmt();
 

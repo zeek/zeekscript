@@ -7,7 +7,7 @@
 Formatting::Formatting(const NodePtr& n)
 	{
 	assert(n);
-	assert(n->IsToken() || ! n->Args().empty());
+	assert(! n->HasChildren());
 	pieces.emplace_back(n);
 	total = pieces.back().Size();
 	dirty = total > 0;

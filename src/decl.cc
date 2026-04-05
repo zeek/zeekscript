@@ -631,7 +631,7 @@ Formatting TypeDeclRecordNode::FormatBody(const NodePtr& inner,
 			body += ki->EmitPreComments(field_pad);
 
 			auto suffix = Formatting(
-				ki->Children().back()->Text()) +
+				ki->Children().back()) +
 				ki->TrailingComment();
 			auto field_text = format_field(*ki, suffix, field_ctx);
 

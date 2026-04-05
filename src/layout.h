@@ -96,11 +96,15 @@ class LayoutItem
 public:
 	enum class Kind { Lit, Fmt, Sp } kind;
 
-	// Literal string.
+	// Literal text.
 	LayoutItem(const std::string& s)
-		: kind(Kind::Lit), text(s), must_break(false) {}
+		: kind(Kind::Lit), fmt(s), must_break(false) {}
 	LayoutItem(const char* s)
-		: kind(Kind::Lit), text(s), must_break(false) {}
+		: kind(Kind::Lit), fmt(s), must_break(false) {}
+	LayoutItem(const Formatting& f)
+		: kind(Kind::Lit), fmt(f), must_break(false) {}
+	LayoutItem(Formatting&& f)
+		: kind(Kind::Lit), fmt(std::move(f)), must_break(false) {}
 
 	// Node to format (produces candidates).
 	LayoutItem(const NodePtr& n)
@@ -109,14 +113,14 @@ public:
 	// Soft space (private; use soft_sp constant).
 	LayoutItem(Kind k) : kind(k), must_break(false) {}
 
-	const std::string& Text() const { return text; }
+	const Formatting& Fmt() const { return fmt; }
 	const NodePtr& LI_Node() const { return node; }
 	bool MustBreak() const { return must_break; }
 
-	void SetMustBreak(bool _must_break) { must_break = _must_break; }
+	void SetMustBreak(bool mb) { must_break = mb; }
 
 private:
-	std::string text;
+	Formatting fmt;
 	NodePtr node;
 	bool must_break;	// force next Sp to break (trailing comment)
 	};

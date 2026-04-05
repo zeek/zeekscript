@@ -8,7 +8,7 @@ const LayoutItem soft_sp{LayoutItem::Kind::Sp};
 
 LayoutItem tok(const NodePtr& n)
 	{
-	LayoutItem item(n->Text());
+	LayoutItem item{Formatting(n)};
 	item.SetMustBreak(n->MustBreakAfter());
 	return item;
 	}
@@ -39,8 +39,8 @@ static Partials layout_one_item(const LayoutItem& item, Partials& beam,
 		case LayoutItem::Kind::Lit:
 			{
 			Partial np = p;
-			np.fmt += item.Text();
-			np.col += static_cast<int>(item.Text().size());
+			np.fmt += item.Fmt();
+			np.col += item.Fmt().Size();
 			np.overflow += ovf_at(np.col);
 			np.must_break = item.MustBreak();
 			next.push_back(std::move(np));
@@ -132,7 +132,7 @@ Candidates build_layout(LayoutItems items_init, const FmtContext& ctx)
 		for ( size_t j = i + 1; j < items.size(); ++j )
 			{
 			if ( items[j].kind == LayoutItem::Kind::Lit )
-				w += static_cast<int>(items[j].Text().size());
+				w += items[j].Fmt().Size();
 			else if ( items[j].kind == LayoutItem::Kind::Sp )
 				++w;  // space in the flat case
 			else
