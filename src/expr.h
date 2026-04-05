@@ -164,10 +164,10 @@ public:
 	LambdaNode(Tag t) : ExprNode(t) { }
 	Candidates Format(const FmtContext& ctx) const override;
 protected:
-	virtual std::string BuildPrefix(const FmtContext& ctx) const;
+	virtual Formatting BuildPrefix(const FmtContext& ctx) const;
 	int ParamsPos() const
 		{ return GetTag() == Tag::LambdaCaptures ? 3 : 2; }
-	Candidates FormatLambda(const std::string& prefix,
+	Candidates FormatLambda(const Formatting& prefix,
 	                        const FmtContext& ctx) const;
 };
 
@@ -175,7 +175,7 @@ class LambdaCapturesNode : public LambdaNode {
 public:
 	LambdaCapturesNode() : LambdaNode(Tag::LambdaCaptures) { }
 protected:
-	std::string BuildPrefix(const FmtContext& ctx) const override;
+	Formatting BuildPrefix(const FmtContext& ctx) const override;
 };
 
 // TYPE-PARAMETERIZED: table[k] of v, set[t], vector of t

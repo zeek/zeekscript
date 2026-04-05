@@ -98,26 +98,26 @@ Candidates ScheduleNode::Format(const FmtContext& ctx) const
 
 // Lambda without captures: function(params): ret { body }
 // Children: [0]=KEYWORD [1]=SP [2]=PARAMS ...
-std::string LambdaNode::BuildPrefix(const FmtContext& /*ctx*/) const
+Formatting LambdaNode::BuildPrefix(const FmtContext& /*ctx*/) const
 	{
-	return Child(0, Tag::Keyword)->Text();
+	return Formatting(Child(0, Tag::Keyword));
 	}
 
 // Lambda with captures: function[captures](params): ret { body }
 // Children: [0]=KEYWORD [1]=SP [2]=CAPTURES [3]=PARAMS ...
-std::string LambdaCapturesNode::BuildPrefix(const FmtContext& ctx) const
+Formatting LambdaCapturesNode::BuildPrefix(const FmtContext& ctx) const
 	{
-	auto prefix = Child(0, Tag::Keyword)->Text();
+	auto kw = Child(0, Tag::Keyword);
 	auto captures = Child(2, Tag::Captures);
 	auto clb = captures->Child(0, Tag::LBracket);
 	const auto& crb = captures->Children().back();
 	auto cap_items = collect_args(captures->Children());
 
 	if ( cap_items.empty() )
-		return prefix + clb->Text() + crb->Text();
+		return Formatting(kw) + clb + crb;
 
-	auto cs = flat_or_fill(prefix, clb, crb, "", cap_items, ctx);
-	return best(cs).Text();
+	auto cs = flat_or_fill(kw, clb, crb, "", cap_items, ctx);
+	return best(cs).Fmt();
 	}
 
 Candidates LambdaNode::Format(const FmtContext& ctx) const
@@ -128,19 +128,19 @@ Candidates LambdaNode::Format(const FmtContext& ctx) const
 
 // LAMBDA:          [0]=KW [1]=SP [2]=PARAMS [opt COLON RETURNS] BODY(last)
 // LAMBDA-CAPTURES: [0]=KW [1]=SP [2]=CAPTURES [3]=PARAMS [opt ...] BODY(last)
-Candidates LambdaNode::FormatLambda(const std::string& prefix,
+Candidates LambdaNode::FormatLambda(const Formatting& prefix,
                                     const FmtContext& ctx) const
 	{
 	int pp = ParamsPos();
 
 	// Return type (COLON and RETURNS follow PARAMS when present).
-	std::string ret_str;
+	Formatting ret_fmt;
 	auto after_params = Child(pp + 1);
 	if ( after_params->GetTag() == Tag::Colon )
 		{
 		auto returns = Child(pp + 2, Tag::Returns);
 		if ( auto rt = returns->FindTypeChild() )
-			ret_str = after_params->Text() + " " +
+			ret_fmt = Formatting(after_params) + " " +
 				best(format_expr(*rt, ctx)).Text();
 		}
 
@@ -149,14 +149,14 @@ Candidates LambdaNode::FormatLambda(const std::string& prefix,
 	auto lp = params->Child(0, Tag::LParen);
 	const auto& rp = params->Children().back();
 	auto items = collect_args(params->Children());
-	std::string sig;
+	Formatting sig;
 
 	if ( items.empty() )
-		sig = prefix + lp->Text() + rp->Text() + ret_str;
+		sig = prefix + lp + rp + ret_fmt;
 	else
 		{
-		auto cs = flat_or_fill(prefix, lp, rp, ret_str, items, ctx);
-		sig = best(cs).Text();
+		auto cs = flat_or_fill(prefix, lp, rp, ret_fmt, items, ctx);
+		sig = best(cs).Fmt();
 		}
 
 	// Format body with indent level based on the lambda's column
@@ -166,12 +166,12 @@ Candidates LambdaNode::FormatLambda(const std::string& prefix,
 	const auto& body = Children().back();
 	auto block = body->FormatWhitesmithBlock(body_ctx);
 
-	auto text = sig + block.Str();
+	auto text = (sig + block).Str();
 	int last_w = last_line_len(text);
 	int lines = count_lines(text);
 	int ovf = text_overflow(text, ctx.Col(), ctx.MaxCol());
 
-	return {{text, last_w, lines, ovf, ctx.Col()}};
+	return {{std::move(text), last_w, lines, ovf, ctx.Col()}};
 	}
 
 // Shared constructor layout: flat or vertical (one per line).
@@ -310,8 +310,6 @@ Candidates SliceNode::Format(const FmtContext& ctx) const
 
 	auto lb = Child(1, Tag::LBracket);
 	auto rb = Child(5, Tag::RBracket);
-	auto lbt = lb->Text();
-	auto rbt = rb->Text();
 	auto base_cs = format_expr(*Child(0), ctx);
 	const auto& base = best(base_cs);
 
@@ -320,7 +318,7 @@ Candidates SliceNode::Format(const FmtContext& ctx) const
 	if ( ! lo.empty() && ! hi.empty() )
 		sep = " " + sep + " ";
 
-	Candidate flat = base.Cat(lbt + lo + sep + hi + rbt).In(ctx);
+	Candidate flat = base.Cat(lb).Cat(lo + sep + hi).Cat(rb).In(ctx);
 
 	if ( flat.Fits() || lo.empty() || hi.empty() )
 		return {flat};
@@ -331,8 +329,8 @@ Candidates SliceNode::Format(const FmtContext& ctx) const
 	auto hi2 = best(format_expr(*Child(4), hi_ctx)).Text();
 
 	auto prefix = line_prefix(hi_ctx.Indent(), bracket_col);
-	auto split = base.Text() + lbt + lo + " " + colon + "\n" +
-			prefix + hi2 + rbt;
+	auto split = base.Text() + lb->Text() + lo + " " + colon +
+			"\n" + prefix + hi2 + rb->Text();
 	int last_w = static_cast<int>(hi2.size()) + rb->Width();
 	int split_ovf = ovf(last_w, hi_ctx);
 	int lines = 1 + count_lines(hi2);
@@ -368,8 +366,8 @@ Candidates CardinalityNode::Format(const FmtContext& ctx) const
 Candidates PrefixExprNode::FormatPrefix(const FmtContext& ctx,
                                         const std::string& sep) const
 	{
-	auto op = Child(0, Tag::Op)->Text() + sep;
-	Candidate prefix(op, ctx);
+	auto op = Formatting(Child(0, Tag::Op)) + sep;
+	Candidate prefix(std::move(op), ctx);
 	auto operand = best(format_expr(*Child(1), ctx.After(prefix.Width())));
 	return {prefix.Cat(operand).In(ctx)};
 	}
@@ -501,13 +499,13 @@ Candidates HasFieldNode::Format(const FmtContext& ctx) const
 	auto lhs_cs = format_expr(*Child(0), ctx.Reserve(suffix_w));
 	auto lhs = best(lhs_cs);
 
-	auto text = lhs.Text() + op_node->Text() + rhs_text;
+	auto fmt = lhs.Fmt() + op_node + rhs_text;
 
 	if ( lhs.Lines() <= 1 )
-		return {Candidate(text, ctx)};
+		return {Candidate(std::move(fmt), ctx)};
 
 	int last_w = lhs.Width() + suffix_w;
-	return {{text, last_w, lhs.Lines(), lhs.Ovf(), ctx.Col()}};
+	return {{std::move(fmt), last_w, lhs.Lines(), lhs.Ovf(), ctx.Col()}};
 	}
 
 // Shared binary-op formatter.  sep is "" for tight (Div) or " "
