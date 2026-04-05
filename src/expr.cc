@@ -20,7 +20,7 @@ Candidates FieldAccessNode::Format(const FmtContext& ctx) const
 	auto rhs_cs = format_expr(*Child(2, Tag::Identifier), ctx.After(lhs.Width() + dw));
 	auto rhs = best(rhs_cs);
 
-	return {lhs.Cat(dollar->Text()).Cat(rhs).In(ctx)};
+	return {lhs.Cat(dollar).Cat(rhs).In(ctx)};
 	}
 
 // Field assign: $field=expr
@@ -242,7 +242,7 @@ Candidates IndexNode::Format(const FmtContext& ctx) const
 
 	auto subs_content = subs_node->ContentChildren();
 	if ( subs_content.empty() )
-		return {base.Cat(lb->Text() + rb->Text()).In(ctx)};
+		return {base.Cat(lb).Cat(rb).In(ctx)};
 
 	if ( subs_content.size() == 1 )
 		{
@@ -254,7 +254,7 @@ Candidates IndexNode::Format(const FmtContext& ctx) const
 						lb_w - rb_w);
 		auto sub_cs = format_expr(*subs_content[0], bracket_ctx);
 		auto sub = best(sub_cs);
-		return {base.Cat(lb->Text()).Cat(sub).Cat(rb->Text()).In(ctx)};
+		return {base.Cat(lb).Cat(sub).Cat(rb).In(ctx)};
 		}
 
 	// Multiple subscripts: format as comma-separated list.
@@ -347,9 +347,9 @@ Candidates SliceNode::Format(const FmtContext& ctx) const
 Candidates PrefixExprNode::FormatBracketed(const FmtContext& ctx) const
 	{
 	auto lp = Child(0);
-	auto rp = Child(2)->Text();
+	auto rp = Child(2);
 	auto inner = best(format_expr(*Child(1), ctx.After(lp->Width())));
-	return {Candidate(lp->Text(), ctx).Cat(inner).Cat(rp).In(ctx)};
+	return {Candidate(Formatting(lp), ctx).Cat(inner).Cat(rp).In(ctx)};
 	}
 
 // Children: [0]=LPAREN [1]=expr [2]=RPAREN

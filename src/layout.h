@@ -88,9 +88,7 @@ public:
 		}
 
 	Candidate(Formatting t, const FmtContext& ctx)
-		: text(std::move(t)),
-		  width(text.Size()),
-		  lines(1), spread(0)
+		: text(std::move(t)), width(text.Size()), lines(1), spread(0)
 		{
 		int avail = ctx.Width() - ctx.Trail();
 		int excess = width - avail;
@@ -104,19 +102,18 @@ public:
 		: text(t), width(w), lines(l), overflow(ovf),
 		  spread(l > 1 ? ComputeSpread(text.Str(), first_col) : 0) {}
 
-	Candidate(std::string&& t, int w, int l, int ovf,
-	          int first_col = 0)
+	Candidate(std::string&& t, int w, int l, int ovf, int first_col = 0)
 		: text(std::move(t)), width(w), lines(l), overflow(ovf),
 		  spread(l > 1 ? ComputeSpread(text.Str(), first_col) : 0) {}
 
-	Candidate(Formatting t, int w, int l, int ovf,
-	          int first_col = 0)
+	Candidate(Formatting t, int w, int l, int ovf, int first_col = 0)
 		: text(std::move(t)), width(w), lines(l), overflow(ovf),
 		  spread(l > 1 ? ComputeSpread(text.Str(), first_col) : 0) {}
 
-	Candidate(std::string t)
-		: text(std::move(t)),
-		  width(text.Size()),
+	Candidate(std::string t) : text(std::move(t)), width(text.Size()),
+		  lines(1), overflow(0), spread(0) { }
+
+	Candidate(Formatting t) : text(std::move(t)), width(text.Size()),
 		  lines(1), overflow(0), spread(0) { }
 
 	const std::string& Text() const { return text.Str(); }
@@ -125,19 +122,18 @@ public:
 	int Ovf() const { return overflow; }
 	int Spread() const { return spread; }
 
-	// Build a new single-line candidate by appending a literal string.
+	// Build a new single-line candidate by appending.
 	// Overflow is not set; use In() to finalize.
 	Candidate Cat(const std::string& s) const
-		{ return Candidate(Text() + s); }
-
-	// Build a new single-line candidate by appending another candidate.
-	// Overflow is not set; use In() to finalize.
+		{ return Candidate(text + s); }
 	Candidate Cat(const Candidate& o) const
-		{ return Candidate(Text() + o.Text()); }
+		{ return Candidate(text + o.text); }
+	Candidate Cat(const NodePtr& n) const
+		{ return Candidate(text + n); }
 
 	// Return a copy with overflow computed against a context.
 	Candidate In(const FmtContext& ctx) const
-		{ return Candidate(Text(), ctx); }
+		{ return Candidate(text, ctx); }
 
 	// Is this a clean single-line result?
 	bool Fits() const { return lines == 1 && overflow <= 0; }
