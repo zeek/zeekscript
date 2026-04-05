@@ -362,23 +362,22 @@ Candidates FuncDeclNode::Format(const FmtContext& ctx) const
 	auto pentries = format_param_entries(*params, ctx);
 
 	// Build flat param list.
-	std::string flat_params;
+	Formatting flat_params;
 	for ( size_t i = 0; i < pentries.size(); ++i )
 		{
 		auto& pe = pentries[i];
 		if ( pe.comma )
-			flat_params += pe.comma->Text() + " ";
+			flat_params += Formatting(pe.comma) + " ";
 		flat_params += pe.text;
 		}
 
 	// Return type suffix.
-	std::string ret_str;
+	Formatting ret_str;
 	if ( auto returns = FindOptChild(Tag::Returns) )
 		{
 		if ( auto rt = returns->FindTypeChild() )
 			{
-			auto rcol = FindChild(Tag::Colon);
-			ret_str = rcol->Text() + " " +
+			ret_str = Formatting(FindChild(Tag::Colon)) + " " +
 				best(format_expr(*rt, ctx)).Text();
 			}
 		}
@@ -396,13 +395,12 @@ Candidates FuncDeclNode::Format(const FmtContext& ctx) const
 	const auto& body = Children().back();
 	auto trail_str = body->TrailingComment();
 
-	auto kw_text = Child(0, Tag::Keyword)->Text();
-	auto id_text = Child(2, Tag::Identifier)->Text();
-	auto lp = params->Child(0, Tag::LParen)->Text();
-	auto prefix = kw_text + " " + id_text + lp;
+	auto prefix = Formatting(Child(0, Tag::Keyword)) + " " +
+			Child(2, Tag::Identifier) +
+			params->Child(0, Tag::LParen);
 
 	// --- Candidate 1: flat signature ---
-	auto rp = params->Children().back()->Text();
+	const auto& rp = params->Children().back();
 	auto sig = prefix + flat_params + rp + ret_str + attr_str + trail_str;
 	auto block = body->FormatWhitesmithBlock(ctx);
 
@@ -413,7 +411,7 @@ Candidates FuncDeclNode::Format(const FmtContext& ctx) const
 		return result;
 
 	// --- Candidate 2: greedy-fill params + attrs on continuation ---
-	int align_col = ctx.Col() + static_cast<int>(prefix.size());
+	int align_col = ctx.Col() + prefix.Size();
 	int max_col = ctx.MaxCol();
 	auto pad = line_prefix(ctx.Indent(), align_col);
 	auto wrapped = prefix;
@@ -432,11 +430,11 @@ Candidates FuncDeclNode::Format(const FmtContext& ctx) const
 			continue;
 			}
 
-		auto sep = pe.comma->Text();
-		int need = static_cast<int>(sep.size()) + 1 + pw;
+		int sep_w = pe.comma->Width();
+		int need = sep_w + 1 + pw;
 		if ( cur_col + need <= max_col )
 			{
-			wrapped += sep + " " + pe.text;
+			wrapped += Formatting(pe.comma) + " " + pe.text;
 			cur_col += need;
 			}
 		else
@@ -444,12 +442,12 @@ Candidates FuncDeclNode::Format(const FmtContext& ctx) const
 			int suffix = (i == pentries.size() - 1) ? 1 : 0;
 			int pcol = fit_col(align_col, pw + suffix, max_col);
 			auto ppad = line_prefix(ctx.Indent(), pcol);
-			wrapped += sep + "\n" + ppad + pe.text;
+			wrapped += Formatting(pe.comma) + "\n" + ppad + pe.text;
 			cur_col = pcol + pw;
 			}
 		}
 
-	wrapped += rp + ret_str;
+	wrapped += Formatting(rp) + ret_str;
 
 	// Put attrs on their own continuation line if present.
 	// Use param alignment column, but shift left if that overflows
@@ -465,11 +463,12 @@ Candidates FuncDeclNode::Format(const FmtContext& ctx) const
 
 	wrapped += trail_str + block.Str();
 
-	int last_w = last_line_len(wrapped);
-	int lines = count_lines(wrapped);
-	int ovf = text_overflow(wrapped, ctx.Col(), max_col);
+	auto wrapped_str = wrapped.Str();
+	int last_w = last_line_len(wrapped_str);
+	int lines = count_lines(wrapped_str);
+	int ovf = text_overflow(wrapped_str, ctx.Col(), max_col);
 
-	result.push_back({wrapped, last_w, lines, ovf, ctx.Col()});
+	result.push_back({std::move(wrapped), last_w, lines, ovf, ctx.Col()});
 
 	return result;
 	}

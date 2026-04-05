@@ -137,21 +137,17 @@ Candidates SwitchNode::Format(const FmtContext& ctx) const
 		auto pc = switch_expr->ContentChildren();
 		if ( ! pc.empty() )
 			{
-			expr_text += switch_expr->Child(0, Tag::LParen);
-			expr_text += " " +
-				best(format_expr(*pc[0], ctx)).Text() +
-				" ";
-			expr_text += switch_expr->Child(2, Tag::RParen);
+			expr_text = Formatting(switch_expr->Child(0, Tag::LParen)) +
+				" " + best(format_expr(*pc[0], ctx)).Text() +
+				" " + switch_expr->Child(2, Tag::RParen);
 			}
 		}
 	else
 		expr_text += best(format_expr(*switch_expr, ctx)).Text();
 
 	auto pad = line_prefix(ctx.Indent(), ctx.Col());
-	Formatting result;
-	result += Child(0, Tag::Keyword);
-	result += " " + expr_text + " ";
-	result += Child(3, Tag::LBrace);
+	auto result = Formatting(Child(0, Tag::Keyword)) +
+			" " + expr_text + " " + Child(3, Tag::LBrace);
 
 	// Format each CASE/DEFAULT.
 	for ( const auto& c : Children() )
@@ -162,18 +158,15 @@ Candidates SwitchNode::Format(const FmtContext& ctx) const
 		// DEFAULT: [0]=KEYWORD [1]=COLON [optional BODY]
 		if ( c->GetTag() == Tag::Default )
 			{
-			result += "\n" + pad;
-			result += c->Child(0, Tag::Keyword);
-			result += c->Child(1, Tag::Colon);
+			result += "\n" + pad + c->Child(0, Tag::Keyword) +
+					c->Child(1, Tag::Colon);
 			append_case_body(c->FindOptChild(Tag::Body), result, ctx);
 			continue;
 			}
 
 		// CASE: [0]=KEYWORD [1]=SP [2]=VALUES [3]=COLON [4]=BODY
 		auto values = c->Child(2, Tag::Values);
-		Formatting case_text;
-		case_text += c->Child(0, Tag::Keyword);
-		case_text += " ";
+		auto case_text = Formatting(c->Child(0, Tag::Keyword)) + " ";
 
 		// Collect formatted values and commas.
 		std::vector<std::string> vals;
@@ -213,15 +206,13 @@ Candidates SwitchNode::Format(const FmtContext& ctx) const
 
 			if ( i > 0 && cur_col + need > max_col )
 				{
-				case_text += vcommas[i];
-				case_text += "\n" + vpad;
+				case_text += Formatting(vcommas[i]) + "\n" + vpad;
 				cur_col = case_col;
 				}
 
 			else if ( i > 0 )
 				{
-				case_text += vcommas[i];
-				case_text += " ";
+				case_text += Formatting(vcommas[i]) + " ";
 				cur_col += 2;
 				}
 
@@ -231,8 +222,7 @@ Candidates SwitchNode::Format(const FmtContext& ctx) const
 
 		case_text += c->Child(3, Tag::Colon);
 
-		result += "\n" + pad;
-		result += case_text;
+		result += "\n" + pad + case_text;
 		append_case_body(c->FindOptChild(Tag::Body), result, ctx);
 		}
 
@@ -262,10 +252,8 @@ FmtPtr PreprocCondNode::FormatText() const
 	{
 	const auto& directive = Arg(0);
 	const auto& arg = Arg(1);
-	Formatting result(directive + " ");
-	result += Child(0, Tag::LParen);
-	result += " " + arg + " ";
-	result += Child(1, Tag::RParen);
+	auto result = Formatting(directive + " ") + Child(0, Tag::LParen) +
+			" " + arg + " " + Child(1, Tag::RParen);
 	return std::make_shared<Formatting>(std::move(result));
 	}
 
