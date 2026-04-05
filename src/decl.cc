@@ -378,7 +378,7 @@ Candidates FuncDeclNode::Format(const FmtContext& ctx) const
 		if ( auto rt = returns->FindTypeChild() )
 			{
 			ret_str = Formatting(FindChild(Tag::Colon)) + " " +
-				best(format_expr(*rt, ctx)).Text();
+				best(format_expr(*rt, ctx)).Fmt();
 			}
 		}
 

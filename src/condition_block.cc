@@ -39,7 +39,7 @@ Candidates ConditionBlockNode::Format(const FmtContext& ctx) const
 // Default: format the single expression between parens.
 Formatting ConditionBlockNode::BuildCondition(const FmtContext& cond_ctx) const
 	{
-	return best(format_expr(*ContentChildren()[0], cond_ctx)).Text();
+	return best(format_expr(*ContentChildren()[0], cond_ctx)).Fmt();
 	}
 
 // ------------------------------------------------------------------
@@ -64,14 +64,14 @@ Formatting ForNode::BuildCondition(const FmtContext& cond_ctx) const
 		if ( ! first )
 			vars_text += ", ";
 		first = false;
-		vars_text += best(format_expr(*v, cond_ctx)).Text();
+		vars_text += best(format_expr(*v, cond_ctx)).Fmt();
 		}
 
 	// Format iterable.
 	Formatting iter_text;
 	auto iter_content = iter_node->ContentChildren();
 	if ( ! iter_content.empty() )
-		iter_text += best(format_expr(*iter_content[0], cond_ctx)).Text();
+		iter_text += best(format_expr(*iter_content[0], cond_ctx)).Fmt();
 
 	return vars_text + " " + in_node + " " + iter_text;
 	}
@@ -126,7 +126,7 @@ FmtPtr IfElseNode::BuildFollowOn(const FmtContext& ctx) const
 		{
 		auto inner_cs = format_expr(*else_child, ctx);
 		*result += "\n" + stmt_pad + else_kw + " " +
-				best(inner_cs).Text();
+				best(inner_cs).Fmt();
 		}
 
 	else if ( else_child->GetTag() == Tag::Block )
@@ -139,7 +139,7 @@ FmtPtr IfElseNode::BuildFollowOn(const FmtContext& ctx) const
 		auto cs = format_expr(*else_child, else_ctx);
 		auto epad = line_prefix(else_ctx.Indent(), else_ctx.Col());
 		*result += "\n" + stmt_pad + else_kw + "\n" +
-				epad + best(cs).Text();
+				epad + best(cs).Fmt();
 		}
 
 	return result;

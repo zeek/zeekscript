@@ -141,7 +141,7 @@ Candidates LambdaNode::FormatLambda(const Formatting& prefix,
 		auto returns = Child(pp + 2, Tag::Returns);
 		if ( auto rt = returns->FindTypeChild() )
 			ret_fmt = Formatting(after_params) + " " +
-				best(format_expr(*rt, ctx)).Text();
+				best(format_expr(*rt, ctx)).Fmt();
 		}
 
 	// Params.

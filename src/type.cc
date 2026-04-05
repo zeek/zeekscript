@@ -58,7 +58,7 @@ Candidates TypeParamNode::Format(const FmtContext& ctx) const
 	Formatting suffix;
 	if ( of_type )
 		suffix = " " + FindChild(Tag::Keyword) + " " +
-			best(format_expr(*of_type, ctx)).Text();
+			best(format_expr(*of_type, ctx)).Fmt();
 
 	if ( bt_items.empty() )
 		return {Candidate(Formatting(keyword) + suffix, ctx)};
@@ -86,7 +86,7 @@ Candidates ParamNode::Format(const FmtContext& ctx) const
 	Formatting fmt(Arg());
 	if ( auto ptype = FindTypeChild() )
 		fmt += Formatting(Child(0, Tag::Colon)) + " " +
-			best(format_expr(*ptype, ctx)).Text();
+			best(format_expr(*ptype, ctx)).Fmt();
 	return {Candidate(std::move(fmt), ctx)};
 	}
 
@@ -101,7 +101,7 @@ Candidates TypeFuncNode::Format(const FmtContext& ctx) const
 		{
 		if ( auto rt = returns->FindTypeChild() )
 			ret_str = Formatting(FindChild(Tag::Colon)) + " " +
-				best(format_expr(*rt, ctx)).Text();
+				best(format_expr(*rt, ctx)).Fmt();
 		}
 
 	auto params = Child(0, Tag::Params);

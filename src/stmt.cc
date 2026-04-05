@@ -138,12 +138,12 @@ Candidates SwitchNode::Format(const FmtContext& ctx) const
 		if ( ! pc.empty() )
 			{
 			expr_text = Formatting(switch_expr->Child(0, Tag::LParen)) +
-				" " + best(format_expr(*pc[0], ctx)).Text() +
+				" " + best(format_expr(*pc[0], ctx)).Fmt() +
 				" " + switch_expr->Child(2, Tag::RParen);
 			}
 		}
 	else
-		expr_text += best(format_expr(*switch_expr, ctx)).Text();
+		expr_text += best(format_expr(*switch_expr, ctx)).Fmt();
 
 	auto pad = line_prefix(ctx.Indent(), ctx.Col());
 	auto result = Formatting(Child(0, Tag::Keyword)) +
