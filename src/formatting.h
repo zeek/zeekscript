@@ -11,12 +11,14 @@ class Node;
 using NodePtr = std::shared_ptr<Node>;
 
 // A piece of formatted output: a borrowed view (for string literals),
-// an owned string, or a shared reference to another Formatting.
+// an owned string, a shared reference to another Formatting, or a
+// lazy node reference (text materialized on first access).
 class FmtPiece {
 public:
 	FmtPiece(std::string_view sv) : data(sv) {}
 	FmtPiece(std::string s) : data(std::move(s)) {}
 	FmtPiece(std::shared_ptr<Formatting> f) : data(std::move(f)) {}
+	FmtPiece(NodePtr n) : data(std::move(n)) {}
 
 	// Defined in formatting.cc (needs complete Formatting type).
 	size_t Size() const;
@@ -25,8 +27,11 @@ public:
 	void PopBack();
 
 private:
+	const std::string& NodeText() const;
+
 	std::variant<std::string_view, std::string,
-	             std::shared_ptr<Formatting>> data;
+	             std::shared_ptr<Formatting>, NodePtr> data;
+	mutable std::string node_cache;
 };
 
 // A string of formatted output being assembled.  Internally a

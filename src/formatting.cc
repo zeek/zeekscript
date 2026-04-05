@@ -7,14 +7,19 @@ Formatting::Formatting(const NodePtr& n)
 	{
 	assert(n);
 	assert(n->IsToken() || ! n->Args().empty());
-	auto t = n->Text();
-	total = t.size();
+	pieces.emplace_back(n);
+	total = pieces.back().Size();
 	dirty = total > 0;
-	if ( total > 0 )
-		pieces.emplace_back(std::move(t));
 	}
 
-// FmtPiece methods (need complete Formatting type).
+// FmtPiece methods (need complete Formatting/Node types).
+
+const std::string& FmtPiece::NodeText() const
+	{
+	if ( node_cache.empty() )
+		node_cache = std::get<NodePtr>(data)->Text();
+	return node_cache;
+	}
 
 size_t FmtPiece::Size() const
 	{
@@ -22,7 +27,9 @@ size_t FmtPiece::Size() const
 		return sv->size();
 	if ( auto* s = std::get_if<std::string>(&data) )
 		return s->size();
-	return std::get<std::shared_ptr<Formatting>>(data)->Size();
+	if ( auto* fp = std::get_if<std::shared_ptr<Formatting>>(&data) )
+		return (*fp)->Size();
+	return NodeText().size();
 	}
 
 int FmtPiece::Find(char c) const
@@ -41,7 +48,11 @@ int FmtPiece::Find(char c) const
 			? -1 : static_cast<int>(pos);
 		}
 
-	return std::get<std::shared_ptr<Formatting>>(data)->Find(c);
+	if ( auto* fp = std::get_if<std::shared_ptr<Formatting>>(&data) )
+		return (*fp)->Find(c);
+
+	auto pos = NodeText().find(c);
+	return pos == std::string::npos ? -1 : static_cast<int>(pos);
 	}
 
 void FmtPiece::AppendTo(std::string& out) const
@@ -50,8 +61,10 @@ void FmtPiece::AppendTo(std::string& out) const
 		out += *sv;
 	else if ( auto* s = std::get_if<std::string>(&data) )
 		out += *s;
+	else if ( auto* fp = std::get_if<std::shared_ptr<Formatting>>(&data) )
+		out += (*fp)->Str();
 	else
-		out += std::get<std::shared_ptr<Formatting>>(data)->Str();
+		out += NodeText();
 	}
 
 void FmtPiece::PopBack()
@@ -62,12 +75,15 @@ void FmtPiece::PopBack()
 		s->pop_back();
 	else
 		{
-		// Materialize the shared Formatting and replace
-		// with an owned string.
-		auto& fp = std::get<std::shared_ptr<Formatting>>(data);
-		std::string materialized = fp->Str();
+		// Materialize and replace with an owned string.
+		std::string materialized;
+		if ( auto* fp = std::get_if<std::shared_ptr<Formatting>>(&data) )
+			materialized = (*fp)->Str();
+		else
+			materialized = NodeText();
 		materialized.pop_back();
 		data = std::move(materialized);
+		node_cache.clear();
 		}
 	}
 
