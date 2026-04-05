@@ -64,5 +64,10 @@ struct SplitAt {
 // for each SplitAt spec by breaking after the designated piece and
 // re-formatting any Expr pieces after the break with the derived
 // context.  Returns flat + any split candidates.
+//
+// force_flat: when true, sub-expressions in the flat layout are
+// formatted at the base column rather than the accumulated
+// position.  This prevents them from wrapping internally and
+// ensures overflow is detected at this level.
 Candidates flat_or_split(FmtSteps steps, const std::vector<SplitAt>& splits,
-                         const FmtContext& ctx);
+                         const FmtContext& ctx, bool force_flat = false);

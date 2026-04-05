@@ -3,15 +3,19 @@
 
 // Format all Expr pieces using the flat context, adjusting the
 // context after each piece to reflect the accumulated width.
-static void format_flat(FmtSteps& steps, const FmtContext& ctx)
+// When force_flat is true, sub-expressions are formatted at the
+// base column (ctx) rather than the accumulated position, so they
+// don't try to wrap internally - overflow is detected at this level.
+static void format_flat(FmtSteps& steps, const FmtContext& ctx,
+                        bool force_flat)
 	{
 	int used = 0;
 	for ( auto& s : steps )
 		{
 		if ( s.kind == FmtStep::Expr )
 			{
-			auto c = best(format_expr(*s.node, ctx.After(used)));
-			s.text = c.Fmt();
+			auto sub_ctx = force_flat ? ctx : ctx.After(used);
+			s.text = best(format_expr(*s.node, sub_ctx)).Fmt();
 			}
 		used += s.text.Size();
 		}
@@ -96,21 +100,17 @@ static Candidate build_split(const FmtSteps& steps, const SplitAt& sp,
 	int last_w = split.LastLineLen();
 	int lines = split.CountLines();
 
-	// Match the hand-tuned overflow: first line uses no-trail
-	// overflow (trailing content is on the continuation line),
-	// continuation uses the continuation context's overflow.
-	int first_ovf = ovf_no_trail(first.Size(), ctx);
-	int rest_ovf = rest.TextOverflow(cont.Col(), ctx.MaxCol());
-	int split_ovf = first_ovf + rest_ovf;
+	int split_ovf = split.TextOverflow(ctx.Col(),
+					ctx.MaxCol() - ctx.Trail());
 
 	return {std::move(split), last_w, lines, split_ovf, ctx.Col()};
 	}
 
 Candidates flat_or_split(FmtSteps steps, const std::vector<SplitAt>& splits,
-                         const FmtContext& ctx)
+                         const FmtContext& ctx, bool force_flat)
 	{
 	// Format all sub-expressions assuming flat layout.
-	format_flat(steps, ctx);
+	format_flat(steps, ctx, force_flat);
 
 	auto flat = concat(steps);
 	int lines = flat.CountLines();
@@ -120,8 +120,8 @@ Candidates flat_or_split(FmtSteps steps, const std::vector<SplitAt>& splits,
 	if ( lines > 1 )
 		{
 		int last_w = flat.LastLineLen();
-		int ovf = flat.TextOverflow(ctx.Col(), ctx.MaxCol());
-		result.push_back({std::move(flat), last_w, lines, ovf,
+		int fovf = flat.TextOverflow(ctx.Col(), ctx.MaxCol());
+		result.push_back({std::move(flat), last_w, lines, fovf,
 					ctx.Col()});
 		}
 	else

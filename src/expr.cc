@@ -307,35 +307,35 @@ Candidates SliceNode::Format(const FmtContext& ctx) const
 	{
 	auto lo = best(format_expr(*Child(2), ctx)).Fmt();
 	auto hi = best(format_expr(*Child(4), ctx)).Fmt();
-
-	auto lb = Child(1, Tag::LBracket);
-	auto rb = Child(5, Tag::RBracket);
-	auto base_cs = format_expr(*Child(0), ctx);
-	const auto& base = best(base_cs);
-
 	auto colon = Child(3, Tag::Colon);
-	Formatting sep(colon);
-	if ( ! lo.Empty() && ! hi.Empty() )
-		sep = " " + sep + " ";
 
-	Candidate flat(base.Fmt() + lb + lo + sep + hi + rb, ctx);
+	// When lo or hi is absent, no spaces around colon and no split.
+	if ( lo.Empty() || hi.Empty() )
+		{
+		Formatting sep(colon);
+		if ( ! lo.Empty() && ! hi.Empty() )
+			sep = " " + sep + " ";
+		auto flat = best(format_expr(*Child(0), ctx)).Fmt() +
+			Child(1, Tag::LBracket) + lo + sep + hi +
+			Child(5, Tag::RBracket);
+		return {Candidate(std::move(flat), ctx)};
+		}
 
-	if ( flat.Fits() || lo.Empty() || hi.Empty() )
-		return {flat};
-
-	// Split after ":" - continuation aligns after "[".
-	int bracket_col = ctx.Col() + base.Width() + lb->Width();
-	FmtContext hi_ctx = ctx.AtCol(bracket_col);
-	auto hi2 = best(format_expr(*Child(4), hi_ctx)).Fmt();
-
-	auto prefix = line_prefix(hi_ctx.Indent(), bracket_col);
-	Formatting split = base.Fmt() + lb + lo + " " + colon +
-			"\n" + prefix + hi2 + rb;
-	int last_w = hi2.Size() + rb->Width();
-	int split_ovf = ovf(last_w, hi_ctx);
-	int lines = 1 + hi2.CountLines();
-
-	return {flat, {split, last_w, lines, split_ovf, ctx.Col()}};
+	//  0       1     2      3      4       5      6      7
+	//  E(base) L([)  E(lo)  L(" ") L(:)    S(" ") E(hi)  L(])
+	// Split after ":" (4): hi aligns after "[" (piece 2).
+	// force_flat: prevent hi from wrapping internally - the
+	// colon split should handle overflow at this level.
+	return flat_or_split({
+		FmtStep::E(Child(0)),
+		FmtStep::L(Child(1, Tag::LBracket)),
+		FmtStep::E(Child(2)),
+		FmtStep::L(" "), FmtStep::L(colon), FmtStep::S(),
+		FmtStep::E(Child(4)),
+		FmtStep::L(Child(5, Tag::RBracket)),
+	}, {
+		{4, SplitAt::AlignWith, 2},
+	}, ctx, true);
 	}
 
 // Paren: (expr)
