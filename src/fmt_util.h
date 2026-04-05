@@ -54,7 +54,7 @@ Candidates flat_or_fill(const Formatting& prefix, const Formatting& open,
                       const std::string& open_comment = "",
                       const std::string& close_prefix = "");
 
-Candidate format_args_vertical(const std::string& open, const std::string& close,
+Candidate format_args_vertical(const Formatting& open, const Formatting& close,
                              const ArgComments& items, const FmtContext& ctx,
                              bool trailing_comma = false);
 

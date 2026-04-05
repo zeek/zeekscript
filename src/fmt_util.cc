@@ -470,7 +470,7 @@ Candidates flat_or_fill(const Formatting& prefix, const Formatting& open,
 	return result;
 	}
 
-Candidate format_args_vertical(const std::string& open, const std::string& close,
+Candidate format_args_vertical(const Formatting& open, const Formatting& close,
                              const ArgComments& items, const FmtContext& ctx,
                              bool trailing_comma)
 	{
@@ -480,18 +480,18 @@ Candidate format_args_vertical(const std::string& open, const std::string& close
 	auto body_pad = line_prefix(body_indent, body_col);
 	auto close_pad = line_prefix(ctx.Indent(), ctx.IndentCol());
 
-	auto text = open;
+	Formatting fmt(open);
 	int lines = 1;
 	int ovf = 0;
 
 	for ( size_t i = 0; i < items.size(); ++i )
 		{
-		text += "\n" + body_pad;
+		fmt += "\n" + body_pad;
 		++lines;
 
 		auto& it = items[i];
 		auto bc = best(format_expr(*it.arg, body_ctx));
-		text += bc.Text();
+		fmt += bc.Text();
 
 		int line_w = body_col + bc.Width();
 
@@ -500,23 +500,30 @@ Candidate format_args_vertical(const std::string& open, const std::string& close
 
 		if ( nc || trailing_comma )
 			{
-			std::string ct = nc ? nc->Text() : ",";
-			text += ct;
-			line_w += static_cast<int>(ct.size());
+			if ( nc )
+				{
+				fmt += nc;
+				line_w += nc->Width();
+				}
+			else
+				{
+				fmt += ",";
+				line_w += 1;
+				}
 			}
 
-		text += it.comment;
+		fmt += it.comment;
 		line_w += static_cast<int>(it.comment.size());
 
 		if ( line_w > ctx.MaxCol() )
 			ovf += line_w - ctx.MaxCol();
 		}
 
-	text += "\n" + close_pad + close;
+	fmt += "\n" + close_pad + close;
 	++lines;
 
-	int last_w = ctx.IndentCol() + static_cast<int>(close.size());
-	return {text, last_w, lines, ovf, ctx.Col()};
+	int last_w = ctx.IndentCol() + close.Size();
+	return {std::move(fmt), last_w, lines, ovf, ctx.Col()};
 	}
 
 // ------------------------------------------------------------------

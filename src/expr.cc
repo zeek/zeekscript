@@ -27,10 +27,9 @@ Candidates FieldAccessNode::Format(const FmtContext& ctx) const
 // Children: [0]=DOLLAR [1]=ASSIGN [2]=expr
 Candidates FieldAssignNode::Format(const FmtContext& ctx) const
 	{
-	auto dollar = Child(0, Tag::Dollar)->Text();
-	auto assign = Child(1, Tag::Assign)->Text();
-	auto prefix = dollar + Arg() + assign;
-	int pw = static_cast<int>(prefix.size());
+	auto prefix = Formatting(Child(0, Tag::Dollar)) + Arg() +
+			Child(1, Tag::Assign);
+	int pw = prefix.Size();
 
 	auto val_cs = format_expr(*Child(2), ctx.After(pw));
 	auto val = best(val_cs);
@@ -38,8 +37,8 @@ Candidates FieldAssignNode::Format(const FmtContext& ctx) const
 	return {Candidate(prefix + val.Text(), ctx)};
 	}
 
-static Candidates FormatConstructor_args(const std::string& open,
-	const std::string& close, const ArgComments& items,
+static Candidates FormatConstructor_args(const Formatting& open,
+	const Formatting& close, const ArgComments& items,
 	const FmtContext& ctx);
 
 // Call: func(args)
@@ -59,11 +58,9 @@ Candidates CallNode::Format(const FmtContext& ctx) const
 		return {func.Cat(lp).Cat(rp).In(ctx)};
 
 	// Trailing comma signals one-per-line intent.
-	auto lp_str = lp->Text();
-	auto rp_str = rp->Text();
+	auto open = Formatting(func.Text()) + lp;
 	if ( args_node->FindOptChild(Tag::TrailingComma) )
-		return {format_args_vertical(func.Text() + lp_str, rp_str,
-		                           items, ctx, true)};
+		return {format_args_vertical(open, rp, items, ctx, true)};
 
 	auto result = flat_or_fill(func.Text(), lp, rp, "", items, ctx,
 				args_node->TrailingComment());
@@ -73,8 +70,7 @@ Candidates CallNode::Format(const FmtContext& ctx) const
 	if ( items.size() >= 3 && result.size() > 1 &&
 	     result.back().Lines() == static_cast<int>(items.size()) )
 		{
-		auto prefix = func.Text() + lp_str;
-		int open_col = ctx.Col() + static_cast<int>(prefix.size());
+		int open_col = ctx.Col() + open.Size();
 		int inner_w = ctx.MaxCol() - open_col - 1;
 		FmtContext chk(ctx.Indent(), open_col, inner_w);
 
@@ -83,8 +79,8 @@ Candidates CallNode::Format(const FmtContext& ctx) const
 				return result;
 
 		result.pop_back();
-		result.push_back(format_args_vertical(prefix, rp_str, items,
-							ctx, false));
+		result.push_back(format_args_vertical(open, rp,
+							items, ctx, false));
 		}
 
 	return result;
@@ -113,12 +109,12 @@ std::string LambdaCapturesNode::BuildPrefix(const FmtContext& ctx) const
 	{
 	auto prefix = Child(0, Tag::Keyword)->Text();
 	auto captures = Child(2, Tag::Captures);
-	auto clb = captures->Child(0, Tag::LBracket)->Text();
-	auto crb = captures->Children().back()->Text();
+	auto clb = captures->Child(0, Tag::LBracket);
+	const auto& crb = captures->Children().back();
 	auto cap_items = collect_args(captures->Children());
 
 	if ( cap_items.empty() )
-		return prefix + clb + crb;
+		return prefix + clb->Text() + crb->Text();
 
 	auto cs = flat_or_fill(prefix, clb, crb, "", cap_items, ctx);
 	return best(cs).Text();
@@ -150,13 +146,13 @@ Candidates LambdaNode::FormatLambda(const std::string& prefix,
 
 	// Params.
 	auto params = Child(pp, Tag::Params);
-	auto lp = params->Child(0, Tag::LParen)->Text();
-	auto rp = params->Children().back()->Text();
+	auto lp = params->Child(0, Tag::LParen);
+	const auto& rp = params->Children().back();
 	auto items = collect_args(params->Children());
 	std::string sig;
 
 	if ( items.empty() )
-		sig = prefix + lp + rp + ret_str;
+		sig = prefix + lp->Text() + rp->Text() + ret_str;
 	else
 		{
 		auto cs = flat_or_fill(prefix, lp, rp, ret_str, items, ctx);
@@ -179,20 +175,21 @@ Candidates LambdaNode::FormatLambda(const std::string& prefix,
 	}
 
 // Shared constructor layout: flat or vertical (one per line).
-static Candidates FormatConstructor_args(const std::string& open,
-	const std::string& close, const ArgComments& items,
+static Candidates FormatConstructor_args(const Formatting& open,
+	const Formatting& close, const ArgComments& items,
 	const FmtContext& ctx)
 	{
 	Candidates result;
 
 	if ( ! has_breaks(items) )
 		{
-		int open_w = static_cast<int>(open.size());
-		int close_w = static_cast<int>(close.size());
+		int open_w = open.Size();
+		int close_w = close.Size();
 		FmtContext args_ctx(ctx.Indent(), ctx.Col() + open_w,
 		                    ctx.Width() - open_w - close_w);
 		auto flat_args = format_args_flat(items, args_ctx);
-		auto flat_c = Candidate(open + flat_args.Text() + close, ctx);
+		auto flat_fmt = open + flat_args.Text() + close;
+		Candidate flat_c(std::move(flat_fmt), ctx);
 		result.push_back(flat_c);
 
 		if ( flat_c.Ovf() == 0 )
@@ -207,10 +204,10 @@ static Candidates FormatConstructor_args(const std::string& open,
 // Children: [0]=KEYWORD [1]=LPAREN ... [last]=RPAREN
 Candidates ConstructorNode::Format(const FmtContext& ctx) const
 	{
-	auto kw = Child(0, Tag::Keyword)->Text();
-	auto lp = Child(1, Tag::LParen)->Text();
-	auto rp = Children().back()->Text();
-	auto open = kw + lp;
+	auto kw = Child(0, Tag::Keyword);
+	auto lp = Child(1, Tag::LParen);
+	const auto& rp = Children().back();
+	auto open = Formatting(kw) + lp;
 
 	auto items = collect_args(Children());
 	if ( items.empty() )
@@ -282,8 +279,6 @@ Candidates IndexLiteralNode::Format(const FmtContext& ctx) const
 	// When every item has a trailing comment, use vertical indented
 	// layout (each item on its own line).  Otherwise use fill, which
 	// packs items and wraps after any trailing comment.
-	auto lb_str = lb->Text();
-	auto rb_str = rb->Text();
 	if ( has_breaks(items) )
 		{
 		bool all_trailing = true;
@@ -299,7 +294,7 @@ Candidates IndexLiteralNode::Format(const FmtContext& ctx) const
 			}
 
 		if ( all_trailing )
-			return {format_args_vertical(lb_str, rb_str, items,
+			return {format_args_vertical(lb, rb, items,
 				ctx, has_trailing_comma)};
 		}
 

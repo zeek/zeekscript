@@ -55,13 +55,13 @@ Candidates TypeParamNode::Format(const FmtContext& ctx) const
 			}
 		}
 
-	std::string suffix;
+	Formatting suffix;
 	if ( of_type )
-		suffix = " " + FindChild(Tag::Keyword)->Text() + " " +
+		suffix = " " + FindChild(Tag::Keyword) + " " +
 			best(format_expr(*of_type, ctx)).Text();
 
 	if ( bt_items.empty() )
-		return {Candidate(keyword + suffix, ctx)};
+		return {Candidate(Formatting(keyword) + suffix, ctx)};
 
 	return flat_or_fill(keyword, FindChild(Tag::LBracket),
 		FindChild(Tag::RBracket), suffix, bt_items, ctx);
@@ -96,12 +96,11 @@ Candidates TypeFuncNode::Format(const FmtContext& ctx) const
 	const auto& keyword = Arg();
 
 	// Return type suffix.
-	std::string ret_str;
+	Formatting ret_str;
 	if ( auto returns = FindOptChild(Tag::Returns) )
 		{
-		auto colon = FindChild(Tag::Colon)->Text();
 		if ( auto rt = returns->FindTypeChild() )
-			ret_str = colon + " " +
+			ret_str = Formatting(FindChild(Tag::Colon)) + " " +
 				best(format_expr(*rt, ctx)).Text();
 		}
 

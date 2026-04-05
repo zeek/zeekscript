@@ -44,10 +44,9 @@ Candidates KeywordStmtNode::Format(const FmtContext& ctx) const
 		return build_layout({tok(kw), soft_sp, items[0].arg,
 					tok(semi)}, ctx);
 
-	auto keyword = kw->Text();
 	int semi_w = semi->Width();
 	FmtContext inner = ctx.Reserve(semi_w);
-	auto cs = flat_or_fill(keyword + " ", "", "", "", items, inner);
+	auto cs = flat_or_fill(Formatting(kw) + " ", "", "", "", items, inner);
 
 	return append_suffix(cs, semi, ctx.Col());
 	}
@@ -58,13 +57,13 @@ Candidates EventStmtNode::Format(const FmtContext& ctx) const
 	{
 	auto args_node = Child(2, Tag::Args);
 	auto semi = Child(3, Tag::Semi);
-	auto prefix = Child(0, Tag::Keyword)->Text() + " " + Arg();
+	auto prefix = Formatting(Child(0, Tag::Keyword)) + " " + Arg();
 	auto lp = args_node->Child(0, Tag::LParen);
 	const auto& rp = args_node->Children().back();
 	auto items = collect_args(args_node->Children());
 
 	if ( items.empty() )
-		return {Candidate(Formatting(prefix) + lp + rp + semi, ctx)};
+		return {Candidate(prefix + lp + rp + semi, ctx)};
 
 	int semi_w = semi->Width();
 	FmtContext inner = ctx.Reserve(semi_w);
