@@ -127,8 +127,8 @@ private:
 
 extern const LayoutItem soft_sp;
 
-// Token literal: emits node->Text() and forces the next soft_sp
-// to break if the token has a trailing comment.
+// Token literal: wraps the node in a lazy Formatting piece and
+// forces the next soft_sp to break if it has a trailing comment.
 LayoutItem tok(const NodePtr& n);
 
 // Build layout candidates from a sequence of components using

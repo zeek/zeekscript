@@ -1,5 +1,6 @@
 #include <algorithm>
 #include <cassert>
+#include <climits>
 
 #include "cand.h"
 #include "layout.h"
@@ -15,7 +16,7 @@ Candidate::Candidate(Formatting t, const FmtContext& ctx)
 int Candidate::ComputeSpread(const std::string& t, int first_col)
 	{
 	int max_w = 0;
-	int min_w = 99999;
+	int min_w = INT_MAX;
 	int line_w = first_col;
 
 	for ( char c : t )

@@ -105,7 +105,7 @@ public:
 	int Find(char c) const;
 	bool Contains(char c) const { return Find(c) >= 0; }
 
-	// Multi-line text metrics (delegate to Str() for now).
+	// Multi-line text metrics (walk pieces directly).
 	int LastLineLen() const;
 	int CountLines() const;
 	int TextOverflow(int start_col, int max_col) const;
