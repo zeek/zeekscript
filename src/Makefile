@@ -19,7 +19,7 @@ main.o: layout.h formatting.h node.h parser.h tag.h
 node.o: condition_block.h expr.h layout.h formatting.h node.h stmt.h tag.h
 parser.o: formatting.h node.h parser.h tag.h
 tag.o: tag.h
-formatting.o: formatting.h
+formatting.o: formatting.h node.h
 core.o: fmt_util.h layout.h formatting.h node.h tag.h
 fmt_util.o: fmt_util.h layout.h formatting.h node.h stmt.h tag.h
 expr.o: expr.h fmt_util.h layout.h formatting.h node.h tag.h

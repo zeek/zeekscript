@@ -1,4 +1,17 @@
 #include "formatting.h"
+#include "node.h"
+
+#include <cassert>
+
+Formatting::Formatting(const Node* n)
+	{
+	assert(n->IsToken() || ! n->Args().empty());
+	auto t = n->Text();
+	total = t.size();
+	dirty = total > 0;
+	if ( total > 0 )
+		pieces.emplace_back(std::move(t));
+	}
 
 // FmtPiece methods (need complete Formatting type).
 

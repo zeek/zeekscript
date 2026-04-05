@@ -7,6 +7,7 @@
 #include <vector>
 
 class Formatting;
+class Node;
 
 // A piece of formatted output: a borrowed view (for string literals),
 // an owned string, or a shared reference to another Formatting.
@@ -56,6 +57,10 @@ public:
 		if ( total > 0 )
 			pieces.emplace_back(std::move(s));
 		}
+
+	// Construct from a leaf node (token or atom).  Asserts the
+	// node is not compound.
+	Formatting(const Node* n);
 
 	Formatting& operator+=(const Formatting& o);
 	Formatting& operator+=(Formatting&& o);
