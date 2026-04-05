@@ -25,9 +25,16 @@ public:
 	int Find(char c) const;
 	void AppendTo(std::string& out) const;
 	void PopBack();
+	int CountNewlines() const;
+	int AfterLastNewline() const;
 
 private:
+	friend class Formatting;
+
 	const std::string& NodeText() const;
+	std::string_view TextView() const;
+	void AccumOverflow(int& col, int max_col, int& ovf) const;
+	void AccumMaxOverflow(int& col, int max_col, int& max_ovf) const;
 
 	std::variant<std::string_view, std::string,
 	             std::shared_ptr<Formatting>, NodePtr> data;
@@ -108,6 +115,11 @@ public:
 	Formatting Substr(size_t pos, size_t len = std::string::npos) const;
 
 private:
+	friend class FmtPiece;
+
+	void AccumOverflow(int& col, int max_col, int& ovf) const;
+	void AccumMaxOverflow(int& col, int max_col, int& max_ovf) const;
+
 	std::vector<FmtPiece> pieces;
 	size_t total = 0;
 	mutable std::string cache;

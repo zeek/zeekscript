@@ -30,6 +30,7 @@ size_t FmtPiece::Size() const
 		return s->size();
 	if ( auto* fp = std::get_if<std::shared_ptr<Formatting>>(&data) )
 		return (*fp)->Size();
+
 	return NodeText().size();
 	}
 
@@ -38,15 +39,14 @@ int FmtPiece::Find(char c) const
 	if ( auto* sv = std::get_if<std::string_view>(&data) )
 		{
 		auto pos = sv->find(c);
-		return pos == std::string_view::npos
-			? -1 : static_cast<int>(pos);
+		return pos == std::string_view::npos ?
+				-1 : static_cast<int>(pos);
 		}
 
 	if ( auto* s = std::get_if<std::string>(&data) )
 		{
 		auto pos = s->find(c);
-		return pos == std::string::npos
-			? -1 : static_cast<int>(pos);
+		return pos == std::string::npos ? -1 : static_cast<int>(pos);
 		}
 
 	if ( auto* fp = std::get_if<std::shared_ptr<Formatting>>(&data) )
@@ -66,6 +66,87 @@ void FmtPiece::AppendTo(std::string& out) const
 		out += (*fp)->Str();
 	else
 		out += NodeText();
+	}
+
+std::string_view FmtPiece::TextView() const
+	{
+	if ( auto* sv = std::get_if<std::string_view>(&data) )
+		return *sv;
+	if ( auto* s = std::get_if<std::string>(&data) )
+		return *s;
+
+	return NodeText();
+	}
+
+int FmtPiece::CountNewlines() const
+	{
+	if ( auto* fp = std::get_if<std::shared_ptr<Formatting>>(&data) )
+		return (*fp)->CountLines() - 1;
+
+	int count = 0;
+	for ( char c : TextView() )
+		if ( c == '\n' )
+			++count;
+
+	return count;
+	}
+
+int FmtPiece::AfterLastNewline() const
+	{
+	if ( auto* fp = std::get_if<std::shared_ptr<Formatting>>(&data) )
+		{
+		int ll = (*fp)->LastLineLen();
+		int sz = (*fp)->Size();
+		return (ll == sz) ? -1 : ll;
+		}
+
+	auto sv = TextView();
+	auto pos = sv.rfind('\n');
+	return pos == std::string_view::npos ?
+		-1 : static_cast<int>(sv.size() - pos - 1);
+	}
+
+void FmtPiece::AccumOverflow(int& col, int max_col, int& ovf) const
+	{
+	if ( auto* fp = std::get_if<std::shared_ptr<Formatting>>(&data) )
+		{
+		(*fp)->AccumOverflow(col, max_col, ovf);
+		return;
+		}
+
+	for ( char c : TextView() )
+		if ( c == '\n' )
+			{
+			if ( col > max_col )
+				ovf += col - max_col;
+			col = 0;
+			}
+		else
+			++col;
+	}
+
+void FmtPiece::AccumMaxOverflow(int& col, int max_col, int& max_ovf) const
+	{
+	if ( auto* fp = std::get_if<std::shared_ptr<Formatting>>(&data) )
+		{
+		(*fp)->AccumMaxOverflow(col, max_col, max_ovf);
+		return;
+		}
+
+	for ( char c : TextView() )
+		{
+		if ( c == '\n' )
+			{
+			int ovf = std::max(0, col - max_col);
+			if ( ovf > max_ovf )
+				max_ovf = ovf;
+			col = 0;
+			}
+		else if ( c == '\t' )
+			col = (col / INDENT_WIDTH + 1) * INDENT_WIDTH;
+		else
+			++col;
+		}
 	}
 
 void FmtPiece::PopBack()
@@ -188,68 +269,57 @@ Formatting Formatting::Substr(size_t pos, size_t len) const
 
 int Formatting::CountLines() const
 	{
-	const auto& s = Str();
-	int n = 1;
-	for ( char c : s )
-		if ( c == '\n' )
-			++n;
-	return n;
+	int n = 0;
+	for ( const auto& p : pieces )
+		n += p.CountNewlines();
+	return n + 1;
 	}
 
 int Formatting::LastLineLen() const
 	{
-	const auto& s = Str();
-	auto n = s.size();
-	auto pos = s.rfind('\n');
-	if ( pos != std::string::npos )
-		n -= (pos + 1);
-	return static_cast<int>(n);
+	int len = 0;
+
+	for ( int i = static_cast<int>(pieces.size()) - 1; i >= 0; --i )
+		{
+		int aln = pieces[i].AfterLastNewline();
+		if ( aln >= 0 )
+			return len + aln;
+		len += static_cast<int>(pieces[i].Size());
+		}
+
+	return len;
+	}
+
+void Formatting::AccumOverflow(int& col, int max_col, int& ovf) const
+	{
+	for ( const auto& p : pieces )
+		p.AccumOverflow(col, max_col, ovf);
 	}
 
 int Formatting::TextOverflow(int start_col, int max_col) const
 	{
-	const auto& s = Str();
+	int col = start_col;
 	int ovf = 0;
-	int pos = 0;
-	int line_start_col = start_col;
+	AccumOverflow(col, max_col, ovf);
 
-	for ( size_t j = 0; j < s.size(); ++j )
-		if ( s[j] == '\n' )
-			{
-			int line_w = static_cast<int>(j) - pos + line_start_col;
-			if ( line_w > max_col )
-				ovf += line_w - max_col;
-			pos = static_cast<int>(j) + 1;
-			line_start_col = 0;
-			}
-
-	int final_w = static_cast<int>(s.size()) - pos + line_start_col;
-	if ( final_w > max_col )
-		ovf += final_w - max_col;
+	if ( col > max_col )
+		ovf += col - max_col;
 
 	return ovf;
 	}
 
+void Formatting::AccumMaxOverflow(int& col, int max_col,
+                                  int& max_ovf) const
+	{
+	for ( const auto& p : pieces )
+		p.AccumMaxOverflow(col, max_col, max_ovf);
+	}
+
 int Formatting::MaxLineOverflow(int start_col, int max_col) const
 	{
-	const auto& s = Str();
-	int max_ovf = 0;
 	int col = start_col;
-
-	for ( char c : s )
-		{
-		if ( c == '\n' )
-			{
-			int ovf = std::max(0, col - max_col);
-			if ( ovf > max_ovf )
-				max_ovf = ovf;
-			col = 0;
-			}
-		else if ( c == '\t' )
-			col = (col / INDENT_WIDTH + 1) * INDENT_WIDTH;
-		else
-			++col;
-		}
+	int max_ovf = 0;
+	AccumMaxOverflow(col, max_col, max_ovf);
 
 	int ovf = std::max(0, col - max_col);
 	if ( ovf > max_ovf )
