@@ -1,7 +1,7 @@
 #pragma once
 
-// Internal header shared across formatter translation units.
-// Not part of the public API - use formatter.h for that.
+// Shared formatting utilities: overflow helpers, arg collection,
+// flat/fill/vertical layout, and statement list formatting.
 
 #include <string>
 #include <vector>
@@ -58,6 +58,5 @@ Candidate format_args_vertical(const std::string& open, const std::string& close
                              const ArgComments& items, const FmtContext& ctx,
                              bool trailing_comma = false);
 
-// stmt.cc
 std::string format_stmt_list(const NodeVec& nodes, const FmtContext& ctx,
                            bool skip_leading_blanks = false);

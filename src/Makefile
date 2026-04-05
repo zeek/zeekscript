@@ -2,7 +2,7 @@ CXX ?= c++
 CXXFLAGS ?= -std=c++17 -Wall -Wextra -g
 TARGET = zeek-format
 
-SRCS = main.cc node.cc parser.cc tag.cc core.cc args.cc expr.cc type.cc \
+SRCS = main.cc node.cc parser.cc tag.cc core.cc fmt_util.cc expr.cc type.cc \
        decl.cc stmt.cc top.cc condition_block.cc
 OBJS = $(SRCS:.cc=.o)
 
@@ -19,14 +19,14 @@ main.o: formatter.h node.h parser.h tag.h
 node.o: node.h tag.h condition_block.h expr.h formatter.h stmt.h
 parser.o: parser.h node.h tag.h
 tag.o: tag.h
-core.o: fmt_internal.h formatter.h node.h tag.h
-args.o: fmt_internal.h formatter.h node.h tag.h
-expr.o: expr.h fmt_internal.h formatter.h node.h tag.h
-type.o: expr.h fmt_internal.h formatter.h node.h tag.h
-decl.o: fmt_internal.h formatter.h node.h stmt.h tag.h
-stmt.o: fmt_internal.h formatter.h node.h stmt.h tag.h
-top.o: fmt_internal.h formatter.h node.h tag.h
-condition_block.o: condition_block.h fmt_internal.h formatter.h node.h tag.h
+core.o: fmt_util.h formatter.h node.h tag.h
+fmt_util.o: fmt_util.h formatter.h node.h stmt.h tag.h
+expr.o: expr.h fmt_util.h formatter.h node.h tag.h
+type.o: expr.h fmt_util.h formatter.h node.h tag.h
+decl.o: fmt_util.h formatter.h node.h stmt.h tag.h
+stmt.o: fmt_util.h formatter.h node.h stmt.h tag.h
+top.o: fmt_util.h formatter.h node.h tag.h
+condition_block.o: condition_block.h fmt_util.h formatter.h node.h tag.h
 
 SHELL = /bin/bash
 

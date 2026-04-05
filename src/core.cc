@@ -1,7 +1,7 @@
 #include <algorithm>
 #include <cassert>
 
-#include "fmt_internal.h"
+#include "fmt_util.h"
 
 // Line prefix: tabs for indent, spaces for remaining offset
 std::string line_prefix(int indent, int col)
@@ -95,95 +95,6 @@ const Candidate& best(const Candidates& cs)
 			result = &cs[i];
 
 	return *result;
-	}
-
-int ovf(int candidate_w, const FmtContext& ctx)
-	{
-	return std::max(0, candidate_w - ctx.Width() + ctx.Trail());
-	}
-
-int ovf_no_trail(int candidate_w, const FmtContext& ctx)
-	{
-	return std::max(0, candidate_w - ctx.Width());
-	}
-
-int fit_col(int align_col, int w, int max_col)
-	{
-	if ( align_col + w <= max_col - 1 )
-		return align_col;
-	return max_col - 1 - w;
-	}
-
-int count_lines(const std::string& s)
-	{
-	int n = 1;
-	for ( char c : s )
-		if ( c == '\n' )
-			++n;
-	return n;
-	}
-
-int last_line_len(const std::string& s)
-	{
-	auto n = s.size();
-	auto pos = s.rfind('\n');
-	if ( pos != std::string::npos )
-		n -= (pos + 1);
-	return static_cast<int>(n);
-	}
-
-int text_overflow(const std::string& text, int start_col, int max_col)
-	{
-	int ovf = 0;
-	int pos = 0;
-	int line_start_col = start_col;
-
-	for ( size_t j = 0; j < text.size(); ++j )
-		if ( text[j] == '\n' )
-			{
-			int line_w = static_cast<int>(j) - pos + line_start_col;
-			if ( line_w > max_col )
-				ovf += line_w - max_col;
-			pos = static_cast<int>(j) + 1;
-			line_start_col = 0;
-			}
-
-	// Check the last line too.
-	int final_w = static_cast<int>(text.size()) - pos + line_start_col;
-	if ( final_w > max_col )
-		ovf += final_w - max_col;
-
-	return ovf;
-	}
-
-// Like text_overflow but returns the maximum overflow of any single
-// line rather than the sum.  Handles tab indentation correctly
-// (each tab = INDENT_WIDTH columns).
-int max_line_overflow(const std::string& text, int start_col, int max_col)
-	{
-	int max_ovf = 0;
-	int col = start_col;
-
-	for ( char c : text )
-		{
-		if ( c == '\n' )
-			{
-			int ovf = std::max(0, col - max_col);
-			if ( ovf > max_ovf )
-				max_ovf = ovf;
-			col = 0;
-			}
-		else if ( c == '\t' )
-			col = (col / INDENT_WIDTH + 1) * INDENT_WIDTH;
-		else
-			++col;
-		}
-
-	int ovf = std::max(0, col - max_col);
-	if ( ovf > max_ovf )
-		max_ovf = ovf;
-
-	return max_ovf;
 	}
 
 // Layout combinator

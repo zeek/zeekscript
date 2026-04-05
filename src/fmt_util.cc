@@ -1,6 +1,100 @@
 #include <algorithm>
 
-#include "fmt_internal.h"
+#include "fmt_util.h"
+#include "stmt.h"
+
+// ------------------------------------------------------------------
+// Overflow and text measurement helpers
+// ------------------------------------------------------------------
+
+int ovf(int candidate_w, const FmtContext& ctx)
+	{
+	return std::max(0, candidate_w - ctx.Width() + ctx.Trail());
+	}
+
+int ovf_no_trail(int candidate_w, const FmtContext& ctx)
+	{
+	return std::max(0, candidate_w - ctx.Width());
+	}
+
+int fit_col(int align_col, int w, int max_col)
+	{
+	if ( align_col + w <= max_col - 1 )
+		return align_col;
+	return max_col - 1 - w;
+	}
+
+int count_lines(const std::string& s)
+	{
+	int n = 1;
+	for ( char c : s )
+		if ( c == '\n' )
+			++n;
+	return n;
+	}
+
+int last_line_len(const std::string& s)
+	{
+	auto n = s.size();
+	auto pos = s.rfind('\n');
+	if ( pos != std::string::npos )
+		n -= (pos + 1);
+	return static_cast<int>(n);
+	}
+
+int text_overflow(const std::string& text, int start_col, int max_col)
+	{
+	int ovf = 0;
+	int pos = 0;
+	int line_start_col = start_col;
+
+	for ( size_t j = 0; j < text.size(); ++j )
+		if ( text[j] == '\n' )
+			{
+			int line_w = static_cast<int>(j) - pos + line_start_col;
+			if ( line_w > max_col )
+				ovf += line_w - max_col;
+			pos = static_cast<int>(j) + 1;
+			line_start_col = 0;
+			}
+
+	// Check the last line too.
+	int final_w = static_cast<int>(text.size()) - pos + line_start_col;
+	if ( final_w > max_col )
+		ovf += final_w - max_col;
+
+	return ovf;
+	}
+
+// Like text_overflow but returns the maximum overflow of any single
+// line rather than the sum.  Handles tab indentation correctly
+// (each tab = INDENT_WIDTH columns).
+int max_line_overflow(const std::string& text, int start_col, int max_col)
+	{
+	int max_ovf = 0;
+	int col = start_col;
+
+	for ( char c : text )
+		{
+		if ( c == '\n' )
+			{
+			int ovf = std::max(0, col - max_col);
+			if ( ovf > max_ovf )
+				max_ovf = ovf;
+			col = 0;
+			}
+		else if ( c == '\t' )
+			col = (col / INDENT_WIDTH + 1) * INDENT_WIDTH;
+		else
+			++col;
+		}
+
+	int ovf = std::max(0, col - max_col);
+	if ( ovf > max_ovf )
+		max_ovf = ovf;
+
+	return max_ovf;
+	}
 
 // ------------------------------------------------------------------
 // Arg list collection
@@ -423,4 +517,103 @@ Candidate format_args_vertical(const std::string& open, const std::string& close
 
 	int last_w = ctx.IndentCol() + static_cast<int>(close.size());
 	return {text, last_w, lines, ovf, ctx.Col()};
+	}
+
+// ------------------------------------------------------------------
+// Statement list formatting
+// ------------------------------------------------------------------
+
+std::string format_stmt_list(const NodeVec& nodes, const FmtContext& ctx,
+                           bool skip_leading_blanks)
+	{
+	const int max_col = ctx.MaxCol();
+	int preproc_depth = 0;
+	FmtContext cur_ctx = ctx;
+	auto pad = line_prefix(cur_ctx.Indent(), cur_ctx.Col());
+
+	std::string result;
+	bool seen_content = false;
+
+	for ( size_t i = 0; i < nodes.size(); ++i )
+		{
+		const auto& node = *nodes[i];
+		Tag t = node.GetTag();
+
+		if ( t == Tag::Blank )
+			{
+			if ( skip_leading_blanks && ! seen_content )
+				continue;
+			result += "\n";
+			continue;
+			}
+
+		seen_content = true;
+
+		result += node.EmitPreComments(pad);
+
+		// Preprocessor directives.
+		if ( t == Tag::Preproc || t == Tag::PreprocCond )
+			{
+			auto& pp = static_cast<const PreprocBaseNode&>(node);
+
+			if ( pp.ClosesDepth() )
+				{
+				--preproc_depth;
+				int new_indent = preproc_depth;
+				int new_col = new_indent * INDENT_WIDTH;
+				cur_ctx = FmtContext(new_indent, new_col,
+						max_col - new_col);
+				pad = line_prefix(new_indent, new_col);
+				}
+
+			if ( pp.AtColumnZero() )
+				result += pp.FormatText() + "\n";
+			else
+				result += pad + pp.FormatText() + "\n";
+
+			if ( pp.OpensDepth() )
+				{
+				++preproc_depth;
+				int new_indent = preproc_depth;
+				int new_col = new_indent * INDENT_WIDTH;
+				cur_ctx = FmtContext(new_indent, new_col,
+						max_col - new_col);
+				pad = line_prefix(new_indent, new_col);
+				}
+
+			continue;
+			}
+
+		// Consume a following SEMI sibling.
+		const Node* sibling_semi = nullptr;
+		if ( i + 1 < nodes.size() &&
+		     nodes[i + 1]->GetTag() == Tag::Semi )
+			{
+			sibling_semi = nodes[i + 1].get();
+			++i;
+			}
+
+		auto semi_str = sibling_semi ? sibling_semi->Text() : "";
+
+		// Check for trailing comment on the node or its SEMI.
+		auto comment_text = node.TrailingComment();
+		if ( comment_text.empty() && sibling_semi )
+			comment_text = sibling_semi->TrailingComment();
+
+		int comment_w = static_cast<int>(comment_text.size());
+		int trail_w = static_cast<int>(semi_str.size()) + comment_w;
+
+		std::string stmt_text;
+
+		// Bare KEYWORD at statement level: break, next, etc.
+		if ( t == Tag::Keyword )
+			stmt_text = node.Arg();
+		else
+			stmt_text = best(node.Format(
+					cur_ctx.Reserve(trail_w))).Text();
+
+		result += pad + stmt_text + semi_str + comment_text + "\n";
+		}
+
+	return result;
 	}

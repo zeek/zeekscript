@@ -1,7 +1,7 @@
 #include <algorithm>
 
 #include "expr.h"
-#include "fmt_internal.h"
+#include "fmt_util.h"
 
 Candidates AtomNode::Format(const FmtContext& ctx) const
 	{

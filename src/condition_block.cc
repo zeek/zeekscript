@@ -1,5 +1,5 @@
 #include "condition_block.h"
-#include "fmt_internal.h"
+#include "fmt_util.h"
 
 // ------------------------------------------------------------------
 // Shared condition-block formatting: keyword ( condition ) body

@@ -1,4 +1,4 @@
-#include "fmt_internal.h"
+#include "fmt_util.h"
 #include "stmt.h"
 
 // Declarations: global/local/const/redef name [: type] [= init] [attrs] ;

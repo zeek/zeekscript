@@ -1,5 +1,5 @@
 #include "expr.h"
-#include "fmt_internal.h"
+#include "fmt_util.h"
 
 // TYPE-PARAMETERIZED: table[k] of v, set[t], vector of t
 Candidates TypeParamNode::Format(const FmtContext& ctx) const

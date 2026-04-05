@@ -1,6 +1,6 @@
 #include <cstdio>
 
-#include "fmt_internal.h"
+#include "fmt_util.h"
 #include "stmt.h"
 
 // Standalone comment at statement level.
@@ -280,101 +280,6 @@ bool PreprocBaseNode::AtColumnZero() const
 		return true;
 	const auto& d = Arg(0);
 	return d == "@else" || d == "@endif";
-	}
-
-std::string format_stmt_list(const NodeVec& nodes, const FmtContext& ctx,
-                           bool skip_leading_blanks)
-	{
-	const int max_col = ctx.MaxCol();
-	int preproc_depth = 0;
-	FmtContext cur_ctx = ctx;
-	auto pad = line_prefix(cur_ctx.Indent(), cur_ctx.Col());
-
-	std::string result;
-	bool seen_content = false;
-
-	for ( size_t i = 0; i < nodes.size(); ++i )
-		{
-		const auto& node = *nodes[i];
-		Tag t = node.GetTag();
-
-		if ( t == Tag::Blank )
-			{
-			if ( skip_leading_blanks && ! seen_content )
-				continue;
-			result += "\n";
-			continue;
-			}
-
-		seen_content = true;
-
-		result += node.EmitPreComments(pad);
-
-		// Preprocessor directives.
-		if ( t == Tag::Preproc || t == Tag::PreprocCond )
-			{
-			auto& pp = static_cast<const PreprocBaseNode&>(node);
-
-			if ( pp.ClosesDepth() )
-				{
-				--preproc_depth;
-				int new_indent = preproc_depth;
-				int new_col = new_indent * INDENT_WIDTH;
-				cur_ctx = FmtContext(new_indent, new_col,
-						max_col - new_col);
-				pad = line_prefix(new_indent, new_col);
-				}
-
-			if ( pp.AtColumnZero() )
-				result += pp.FormatText() + "\n";
-			else
-				result += pad + pp.FormatText() + "\n";
-
-			if ( pp.OpensDepth() )
-				{
-				++preproc_depth;
-				int new_indent = preproc_depth;
-				int new_col = new_indent * INDENT_WIDTH;
-				cur_ctx = FmtContext(new_indent, new_col,
-						max_col - new_col);
-				pad = line_prefix(new_indent, new_col);
-				}
-
-			continue;
-			}
-
-		// Consume a following SEMI sibling.
-		const Node* sibling_semi = nullptr;
-		if ( i + 1 < nodes.size() &&
-		     nodes[i + 1]->GetTag() == Tag::Semi )
-			{
-			sibling_semi = nodes[i + 1].get();
-			++i;
-			}
-
-		auto semi_str = sibling_semi ? sibling_semi->Text() : "";
-
-		// Check for trailing comment on the node or its SEMI.
-		auto comment_text = node.TrailingComment();
-		if ( comment_text.empty() && sibling_semi )
-			comment_text = sibling_semi->TrailingComment();
-
-		int comment_w = static_cast<int>(comment_text.size());
-		int trail_w = static_cast<int>(semi_str.size()) + comment_w;
-
-		std::string stmt_text;
-
-		// Bare KEYWORD at statement level: break, next, etc.
-		if ( t == Tag::Keyword )
-			stmt_text = node.Arg();
-		else
-			stmt_text = best(node.Format(
-					cur_ctx.Reserve(trail_w))).Text();
-
-		result += pad + stmt_text + semi_str + comment_text + "\n";
-		}
-
-	return result;
 	}
 
 // Format a BODY or BLOCK node as a Whitesmith-style braced block.

@@ -1,6 +1,6 @@
 #include <cstdio>
 
-#include "fmt_internal.h"
+#include "fmt_util.h"
 
 Candidates format_expr(const Node& node, const FmtContext& ctx)
 	{
