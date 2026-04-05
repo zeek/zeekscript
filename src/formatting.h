@@ -36,97 +36,66 @@ public:
 	Formatting() = default;
 
 	Formatting(const char* s)
+		: total(std::string_view(s).size()), dirty(total > 0)
 		{
-		std::string_view sv(s);
-
-		if ( ! sv.empty() )
-			{
-			total = sv.size();
-			pieces.emplace_back(sv);
-			dirty = true;
-			}
+		if ( total > 0 )
+			pieces.emplace_back(std::string_view(s));
 		}
 
 	Formatting(const std::string& s)
+		: total(s.size()), dirty(total > 0)
 		{
-		if ( ! s.empty() )
-			{
-			total = s.size();
+		if ( total > 0 )
 			pieces.emplace_back(s);
-			dirty = true;
-			}
 		}
 
 	Formatting(std::string&& s)
+		: total(s.size()), dirty(total > 0)
 		{
-		if ( ! s.empty() )
-			{
-			total = s.size();
+		if ( total > 0 )
 			pieces.emplace_back(std::move(s));
-			dirty = true;
-			}
 		}
 
 	Formatting& operator+=(const Formatting& o)
 		{
-		if ( o.total > 0 )
-			{
-			pieces.emplace_back(std::make_shared<Formatting>(o));
-			total += o.total;
-			dirty = true;
-			}
-
+		pieces.emplace_back(std::make_shared<Formatting>(o));
+		total += o.total;
+		dirty = true;
 		return *this;
 		}
 
 	Formatting& operator+=(Formatting&& o)
 		{
 		auto n = o.total;
-		if ( n > 0 )
-			{
-			pieces.emplace_back(
-				std::make_shared<Formatting>(std::move(o)));
-			total += n;
-			dirty = true;
-			}
-
+		pieces.emplace_back(
+			std::make_shared<Formatting>(std::move(o)));
+		total += n;
+		dirty = true;
 		return *this;
 		}
 
 	Formatting& operator+=(const std::shared_ptr<Formatting>& p)
 		{
-		if ( p && p->total > 0 )
-			{
-			pieces.emplace_back(p);
-			total += p->total;
-			dirty = true;
-			}
-
+		pieces.emplace_back(p);
+		total += p->total;
+		dirty = true;
 		return *this;
 		}
 
 	Formatting& operator+=(const std::string& s)
 		{
-		if ( ! s.empty() )
-			{
-			pieces.emplace_back(s);
-			total += s.size();
-			dirty = true;
-			}
-
+		pieces.emplace_back(s);
+		total += s.size();
+		dirty = true;
 		return *this;
 		}
 
 	Formatting& operator+=(const char* s)
 		{
 		std::string_view sv(s);
-		if ( ! sv.empty() )
-			{
-			pieces.emplace_back(sv);
-			total += sv.size();
-			dirty = true;
-			}
-
+		pieces.emplace_back(sv);
+		total += sv.size();
+		dirty = true;
 		return *this;
 		}
 
