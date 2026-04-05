@@ -138,8 +138,7 @@ static bool attr_list_needs_spaces(const Node& node, const FmtContext& ctx)
 		if ( ! val )
 			continue;
 
-		if ( best(format_expr(*val, ctx)).Text().find(' ') !=
-		     std::string::npos )
+		if ( best(format_expr(*val, ctx)).Fmt().Contains(' ') )
 			return true;
 		}
 

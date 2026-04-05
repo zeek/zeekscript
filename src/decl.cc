@@ -316,7 +316,7 @@ Candidates ModuleDeclNode::Format(const FmtContext& ctx) const
 // ------------------------------------------------------------------
 
 struct ParamEntry {
-	std::string text;
+	Formatting fmt;
 	NodePtr comma;		// COMMA before this param
 };
 
@@ -341,13 +341,13 @@ static std::vector<ParamEntry> format_param_entries(const Node& params,
 		if ( t != Tag::Param )
 			continue;
 
-		std::string text = p->Arg();
+		Formatting fmt(p->Arg());
 
 		if ( auto ptype = p->FindTypeChild() )
-			text += p->Child(0, Tag::Colon)->Text() + " " +
-				best(format_expr(*ptype, ctx)).Text();
+			fmt += Formatting(p->Child(0, Tag::Colon)) + " " +
+				best(format_expr(*ptype, ctx)).Fmt();
 
-		result.push_back({text, pending_comma});
+		result.push_back({fmt, pending_comma});
 		pending_comma = nullptr;
 		}
 
@@ -368,7 +368,7 @@ Candidates FuncDeclNode::Format(const FmtContext& ctx) const
 		auto& pe = pentries[i];
 		if ( pe.comma )
 			flat_params += Formatting(pe.comma) + " ";
-		flat_params += pe.text;
+		flat_params += pe.fmt;
 		}
 
 	// Return type suffix.
@@ -421,11 +421,11 @@ Candidates FuncDeclNode::Format(const FmtContext& ctx) const
 	for ( size_t i = 0; i < pentries.size(); ++i )
 		{
 		auto& pe = pentries[i];
-		int pw = static_cast<int>(pe.text.size());
+		int pw = pe.fmt.Size();
 
 		if ( i == 0 )
 			{
-			wrapped += pe.text;
+			wrapped += pe.fmt;
 			cur_col += pw;
 			continue;
 			}
@@ -434,7 +434,7 @@ Candidates FuncDeclNode::Format(const FmtContext& ctx) const
 		int need = sep_w + 1 + pw;
 		if ( cur_col + need <= max_col )
 			{
-			wrapped += Formatting(pe.comma) + " " + pe.text;
+			wrapped += Formatting(pe.comma) + " " + pe.fmt;
 			cur_col += need;
 			}
 		else
@@ -442,7 +442,7 @@ Candidates FuncDeclNode::Format(const FmtContext& ctx) const
 			int suffix = (i == pentries.size() - 1) ? 1 : 0;
 			int pcol = fit_col(align_col, pw + suffix, max_col);
 			auto ppad = line_prefix(ctx.Indent(), pcol);
-			wrapped += Formatting(pe.comma) + "\n" + ppad + pe.text;
+			wrapped += Formatting(pe.comma) + "\n" + ppad + pe.fmt;
 			cur_col = pcol + pw;
 			}
 		}

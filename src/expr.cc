@@ -492,14 +492,13 @@ Candidates BoolChainNode::Format(const FmtContext& ctx) const
 Candidates HasFieldNode::Format(const FmtContext& ctx) const
 	{
 	auto op_node = Child(1, Tag::Op);
-	auto rhs_text = best(format_expr(*Child(2), ctx)).Text();
-	int suffix_w = op_node->Width() +
-		static_cast<int>(rhs_text.size());
+	auto rhs = best(format_expr(*Child(2), ctx));
+	int suffix_w = op_node->Width() + rhs.Width();
 
 	auto lhs_cs = format_expr(*Child(0), ctx.Reserve(suffix_w));
 	auto lhs = best(lhs_cs);
 
-	auto fmt = lhs.Fmt() + op_node + rhs_text;
+	auto fmt = lhs.Fmt() + op_node + rhs.Fmt();
 
 	if ( lhs.Lines() <= 1 )
 		return {Candidate(std::move(fmt), ctx)};

@@ -169,7 +169,7 @@ Candidates SwitchNode::Format(const FmtContext& ctx) const
 		auto case_text = Formatting(c->Child(0, Tag::Keyword)) + " ";
 
 		// Collect formatted values and commas.
-		std::vector<std::string> vals;
+		std::vector<Formatting> vals;
 		NodeVec vcommas;
 		NodePtr vpending;
 
@@ -186,7 +186,7 @@ Candidates SwitchNode::Format(const FmtContext& ctx) const
 			if ( vc->IsToken() || vc->IsMarker() )
 				continue;
 
-			vals.push_back(best(format_expr(*vc, ctx)).Text());
+			vals.push_back(best(format_expr(*vc, ctx)).Fmt());
 			vcommas.push_back(vpending);
 			vpending = nullptr;
 			}
@@ -200,7 +200,7 @@ Candidates SwitchNode::Format(const FmtContext& ctx) const
 		for ( size_t i = 0; i < vals.size(); ++i )
 			{
 			auto& vi = vals[i];
-			int need = static_cast<int>(vi.size());
+			int need = vi.Size();
 			if ( i > 0 )
 				need += 2;
 
@@ -217,7 +217,7 @@ Candidates SwitchNode::Format(const FmtContext& ctx) const
 				}
 
 			case_text += vi;
-			cur_col += static_cast<int>(vi.size());
+			cur_col += vi.Size();
 			}
 
 		case_text += c->Child(3, Tag::Colon);
