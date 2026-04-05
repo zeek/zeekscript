@@ -461,12 +461,11 @@ Candidates FuncDeclNode::Format(const FmtContext& ctx) const
 		wrapped += "\n" + attr_pad + bare_attr;
 		}
 
-	wrapped += trail_str + block.Str();
+	wrapped += trail_str + block;
 
-	auto wrapped_str = wrapped.Str();
-	int last_w = last_line_len(wrapped_str);
-	int lines = count_lines(wrapped_str);
-	int ovf = text_overflow(wrapped_str, ctx.Col(), max_col);
+	int last_w = wrapped.LastLineLen();
+	int lines = wrapped.CountLines();
+	int ovf = wrapped.TextOverflow(ctx.Col(), max_col);
 
 	result.push_back({std::move(wrapped), last_w, lines, ovf, ctx.Col()});
 

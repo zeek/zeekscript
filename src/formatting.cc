@@ -1,4 +1,5 @@
 #include "formatting.h"
+#include "layout.h"
 #include "node.h"
 
 #include <cassert>
@@ -183,4 +184,76 @@ void Formatting::PopBack()
 Formatting Formatting::Substr(size_t pos, size_t len) const
 	{
 	return {Str().substr(pos, len)};
+	}
+
+int Formatting::CountLines() const
+	{
+	const auto& s = Str();
+	int n = 1;
+	for ( char c : s )
+		if ( c == '\n' )
+			++n;
+	return n;
+	}
+
+int Formatting::LastLineLen() const
+	{
+	const auto& s = Str();
+	auto n = s.size();
+	auto pos = s.rfind('\n');
+	if ( pos != std::string::npos )
+		n -= (pos + 1);
+	return static_cast<int>(n);
+	}
+
+int Formatting::TextOverflow(int start_col, int max_col) const
+	{
+	const auto& s = Str();
+	int ovf = 0;
+	int pos = 0;
+	int line_start_col = start_col;
+
+	for ( size_t j = 0; j < s.size(); ++j )
+		if ( s[j] == '\n' )
+			{
+			int line_w = static_cast<int>(j) - pos + line_start_col;
+			if ( line_w > max_col )
+				ovf += line_w - max_col;
+			pos = static_cast<int>(j) + 1;
+			line_start_col = 0;
+			}
+
+	int final_w = static_cast<int>(s.size()) - pos + line_start_col;
+	if ( final_w > max_col )
+		ovf += final_w - max_col;
+
+	return ovf;
+	}
+
+int Formatting::MaxLineOverflow(int start_col, int max_col) const
+	{
+	const auto& s = Str();
+	int max_ovf = 0;
+	int col = start_col;
+
+	for ( char c : s )
+		{
+		if ( c == '\n' )
+			{
+			int ovf = std::max(0, col - max_col);
+			if ( ovf > max_ovf )
+				max_ovf = ovf;
+			col = 0;
+			}
+		else if ( c == '\t' )
+			col = (col / INDENT_WIDTH + 1) * INDENT_WIDTH;
+		else
+			++col;
+		}
+
+	int ovf = std::max(0, col - max_col);
+	if ( ovf > max_ovf )
+		max_ovf = ovf;
+
+	return max_ovf;
 	}

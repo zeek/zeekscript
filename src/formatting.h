@@ -98,6 +98,12 @@ public:
 	int Find(char c) const;
 	bool Contains(char c) const { return Find(c) >= 0; }
 
+	// Multi-line text metrics (delegate to Str() for now).
+	int LastLineLen() const;
+	int CountLines() const;
+	int TextOverflow(int start_col, int max_col) const;
+	int MaxLineOverflow(int start_col, int max_col) const;
+
 	void PopBack();
 	Formatting Substr(size_t pos, size_t len = std::string::npos) const;
 
