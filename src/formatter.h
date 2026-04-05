@@ -89,7 +89,7 @@ public:
 
 	Candidate(Formatting t, const FmtContext& ctx)
 		: text(std::move(t)),
-		  width(static_cast<int>(text.size())),
+		  width(text.Size()),
 		  lines(1), spread(0)
 		{
 		int avail = ctx.Width() - ctx.Trail();
@@ -116,7 +116,7 @@ public:
 
 	Candidate(std::string t)
 		: text(std::move(t)),
-		  width(static_cast<int>(text.size())),
+		  width(text.Size()),
 		  lines(1), overflow(0), spread(0) { }
 
 	const std::string& Text() const { return text.Str(); }

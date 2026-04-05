@@ -183,7 +183,7 @@ Formatting Node::FormatAttrList(const FmtContext& ctx) const
 	Formatting text;
 	for ( const auto& s : FormatAttrStrings(ctx) )
 		{
-		if ( ! text.empty() )
+		if ( ! text.Empty() )
 			text += " ";
 		text += s;
 		}

@@ -120,8 +120,8 @@ static void append_case_body(const Node* body, Formatting& result,
 		return;
 
 	auto text = format_stmt_list(body->Children(), ctx.Indented());
-	if ( ! text.empty() && text.back() == '\n' )
-		text.pop_back();
+	if ( ! text.Empty() && text.Back() == '\n' )
+		text.PopBack();
 
 	result += "\n" + text;
 	}
@@ -321,10 +321,10 @@ Formatting Node::FormatWhitesmithBlock(const FmtContext& ctx) const
 	// If the closing brace has a trailing comment, move it
 	// to the last statement line, not the '}' itself.
 	auto rb_text = rb->Text();
-	if ( ! close_trail.empty() && ! body_text.empty() &&
-	     body_text.back() == '\n' )
+	if ( ! close_trail.empty() && ! body_text.Empty() &&
+	     body_text.Back() == '\n' )
 		{
-		body_text = body_text.substr(0, body_text.size() - 1) +
+		body_text = body_text.Substr(0, body_text.Size() - 1) +
 				close_trail + "\n";
 		// Already relocated - use bare brace.
 		rb_text = rb_text.substr(0,
@@ -343,8 +343,8 @@ static Formatting format_single_stmt_body(const Node& body, const FmtContext& ct
 	auto text = format_stmt_list(body.Children(), ctx.Indented());
 
 	// Strip trailing newline - the parent loop adds its own.
-	if ( ! text.empty() && text.back() == '\n' )
-		text.pop_back();
+	if ( ! text.Empty() && text.Back() == '\n' )
+		text.PopBack();
 
 	return text;
 	}

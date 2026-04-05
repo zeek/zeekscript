@@ -12,7 +12,7 @@ static std::string decl_suffix(const Node* attrs_node, const Node* semi_node,
 	if ( attrs_node )
 		{
 		auto as = attrs_node->FormatAttrList(ctx);
-		if ( ! as.empty() )
+		if ( ! as.Empty() )
 			suffix += " " + as.Str();
 		}
 
@@ -388,7 +388,7 @@ Candidates FuncDeclNode::Format(const FmtContext& ctx) const
 	if ( auto attrs = FindOptChild(Tag::AttrList) )
 		{
 		auto as = attrs->FormatAttrList(ctx);
-		if ( ! as.empty() )
+		if ( ! as.Empty() )
 			attr_str = " " + as.Str();
 		}
 
@@ -496,7 +496,7 @@ static Formatting format_field(const Node& node, const std::string& suffix,
 	if ( attrs )
 		{
 		auto as = attrs->FormatAttrList(ctx);
-		if ( ! as.empty() )
+		if ( ! as.Empty() )
 			attr_str = " " + as.Str();
 		}
 

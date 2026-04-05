@@ -108,12 +108,12 @@ FmtPtr IfElseNode::BuildFollowOn(const FmtContext& ctx) const
 	auto comments = else_node->EmitPreComments(stmt_pad);
 
 	// Strip trailing newline - the else line provides its own.
-	if ( ! comments->empty() && comments->back() == '\n' )
-		comments->pop_back();
+	if ( ! comments->Empty() && comments->Back() == '\n' )
+		comments->PopBack();
 
 	auto result = std::make_shared<Formatting>();
 
-	if ( has_blank || ! comments->empty() )
+	if ( has_blank || ! comments->Empty() )
 		*result += "\n";
 
 	*result += comments;

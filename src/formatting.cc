@@ -7,7 +7,7 @@ const std::string& Formatting::Str() const
 		cache.clear();
 		cache.reserve(total);
 		for ( const auto& p : pieces )
-			p.append_to(cache);
+			p.AppendTo(cache);
 		dirty = false;
 		}
 
@@ -20,36 +20,36 @@ int Formatting::Find(char c) const
 	return pos == std::string::npos ? -1 : static_cast<int>(pos);
 	}
 
-void Formatting::pop_back()
+void Formatting::PopBack()
 	{
-	while ( ! pieces.empty() && pieces.back().size() == 0 )
+	while ( ! pieces.empty() && pieces.back().Size() == 0 )
 		pieces.pop_back();
 
 	if ( ! pieces.empty() )
 		{
-		pieces.back().pop_back();
+		pieces.back().PopBack();
 		--total;
 		dirty = true;
 		}
 	}
 
-Formatting Formatting::substr(size_t pos, size_t len) const
+Formatting Formatting::Substr(size_t pos, size_t len) const
 	{
 	return {Str().substr(pos, len)};
 	}
 
 // FmtPiece methods (need complete Formatting type).
 
-size_t FmtPiece::size() const
+size_t FmtPiece::Size() const
 	{
 	if ( auto* sv = std::get_if<std::string_view>(&data) )
 		return sv->size();
 	if ( auto* s = std::get_if<std::string>(&data) )
 		return s->size();
-	return std::get<std::shared_ptr<Formatting>>(data)->size();
+	return std::get<std::shared_ptr<Formatting>>(data)->Size();
 	}
 
-void FmtPiece::append_to(std::string& out) const
+void FmtPiece::AppendTo(std::string& out) const
 	{
 	if ( auto* sv = std::get_if<std::string_view>(&data) )
 		out += *sv;
@@ -59,7 +59,7 @@ void FmtPiece::append_to(std::string& out) const
 		out += std::get<std::shared_ptr<Formatting>>(data)->Str();
 	}
 
-void FmtPiece::pop_back()
+void FmtPiece::PopBack()
 	{
 	if ( auto* sv = std::get_if<std::string_view>(&data) )
 		sv->remove_suffix(1);

@@ -16,10 +16,10 @@ public:
 	FmtPiece(std::string s) : data(std::move(s)) {}
 	FmtPiece(std::shared_ptr<Formatting> f) : data(std::move(f)) {}
 
-	// Defined after Formatting (needs complete type).
-	size_t size() const;
-	void append_to(std::string& out) const;
-	void pop_back();
+	// Defined in formatting.cc (needs complete Formatting type).
+	size_t Size() const;
+	void AppendTo(std::string& out) const;
+	void PopBack();
 
 private:
 	std::variant<std::string_view, std::string,
@@ -111,18 +111,17 @@ public:
 	// Materialize the cord into a single string.
 	const std::string& Str() const;
 
-	bool empty() const { return total == 0; }
-	size_t size() const { return total; }
+	bool Empty() const { return total == 0; }
 	int Size() const { return static_cast<int>(total); }
-	char back() const { return Str().back(); }
+	char Back() const { return Str().back(); }
 
 	// Search for a character in the materialized string.
 	// Returns position as int, or -1 if not found.
 	int Find(char c) const;
 	bool Contains(char c) const { return Find(c) >= 0; }
 
-	void pop_back();
-	Formatting substr(size_t pos, size_t len = std::string::npos) const;
+	void PopBack();
+	Formatting Substr(size_t pos, size_t len = std::string::npos) const;
 
 private:
 	std::vector<FmtPiece> pieces;
