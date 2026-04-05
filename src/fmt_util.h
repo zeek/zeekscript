@@ -14,10 +14,7 @@
 int ovf(int candidate_w, const FmtContext& ctx);
 int ovf_no_trail(int candidate_w, const FmtContext& ctx);
 int fit_col(int align_col, int w, int max_col);
-int count_lines(const std::string& s);
 int last_line_len(const std::string& s);
-int text_overflow(const std::string& text, int start_col, int max_col);
-int max_line_overflow(const std::string& text, int start_col, int max_col);
 
 // Arg lists with trailing comments.
 struct ArgComment
