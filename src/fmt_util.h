@@ -48,8 +48,8 @@ Candidate format_args_flat(const ArgComments& items, const FmtContext& ctx);
 Candidate format_args_fill(const ArgComments& items, int align_col, int indent,
                          const FmtContext& first_line_ctx);
 
-Candidates flat_or_fill(const std::string& prefix, const std::string& open,
-                      const std::string& close, const std::string& suffix,
+Candidates flat_or_fill(const Formatting& prefix, const Formatting& open,
+                      const Formatting& close, const Formatting& suffix,
                       const ArgComments& items, const FmtContext& ctx,
                       const std::string& open_comment = "",
                       const std::string& close_prefix = "");

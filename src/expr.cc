@@ -51,16 +51,18 @@ Candidates CallNode::Format(const FmtContext& ctx) const
 
 	auto args_node = Child(1, Tag::Args);
 
-	auto lp = args_node->Child(0, Tag::LParen)->Text();
-	auto rp = args_node->Children().back()->Text();
+	auto lp = args_node->Child(0, Tag::LParen);
+	const auto& rp = args_node->Children().back();
 	auto items = collect_args(args_node->Children());
 
 	if ( items.empty() )
-		return {func.Cat(lp + rp).In(ctx)};
+		return {func.Cat(lp).Cat(rp).In(ctx)};
 
 	// Trailing comma signals one-per-line intent.
+	auto lp_str = lp->Text();
+	auto rp_str = rp->Text();
 	if ( args_node->FindOptChild(Tag::TrailingComma) )
-		return {format_args_vertical(func.Text() + lp, rp,
+		return {format_args_vertical(func.Text() + lp_str, rp_str,
 		                           items, ctx, true)};
 
 	auto result = flat_or_fill(func.Text(), lp, rp, "", items, ctx,
@@ -71,7 +73,7 @@ Candidates CallNode::Format(const FmtContext& ctx) const
 	if ( items.size() >= 3 && result.size() > 1 &&
 	     result.back().Lines() == static_cast<int>(items.size()) )
 		{
-		auto prefix = func.Text() + lp;
+		auto prefix = func.Text() + lp_str;
 		int open_col = ctx.Col() + static_cast<int>(prefix.size());
 		int inner_w = ctx.MaxCol() - open_col - 1;
 		FmtContext chk(ctx.Indent(), open_col, inner_w);
@@ -81,7 +83,7 @@ Candidates CallNode::Format(const FmtContext& ctx) const
 				return result;
 
 		result.pop_back();
-		result.push_back(format_args_vertical(prefix, rp, items,
+		result.push_back(format_args_vertical(prefix, rp_str, items,
 							ctx, false));
 		}
 
@@ -259,19 +261,19 @@ Candidates IndexNode::Format(const FmtContext& ctx) const
 
 	// Multiple subscripts: format as comma-separated list.
 	auto items = collect_args(subs_node->Children());
-	return flat_or_fill(base.Text(), lb->Text(), rb->Text(), "", items, ctx);
+	return flat_or_fill(base.Text(), lb, rb, "", items, ctx);
 	}
 
 // Index literal: [$field=expr, ...]
 // Children: [0]=LBRACKET ... [last]=RBRACKET
 Candidates IndexLiteralNode::Format(const FmtContext& ctx) const
 	{
-	auto lb = Child(0, Tag::LBracket)->Text();
-	auto rb = Children().back()->Text();
+	auto lb = Child(0, Tag::LBracket);
+	const auto& rb = Children().back();
 
 	auto items = collect_args(Children());
 	if ( items.empty() )
-		return {Candidate(lb + rb, ctx)};
+		return {Candidate(Formatting(lb) + rb, ctx)};
 
 	bool has_trailing_comma =
 		FindOptChild(Tag::TrailingComma) != nullptr;
@@ -280,6 +282,8 @@ Candidates IndexLiteralNode::Format(const FmtContext& ctx) const
 	// When every item has a trailing comment, use vertical indented
 	// layout (each item on its own line).  Otherwise use fill, which
 	// packs items and wraps after any trailing comment.
+	auto lb_str = lb->Text();
+	auto rb_str = rb->Text();
 	if ( has_breaks(items) )
 		{
 		bool all_trailing = true;
@@ -295,8 +299,8 @@ Candidates IndexLiteralNode::Format(const FmtContext& ctx) const
 			}
 
 		if ( all_trailing )
-			return {format_args_vertical(lb, rb, items, ctx,
-				has_trailing_comma)};
+			return {format_args_vertical(lb_str, rb_str, items,
+				ctx, has_trailing_comma)};
 		}
 
 	return flat_or_fill("", lb, rb, "", items, ctx, "", close_pfx);

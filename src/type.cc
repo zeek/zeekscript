@@ -63,9 +63,8 @@ Candidates TypeParamNode::Format(const FmtContext& ctx) const
 	if ( bt_items.empty() )
 		return {Candidate(keyword + suffix, ctx)};
 
-	auto lb = FindChild(Tag::LBracket)->Text();
-	auto rb = FindChild(Tag::RBracket)->Text();
-	return flat_or_fill(keyword, lb, rb, suffix, bt_items, ctx);
+	return flat_or_fill(keyword, FindChild(Tag::LBracket),
+		FindChild(Tag::RBracket), suffix, bt_items, ctx);
 	}
 
 // Find the first type child (TypeAtom, TypeParameterized, TypeFunc).
@@ -109,11 +108,11 @@ Candidates TypeFuncNode::Format(const FmtContext& ctx) const
 	auto params = Child(0, Tag::Params);
 	auto items = collect_args(params->Children());
 
-	auto lp = params->Child(0, Tag::LParen)->Text();
-	auto rp = params->Children().back()->Text();
+	auto lp = params->Child(0, Tag::LParen);
+	const auto& rp = params->Children().back();
 
 	if ( items.empty() )
-		return {Candidate(keyword + lp + rp + ret_str, ctx)};
+		return {Candidate(Formatting(keyword) + lp + rp + ret_str, ctx)};
 
 	return flat_or_fill(keyword, lp, rp, ret_str, items, ctx);
 	}

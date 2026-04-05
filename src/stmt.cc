@@ -58,14 +58,13 @@ Candidates EventStmtNode::Format(const FmtContext& ctx) const
 	{
 	auto args_node = Child(2, Tag::Args);
 	auto semi = Child(3, Tag::Semi);
-	auto semi_str = semi->Text();
 	auto prefix = Child(0, Tag::Keyword)->Text() + " " + Arg();
-	auto lp = args_node->Child(0, Tag::LParen)->Text();
-	auto rp = args_node->Children().back()->Text();
+	auto lp = args_node->Child(0, Tag::LParen);
+	const auto& rp = args_node->Children().back();
 	auto items = collect_args(args_node->Children());
 
 	if ( items.empty() )
-		return {Candidate(prefix + lp + rp + semi_str, ctx)};
+		return {Candidate(Formatting(prefix) + lp + rp + semi, ctx)};
 
 	int semi_w = semi->Width();
 	FmtContext inner = ctx.Reserve(semi_w);

@@ -394,24 +394,24 @@ Candidate format_args_fill(const ArgComments& items, int align_col, int indent,
 	}
 
 // Try flat, then greedy-fill for a bracketed list of items.
-Candidates flat_or_fill(const std::string& prefix, const std::string& open,
-                      const std::string& close, const std::string& suffix,
+Candidates flat_or_fill(const Formatting& prefix, const Formatting& open,
+                      const Formatting& close, const Formatting& suffix,
                       const ArgComments& items, const FmtContext& ctx,
                       const std::string& open_comment,
                       const std::string& close_prefix)
 	{
 	bool any_breaks = has_breaks(items) || ! open_comment.empty();
-	int prefix_w = static_cast<int>(prefix.size());
-	int open_w = static_cast<int>(open.size());
-	int close_w = static_cast<int>(close.size());
+	int prefix_w = prefix.Size();
+	int open_w = open.Size();
+	int close_w = close.Size();
 	int close_extra = static_cast<int>(close_prefix.size());
-	int suffix_w = static_cast<int>(suffix.size());
+	int suffix_w = suffix.Size();
 	int open_col = ctx.Col() + prefix_w + open_w;
 	int inner_w =
 		ctx.MaxCol() - open_col - close_extra - close_w - suffix_w;
 
 	FmtContext inner_ctx(ctx.Indent(), open_col, inner_w);
-	std::string cb = close_prefix + close;
+	auto cb = close_prefix + close;
 
 	Candidates result;
 
@@ -420,8 +420,8 @@ Candidates flat_or_fill(const std::string& prefix, const std::string& open,
 	if ( ! any_breaks )
 		{
 		auto flat_args = format_args_flat(items, inner_ctx);
-		auto flat_text = prefix + open + flat_args.Text() + cb + suffix;
-		Candidate flat_c(flat_text, ctx);
+		auto flat_fmt = prefix + open + flat_args.Text() + cb + suffix;
+		Candidate flat_c(std::move(flat_fmt), ctx);
 		result.push_back(flat_c);
 
 		if ( flat_c.Ovf() == 0 || items.size() <= 1 )
@@ -445,26 +445,26 @@ Candidates flat_or_fill(const std::string& prefix, const std::string& open,
 	bool close_break = ! items.empty() &&
 		items.back().arg->IsLambda();
 
-	std::string fill_text;
 	int flast_w;
 	int fill_lines = fill.Lines() + (open_comment.empty() ? 0 : 1);
+	Formatting fill_fmt;
 
 	if ( close_break )
 		{
 		auto close_pad = line_prefix(ctx.Indent(), open_col);
-		fill_text = prefix + open + fill_prefix +
+		fill_fmt = prefix + open + fill_prefix +
 			fill.Text() + "\n" + close_pad + cb + suffix;
 		flast_w = open_col + close_extra + close_w + suffix_w;
 		++fill_lines;
 		}
 	else
 		{
-		fill_text = prefix + open + fill_prefix +
+		fill_fmt = prefix + open + fill_prefix +
 			fill.Text() + cb + suffix;
 		flast_w = fill.Width() + close_extra + close_w + suffix_w;
 		}
 
-	result.push_back({fill_text, flast_w, fill_lines,
+	result.push_back({std::move(fill_fmt), flast_w, fill_lines,
 	                  fill.Ovf(), ctx.Col()});
 
 	return result;
