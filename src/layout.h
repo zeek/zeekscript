@@ -22,6 +22,10 @@ std::string line_prefix(int indent, int col);
 
 // Layout combinator
 
+// Layout item kinds.
+enum LIKind { Lit, FmtExpr, Sp, Tok, ExprIdx, LastTok, ArgIdx,
+              ArgList, IndentUp, IndentDown };
+
 // A component in a layout specification.  Implicit constructors
 // let callers mix child indices, node pointers, strings, and
 // SP markers freely:
@@ -29,53 +33,52 @@ std::string line_prefix(int indent, int col);
 class LayoutItem
 	{
 public:
-	enum class Kind { Lit, Fmt, Sp, Tok, ExprIdx, LastTok, ArgIdx,
-	                  ArgList, IndentUp, IndentDown } kind;
+	LIKind kind;
 
 	// Literal text.
 	LayoutItem(const std::string& s)
-		: kind(Kind::Lit), fmt(s), must_break(false) {}
+		: kind(Lit), fmt(s), must_break(false) {}
 	LayoutItem(const char* s)
-		: kind(Kind::Lit), fmt(s), must_break(false) {}
+		: kind(Lit), fmt(s), must_break(false) {}
 	LayoutItem(const Formatting& f)
-		: kind(Kind::Lit), fmt(f), must_break(false) {}
+		: kind(Lit), fmt(f), must_break(false) {}
 	LayoutItem(Formatting&& f)
-		: kind(Kind::Lit), fmt(std::move(f)), must_break(false) {}
+		: kind(Lit), fmt(std::move(f)), must_break(false) {}
 
 	// Node to format (produces candidates).
 	LayoutItem(const NodePtr& n)
-		: kind(Kind::Fmt), node(n), must_break(false) {}
+		: kind(FmtExpr), node(n), must_break(false) {}
 
 	// Child token: resolved by BuildLayout into a Lit via tok().
 	// Use 0U for child 0 to avoid null-pointer ambiguity with
 	// the const-char* constructor.
-	LayoutItem(unsigned child_index) : kind(Kind::Tok),
+	LayoutItem(unsigned child_index) : kind(Tok),
 		child_idx(static_cast<int>(child_index)), must_break(false) {}
 
 	// Sub-child token: {parent_idx, child_idx} resolves to
 	// tok(Child(parent_idx)->Child(child_idx)).
 	LayoutItem(unsigned parent_index, unsigned sub_index)
-		: kind(Kind::Tok),
+		: kind(Tok),
 		  child_idx(static_cast<int>(parent_index)),
 		  sub_child_idx(static_cast<int>(sub_index)),
 		  must_break(false) {}
 
 	// Kind + child index (used by expr() helper).
-	LayoutItem(Kind k, unsigned child_index)
+	LayoutItem(LIKind k, unsigned child_index)
 		: kind(k), child_idx(static_cast<int>(child_index)),
 		  must_break(false) {}
 
 	// Soft space (private; use soft_sp constant).
-	LayoutItem(Kind k) : kind(k), must_break(false) {}
+	LayoutItem(LIKind k) : kind(k), must_break(false) {}
 
 	// Kind + child index + suffix (for arglist with suffix).
-	LayoutItem(Kind k, unsigned child_index, Formatting suffix)
+	LayoutItem(LIKind k, unsigned child_index, Formatting suffix)
 		: kind(k), fmt(std::move(suffix)),
 		  child_idx(static_cast<int>(child_index)),
 		  must_break(false) {}
 
 	// Resolved arglist: node + suffix.
-	LayoutItem(Kind k, const NodePtr& n, Formatting suffix)
+	LayoutItem(LIKind k, const NodePtr& n, Formatting suffix)
 		: kind(k), fmt(std::move(suffix)), node(n),
 		  must_break(false) {}
 
