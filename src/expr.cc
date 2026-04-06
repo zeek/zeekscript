@@ -3,51 +3,6 @@
 #include "expr.h"
 #include "fmt_util.h"
 
-// Call: func(args)
-Candidates CallNode::Format(const FmtContext& ctx) const
-	{
-	auto content = ContentChildren("CALL", 1);
-	auto func_cs = format_expr(*content[0], ctx);
-	const auto& func = best(func_cs);
-
-	auto args_node = Child(1, Tag::Args);
-
-	auto lp = args_node->Child(0, Tag::LParen);
-	const auto& rp = args_node->Children().back();
-	auto items = collect_args(args_node->Children());
-
-	if ( items.empty() )
-		return {func.Cat(lp).Cat(rp).In(ctx)};
-
-	// Trailing comma signals one-per-line intent.
-	auto open = func.Fmt() + lp;
-	if ( args_node->FindOptChild(Tag::TrailingComma) )
-		return {format_args_vertical(open, rp, items, ctx, true)};
-
-	auto result = flat_or_fill(func.Fmt(), lp, rp, "", items, ctx,
-				args_node->TrailingComment());
-
-	// When fill wraps every single-line item to its own line,
-	// vertical layout with indent-based alignment is cleaner.
-	if ( items.size() >= 3 && result.size() > 1 &&
-	     result.back().Lines() == static_cast<int>(items.size()) )
-		{
-		int open_col = ctx.Col() + open.Size();
-		int inner_w = ctx.MaxCol() - open_col - 1;
-		FmtContext chk(ctx.Indent(), open_col, inner_w);
-
-		for ( const auto& it : items )
-			if ( best(format_expr(*it.arg, chk)).Lines() > 1 )
-				return result;
-
-		result.pop_back();
-		result.push_back(format_args_vertical(open, rp,
-							items, ctx, false));
-		}
-
-	return result;
-	}
-
 // Lambda without captures: function(params): ret { body }
 // Children: [0]=KEYWORD [1]=SP [2]=PARAMS ...
 Formatting LambdaNode::BuildPrefix(const FmtContext& /*ctx*/) const

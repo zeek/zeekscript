@@ -97,6 +97,12 @@ struct SplitAt {
 	bool skip_if_multiline = false;
 };
 
+// Flags for ArgList layout items.
+enum ALFlag {
+	AL_TrailingCommaVertical = 1,  // trailing comma -> vertical
+	AL_VerticalUpgrade       = 2,  // fill-wraps-all -> vertical
+};
+
 // Flags for StmtBody layout items.
 enum SBFlag {
 	SB_AllChildren  = 1,  // use all children (default: non-token)
@@ -166,6 +172,11 @@ public:
 	LayoutItem(LIKind k, const NodePtr& n, Formatting suffix)
 		: kind(k), fmt(std::move(suffix)), node(n),
 		  must_break(false) {}
+
+	// Resolved arglist with flags: node + suffix + flags.
+	LayoutItem(LIKind k, const NodePtr& n, Formatting suffix, int fl)
+		: kind(k), fmt(std::move(suffix)), node(n),
+		  sb_flags(fl), must_break(false) {}
 
 	// Flat-or-split: steps + split points, resolved in the beam.
 	LayoutItem(FmtSteps s, std::vector<SplitAt> sp, bool ff = false)
@@ -240,6 +251,8 @@ inline LayoutItem arglist(unsigned child_index, Formatting suffix)
 	{ return {ArgList, child_index, std::move(suffix)}; }
 inline LayoutItem arglist(unsigned child_index, ComputeFn suffix_fn)
 	{ return {ArgList, child_index, suffix_fn}; }
+inline LayoutItem arglist(unsigned child_index, int flags)
+	{ return {ArgList, child_index, flags}; }
 
 // Bare fill list: flat_or_fill on collected args with the first
 // child (keyword) as prefix.  No open/close brackets.

@@ -108,11 +108,42 @@ static Partials layout_one_item(const LayoutItem& item, Partials& beam,
 				break;
 				}
 
+			int fl = item.Flags();
+			bool has_tc = (fl & AL_TrailingCommaVertical) &&
+				child->FindOptChild(Tag::TrailingComma);
+
 			int avail = ctx.MaxCol() - p.col;
 			FmtContext sub(ctx.Indent(), p.col, avail, trail);
+
+			if ( has_tc )
+				{
+				auto c = format_args_vertical(
+					open, close, items, sub, true);
+				Partial np = p;
+				np.fmt += c.Fmt();
+				np.overflow += c.Ovf();
+				np.must_break = false;
+				np.lines += c.Lines() - 1;
+				np.col = c.Width();
+				next.push_back(std::move(np));
+				break;
+				}
+
 			auto cs = flat_or_fill(Formatting(), open, close,
 					suffix, items, sub,
 					child->TrailingComment());
+
+			// When fill wraps every single-line item to its
+			// own line, vertical layout is cleaner.
+			if ( (fl & AL_VerticalUpgrade) &&
+			     items.size() >= 3 && cs.size() > 1 &&
+			     cs.back().Lines() ==
+			       static_cast<int>(items.size()) )
+				{
+				cs.pop_back();
+				cs.push_back(format_args_vertical(
+					open, close, items, sub));
+				}
 
 			for ( const auto& c : cs )
 				{
@@ -326,10 +357,17 @@ Candidates Node::BuildLayout(LayoutItems items, const FmtContext& ctx) const
 		else if ( item.kind == ArgList )
 			{
 			Formatting suffix = item.Fmt();
+			int flags = item.Flags();
 			if ( item.CompFn() )
 				suffix = (this->*item.CompFn())(cctx, ctx).Fmt();
 			item = LayoutItem(ArgList, Child(item.ChildIdx()),
 					std::move(suffix));
+			if ( flags )
+				{
+				Formatting s = item.Fmt();
+				item = LayoutItem(ArgList, item.LI_Node(),
+					std::move(s), flags);
+				}
 			}
 		else if ( item.kind == FlatSplit )
 			{

@@ -22,12 +22,6 @@ public:
 
 // Compound expressions
 
-class CallNode : public ExprNode {
-public:
-	CallNode() : ExprNode(Tag::Call) { }
-	Candidates Format(const FmtContext& ctx) const override;
-};
-
 class ConstructorNode : public ExprNode {
 public:
 	ConstructorNode() : ExprNode(Tag::Constructor) { }
