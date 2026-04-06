@@ -1,5 +1,5 @@
 EXPR-STMT {
-  SLICE {
+  SLICE-PARTIAL {
     IDENTIFIER "data"
     LBRACKET
     CALL {

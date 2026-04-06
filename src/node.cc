@@ -118,7 +118,14 @@ static const std::unordered_map<Tag, LayoutItems> layout_table = {
 		stmt_body(), {IndentDown}, last()}},
 	{Tag::ModuleDecl, {0U, {Sp}, 2, 3}},
 	{Tag::TypeDeclAlias, {0U, {Sp}, 2, 3, {Sp}, expr(5), 6}},
-	{Tag::Slice, {compute(&Node::ComputeSlice)}},
+	{Tag::Slice, {flat_split(
+		{FmtStep::EI(0), FmtStep::TI(1),
+		 FmtStep::EI(2),
+		 FmtStep::L(" "), FmtStep::TI(3), FmtStep::S(),
+		 FmtStep::EI(4),
+		 FmtStep::TI(5)},
+		{{4, SplitAt::AlignWith, 2}}, true)}},
+	{Tag::SlicePartial, {expr(0), 1, expr(2), 3, expr(4), 5}},
 	{Tag::Div, {flat_split(
 		{FmtStep::EI(0), FmtStep::TI(1),
 		 FmtStep::S(""), FmtStep::EI(2)},

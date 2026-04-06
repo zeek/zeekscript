@@ -1,5 +1,5 @@
 EXPR-STMT {
-  SLICE {
+  SLICE-PARTIAL {
     IDENTIFIER "xs"
     LBRACKET
     CONSTANT ""

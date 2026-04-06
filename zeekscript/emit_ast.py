@@ -491,7 +491,9 @@ class Emitter:
                         if c.type == "expr"]
             hi_exprs = [c for c in sl_kids[colon_idx + 1:]
                         if c.type == "expr"]
-            self._open('SLICE')
+            has_both = lo_exprs and hi_exprs
+            tag = "SLICE" if has_both else "SLICE-PARTIAL"
+            self._open(tag)
             self._emit_expr_child(base)
             self._w('LBRACKET')
             if lo_exprs:

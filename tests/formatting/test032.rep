@@ -52,7 +52,7 @@ FUNC-DECL {
               BINARY-OP "=" {
                 IDENTIFIER "result"
                 OP "="
-                SLICE {
+                SLICE-PARTIAL {
                   IDENTIFIER "val"
                   LBRACKET
                   BINARY-OP "+" {

@@ -18,6 +18,7 @@ enum class Tag {
 	Index,
 	IndexLiteral,
 	Slice,
+	SlicePartial,
 	FieldAccess,
 	FieldAssign,
 	BraceInit,

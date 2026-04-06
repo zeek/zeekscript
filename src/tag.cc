@@ -22,6 +22,7 @@ static const std::unordered_map<std::string, TagEntry> tag_map = {
 	{"INDEX", {Tag::Index, false}},
 	{"INDEX-LITERAL", {Tag::IndexLiteral, false}},
 	{"SLICE", {Tag::Slice, false}},
+	{"SLICE-PARTIAL", {Tag::SlicePartial, false}},
 	{"FIELD-ACCESS", {Tag::FieldAccess, false}},
 	{"FIELD-ASSIGN", {Tag::FieldAssign, false}},
 	{"BRACE-INIT", {Tag::BraceInit, false}},
