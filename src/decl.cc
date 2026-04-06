@@ -100,11 +100,18 @@ static void decl_no_init(const DeclParts& d, Candidates& result,
                        const FmtContext& ctx)
 	{
 	auto flat = d.head + d.type_str + d.suffix;
-	result.push_back(Candidate(flat, ctx));
+	Candidate flat_c(flat, ctx);
 
-	// Split after ":" when head + type overflows.
-	int head_type_w = (d.head + d.type_str).Size();
-	if ( head_type_w <= ctx.MaxCol() || d.type_str.Empty() )
+	if ( flat_c.Fits() )
+		{
+		result.push_back(flat_c);
+		return;
+		}
+
+	if ( flat_c.Lines() == 1 )
+		result.push_back(flat_c);
+
+	if ( d.type_str.Empty() )
 		return;
 
 	FmtContext cont = ctx.Indented();
@@ -114,7 +121,10 @@ static void decl_no_init(const DeclParts& d, Candidates& result,
 
 	// Try type + suffix on one continuation line.
 	auto oneline = tv + d.suffix;
-	if ( cont.Col() + oneline.Size() <= ctx.MaxCol() )
+	int oneline_w = oneline.CountLines() > 1 ?
+			oneline.LastLineLen() : cont.Col() + oneline.Size();
+
+	if ( oneline_w <= ctx.MaxCol() )
 		{
 		auto split = line1 + "\n" + pad + oneline;
 		int last_w = split.LastLineLen();

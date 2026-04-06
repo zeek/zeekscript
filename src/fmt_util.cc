@@ -349,10 +349,18 @@ Candidates flat_or_fill(const Formatting& prefix, const Formatting& open,
 		auto flat_args = format_args_flat(items, inner_ctx);
 		auto flat_fmt = prefix + open + flat_args.Fmt() + cb + suffix;
 		Candidate flat_c(std::move(flat_fmt), ctx);
-		result.push_back(flat_c);
 
-		if ( flat_c.Ovf() == 0 || items.size() <= 1 )
+		if ( flat_c.Fits() )
+			return {flat_c};
+
+		if ( items.size() <= 1 )
+			{
+			result.push_back(flat_c);
 			return result;
+			}
+
+		if ( flat_c.Lines() == 1 )
+			result.push_back(flat_c);
 		}
 
 	// Greedy-fill: pack as many items per line as fit.

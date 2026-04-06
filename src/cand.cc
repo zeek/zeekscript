@@ -6,11 +6,21 @@
 #include "fmt_context.h"
 
 Candidate::Candidate(Formatting t, const FmtContext& ctx)
-	: fmt(std::move(t)), width(fmt.Size()), lines(1), spread(0)
+	: fmt(std::move(t)), lines(fmt.CountLines()), spread(0)
 	{
-	int avail = ctx.Width() - ctx.Trail();
-	int excess = width - avail;
-	overflow = excess > 0 ? excess : 0;
+	if ( lines > 1 )
+		{
+		width = fmt.LastLineLen();
+		overflow = fmt.TextOverflow(ctx.Col(), ctx.MaxCol());
+		spread = ComputeSpread(fmt.Str(), ctx.Col());
+		}
+	else
+		{
+		width = fmt.Size();
+		int avail = ctx.Width() - ctx.Trail();
+		int excess = width - avail;
+		overflow = excess > 0 ? excess : 0;
+		}
 	}
 
 int Candidate::ComputeSpread(const std::string& t, int first_col)
