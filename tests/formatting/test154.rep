@@ -23,9 +23,11 @@ GLOBAL-DECL {
         LPAREN
         BINARY-OP "=" {
           INDEX-LITERAL {
-            LBRACKET
-            CONSTANT "0x00"
-            RBRACKET
+            ARGS {
+              LBRACKET
+              CONSTANT "0x00"
+              RBRACKET
+            }
           }
           OP "="
           CONSTANT "\"AAAA\""
@@ -33,9 +35,11 @@ GLOBAL-DECL {
         COMMA
         BINARY-OP "=" {
           INDEX-LITERAL {
-            LBRACKET
-            CONSTANT "0x01"
-            RBRACKET
+            ARGS {
+              LBRACKET
+              CONSTANT "0x01"
+              RBRACKET
+            }
           }
           OP "="
           CONSTANT "\"BBBB\""
@@ -43,9 +47,11 @@ GLOBAL-DECL {
         COMMA
         BINARY-OP "=" {
           INDEX-LITERAL {
-            LBRACKET
-            CONSTANT "0x02"
-            RBRACKET
+            ARGS {
+              LBRACKET
+              CONSTANT "0x02"
+              RBRACKET
+            }
           }
           OP "="
           CONSTANT "\"CCCC\""
@@ -53,9 +59,11 @@ GLOBAL-DECL {
         COMMA
         BINARY-OP "=" {
           INDEX-LITERAL {
-            LBRACKET
-            CONSTANT "0x03"
-            RBRACKET
+            ARGS {
+              LBRACKET
+              CONSTANT "0x03"
+              RBRACKET
+            }
           }
           OP "="
           CONSTANT "\"DDDD\""
@@ -63,9 +71,11 @@ GLOBAL-DECL {
         COMMA
         BINARY-OP "=" {
           INDEX-LITERAL {
-            LBRACKET
-            CONSTANT "0x04"
-            RBRACKET
+            ARGS {
+              LBRACKET
+              CONSTANT "0x04"
+              RBRACKET
+            }
           }
           OP "="
           CONSTANT "\"EEEE\""
@@ -73,9 +83,11 @@ GLOBAL-DECL {
         COMMA
         BINARY-OP "=" {
           INDEX-LITERAL {
-            LBRACKET
-            CONSTANT "0x05"
-            RBRACKET
+            ARGS {
+              LBRACKET
+              CONSTANT "0x05"
+              RBRACKET
+            }
           }
           OP "="
           CONSTANT "\"FFFF\""

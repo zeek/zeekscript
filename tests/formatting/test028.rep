@@ -16,19 +16,21 @@ FUNC-DECL {
           IDENTIFIER "SomeModule::SOME_ANALYZER"
           COMMA
           INDEX-LITERAL {
-            LBRACKET
-            FIELD-ASSIGN "get_handle" {
-              DOLLAR
-              ASSIGN "="
-              IDENTIFIER "SomeModule::get_handle"
+            ARGS {
+              LBRACKET
+              FIELD-ASSIGN "get_handle" {
+                DOLLAR
+                ASSIGN "="
+                IDENTIFIER "SomeModule::get_handle"
+              }
+              COMMA
+              FIELD-ASSIGN "describe" {
+                DOLLAR
+                ASSIGN "="
+                IDENTIFIER "SomeModule::describe_it"
+              }
+              RBRACKET
             }
-            COMMA
-            FIELD-ASSIGN "describe" {
-              DOLLAR
-              ASSIGN "="
-              IDENTIFIER "SomeModule::describe_it"
-            }
-            RBRACKET
           }
           RPAREN
         }

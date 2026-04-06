@@ -21,43 +21,45 @@ FUNC-DECL {
             ARGS {
               LPAREN
               INDEX-LITERAL {
-                LBRACKET
-                FIELD-ASSIGN "source" {
-                  DOLLAR
-                  ASSIGN "="
-                  IDENTIFIER "some_config_source_setting"
+                ARGS {
+                  LBRACKET
+                  FIELD-ASSIGN "source" {
+                    DOLLAR
+                    ASSIGN "="
+                    IDENTIFIER "some_config_source_setting"
+                  }
+                  COMMA
+                  FIELD-ASSIGN "name" {
+                    DOLLAR
+                    ASSIGN "="
+                    IDENTIFIER "some_config_name_setting"
+                  }
+                  COMMA
+                  FIELD-ASSIGN "fields" {
+                    DOLLAR
+                    ASSIGN "="
+                    IDENTIFIER "SomeConfigRecord"
+                  }
+                  COMMA
+                  FIELD-ASSIGN "mode" {
+                    DOLLAR
+                    ASSIGN "="
+                    IDENTIFIER "Input::REREAD"
+                  }
+                  COMMA
+                  FIELD-ASSIGN "want_record" {
+                    DOLLAR
+                    ASSIGN "="
+                    CONSTANT "F"
+                  }
+                  COMMA
+                  FIELD-ASSIGN "ev" {
+                    DOLLAR
+                    ASSIGN "="
+                    IDENTIFIER "some_config_event_added"
+                  }
+                  RBRACKET
                 }
-                COMMA
-                FIELD-ASSIGN "name" {
-                  DOLLAR
-                  ASSIGN "="
-                  IDENTIFIER "some_config_name_setting"
-                }
-                COMMA
-                FIELD-ASSIGN "fields" {
-                  DOLLAR
-                  ASSIGN "="
-                  IDENTIFIER "SomeConfigRecord"
-                }
-                COMMA
-                FIELD-ASSIGN "mode" {
-                  DOLLAR
-                  ASSIGN "="
-                  IDENTIFIER "Input::REREAD"
-                }
-                COMMA
-                FIELD-ASSIGN "want_record" {
-                  DOLLAR
-                  ASSIGN "="
-                  CONSTANT "F"
-                }
-                COMMA
-                FIELD-ASSIGN "ev" {
-                  DOLLAR
-                  ASSIGN "="
-                  IDENTIFIER "some_config_event_added"
-                }
-                RBRACKET
               }
               RPAREN
             }

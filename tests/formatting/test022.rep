@@ -35,19 +35,21 @@ FUNC-DECL {
         OP "&&"
         BINARY-OP "!in" {
           INDEX-LITERAL {
-            LBRACKET
-            IDENTIFIER "server_name"
-            COMMA
-            IDENTIFIER "server_subj"
-            COMMA
-            IDENTIFIER "server_issuer"
-            COMMA
-            IDENTIFIER "client_subj"
-            COMMA
-            IDENTIFIER "client_issuer"
-            COMMA
-            IDENTIFIER "ja3"
-            RBRACKET
+            ARGS {
+              LBRACKET
+              IDENTIFIER "server_name"
+              COMMA
+              IDENTIFIER "server_subj"
+              COMMA
+              IDENTIFIER "server_issuer"
+              COMMA
+              IDENTIFIER "client_subj"
+              COMMA
+              IDENTIFIER "client_issuer"
+              COMMA
+              IDENTIFIER "ja3"
+              RBRACKET
+            }
           }
           OP "!in"
           IDENTIFIER "coalesced_state"

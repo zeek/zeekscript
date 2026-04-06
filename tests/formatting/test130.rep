@@ -16,25 +16,27 @@ FUNC-DECL {
           IDENTIFIER "SOME_LOG"
           COMMA
           INDEX-LITERAL {
-            LBRACKET
-            FIELD-ASSIGN "columns" {
-              DOLLAR
-              ASSIGN "="
-              IDENTIFIER "SomeInfo"
+            ARGS {
+              LBRACKET
+              FIELD-ASSIGN "columns" {
+                DOLLAR
+                ASSIGN "="
+                IDENTIFIER "SomeInfo"
+              }
+              COMMA
+              FIELD-ASSIGN "path" {
+                DOLLAR
+                ASSIGN "="
+                CONSTANT "\"some_log_path\""
+              }
+              COMMA
+              FIELD-ASSIGN "policy" {
+                DOLLAR
+                ASSIGN "="
+                IDENTIFIER "some_log_policy"
+              }
+              RBRACKET
             }
-            COMMA
-            FIELD-ASSIGN "path" {
-              DOLLAR
-              ASSIGN "="
-              CONSTANT "\"some_log_path\""
-            }
-            COMMA
-            FIELD-ASSIGN "policy" {
-              DOLLAR
-              ASSIGN "="
-              IDENTIFIER "some_log_policy"
-            }
-            RBRACKET
           }
           RPAREN
         }

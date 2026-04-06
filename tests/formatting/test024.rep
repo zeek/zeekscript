@@ -18,43 +18,45 @@ FUNC-DECL {
       LPAREN
       BINARY-OP "in" {
         INDEX-LITERAL {
-          LBRACKET
-          IDENTIFIER "aaa"
-          COMMA
-          IDENTIFIER "bbb"
-          COMMA
-          IDENTIFIER "ccc"
-          COMMA
-          FIELD-ACCESS {
-            IDENTIFIER "rec"
-            DOLLAR
-            IDENTIFIER "source_field"
+          ARGS {
+            LBRACKET
+            IDENTIFIER "aaa"
+            COMMA
+            IDENTIFIER "bbb"
+            COMMA
+            IDENTIFIER "ccc"
+            COMMA
+            FIELD-ACCESS {
+              IDENTIFIER "rec"
+              DOLLAR
+              IDENTIFIER "source_field"
+            }
+            COMMA
+            FIELD-ACCESS {
+              IDENTIFIER "rec"
+              DOLLAR
+              IDENTIFIER "type_field"
+            }
+            COMMA
+            FIELD-ACCESS {
+              IDENTIFIER "rec"
+              DOLLAR
+              IDENTIFIER "name_field"
+            }
+            COMMA
+            FIELD-ACCESS {
+              IDENTIFIER "rec"
+              DOLLAR
+              IDENTIFIER "orig_flag"
+            }
+            COMMA
+            FIELD-ACCESS {
+              IDENTIFIER "rec"
+              DOLLAR
+              IDENTIFIER "byte_count"
+            }
+            RBRACKET
           }
-          COMMA
-          FIELD-ACCESS {
-            IDENTIFIER "rec"
-            DOLLAR
-            IDENTIFIER "type_field"
-          }
-          COMMA
-          FIELD-ACCESS {
-            IDENTIFIER "rec"
-            DOLLAR
-            IDENTIFIER "name_field"
-          }
-          COMMA
-          FIELD-ACCESS {
-            IDENTIFIER "rec"
-            DOLLAR
-            IDENTIFIER "orig_flag"
-          }
-          COMMA
-          FIELD-ACCESS {
-            IDENTIFIER "rec"
-            DOLLAR
-            IDENTIFIER "byte_count"
-          }
-          RBRACKET
         }
         OP "in"
         IDENTIFIER "some_long_cache_name"

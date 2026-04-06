@@ -1,12 +1,14 @@
 EXPR-STMT {
   INDEX-LITERAL {
-    LBRACKET
-    CONSTANT "1"
-    COMMA
-    CONSTANT "2"
-    COMMA
-    TRAILING-COMMA
-    RBRACKET
+    ARGS {
+      LBRACKET
+      CONSTANT "1"
+      COMMA
+      CONSTANT "2"
+      COMMA
+      TRAILING-COMMA
+      RBRACKET
+    }
   }
   SEMI
 }

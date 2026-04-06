@@ -10,9 +10,11 @@ GLOBAL-DECL {
         LPAREN
         BINARY-OP "=" {
           INDEX-LITERAL {
-            LBRACKET
-            CONSTANT "1"
-            RBRACKET
+            ARGS {
+              LBRACKET
+              CONSTANT "1"
+              RBRACKET
+            }
           }
           OP "="
           CONSTANT "\"one\""

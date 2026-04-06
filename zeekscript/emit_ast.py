@@ -523,6 +523,7 @@ class Emitter:
                 and not kids[0].is_named
                 and self._text(kids[0]) == "["):
             self._open('INDEX-LITERAL')
+            self._open('ARGS')
             for child in self._iter_children(node):
                 text = self._text(child)
                 if not child.is_named and text == "[":
@@ -538,6 +539,7 @@ class Emitter:
                             and self._text(el_kids[-1]) == ","):
                         self._w('TRAILING-COMMA')
                 self._mark_content(child)
+            self._close()
             self._close()
             return
 

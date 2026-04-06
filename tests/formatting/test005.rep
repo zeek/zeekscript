@@ -4,30 +4,32 @@ EXPR-STMT {
     ARGS {
       LPAREN
       INDEX-LITERAL {
-        LBRACKET
-        FIELD-ASSIGN "msg" {
-          DOLLAR
-          ASSIGN "="
-          CALL {
-            IDENTIFIER "fmt"
-            ARGS {
-              LPAREN
-              CONSTANT "\"Value %s was more than %dMB for item %s\""
-              COMMA
-              IDENTIFIER "some_var"
-              COMMA
-              DIV {
-                IDENTIFIER "some_long_variable_name"
-                OP "/"
-                CONSTANT "1000 / 1000"
+        ARGS {
+          LBRACKET
+          FIELD-ASSIGN "msg" {
+            DOLLAR
+            ASSIGN "="
+            CALL {
+              IDENTIFIER "fmt"
+              ARGS {
+                LPAREN
+                CONSTANT "\"Value %s was more than %dMB for item %s\""
+                COMMA
+                IDENTIFIER "some_var"
+                COMMA
+                DIV {
+                  IDENTIFIER "some_long_variable_name"
+                  OP "/"
+                  CONSTANT "1000 / 1000"
+                }
+                COMMA
+                IDENTIFIER "bucket"
+                RPAREN
               }
-              COMMA
-              IDENTIFIER "bucket"
-              RPAREN
             }
           }
+          RBRACKET
         }
-        RBRACKET
       }
       RPAREN
     }

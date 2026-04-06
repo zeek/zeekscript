@@ -22,12 +22,6 @@ public:
 
 // Compound expressions
 
-class IndexLiteralNode : public ExprNode {
-public:
-	IndexLiteralNode() : ExprNode(Tag::IndexLiteral) { }
-	Candidates Format(const FmtContext& ctx) const override;
-};
-
 class LambdaNode : public ExprNode {
 public:
 	LambdaNode() : ExprNode(Tag::Lambda) { }

@@ -81,46 +81,6 @@ Candidates LambdaNode::FormatLambda(const Formatting& prefix,
 	return {{std::move(fmt), last_w, lines, ovf, ctx.Col()}};
 	}
 
-// Index literal: [$field=expr, ...]
-// Children: [0]=LBRACKET ... [last]=RBRACKET
-Candidates IndexLiteralNode::Format(const FmtContext& ctx) const
-	{
-	auto lb = Child(0, Tag::LBracket);
-	const auto& rb = Children().back();
-
-	auto items = collect_args(Children());
-	if ( items.empty() )
-		return {Candidate(Formatting(lb) + rb, ctx)};
-
-	bool has_trailing_comma =
-		FindOptChild(Tag::TrailingComma) != nullptr;
-	std::string close_pfx = has_trailing_comma ? ", " : "";
-
-	// When every item has a trailing comment, use vertical indented
-	// layout (each item on its own line).  Otherwise use fill, which
-	// packs items and wraps after any trailing comment.
-	if ( has_breaks(items) )
-		{
-		bool all_trailing = true;
-		for ( size_t i = 0; i < items.size(); ++i )
-			{
-			auto& it = items[i];
-			auto nc = (i + 1 < items.size()) ?
-					items[i + 1].comma : nullptr;
-			bool has_trail = ! it.comment.empty() ||
-						(nc && nc->MustBreakAfter());
-			if ( ! has_trail )
-				all_trailing = false;
-			}
-
-		if ( all_trailing )
-			return {format_args_vertical(lb, rb, items,
-				ctx, has_trailing_comma)};
-		}
-
-	return flat_or_fill("", lb, rb, "", items, ctx, "", close_pfx);
-	}
-
 // Boolean chain: operands are direct children (flattened by emitter),
 // pack with fill layout breaking at the boolean operator.
 Candidates BoolChainNode::Format(const FmtContext& ctx) const

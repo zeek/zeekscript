@@ -16,25 +16,27 @@ FUNC-DECL {
           IDENTIFIER "SOME_STREAM_LOG"
           COMMA
           INDEX-LITERAL {
-            LBRACKET
-            FIELD-ASSIGN "columns" {
-              DOLLAR
-              ASSIGN "="
-              IDENTIFIER "SomeStreamInfo"
+            ARGS {
+              LBRACKET
+              FIELD-ASSIGN "columns" {
+                DOLLAR
+                ASSIGN "="
+                IDENTIFIER "SomeStreamInfo"
+              }
+              COMMA
+              FIELD-ASSIGN "path" {
+                DOLLAR
+                ASSIGN "="
+                CONSTANT "\"some_long_module_stream_path\""
+              }
+              COMMA
+              FIELD-ASSIGN "policy" {
+                DOLLAR
+                ASSIGN "="
+                IDENTIFIER "some_stream_log_policy"
+              }
+              RBRACKET
             }
-            COMMA
-            FIELD-ASSIGN "path" {
-              DOLLAR
-              ASSIGN "="
-              CONSTANT "\"some_long_module_stream_path\""
-            }
-            COMMA
-            FIELD-ASSIGN "policy" {
-              DOLLAR
-              ASSIGN "="
-              IDENTIFIER "some_stream_log_policy"
-            }
-            RBRACKET
           }
           RPAREN
         }

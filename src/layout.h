@@ -102,6 +102,8 @@ enum ALFlag {
 	AL_TrailingCommaVertical = 1,  // trailing comma -> vertical
 	AL_VerticalUpgrade       = 2,  // fill-wraps-all -> vertical
 	AL_FlatOrVertical        = 4,  // vertical instead of fill on overflow
+	AL_AllCommentsVertical   = 8,  // all items have comments -> vertical
+	AL_TrailingCommaFill    = 16, // trailing comma preserved in fill layout
 };
 
 // Flags for StmtBody layout items.

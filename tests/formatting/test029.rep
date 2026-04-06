@@ -14,53 +14,55 @@ FUNC-DECL {
         ARGS {
           LPAREN
           INDEX-LITERAL {
-            LBRACKET
-            FIELD-ASSIGN "some_field" {
-              DOLLAR
-              ASSIGN "="
-              CALL {
-                IDENTIFIER "SomeModule::build_value"
-                ARGS {
-                  LPAREN
-                  INDEX {
-                    FIELD-ACCESS {
+            ARGS {
+              LBRACKET
+              FIELD-ASSIGN "some_field" {
+                DOLLAR
+                ASSIGN "="
+                CALL {
+                  IDENTIFIER "SomeModule::build_value"
+                  ARGS {
+                    LPAREN
+                    INDEX {
                       FIELD-ACCESS {
-                        IDENTIFIER "c"
+                        FIELD-ACCESS {
+                          IDENTIFIER "c"
+                          DOLLAR
+                          IDENTIFIER "some_data"
+                        }
                         DOLLAR
-                        IDENTIFIER "some_data"
+                        IDENTIFIER "items"
                       }
-                      DOLLAR
-                      IDENTIFIER "items"
+                      SUBSCRIPTS {
+                        LBRACKET
+                        IDENTIFIER "stream"
+                        RBRACKET
+                      }
                     }
-                    SUBSCRIPTS {
-                      LBRACKET
-                      IDENTIFIER "stream"
-                      RBRACKET
-                    }
+                    RPAREN
                   }
-                  RPAREN
                 }
               }
+              COMMA
+              FIELD-ASSIGN "some_type" {
+                DOLLAR
+                ASSIGN "="
+                IDENTIFIER "SomeModule::URL"
+              }
+              COMMA
+              FIELD-ASSIGN "conn" {
+                DOLLAR
+                ASSIGN "="
+                IDENTIFIER "c"
+              }
+              COMMA
+              FIELD-ASSIGN "where" {
+                DOLLAR
+                ASSIGN "="
+                IDENTIFIER "SomeModule::IN_URL"
+              }
+              RBRACKET
             }
-            COMMA
-            FIELD-ASSIGN "some_type" {
-              DOLLAR
-              ASSIGN "="
-              IDENTIFIER "SomeModule::URL"
-            }
-            COMMA
-            FIELD-ASSIGN "conn" {
-              DOLLAR
-              ASSIGN "="
-              IDENTIFIER "c"
-            }
-            COMMA
-            FIELD-ASSIGN "where" {
-              DOLLAR
-              ASSIGN "="
-              IDENTIFIER "SomeModule::IN_URL"
-            }
-            RBRACKET
           }
           RPAREN
         }

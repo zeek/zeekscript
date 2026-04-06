@@ -115,10 +115,31 @@ static Partials layout_one_item(const LayoutItem& item, Partials& beam,
 			int avail = ctx.MaxCol() - p.col;
 			FmtContext sub(ctx.Indent(), p.col, avail, trail);
 
-			if ( has_tc )
+			// All-comments or trailing comma: force vertical.
+			bool force_vert = has_tc;
+			if ( ! force_vert &&
+			     (fl & AL_AllCommentsVertical) &&
+			     has_breaks(items) )
+				{
+				force_vert = true;
+				for ( size_t j = 0; j < items.size(); ++j )
+					{
+					auto& it = items[j];
+					auto nc = (j + 1 < items.size()) ?
+						items[j + 1].comma : nullptr;
+					if ( it.comment.empty() &&
+					     ! (nc && nc->MustBreakAfter()) )
+						{
+						force_vert = false;
+						break;
+						}
+					}
+				}
+
+			if ( force_vert )
 				{
 				auto c = format_args_vertical(
-					open, close, items, sub, true);
+					open, close, items, sub, has_tc);
 				Partial np = p;
 				np.fmt += c.Fmt();
 				np.overflow += c.Ovf();
@@ -151,9 +172,14 @@ static Partials layout_one_item(const LayoutItem& item, Partials& beam,
 				}
 			else
 				{
+				std::string close_pfx;
+				if ( (fl & AL_TrailingCommaFill) &&
+				     child->FindOptChild(Tag::TrailingComma) )
+					close_pfx = ", ";
+
 				cs = flat_or_fill(Formatting(), open, close,
 					suffix, items, sub,
-					child->TrailingComment());
+					child->TrailingComment(), close_pfx);
 
 				if ( (fl & AL_VerticalUpgrade) &&
 				     items.size() >= 3 && cs.size() > 1 &&

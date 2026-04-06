@@ -23,9 +23,11 @@ GLOBAL-DECL {
         LPAREN
         BINARY-OP "=" {
           INDEX-LITERAL {
-            LBRACKET
-            CONSTANT "\"some-key-aa\""
-            RBRACKET
+            ARGS {
+              LBRACKET
+              CONSTANT "\"some-key-aa\""
+              RBRACKET
+            }
           }
           OP "="
           CONSTANT "\"val-aa\""
@@ -33,9 +35,11 @@ GLOBAL-DECL {
         COMMA
         BINARY-OP "=" {
           INDEX-LITERAL {
-            LBRACKET
-            CONSTANT "\"some-key-bb\""
-            RBRACKET
+            ARGS {
+              LBRACKET
+              CONSTANT "\"some-key-bb\""
+              RBRACKET
+            }
           }
           OP "="
           CONSTANT "\"val-bb\""
@@ -43,9 +47,11 @@ GLOBAL-DECL {
         COMMA
         BINARY-OP "=" {
           INDEX-LITERAL {
-            LBRACKET
-            CONSTANT "\"some-key-cc\""
-            RBRACKET
+            ARGS {
+              LBRACKET
+              CONSTANT "\"some-key-cc\""
+              RBRACKET
+            }
           }
           OP "="
           CONSTANT "\"val-cc\""
@@ -53,9 +59,11 @@ GLOBAL-DECL {
         COMMA
         BINARY-OP "=" {
           INDEX-LITERAL {
-            LBRACKET
-            CONSTANT "\"some-key-dd\""
-            RBRACKET
+            ARGS {
+              LBRACKET
+              CONSTANT "\"some-key-dd\""
+              RBRACKET
+            }
           }
           OP "="
           CONSTANT "\"val-dd\""
