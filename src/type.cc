@@ -82,12 +82,9 @@ const NodePtr& Node::FindTypeChild() const
 // Compute the type suffix for a PARAM node: ": type".
 FmtPtr Node::ComputeParamType(ComputeCtx& cctx, const FmtContext& ctx) const
 	{
-	auto& ptype = FindTypeChild();
-	if ( ! ptype )
-		return nullptr;
 	return std::make_shared<Formatting>(
 		Formatting(Child(0, Tag::Colon)) + " " +
-		best(format_expr(*ptype, ctx)).Fmt());
+		best(format_expr(*FindTypeChild(), ctx)).Fmt());
 	}
 
 // Compute the return type suffix for a TYPE-FUNC-RET node: ": rettype".
