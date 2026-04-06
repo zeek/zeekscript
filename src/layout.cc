@@ -6,6 +6,7 @@
 // Layout combinator
 
 const LayoutItem soft_sp{Sp};
+const LayoutItem hard_break{HardBreak};
 const LayoutItem indent_up{IndentUp};
 const LayoutItem indent_down{IndentDown};
 
@@ -39,6 +40,20 @@ LayoutItem arglist(unsigned child_index)
 LayoutItem arglist(unsigned child_index, Formatting suffix)
 	{
 	return {ArgList, child_index, std::move(suffix)};
+	}
+
+LayoutItem stmt_body(int flags)
+	{
+	LayoutItem item{StmtBody};
+	item.sb_flags = flags;
+	return item;
+	}
+
+LayoutItem stmt_body(unsigned child_index, int flags)
+	{
+	LayoutItem item{StmtBody, child_index};
+	item.sb_flags = flags;
+	return item;
 	}
 
 static constexpr int BEAM_WIDTH = 4;
@@ -155,7 +170,7 @@ static Partials layout_one_item(const LayoutItem& item, Partials& beam,
 			break;
 			}
 
-		case Tok: case ExprIdx: case LastTok: case ArgIdx:
+		case Tok: case ExprIdx: case LastTok: case ArgIdx: case StmtBody:
 			assert(false);  // resolved before reaching here
 			break;
 
@@ -182,6 +197,19 @@ static Partials layout_one_item(const LayoutItem& item, Partials& beam,
 			++bp.lines;
 			bp.must_break = false;
 			next.push_back(std::move(bp));
+			break;
+			}
+
+		case HardBreak:
+			{
+			int brk_col = p.indent * INDENT_WIDTH;
+			auto pad = "\n" + line_prefix(p.indent, brk_col);
+			Partial np = p;
+			np.fmt += pad;
+			np.col = brk_col;
+			++np.lines;
+			np.must_break = false;
+			next.push_back(std::move(np));
 			break;
 			}
 
@@ -253,7 +281,8 @@ Candidates build_layout(LayoutItems items, const FmtContext& ctx)
 				w += items[j].Fmt().Size();
 			else if ( k == Sp )
 				++w;  // space in the flat case
-			else if ( k == IndentUp || k == IndentDown )
+			else if ( k == IndentUp || k == IndentDown ||
+				  k == HardBreak )
 				continue;
 			else
 				break;
@@ -302,6 +331,31 @@ Candidates Node::BuildLayout(LayoutItems items, const FmtContext& ctx) const
 		else if ( item.kind == ArgList )
 			item = LayoutItem(ArgList, Child(item.ChildIdx()),
 					item.Fmt());
+		else if ( item.kind == StmtBody )
+			{
+			// Collect children and format as stmt list.
+			const Node& src = (item.ChildIdx() >= 0)
+				? *Child(item.ChildIdx()) : *this;
+			int fl = item.Flags();
+
+			NodeVec body;
+			if ( fl & SB_AllChildren )
+				body = src.Children();
+			else
+				for ( const auto& c : src.Children() )
+					if ( ! c->IsToken() )
+						body.push_back(c);
+
+			auto sub = ctx.Indented();
+			auto text = format_stmt_list(body, sub,
+				(fl & SB_SkipBlanks) != 0);
+
+			if ( (fl & SB_StripNewline) &&
+			     ! text.Empty() && text.Back() == '\n' )
+				text.PopBack();
+
+			item = LayoutItem(Formatting("\n" + text));
+			}
 		else if ( item.kind == IndentDown )
 			{
 			// Peek ahead to find the next token and

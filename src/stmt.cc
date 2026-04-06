@@ -69,16 +69,8 @@ Candidates ExprStmtNode::Format(const FmtContext& ctx) const
 // Children: [0]=KEYWORD [1]=SP [2]=LBRACE ... [last]=RBRACE
 Candidates ExportNode::Format(const FmtContext& ctx) const
 	{
-	NodeVec body;
-	for ( const auto& c : Children() )
-		if ( ! c->IsToken() )
-			body.push_back(c);
-
-	auto body_text = format_stmt_list(body, ctx.Indented());
-
 	return BuildLayout({0U, soft_sp, 2, indent_up,
-		Formatting("\n" + body_text),
-		indent_down, last()}, ctx);
+		stmt_body(), indent_down, last()}, ctx);
 	}
 
 // Switch statement: switch expr { case val: body ... }

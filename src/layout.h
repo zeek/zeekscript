@@ -24,7 +24,15 @@ std::string line_prefix(int indent, int col);
 
 // Layout item kinds.
 enum LIKind { Lit, FmtExpr, Sp, Tok, ExprIdx, LastTok, ArgIdx,
-              ArgList, IndentUp, IndentDown };
+              ArgList, IndentUp, IndentDown, HardBreak, StmtBody };
+
+// Flags for StmtBody layout items.
+enum SBFlag {
+	SB_AllChildren  = 1,  // use all children (default: non-token)
+	SB_SkipBlanks   = 2,  // skip leading blank lines
+	SB_StripNewline = 4,  // strip trailing newline from result
+	SB_RelocComment = 8,  // relocate close-brace trailing comment
+};
 
 // A component in a layout specification.  Implicit constructors
 // let callers mix child indices, node pointers, strings, and
@@ -86,19 +94,25 @@ public:
 	const NodePtr& LI_Node() const { return node; }
 	int ChildIdx() const { return child_idx; }
 	int SubChildIdx() const { return sub_child_idx; }
+	int Flags() const { return sb_flags; }
 	bool MustBreak() const { return must_break; }
 
 	void SetMustBreak(bool mb) { must_break = mb; }
 
 private:
+	friend LayoutItem stmt_body(int flags);
+	friend LayoutItem stmt_body(unsigned child_index, int flags);
+
 	Formatting fmt;
 	NodePtr node;
 	int child_idx = -1;
 	int sub_child_idx = -1;
+	int sb_flags = 0;
 	bool must_break;	// force next Sp to break (trailing comment)
 	};
 
 extern const LayoutItem soft_sp;
+extern const LayoutItem hard_break;
 extern const LayoutItem indent_up;
 extern const LayoutItem indent_down;
 
@@ -125,6 +139,12 @@ LayoutItem arg(unsigned arg_index);
 // appended after the close bracket (e.g. return type).
 LayoutItem arglist(unsigned child_index);
 LayoutItem arglist(unsigned child_index, Formatting suffix);
+
+// Statement body: formats children as a statement list at the
+// current indent level, prepending "\n".  Default selects non-token
+// children; SB_AllChildren selects all.  Use SBFlag for options.
+LayoutItem stmt_body(int flags = 0);
+LayoutItem stmt_body(unsigned child_index, int flags = 0);
 
 // Build layout candidates from a sequence of components using
 // beam search.  At each Fmt node, all of its candidates are tried;
