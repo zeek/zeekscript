@@ -9,27 +9,6 @@ Candidates CommentNode::Format(const FmtContext& ctx) const
 	return BuildLayout({arg(0)}, ctx);
 	}
 
-// Append a suffix (semicolon) to each candidate.  When ovf_ctx is
-// provided, single-line candidates recompute overflow against it
-// (needed when the outer context has its own trail).
-static Candidates append_suffix(Candidates& cs, const NodePtr& suffix, int col,
-                               const FmtContext* ovf_ctx = nullptr)
-	{
-	int suffix_w = suffix->Width();
-	Candidates result;
-	for ( auto& c : cs )
-		{
-		int w = c.Width() + suffix_w;
-		int overflow = (ovf_ctx && c.Lines() == 1) ?
-				ovf(w, *ovf_ctx) : c.Ovf();
-		result.push_back({c.Fmt() + suffix, w, c.Lines(), overflow, col});
-		}
-	return result;
-	}
-
-// Keyword statements with expression list:
-//   return [expr], add expr, delete expr, assert expr[, msg],
-//   print expr, ...
 // Children: [0]=KEYWORD [1]=SP ... [last]=SEMI
 Candidates BareKeywordNode::Format(const FmtContext& ctx) const
 	{
@@ -43,15 +22,7 @@ Candidates KeywordExprNode::Format(const FmtContext& ctx) const
 
 Candidates PrintStmtNode::Format(const FmtContext& ctx) const
 	{
-	auto kw = Child(0, Tag::Keyword);
-	const auto& semi = Children().back();
-	auto items = collect_args(Children());
-
-	int semi_w = semi->Width();
-	FmtContext inner = ctx.Reserve(semi_w);
-	auto cs = flat_or_fill(Formatting(kw) + " ", "", "", "", items, inner);
-
-	return append_suffix(cs, semi, ctx.Col());
+	return BuildLayout({fill_list(), last()}, ctx);
 	}
 
 // Event statement: event name(args);

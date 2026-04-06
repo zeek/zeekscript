@@ -42,6 +42,11 @@ LayoutItem arglist(unsigned child_index, Formatting suffix)
 	return {ArgList, child_index, std::move(suffix)};
 	}
 
+LayoutItem fill_list()
+	{
+	return {FillList};
+	}
+
 LayoutItem stmt_body(int flags)
 	{
 	return {StmtBody, flags};
@@ -166,7 +171,8 @@ static Partials layout_one_item(const LayoutItem& item, Partials& beam,
 			break;
 			}
 
-		case Tok: case ExprIdx: case LastTok: case ArgIdx: case StmtBody:
+		case Tok: case ExprIdx: case LastTok: case ArgIdx:
+		case StmtBody: case FillList:
 			assert(false);  // resolved before reaching here
 			break;
 
@@ -327,6 +333,13 @@ Candidates Node::BuildLayout(LayoutItems items, const FmtContext& ctx) const
 		else if ( item.kind == ArgList )
 			item = LayoutItem(ArgList, Child(item.ChildIdx()),
 					item.Fmt());
+		else if ( item.kind == FillList )
+			{
+			auto prefix = Formatting(Children().front()) + " ";
+			auto args = collect_args(Children());
+			auto cs = flat_or_fill(prefix, "", "", "", args, ctx);
+			item = LayoutItem(best(cs).Fmt());
+			}
 		else if ( item.kind == StmtBody )
 			{
 			// Collect children and format as stmt list.

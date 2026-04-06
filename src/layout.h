@@ -24,7 +24,8 @@ std::string line_prefix(int indent, int col);
 
 // Layout item kinds.
 enum LIKind { Lit, FmtExpr, Sp, Tok, ExprIdx, LastTok, ArgIdx,
-              ArgList, IndentUp, IndentDown, HardBreak, StmtBody };
+              ArgList, FillList, IndentUp, IndentDown, HardBreak,
+              StmtBody };
 
 // Flags for StmtBody layout items.
 enum SBFlag {
@@ -142,6 +143,10 @@ LayoutItem arg(unsigned arg_index);
 // appended after the close bracket (e.g. return type).
 LayoutItem arglist(unsigned child_index);
 LayoutItem arglist(unsigned child_index, Formatting suffix);
+
+// Bare fill list: flat_or_fill on collected args with the first
+// child (keyword) as prefix.  No open/close brackets.
+LayoutItem fill_list();
 
 // Statement body: formats children as a statement list at the
 // current indent level, prepending "\n".  Default selects non-token
