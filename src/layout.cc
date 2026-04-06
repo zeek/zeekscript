@@ -44,16 +44,12 @@ LayoutItem arglist(unsigned child_index, Formatting suffix)
 
 LayoutItem stmt_body(int flags)
 	{
-	LayoutItem item{StmtBody};
-	item.sb_flags = flags;
-	return item;
+	return {StmtBody, flags};
 	}
 
 LayoutItem stmt_body(unsigned child_index, int flags)
 	{
-	LayoutItem item{StmtBody, child_index};
-	item.sb_flags = flags;
-	return item;
+	return {StmtBody, child_index, flags};
 	}
 
 static constexpr int BEAM_WIDTH = 4;

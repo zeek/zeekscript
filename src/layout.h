@@ -76,14 +76,20 @@ public:
 		: kind(k), child_idx(static_cast<int>(child_index)),
 		  must_break(false) {}
 
-	// Soft space (private; use soft_sp constant).
-	LayoutItem(LIKind k) : kind(k), must_break(false) {}
+	// Kind only, with optional flags (used by soft_sp, stmt_body, etc.).
+	LayoutItem(LIKind k, int fl = 0)
+		: kind(k), sb_flags(fl), must_break(false) {}
 
 	// Kind + child index + suffix (for arglist with suffix).
 	LayoutItem(LIKind k, unsigned child_index, Formatting suffix)
 		: kind(k), fmt(std::move(suffix)),
 		  child_idx(static_cast<int>(child_index)),
 		  must_break(false) {}
+
+	// Kind + child index + flags (for stmt_body with child).
+	LayoutItem(LIKind k, unsigned child_index, int fl)
+		: kind(k), child_idx(static_cast<int>(child_index)),
+		  sb_flags(fl), must_break(false) {}
 
 	// Resolved arglist: node + suffix.
 	LayoutItem(LIKind k, const NodePtr& n, Formatting suffix)
@@ -100,9 +106,6 @@ public:
 	void SetMustBreak(bool mb) { must_break = mb; }
 
 private:
-	friend LayoutItem stmt_body(int flags);
-	friend LayoutItem stmt_body(unsigned child_index, int flags);
-
 	Formatting fmt;
 	NodePtr node;
 	int child_idx = -1;
