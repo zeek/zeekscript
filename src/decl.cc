@@ -67,15 +67,11 @@ static void decl_with_init(const DeclParts& d, Candidates& result,
 
 	if ( flat_mlo > 0 )
 		{
-		// Skip when the savings barely help a single-line
-		// overflow.
-		if ( val.Lines() == 1 )
-			{
-			int savings = before_w - ctx.Indented().Col();
-			if ( savings > 0 && savings < flat_mlo &&
-			     savings < INDENT_WIDTH )
-				return;
-			}
+		// Skip when the column savings from splitting are
+		// too small to justify the extra line break.
+		int savings = before_w - ctx.Indented().Col();
+		if ( savings > 0 && savings < INDENT_WIDTH )
+			return;
 
 		FmtContext cont = ctx.Indented().Reserve(suffix_w);
 		auto val2 = best(format_expr(*d.init_val, cont));

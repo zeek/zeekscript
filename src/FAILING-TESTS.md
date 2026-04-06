@@ -1,4 +1,4 @@
-# C++ Formatter Failing Tests (169 pass, 5 fail as of 2026-04-06)
+# C++ Formatter Failing Tests (170 pass, 4 fail as of 2026-04-06)
 
 ## By category (sorted by count)
 
@@ -7,10 +7,6 @@ Correct multi-line Candidate metrics change fill packing behavior
 for field-assign lists.  format_args_fill treats multi-line items
 differently and bc.Width() meaning changes (last-line vs total).
 test{105,133,137,138}
-
-### Baseline update needed (1)
-Output is correct per formatting rules but baseline not yet updated.
-test{093}
 
 ## Notes
 - Some tests appear in multiple categories; listed under primary failure.
@@ -367,3 +363,9 @@ entries chronological within a session date.
     multi-line flat candidate to use TextOverflow directly
   - Renamed category: "Multi-line Candidate metrics cascade" ->
     "Field-assign fill packing" (4) + "Baseline update needed" (1)
+- After decl split savings gate: 170 pass, 4 fail
+  - Fixed: test093 (split after = skipped when column savings < 8)
+  - decl_with_init: skip split when before_w - indented_col is
+    positive but less than INDENT_WIDTH (the split barely helps
+    and adds an unnecessary line for unsplittable content like
+    long string constants)
