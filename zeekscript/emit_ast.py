@@ -1525,7 +1525,8 @@ class Emitter:
         self._mark_content(node)
 
     def _emit_return(self, node: tree_sitter.Node) -> None:
-        self._open('RETURN')
+        has_expr = any(child.type == "expr" for child in self._iter_children(node))
+        self._open('RETURN' if has_expr else 'RETURN-VOID')
         self._kw("return")
         for child in self._iter_children(node):
             if child.type == "expr":

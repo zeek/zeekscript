@@ -121,12 +121,13 @@ NodePtr MakeNode(Tag tag)
 	case Tag::TypeFunc: return std::make_shared<TypeFuncNode>();
 	case Tag::CommentLeading: return std::make_shared<CommentNode>();
 	case Tag::ExprStmt: return std::make_shared<ExprStmtNode>();
-	case Tag::Return: return std::make_shared<KeywordStmtNode>(tag);
-	case Tag::Add: return std::make_shared<KeywordStmtNode>(tag);
-	case Tag::Delete: return std::make_shared<KeywordStmtNode>(tag);
-	case Tag::Assert: return std::make_shared<KeywordStmtNode>(tag);
+	case Tag::ReturnVoid: return std::make_shared<BareKeywordNode>(tag);
+	case Tag::Return: return std::make_shared<KeywordExprNode>(tag);
+	case Tag::Add: return std::make_shared<KeywordExprNode>(tag);
+	case Tag::Delete: return std::make_shared<KeywordExprNode>(tag);
+	case Tag::Assert: return std::make_shared<KeywordExprNode>(tag);
 	case Tag::EventStmt: return std::make_shared<EventStmtNode>();
-	case Tag::Print: return std::make_shared<KeywordStmtNode>(Tag::Print);
+	case Tag::Print: return std::make_shared<PrintStmtNode>();
 	case Tag::GlobalDecl: return std::make_shared<DeclNode>(tag);
 	case Tag::LocalDecl: return std::make_shared<DeclNode>(tag);
 	case Tag::ModuleDecl: return std::make_shared<ModuleDeclNode>();

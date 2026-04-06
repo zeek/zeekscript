@@ -31,17 +31,21 @@ static Candidates append_suffix(Candidates& cs, const NodePtr& suffix, int col,
 //   return [expr], add expr, delete expr, assert expr[, msg],
 //   print expr, ...
 // Children: [0]=KEYWORD [1]=SP ... [last]=SEMI
-Candidates KeywordStmtNode::Format(const FmtContext& ctx) const
+Candidates BareKeywordNode::Format(const FmtContext& ctx) const
+	{
+	return BuildLayout({0U, last()}, ctx);
+	}
+
+Candidates KeywordExprNode::Format(const FmtContext& ctx) const
+	{
+	return BuildLayout({0U, soft_sp, expr(2), last()}, ctx);
+	}
+
+Candidates PrintStmtNode::Format(const FmtContext& ctx) const
 	{
 	auto kw = Child(0, Tag::Keyword);
 	const auto& semi = Children().back();
 	auto items = collect_args(Children());
-
-	if ( items.empty() )
-		return BuildLayout({0U, last()}, ctx);
-
-	if ( items.size() == 1 )
-		return BuildLayout({0U, soft_sp, items[0].arg, last()}, ctx);
 
 	int semi_w = semi->Width();
 	FmtContext inner = ctx.Reserve(semi_w);

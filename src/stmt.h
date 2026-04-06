@@ -27,13 +27,27 @@ public:
 	Candidates Format(const FmtContext& ctx) const override;
 };
 
-// Keyword statements with expression list:
-//   return [expr], add expr, delete expr, assert expr[, msg],
-//   print expr, ...
+// Bare keyword statement: keyword ;  (e.g. return;)
 
-class KeywordStmtNode : public StmtNode {
+class BareKeywordNode : public StmtNode {
 public:
-	KeywordStmtNode(Tag t) : StmtNode(t) { }
+	BareKeywordNode(Tag t) : StmtNode(t) { }
+	Candidates Format(const FmtContext& ctx) const override;
+};
+
+// Keyword + single expression: keyword expr ;
+
+class KeywordExprNode : public StmtNode {
+public:
+	KeywordExprNode(Tag t) : StmtNode(t) { }
+	Candidates Format(const FmtContext& ctx) const override;
+};
+
+// Print statement: print expr, expr, ... ;
+
+class PrintStmtNode : public StmtNode {
+public:
+	PrintStmtNode() : StmtNode(Tag::Print) { }
 	Candidates Format(const FmtContext& ctx) const override;
 };
 

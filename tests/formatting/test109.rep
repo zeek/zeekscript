@@ -34,7 +34,7 @@ FUNC-DECL {
       }
       RPAREN
       BODY {
-        RETURN {
+        RETURN-VOID {
           KEYWORD "return"
           SP
           SEMI

@@ -64,6 +64,7 @@ enum class Tag {
 	Switch,
 	When,
 	Return,
+	ReturnVoid,
 	Print,
 	EventStmt,
 	Add,

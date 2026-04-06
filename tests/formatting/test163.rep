@@ -34,7 +34,7 @@ FUNC-DECL {
       RPAREN
       COMMENT-TRAILING "#@ BEGIN-SKIP-TESTING"
       BODY {
-        RETURN {
+        RETURN-VOID {
           KEYWORD "return"
           SP
           SEMI
