@@ -103,6 +103,7 @@ static const std::unordered_map<Tag, LayoutItems> layout_table = {
 	{Tag::Paren, {0U, expr(1), 2}},
 	{Tag::Schedule, {0U, {Sp}, expr(2), {Sp}, 3, {Sp}, expr(4), {Sp}, 5}},
 	{Tag::Param, {arg(0), compute(&Node::ComputeParamType)}},
+	{Tag::Index, {expr(0), arglist(1)}},
 	{Tag::TypeParameterized, {arg(0), arglist(0, &Node::ComputeOfType)}},
 	{Tag::TypeOf, {arg(0), " ", 0U, " ", expr(2)}},
 	{Tag::TypeFunc, {arg(0), arglist(0)}},
@@ -163,7 +164,6 @@ NodePtr MakeNode(Tag tag)
 	case Tag::BoolChain: return std::make_shared<BoolChainNode>();
 	case Tag::Call: return std::make_shared<CallNode>();
 	case Tag::Constructor: return std::make_shared<ConstructorNode>();
-	case Tag::Index: return std::make_shared<IndexNode>();
 	case Tag::IndexLiteral: return std::make_shared<IndexLiteralNode>();
 	case Tag::Lambda: return std::make_shared<LambdaNode>();
 	case Tag::LambdaCaptures: return std::make_shared<LambdaCapturesNode>();

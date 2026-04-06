@@ -34,12 +34,6 @@ public:
 	Candidates Format(const FmtContext& ctx) const override;
 };
 
-class IndexNode : public ExprNode {
-public:
-	IndexNode() : ExprNode(Tag::Index) { }
-	Candidates Format(const FmtContext& ctx) const override;
-};
-
 class IndexLiteralNode : public ExprNode {
 public:
 	IndexLiteralNode() : ExprNode(Tag::IndexLiteral) { }

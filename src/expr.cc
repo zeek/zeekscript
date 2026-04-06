@@ -179,40 +179,6 @@ Candidates ConstructorNode::Format(const FmtContext& ctx) const
 	return FormatConstructor_args(open, rp, items, ctx);
 	}
 
-// Index: expr[subscripts]
-// Children: [0]=expr [1]=SUBSCRIPTS
-Candidates IndexNode::Format(const FmtContext& ctx) const
-	{
-	auto base_cs = format_expr(*Child(0), ctx);
-	const auto& base = best(base_cs);
-
-	auto subs_node = Child(1, Tag::Subscripts);
-
-	auto lb = subs_node->Child(0, Tag::LBracket);
-	const auto& rb = subs_node->Children().back();
-
-	auto subs_content = subs_node->ContentChildren();
-	if ( subs_content.empty() )
-		return {base.Cat(lb).Cat(rb).In(ctx)};
-
-	if ( subs_content.size() == 1 )
-		{
-		int lb_w = lb->Width();
-		int rb_w = rb->Width();
-		int sub_col = ctx.Col() + base.Width() + lb_w;
-		FmtContext bracket_ctx(ctx.Indent(), sub_col,
-					ctx.Width() - base.Width() -
-						lb_w - rb_w);
-		auto sub_cs = format_expr(*subs_content[0], bracket_ctx);
-		auto sub = best(sub_cs);
-		return {base.Cat(lb).Cat(sub).Cat(rb).In(ctx)};
-		}
-
-	// Multiple subscripts: format as comma-separated list.
-	auto items = collect_args(subs_node->Children());
-	return flat_or_fill(base.Fmt(), lb, rb, "", items, ctx);
-	}
-
 // Index literal: [$field=expr, ...]
 // Children: [0]=LBRACKET ... [last]=RBRACKET
 Candidates IndexLiteralNode::Format(const FmtContext& ctx) const
