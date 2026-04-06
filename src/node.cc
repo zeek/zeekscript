@@ -144,6 +144,7 @@ static const std::unordered_map<Tag, LayoutItems> layout_table = {
 		 FmtStep::TI(1), FmtStep::S(),
 		 FmtStep::EI(2)},
 		{{2, SplitAt::IndentedOrSame}})}},
+	{Tag::BoolChain, {op_fill()}},
 	{Tag::Ternary, {flat_split(
 		{FmtStep::EI(0),
 		 FmtStep::L(" "), FmtStep::TI(1),
@@ -167,7 +168,6 @@ NodePtr MakeNode(Tag tag)
 	case Tag::IfElse: return std::make_shared<IfElseNode>();
 	case Tag::For: return std::make_shared<ForNode>();
 	case Tag::While: return std::make_shared<WhileNode>();
-	case Tag::BoolChain: return std::make_shared<BoolChainNode>();
 	case Tag::Lambda: return std::make_shared<LambdaNode>();
 	case Tag::LambdaCaptures: return std::make_shared<LambdaCapturesNode>();
 	case Tag::GlobalDecl: return std::make_shared<DeclNode>(tag);

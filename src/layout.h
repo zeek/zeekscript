@@ -25,7 +25,7 @@ std::string line_prefix(int indent, int col);
 // Layout item kinds.
 enum LIKind { Lit, FmtExpr, Sp, Tok, ExprIdx, LastTok, ArgIdx,
               ArgList, FillList, FlatSplit, Computed, IndentUp,
-              IndentDown, HardBreak, StmtBody };
+              IndentDown, HardBreak, StmtBody, OpFill };
 
 // Shared context for Computed layout items within a single
 // BuildLayout call.  Earlier compute functions can populate
@@ -196,6 +196,11 @@ public:
 		: kind(k), child_idx(static_cast<int>(child_index)),
 		  compute_fn(fn), must_break(false) {}
 
+	// Resolved OpFill: operator string + operand nodes.
+	LayoutItem(LIKind k, std::string op, NodeVec ops)
+		: kind(k), fmt(std::move(op)),
+		  operands(std::move(ops)), must_break(false) {}
+
 	const Formatting& Fmt() const { return fmt; }
 	const NodePtr& LI_Node() const { return node; }
 	int ChildIdx() const { return child_idx; }
@@ -206,12 +211,14 @@ public:
 	const std::vector<SplitAt>& Splits() const { return splits; }
 	bool ForceFlatSubs() const { return force_flat; }
 	ComputeFn CompFn() const { return compute_fn; }
+	const NodeVec& Operands() const { return operands; }
 
 	void SetMustBreak(bool mb) { must_break = mb; }
 
 private:
 	Formatting fmt;
 	NodePtr node;
+	NodeVec operands;
 	FmtSteps steps;
 	std::vector<SplitAt> splits;
 	int child_idx = -1;
@@ -271,6 +278,10 @@ inline LayoutItem stmt_body(unsigned child_index, int flags = 0)
 // Computed value: calls a member function on the node during
 // BuildLayout resolution, replacing itself with the result.
 inline LayoutItem compute(ComputeFn fn) { return {Computed, fn}; }
+
+// Operator fill: format content children separated by arg(0),
+// try flat, then greedy-fill with wrap at operator.
+inline LayoutItem op_fill() { return {OpFill}; }
 
 // Flat-or-split with deferred child references: FmtStep::EI(n)
 // and FmtStep::TI(n) are resolved during BuildLayout.

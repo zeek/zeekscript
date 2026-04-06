@@ -210,6 +210,116 @@ static Partials layout_one_item(const LayoutItem& item, Partials& beam,
 			break;
 			}
 
+		case OpFill:
+			{
+			auto& operands = item.Operands();
+			auto& op = item.Fmt();
+			auto sep = " " + op + " ";
+			int sep_w = static_cast<int>(sep.Size());
+			int max_col = ctx.MaxCol() - trail;
+
+			// Try flat.
+			Formatting flat;
+			int flat_w = 0;
+			bool any_multiline = false;
+			for ( size_t j = 0; j < operands.size(); ++j )
+				{
+				auto cs = format_expr(*operands[j],
+					ctx.After(p.col + flat_w));
+				auto bc = best(cs);
+				if ( bc.Lines() > 1 )
+					any_multiline = true;
+				if ( j > 0 )
+					{
+					flat += sep;
+					flat_w += sep_w;
+					}
+				flat += bc.Fmt();
+				flat_w += bc.Width();
+				}
+
+			int flat_ovf = std::max(0, p.col + flat_w + trail - ctx.MaxCol());
+			if ( flat_ovf == 0 && ! any_multiline )
+				{
+				Partial np = p;
+				np.fmt += flat;
+				np.col += flat_w;
+				np.must_break = false;
+				next.push_back(std::move(np));
+				break;
+				}
+
+			// Fill: greedy pack with wrap at operator.
+			FmtContext cont_ctx = p.col == ctx.IndentCol() ?
+				ctx.Indented() : ctx.AtCol(p.col);
+			auto pad = line_prefix(cont_ctx.Indent(),
+						cont_ctx.Col());
+
+			Formatting text;
+			int cur_col = p.col;
+			int fill_lines = 0;
+			int fill_ovf = 0;
+
+			for ( size_t j = 0; j < operands.size(); ++j )
+				{
+				FmtContext sub(cont_ctx.Indent(), cur_col,
+					max_col - cur_col);
+				auto bc = best(format_expr(*operands[j], sub));
+				int w = bc.Width();
+
+				if ( j == 0 )
+					{
+					text += bc.Fmt();
+					cur_col += w;
+					}
+				else
+					{
+					int need = bc.Lines() > 1 ?
+						max_col + 1 : sep_w + w;
+
+					if ( cur_col + need <= max_col )
+						{
+						text += sep + bc.Fmt();
+						cur_col += need;
+						}
+					else
+						{
+						text += " " + op + "\n" + pad;
+						cur_col = cont_ctx.Col();
+						++fill_lines;
+
+						FmtContext ws(cont_ctx.Indent(),
+							cur_col,
+							max_col - cur_col);
+						auto wb = best(
+							format_expr(*operands[j], ws));
+						text += wb.Fmt();
+						cur_col += wb.Width();
+						fill_ovf += wb.Ovf();
+						}
+					}
+
+				if ( bc.Lines() > 1 )
+					{
+					fill_lines += bc.Lines() - 1;
+					cur_col = text.LastLineLen();
+					}
+
+				fill_ovf += bc.Ovf();
+				}
+
+			fill_ovf += std::max(0, cur_col - max_col);
+
+			Partial np = p;
+			np.fmt += text;
+			np.col = cur_col;
+			np.lines += fill_lines;
+			np.overflow += fill_ovf;
+			np.must_break = false;
+			next.push_back(std::move(np));
+			break;
+			}
+
 		case FlatSplit:
 			{
 			int avail = ctx.MaxCol() - p.col;
@@ -461,6 +571,12 @@ Candidates Node::BuildLayout(LayoutItems items, const FmtContext& ctx) const
 				text.PopBack();
 
 			item = LayoutItem(Formatting("\n" + text));
+			}
+		else if ( item.kind == OpFill )
+			{
+			auto op = Arg();
+			auto ops = ContentChildren();
+			item = LayoutItem(OpFill, std::move(op), std::move(ops));
 			}
 		else if ( item.kind == IndentDown )
 			{

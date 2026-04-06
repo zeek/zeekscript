@@ -11,15 +11,6 @@ public:
 	virtual Candidates Format(const FmtContext& ctx) const = 0;
 };
 
-// Boolean chain: operands are direct children (flattened),
-// formatted with fill layout.
-
-class BoolChainNode : public ExprNode {
-public:
-	BoolChainNode() : ExprNode(Tag::BoolChain) { }
-	Candidates Format(const FmtContext& ctx) const override;
-};
-
 // Compound expressions
 
 class LambdaNode : public ExprNode {
