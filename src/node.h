@@ -1,14 +1,11 @@
 #pragma once
 
-#include "cand.h"
-#include "formatting.h"
+#include "layout.h"
 #include "tag.h"
 
 #include <memory>
 #include <string>
 #include <vector>
-
-class FmtContext;
 
 // A node in the representation tree.  Each node has:
 //   - tag:      semantic type (e.g. Tag::BinaryOp)
@@ -30,6 +27,11 @@ public:
 	Node(Tag tag) : tag(tag) {}
 	virtual ~Node() = default;
 	virtual Candidates Format(const FmtContext& ctx) const;
+
+	// Layout combinator: resolves integer LayoutItems as tok(Child(i))
+	// before delegating to the beam-search layout engine.
+	Candidates BuildLayout(LayoutItems items,
+	                       const FmtContext& ctx) const;
 
 	Tag GetTag() const { return tag; }
 	bool IsLambda() const { return is_lambda(tag); }

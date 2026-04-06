@@ -9,6 +9,7 @@
 class Formatting;
 class Node;
 using NodePtr = std::shared_ptr<Node>;
+using NodeVec = std::vector<NodePtr>;
 
 // A piece of formatted output: a borrowed view (for string literals),
 // an owned string, a shared reference to another Formatting, or a

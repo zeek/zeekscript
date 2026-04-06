@@ -300,9 +300,7 @@ Candidates DeclNode::Format(const FmtContext& ctx) const
 // MODULE: [0]=KEYWORD [1]=SP [2]=IDENTIFIER [3]=SEMI
 Candidates ModuleDeclNode::Format(const FmtContext& ctx) const
 	{
-	return build_layout({tok(Child(0, Tag::Keyword)), soft_sp,
-		tok(Child(2, Tag::Identifier)),
-		tok(Child(3, Tag::Semi))}, ctx);
+	return BuildLayout({0U, soft_sp, 2, 3}, ctx);
 	}
 
 // ------------------------------------------------------------------
@@ -524,11 +522,7 @@ static Formatting format_field(const Node& node, const Formatting& suffix,
 
 Candidates TypeDeclAliasNode::Format(const FmtContext& ctx) const
 	{
-	return build_layout({tok(Child(0, Tag::Keyword)), soft_sp,
-		tok(Child(2, Tag::Identifier)),
-		tok(Child(3, Tag::Colon)),
-		soft_sp, Child(5),
-		tok(Child(6, Tag::Semi))}, ctx);
+	return BuildLayout({0U, soft_sp, 2, 3, soft_sp, Child(5), 6}, ctx);
 	}
 
 // ------------------------------------------------------------------
@@ -542,10 +536,8 @@ Candidates TypeDeclBracedNode::Format(const FmtContext& ctx) const
 	{
 	auto inner = Child(5);
 
-	auto head = best(build_layout(
-		{tok(Child(0, Tag::Keyword)), soft_sp,
-		 tok(Child(2, Tag::Identifier)),
-		 tok(Child(3, Tag::Colon)),
+	auto head = best(BuildLayout(
+		{0U, soft_sp, 2, 3,
 		 soft_sp, tok(inner->Child(0, Tag::Keyword)),
 		 soft_sp, tok(inner->Child(2, Tag::LBrace))}, ctx)).Fmt();
 

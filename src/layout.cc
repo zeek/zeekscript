@@ -1,4 +1,5 @@
 #include <algorithm>
+#include <cassert>
 
 #include "fmt_util.h"
 
@@ -70,6 +71,10 @@ static Partials layout_one_item(const LayoutItem& item, Partials& beam,
 			break;
 			}
 
+		case LayoutItem::Kind::Tok:
+			assert(false);  // resolved before reaching here
+			break;
+
 		case LayoutItem::Kind::Sp:
 			{
 			// Option 1: space (skip if preceding
@@ -117,10 +122,8 @@ static Partials layout_one_item(const LayoutItem& item, Partials& beam,
 
 // Trailing literal width after a Fmt node is automatically reserved
 // so the formatted expression accounts for what follows it.
-Candidates build_layout(LayoutItems items_init, const FmtContext& ctx)
+Candidates build_layout(LayoutItems items, const FmtContext& ctx)
 	{
-	std::vector<LayoutItem> items(items_init);
-
 	// Compute trailing literal width after position i, assuming
 	// soft_sp items resolve to a single space.  If the trailing
 	// items extend to the end of the layout, include the outer
@@ -158,4 +161,13 @@ Candidates build_layout(LayoutItems items_init, const FmtContext& ctx)
 		}
 
 	return result;
+	}
+
+Candidates Node::BuildLayout(LayoutItems items, const FmtContext& ctx) const
+	{
+	for ( auto& item : items )
+		if ( item.kind == LayoutItem::Kind::Tok )
+			item = tok(Child(item.ChildIdx()));
+
+	return build_layout(items, ctx);
 	}

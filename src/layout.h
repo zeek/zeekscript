@@ -4,13 +4,12 @@
 #include <string>
 #include <vector>
 
-#include "node.h"
+#include "cand.h"
 
 // Thrown when the formatter encounters a malformed node tree.
 class FormatError : public std::runtime_error {
 public:
-	FormatError(const std::string& msg)
-		: std::runtime_error(msg) {}
+	FormatError(const std::string& msg) : std::runtime_error(msg) {}
 };
 
 static constexpr int INDENT_WIDTH = 8;  // columns per indent level
@@ -27,8 +26,7 @@ static constexpr int INDENT_WIDTH = 8;  // columns per indent level
 class FmtContext {
 public:
 	FmtContext(int indent, int col, int width, int trail = 0)
-		: indent(indent), col(col), width(width),
-		  trail(trail) {}
+		: indent(indent), col(col), width(width), trail(trail) {}
 
 	int Indent() const { return indent; }
 	int Col() const { return col; }
@@ -89,12 +87,13 @@ std::string line_prefix(int indent, int col);
 // Layout combinator
 
 // A component in a layout specification.  Implicit constructors
-// let callers mix strings, node pointers, and SP markers freely:
-//   build_layout({prefix, soft_sp, node, soft_sp, suffix}, ctx)
+// let callers mix child indices, node pointers, strings, and
+// SP markers freely:
+//   BuildLayout({0U, soft_sp, Child(2), soft_sp, 3}, ctx)
 class LayoutItem
 	{
 public:
-	enum class Kind { Lit, Fmt, Sp } kind;
+	enum class Kind { Lit, Fmt, Sp, Tok } kind;
 
 	// Literal text.
 	LayoutItem(const std::string& s)
@@ -110,11 +109,18 @@ public:
 	LayoutItem(const NodePtr& n)
 		: kind(Kind::Fmt), node(n), must_break(false) {}
 
+	// Child token: resolved by BuildLayout into a Lit via tok().
+	// Use 0U for child 0 to avoid null-pointer ambiguity with
+	// the const-char* constructor.
+	LayoutItem(unsigned child_index) : kind(Kind::Tok),
+		child_idx(static_cast<int>(child_index)), must_break(false) {}
+
 	// Soft space (private; use soft_sp constant).
 	LayoutItem(Kind k) : kind(k), must_break(false) {}
 
 	const Formatting& Fmt() const { return fmt; }
 	const NodePtr& LI_Node() const { return node; }
+	int ChildIdx() const { return child_idx; }
 	bool MustBreak() const { return must_break; }
 
 	void SetMustBreak(bool mb) { must_break = mb; }
@@ -122,6 +128,7 @@ public:
 private:
 	Formatting fmt;
 	NodePtr node;
+	int child_idx = -1;
 	bool must_break;	// force next Sp to break (trailing comment)
 	};
 
@@ -135,5 +142,5 @@ LayoutItem tok(const NodePtr& n);
 // beam search.  At each Fmt node, all of its candidates are tried;
 // at each soft_sp, both "space" and "break + indent" are tried.
 // The beam is pruned to the best candidates at each step.
-using LayoutItems = std::initializer_list<LayoutItem>;
-Candidates build_layout(LayoutItems items_init, const FmtContext& ctx);
+using LayoutItems = std::vector<LayoutItem>;
+Candidates build_layout(LayoutItems items, const FmtContext& ctx);
