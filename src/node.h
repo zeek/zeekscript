@@ -139,5 +139,18 @@ private:
 	bool has_block = false;
 };
 
+// A node whose Format is purely declarative: just runs BuildLayout
+// on a fixed sequence of LayoutItems.
+class LayoutNode : public Node {
+public:
+	LayoutNode(Tag t, LayoutItems items)
+		: Node(t), layout(std::move(items)) {}
+	Candidates Format(const FmtContext& ctx) const override
+		{ return BuildLayout(layout, ctx); }
+
+private:
+	LayoutItems layout;
+};
+
 // Factory: creates the appropriate Node subclass based on tag.
 NodePtr MakeNode(Tag tag);
