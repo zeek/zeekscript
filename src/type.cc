@@ -79,15 +79,15 @@ const NodePtr& Node::FindTypeChild() const
 
 // TYPE-FUNC: event(params), function(params): rettype
 
-// Format a single parameter: name[: type]
-// PARAM children: [0]=COLON [1]=type_expr
-Candidates ParamNode::Format(const FmtContext& ctx) const
+// Compute the type suffix for a PARAM node: ": type".
+FmtPtr Node::ComputeParamType(ComputeCtx& cctx, const FmtContext& ctx) const
 	{
-	Formatting fmt(Arg());
-	if ( auto ptype = FindTypeChild() )
-		fmt += Formatting(Child(0, Tag::Colon)) + " " +
-			best(format_expr(*ptype, ctx)).Fmt();
-	return {Candidate(std::move(fmt), ctx)};
+	auto& ptype = FindTypeChild();
+	if ( ! ptype )
+		return nullptr;
+	return std::make_shared<Formatting>(
+		Formatting(Child(0, Tag::Colon)) + " " +
+		best(format_expr(*ptype, ctx)).Fmt());
 	}
 
 // Compute the return type suffix for a TYPE-FUNC-RET node: ": rettype".

@@ -102,10 +102,3 @@ public:
 	Candidates Format(const FmtContext& ctx) const override;
 };
 
-// PARAM: name[: type]
-
-class ParamNode : public ExprNode {
-public:
-	ParamNode() : ExprNode(Tag::Param) { }
-	Candidates Format(const FmtContext& ctx) const override;
-};
