@@ -80,20 +80,18 @@ const NodePtr& Node::FindTypeChild() const
 // TYPE-FUNC: event(params), function(params): rettype
 
 // Compute the type suffix for a PARAM node: ": type".
-FmtPtr Node::ComputeParamType(ComputeCtx& cctx, const FmtContext& ctx) const
+LayoutItem Node::ComputeParamType(ComputeCtx& cctx, const FmtContext& ctx) const
 	{
-	return std::make_shared<Formatting>(
-		Formatting(Child(0, Tag::Colon)) + " " +
-		best(format_expr(*FindTypeChild(), ctx)).Fmt());
+	return Formatting(Child(0, Tag::Colon)) + " " +
+		best(format_expr(*FindTypeChild(), ctx)).Fmt();
 	}
 
 // Compute the return type suffix for a TYPE-FUNC-RET node: ": rettype".
-FmtPtr Node::ComputeRetType(ComputeCtx& cctx, const FmtContext& ctx) const
+LayoutItem Node::ComputeRetType(ComputeCtx& cctx, const FmtContext& ctx) const
 	{
 	auto& returns = FindChild(Tag::Returns);
-	return std::make_shared<Formatting>(
-		Formatting(FindChild(Tag::Colon)) + " " +
-		best(format_expr(*returns->FindTypeChild(), ctx)).Fmt());
+	return Formatting(FindChild(Tag::Colon)) + " " +
+		best(format_expr(*returns->FindTypeChild(), ctx)).Fmt();
 	}
 
 static const NodePtr& get_non_token_child(const Node& parent)

@@ -34,7 +34,8 @@ struct ComputeCtx {
 	Formatting fmt;
 };
 
-using ComputeFn = FmtPtr (Node::*)(ComputeCtx&, const FmtContext&) const;
+class LayoutItem;
+using ComputeFn = LayoutItem (Node::*)(ComputeCtx&, const FmtContext&) const;
 
 // A piece in a flat-or-split sequence.
 class FmtStep {

@@ -112,9 +112,9 @@ public:
 	const NodePtr& FindTypeChild() const;
 
 	// Compute functions for declarative BuildLayout resolution.
-	FmtPtr ComputeRetType(ComputeCtx& cctx, const FmtContext& ctx) const;
-	FmtPtr ComputeParamType(ComputeCtx& cctx, const FmtContext& ctx) const;
-	FmtPtr ComputeSlice(ComputeCtx& cctx, const FmtContext& ctx) const;
+	LayoutItem ComputeRetType(ComputeCtx& cctx, const FmtContext& ctx) const;
+	LayoutItem ComputeParamType(ComputeCtx& cctx, const FmtContext& ctx) const;
+	LayoutItem ComputeSlice(ComputeCtx& cctx, const FmtContext& ctx) const;
 
 	// Format an ATTR-LIST node as a single string.
 	Formatting FormatAttrList(const FmtContext& ctx) const;

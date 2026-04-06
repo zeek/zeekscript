@@ -306,9 +306,7 @@ Candidates Node::BuildLayout(LayoutItems items, const FmtContext& ctx) const
 
 		if ( item.kind == Computed )
 			{
-			auto result = (this->*item.CompFn())(cctx, ctx);
-			item = result ? LayoutItem(*result)
-			              : LayoutItem(Formatting());
+			item = (this->*item.CompFn())(cctx, ctx);
 			continue;
 			}
 
@@ -329,11 +327,7 @@ Candidates Node::BuildLayout(LayoutItems items, const FmtContext& ctx) const
 			{
 			Formatting suffix = item.Fmt();
 			if ( item.CompFn() )
-				{
-				auto r = (this->*item.CompFn())(cctx, ctx);
-				if ( r )
-					suffix = *r;
-				}
+				suffix = (this->*item.CompFn())(cctx, ctx).Fmt();
 			item = LayoutItem(ArgList, Child(item.ChildIdx()),
 					std::move(suffix));
 			}

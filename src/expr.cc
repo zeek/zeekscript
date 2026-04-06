@@ -255,7 +255,7 @@ Candidates IndexLiteralNode::Format(const FmtContext& ctx) const
 
 // Slice: expr[lo:hi], where either lo or hi may be missing.
 // Children: [0]=expr [1]=LBRACKET [2]=lo [3]=COLON [4]=hi [5]=RBRACKET
-FmtPtr Node::ComputeSlice(ComputeCtx& cctx, const FmtContext& ctx) const
+LayoutItem Node::ComputeSlice(ComputeCtx& cctx, const FmtContext& ctx) const
 	{
 	auto lo = best(format_expr(*Child(2), ctx)).Fmt();
 	auto hi = best(format_expr(*Child(4), ctx)).Fmt();
@@ -267,23 +267,21 @@ FmtPtr Node::ComputeSlice(ComputeCtx& cctx, const FmtContext& ctx) const
 		Formatting sep(colon);
 		if ( ! lo.Empty() && ! hi.Empty() )
 			sep = " " + sep + " ";
-		return std::make_shared<Formatting>(
-			best(format_expr(*Child(0), ctx)).Fmt() +
+		return best(format_expr(*Child(0), ctx)).Fmt() +
 			Child(1, Tag::LBracket) + lo + sep + hi +
-			Child(5, Tag::RBracket));
+			Child(5, Tag::RBracket);
 		}
 
 	// E(base) L([) E(lo) L(" ") L(:) S(" ") E(hi) L(])
 	// Split after ":" (4): hi aligns after "[" (piece 2).
-	return std::make_shared<Formatting>(best(BuildLayout(
-		{LayoutItem(
-			{FmtStep::E(Child(0)),
-			 FmtStep::L(Child(1, Tag::LBracket)),
-			 FmtStep::E(Child(2)),
-			 FmtStep::L(" "), FmtStep::L(colon), FmtStep::S(),
-			 FmtStep::E(Child(4)),
-			 FmtStep::L(Child(5, Tag::RBracket))},
-			{{4, SplitAt::AlignWith, 2}}, true)}, ctx)).Fmt());
+	return LayoutItem(
+		{FmtStep::E(Child(0)),
+		 FmtStep::L(Child(1, Tag::LBracket)),
+		 FmtStep::E(Child(2)),
+		 FmtStep::L(" "), FmtStep::L(colon), FmtStep::S(),
+		 FmtStep::E(Child(4)),
+		 FmtStep::L(Child(5, Tag::RBracket))},
+		{{4, SplitAt::AlignWith, 2}}, true);
 	}
 
 // Boolean chain: operands are direct children (flattened by emitter),
