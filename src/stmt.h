@@ -83,7 +83,7 @@ public:
 
 class FuncDeclNode : public StmtNode {
 public:
-	FuncDeclNode() : StmtNode(Tag::FuncDecl) { }
+	FuncDeclNode(Tag t = Tag::FuncDecl) : StmtNode(t) { }
 	Candidates Format(const FmtContext& ctx) const override;
 };
 

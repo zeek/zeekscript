@@ -37,6 +37,7 @@ enum class Tag {
 	TypeAtom,
 	TypeParameterized,
 	TypeFunc,
+	TypeFuncRet,
 	TypeRecord,
 	TypeEnum,
 
@@ -50,6 +51,7 @@ enum class Tag {
 	TypeDeclEnum,
 	TypeDeclRecord,
 	FuncDecl,
+	FuncDeclRet,
 	ExportDecl,
 	ModuleDecl,
 	RedefRecord,
@@ -148,7 +150,7 @@ inline bool is_lambda(Tag t)
 inline bool is_type_tag(Tag t)
 	{
 	return t == Tag::TypeAtom || t == Tag::TypeParameterized ||
-		t == Tag::TypeFunc;
+		t == Tag::TypeFunc || t == Tag::TypeFuncRet;
 	}
 
 // Marker nodes: separators and whitespace that are not content.

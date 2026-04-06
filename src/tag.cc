@@ -41,6 +41,7 @@ static const std::unordered_map<std::string, TagEntry> tag_map = {
 	{"TYPE-ATOM", {Tag::TypeAtom, false}},
 	{"TYPE-PARAMETERIZED", {Tag::TypeParameterized, false}},
 	{"TYPE-FUNC", {Tag::TypeFunc, false}},
+	{"TYPE-FUNC-RET", {Tag::TypeFuncRet, false}},
 	{"TYPE-RECORD", {Tag::TypeRecord, false}},
 	{"TYPE-ENUM", {Tag::TypeEnum, false}},
 
@@ -54,6 +55,7 @@ static const std::unordered_map<std::string, TagEntry> tag_map = {
 	{"TYPEDECL-ENUM", {Tag::TypeDeclEnum, false}},
 	{"TYPEDECL-RECORD", {Tag::TypeDeclRecord, false}},
 	{"FUNC-DECL", {Tag::FuncDecl, false}},
+	{"FUNC-DECL-RET", {Tag::FuncDeclRet, false}},
 	{"EXPORT", {Tag::ExportDecl, false}},
 	{"MODULE", {Tag::ModuleDecl, false}},
 	{"REDEF-RECORD", {Tag::RedefRecord, false}},

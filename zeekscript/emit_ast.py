@@ -784,7 +784,13 @@ class Emitter:
 
         # Function types: event(...), function(...): ret, hook(...)
         if first_text in ("event", "function", "hook"):
-            self._open(f'TYPE-FUNC {_quote(first_text)}')
+            has_ret = any(
+                pk.type == "type"
+                for c in node.children if not c.is_extra
+                if c.type == "func_params"
+                for pk in c.children if not pk.is_extra)
+            tag = "TYPE-FUNC-RET" if has_ret else "TYPE-FUNC"
+            self._open(f'{tag} {_quote(first_text)}')
             self._emit_func_params_from(node)
             self._close()
             return
@@ -1097,7 +1103,13 @@ class Emitter:
             if len(hdr_kids) > 1 and hdr_kids[1].type == "id":
                 name = self._text(hdr_kids[1])
 
-        self._open('FUNC-DECL')
+        has_ret = hdr_inner and any(
+            pk.type == "type"
+            for c in hdr_inner.children if not c.is_extra
+            if c.type == "func_params"
+            for pk in c.children if not pk.is_extra)
+        tag = "FUNC-DECL-RET" if has_ret else "FUNC-DECL"
+        self._open(tag)
         self._kw(kind)
         self._w(f'IDENTIFIER {_quote(name)}')
         if hdr_inner:

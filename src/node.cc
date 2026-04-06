@@ -102,7 +102,8 @@ static const std::unordered_map<Tag, LayoutItems> layout_table = {
 	{Tag::HasField, {expr(0), 1, 2}},
 	{Tag::Paren, {0U, expr(1), 2}},
 	{Tag::Schedule, {0U, {Sp}, expr(2), {Sp}, 3, {Sp}, expr(4), {Sp}, 5}},
-	{Tag::TypeFunc, {arg(0), arglist(0, &Node::ComputeRetType)}},
+	{Tag::TypeFunc, {arg(0), arglist(0)}},
+	{Tag::TypeFuncRet, {arg(0), arglist(0, &Node::ComputeRetType)}},
 	{Tag::CommentLeading, {arg(0)}},
 	{Tag::ExprStmt, {expr(0), last()}},
 	{Tag::ReturnVoid, {0U, last()}},
@@ -145,6 +146,7 @@ NodePtr MakeNode(Tag tag)
 	case Tag::GlobalDecl: return std::make_shared<DeclNode>(tag);
 	case Tag::LocalDecl: return std::make_shared<DeclNode>(tag);
 	case Tag::FuncDecl: return std::make_shared<FuncDeclNode>();
+	case Tag::FuncDeclRet: return std::make_shared<FuncDeclNode>(tag);
 	case Tag::Switch: return std::make_shared<SwitchNode>();
 	case Tag::TypeDeclEnum: return std::make_shared<TypeDeclEnumNode>();
 	case Tag::TypeDeclRecord: return std::make_shared<TypeDeclRecordNode>();

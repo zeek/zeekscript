@@ -90,12 +90,10 @@ Candidates ParamNode::Format(const FmtContext& ctx) const
 	return {Candidate(std::move(fmt), ctx)};
 	}
 
-// Compute the return type suffix for a TYPE-FUNC node: ": rettype".
+// Compute the return type suffix for a TYPE-FUNC-RET node: ": rettype".
 FmtPtr Node::ComputeRetType(ComputeCtx& cctx, const FmtContext& ctx) const
 	{
-	auto returns = FindOptChild(Tag::Returns);
-	if ( ! returns )
-		return nullptr;
+	auto& returns = FindChild(Tag::Returns);
 	return std::make_shared<Formatting>(
 		Formatting(FindChild(Tag::Colon)) + " " +
 		best(format_expr(*returns->FindTypeChild(), ctx)).Fmt());

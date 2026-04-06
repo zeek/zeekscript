@@ -1,4 +1,4 @@
-FUNC-DECL {
+FUNC-DECL-RET {
   KEYWORD "function"
   SP
   IDENTIFIER "some_function_name_aa"
