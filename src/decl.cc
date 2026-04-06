@@ -522,7 +522,7 @@ static Formatting format_field(const Node& node, const Formatting& suffix,
 
 Candidates TypeDeclAliasNode::Format(const FmtContext& ctx) const
 	{
-	return BuildLayout({0U, soft_sp, 2, 3, soft_sp, Child(5), 6}, ctx);
+	return BuildLayout({0U, soft_sp, 2, 3, soft_sp, expr(5), 6}, ctx);
 	}
 
 // ------------------------------------------------------------------

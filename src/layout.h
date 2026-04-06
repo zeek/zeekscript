@@ -93,7 +93,7 @@ std::string line_prefix(int indent, int col);
 class LayoutItem
 	{
 public:
-	enum class Kind { Lit, Fmt, Sp, Tok } kind;
+	enum class Kind { Lit, Fmt, Sp, Tok, ExprIdx } kind;
 
 	// Literal text.
 	LayoutItem(const std::string& s)
@@ -123,6 +123,11 @@ public:
 		  sub_child_idx(static_cast<int>(sub_index)),
 		  must_break(false) {}
 
+	// Kind + child index (used by expr() helper).
+	LayoutItem(Kind k, unsigned child_index)
+		: kind(k), child_idx(static_cast<int>(child_index)),
+		  must_break(false) {}
+
 	// Soft space (private; use soft_sp constant).
 	LayoutItem(Kind k) : kind(k), must_break(false) {}
 
@@ -147,6 +152,11 @@ extern const LayoutItem soft_sp;
 // Token literal: wraps the node in a lazy Formatting piece and
 // forces the next soft_sp to break if it has a trailing comment.
 LayoutItem tok(const NodePtr& n);
+
+// Expression child by index: resolved by BuildLayout into a Fmt
+// item via Child(n).  Parallel to integer Tok shorthand but the
+// child is formatted as an expression (producing candidates).
+LayoutItem expr(unsigned child_index);
 
 // Build layout candidates from a sequence of components using
 // beam search.  At each Fmt node, all of its candidates are tried;

@@ -90,8 +90,8 @@ Candidates CallNode::Format(const FmtContext& ctx) const
 // Children: [0]=KEYWORD [1]=SP [2]=interval [3]=LBRACE [4]=event [5]=RBRACE
 Candidates ScheduleNode::Format(const FmtContext& ctx) const
 	{
-	return BuildLayout({0U, soft_sp, Child(2),
-		soft_sp, 3, soft_sp, Child(4), soft_sp, 5}, ctx);
+	return BuildLayout({0U, soft_sp, expr(2),
+		soft_sp, 3, soft_sp, expr(4), soft_sp, 5}, ctx);
 	}
 
 // Lambda without captures: function(params): ret { body }
