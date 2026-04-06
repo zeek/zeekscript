@@ -6,7 +6,7 @@
 // Standalone comment at statement level.
 Candidates CommentNode::Format(const FmtContext& ctx) const
 	{
-	return {Candidate(Arg(), ctx)};
+	return BuildLayout({arg(0)}, ctx);
 	}
 
 // Append a suffix (semicolon) to each candidate.  When ovf_ctx is

@@ -5,7 +5,7 @@
 
 Candidates AtomNode::Format(const FmtContext& ctx) const
 	{
-	return {Candidate(Arg(), ctx)};
+	return BuildLayout({arg(0)}, ctx);
 	}
 
 // Field access: rec$field
