@@ -46,12 +46,6 @@ public:
 	Candidates Format(const FmtContext& ctx) const override;
 };
 
-class SliceNode : public ExprNode {
-public:
-	SliceNode() : ExprNode(Tag::Slice) { }
-	Candidates Format(const FmtContext& ctx) const override;
-};
-
 class LambdaNode : public ExprNode {
 public:
 	LambdaNode() : ExprNode(Tag::Lambda) { }

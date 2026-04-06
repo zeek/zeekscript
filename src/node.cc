@@ -118,6 +118,7 @@ static const std::unordered_map<Tag, LayoutItems> layout_table = {
 		stmt_body(), {IndentDown}, last()}},
 	{Tag::ModuleDecl, {0U, {Sp}, 2, 3}},
 	{Tag::TypeDeclAlias, {0U, {Sp}, 2, 3, {Sp}, expr(5), 6}},
+	{Tag::Slice, {compute(&Node::ComputeSlice)}},
 	{Tag::Div, {flat_split(
 		{FmtStep::EI(0), FmtStep::TI(1),
 		 FmtStep::S(""), FmtStep::EI(2)},
@@ -155,7 +156,6 @@ NodePtr MakeNode(Tag tag)
 	case Tag::Constructor: return std::make_shared<ConstructorNode>();
 	case Tag::Index: return std::make_shared<IndexNode>();
 	case Tag::IndexLiteral: return std::make_shared<IndexLiteralNode>();
-	case Tag::Slice: return std::make_shared<SliceNode>();
 	case Tag::Lambda: return std::make_shared<LambdaNode>();
 	case Tag::LambdaCaptures: return std::make_shared<LambdaCapturesNode>();
 	case Tag::TypeParameterized: return std::make_shared<TypeParamNode>();

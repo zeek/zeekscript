@@ -253,9 +253,9 @@ Candidates IndexLiteralNode::Format(const FmtContext& ctx) const
 	return flat_or_fill("", lb, rb, "", items, ctx, "", close_pfx);
 	}
 
-// Slice: expr[lo:hi], where either lo or hi may be missing
+// Slice: expr[lo:hi], where either lo or hi may be missing.
 // Children: [0]=expr [1]=LBRACKET [2]=lo [3]=COLON [4]=hi [5]=RBRACKET
-Candidates SliceNode::Format(const FmtContext& ctx) const
+FmtPtr Node::ComputeSlice(ComputeCtx& cctx, const FmtContext& ctx) const
 	{
 	auto lo = best(format_expr(*Child(2), ctx)).Fmt();
 	auto hi = best(format_expr(*Child(4), ctx)).Fmt();
@@ -267,25 +267,23 @@ Candidates SliceNode::Format(const FmtContext& ctx) const
 		Formatting sep(colon);
 		if ( ! lo.Empty() && ! hi.Empty() )
 			sep = " " + sep + " ";
-		auto flat = best(format_expr(*Child(0), ctx)).Fmt() +
+		return std::make_shared<Formatting>(
+			best(format_expr(*Child(0), ctx)).Fmt() +
 			Child(1, Tag::LBracket) + lo + sep + hi +
-			Child(5, Tag::RBracket);
-		return {Candidate(std::move(flat), ctx)};
+			Child(5, Tag::RBracket));
 		}
 
-	//  0       1     2      3      4       5      6      7
-	//  E(base) L([)  E(lo)  L(" ") L(:)    S(" ") E(hi)  L(])
+	// E(base) L([) E(lo) L(" ") L(:) S(" ") E(hi) L(])
 	// Split after ":" (4): hi aligns after "[" (piece 2).
-	// force_flat: prevent hi from wrapping internally - the
-	// colon split should handle overflow at this level.
-	return BuildLayout({LayoutItem(
-		{FmtStep::E(Child(0)),
-		 FmtStep::L(Child(1, Tag::LBracket)),
-		 FmtStep::E(Child(2)),
-		 FmtStep::L(" "), FmtStep::L(colon), FmtStep::S(),
-		 FmtStep::E(Child(4)),
-		 FmtStep::L(Child(5, Tag::RBracket))},
-		{{4, SplitAt::AlignWith, 2}}, true)}, ctx);
+	return std::make_shared<Formatting>(best(BuildLayout(
+		{LayoutItem(
+			{FmtStep::E(Child(0)),
+			 FmtStep::L(Child(1, Tag::LBracket)),
+			 FmtStep::E(Child(2)),
+			 FmtStep::L(" "), FmtStep::L(colon), FmtStep::S(),
+			 FmtStep::E(Child(4)),
+			 FmtStep::L(Child(5, Tag::RBracket))},
+			{{4, SplitAt::AlignWith, 2}}, true)}, ctx)).Fmt());
 	}
 
 // Boolean chain: operands are direct children (flattened by emitter),
