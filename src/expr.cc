@@ -3,25 +3,6 @@
 #include "expr.h"
 #include "fmt_util.h"
 
-Candidates AtomNode::Format(const FmtContext& ctx) const
-	{
-	return BuildLayout({arg(0)}, ctx);
-	}
-
-// Field access: rec$field
-// Children: [0]=expr [1]=DOLLAR [2]=IDENTIFIER
-Candidates FieldAccessNode::Format(const FmtContext& ctx) const
-	{
-	return BuildLayout({expr(0), 1, 2}, ctx);
-	}
-
-// Field assign: $field=expr
-// Children: [0]=DOLLAR [1]=ASSIGN [2]=expr
-Candidates FieldAssignNode::Format(const FmtContext& ctx) const
-	{
-	return BuildLayout({0U, arg(0), 1, expr(2)}, ctx);
-	}
-
 // Call: func(args)
 Candidates CallNode::Format(const FmtContext& ctx) const
 	{
@@ -65,14 +46,6 @@ Candidates CallNode::Format(const FmtContext& ctx) const
 		}
 
 	return result;
-	}
-
-// Schedule: schedule interval { event() }
-// Children: [0]=KEYWORD [1]=SP [2]=interval [3]=LBRACE [4]=event [5]=RBRACE
-Candidates ScheduleNode::Format(const FmtContext& ctx) const
-	{
-	return BuildLayout({0U, soft_sp, expr(2),
-		soft_sp, 3, soft_sp, expr(4), soft_sp, 5}, ctx);
 	}
 
 // Lambda without captures: function(params): ret { body }
@@ -315,34 +288,6 @@ Candidates SliceNode::Format(const FmtContext& ctx) const
 		{{4, SplitAt::AlignWith, 2}}, true)}, ctx);
 	}
 
-// Paren: (expr)
-// Children: [0]=LPAREN [1]=expr [2]=RPAREN
-Candidates ParenNode::Format(const FmtContext& ctx) const
-	{
-	return BuildLayout({0U, expr(1), 2}, ctx);
-	}
-
-// Cardinality/absolute value: |expr|
-// Children: [0]=OP("|") [1]=expr [2]=OP("|")
-Candidates CardinalityNode::Format(const FmtContext& ctx) const
-	{
-	return BuildLayout({0U, expr(1), 2}, ctx);
-	}
-
-// Negation: ! expr (Zeek style: space after !)
-// Children: [0]=OP("!") [1]=expr
-Candidates NegationNode::Format(const FmtContext& ctx) const
-	{
-	return BuildLayout({0U, " ", expr(1)}, ctx);
-	}
-
-// Unary prefix: -expr, ~expr
-// Children: [0]=OP [1]=expr
-Candidates UnaryNode::Format(const FmtContext& ctx) const
-	{
-	return BuildLayout({0U, expr(1)}, ctx);
-	}
-
 // Boolean chain: operands are direct children (flattened by emitter),
 // pack with fill layout breaking at the boolean operator.
 Candidates BoolChainNode::Format(const FmtContext& ctx) const
@@ -444,13 +389,6 @@ Candidates BoolChainNode::Format(const FmtContext& ctx) const
 	return {{text, cur_col, lines, total_overflow, ctx.Col()}};
 	}
 
-// Has-field: lhs?$rhs (tight binding, no spaces)
-// Children: [0]=expr [1]=OP("?$") [2]=IDENTIFIER
-Candidates HasFieldNode::Format(const FmtContext& ctx) const
-	{
-	return BuildLayout({expr(0), 1, 2}, ctx);
-	}
-
 // Division with atomic RHS: no spaces (subnet masking notation)
 // Children: [0]=left [1]=OP("/") [2]=right
 Candidates DivNode::Format(const FmtContext& ctx) const
@@ -470,12 +408,6 @@ Candidates BinaryNode::Format(const FmtContext& ctx) const
 		 FmtStep::L(Child(1)), FmtStep::S(),
 		 FmtStep::E(Child(2))},
 		{{2, SplitAt::IndentedOrSame}})}, ctx);
-	}
-
-// Interval constant: always a space before the unit
-Candidates IntervalNode::Format(const FmtContext& ctx) const
-	{
-	return BuildLayout({arg(0), " ", arg(1)}, ctx);
 	}
 
 // Ternary: cond ? true_val : false_val

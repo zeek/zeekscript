@@ -1,12 +1,12 @@
+#include <cstdio>
+#include <stdexcept>
+#include <unordered_map>
+
 #include "node.h"
 #include "condition_block.h"
 #include "expr.h"
 #include "layout.h"
 #include "stmt.h"
-
-#include <cstdio>
-#include <stdexcept>
-#include <unordered_map>
 
 Candidates Node::Format(const FmtContext& ctx) const
 	{
@@ -86,55 +86,66 @@ NodeVec Node::ContentChildren(const char* name, int n) const
 	return result;
 	}
 
+// Tag-to-layout table for purely declarative nodes.  Uses LIKind
+// enum values directly instead of the soft_sp/indent_up/indent_down
+// globals to avoid cross-TU static initialization order issues.
+static const std::unordered_map<Tag, LayoutItems> layout_table = {
+	{Tag::Identifier, {arg(0)}},
+	{Tag::Constant, {arg(0)}},
+	{Tag::TypeAtom, {arg(0)}},
+	{Tag::Interval, {arg(0), " ", arg(1)}},
+	{Tag::Cardinality, {0U, expr(1), 2}},
+	{Tag::Negation, {0U, " ", expr(1)}},
+	{Tag::UnaryOp, {0U, expr(1)}},
+	{Tag::FieldAccess, {expr(0), 1, 2}},
+	{Tag::FieldAssign, {0U, arg(0), 1, expr(2)}},
+	{Tag::HasField, {expr(0), 1, 2}},
+	{Tag::Paren, {0U, expr(1), 2}},
+	{Tag::Schedule, {0U, {Sp}, expr(2), {Sp}, 3, {Sp}, expr(4), {Sp}, 5}},
+	{Tag::TypeFunc, {arg(0), arglist(0, &Node::ComputeRetType)}},
+	{Tag::CommentLeading, {arg(0)}},
+	{Tag::ExprStmt, {expr(0), last()}},
+	{Tag::ReturnVoid, {0U, last()}},
+	{Tag::Return, {0U, {Sp}, expr(2), last()}},
+	{Tag::Add, {0U, {Sp}, expr(2), last()}},
+	{Tag::Delete, {0U, {Sp}, expr(2), last()}},
+	{Tag::Assert, {0U, {Sp}, expr(2), last()}},
+	{Tag::Print, {fill_list(), last()}},
+	{Tag::EventStmt, {0U, " ", arg(0), arglist(2), 3}},
+	{Tag::ExportDecl, {0U, {Sp}, 2, {IndentUp},
+		stmt_body(), {IndentDown}, last()}},
+	{Tag::ModuleDecl, {0U, {Sp}, 2, 3}},
+	{Tag::TypeDeclAlias, {0U, {Sp}, 2, 3, {Sp}, expr(5), 6}},
+};
+
 NodePtr MakeNode(Tag tag)
 	{
+	auto it = layout_table.find(tag);
+	if ( it != layout_table.end() )
+		return std::make_shared<LayoutNode>(tag, it->second);
+
 	switch ( tag ) {
 	case Tag::IfNoElse: return std::make_shared<IfNoElseNode>();
 	case Tag::IfElse: return std::make_shared<IfElseNode>();
 	case Tag::For: return std::make_shared<ForNode>();
 	case Tag::While: return std::make_shared<WhileNode>();
-	case Tag::Identifier: return std::make_shared<AtomNode>(tag);
-	case Tag::Constant: return std::make_shared<AtomNode>(tag);
-	case Tag::TypeAtom: return std::make_shared<AtomNode>(tag);
-	case Tag::Interval: return std::make_shared<IntervalNode>();
-	case Tag::Cardinality: return std::make_shared<CardinalityNode>();
-	case Tag::Negation: return std::make_shared<NegationNode>();
-	case Tag::UnaryOp: return std::make_shared<UnaryNode>();
 	case Tag::BinaryOp: return std::make_shared<BinaryNode>();
 	case Tag::BoolChain: return std::make_shared<BoolChainNode>();
-	case Tag::HasField: return std::make_shared<HasFieldNode>();
 	case Tag::Div: return std::make_shared<DivNode>();
-	case Tag::FieldAccess: return std::make_shared<FieldAccessNode>();
-	case Tag::FieldAssign: return std::make_shared<FieldAssignNode>();
 	case Tag::Call: return std::make_shared<CallNode>();
 	case Tag::Constructor: return std::make_shared<ConstructorNode>();
 	case Tag::Index: return std::make_shared<IndexNode>();
 	case Tag::IndexLiteral: return std::make_shared<IndexLiteralNode>();
 	case Tag::Slice: return std::make_shared<SliceNode>();
-	case Tag::Paren: return std::make_shared<ParenNode>();
-	case Tag::Schedule: return std::make_shared<ScheduleNode>();
 	case Tag::Ternary: return std::make_shared<TernaryNode>();
 	case Tag::Lambda: return std::make_shared<LambdaNode>();
 	case Tag::LambdaCaptures: return std::make_shared<LambdaCapturesNode>();
 	case Tag::TypeParameterized: return std::make_shared<TypeParamNode>();
 	case Tag::Param: return std::make_shared<ParamNode>();
-	case Tag::TypeFunc: return std::make_shared<TypeFuncNode>();
-	case Tag::CommentLeading: return std::make_shared<CommentNode>();
-	case Tag::ExprStmt: return std::make_shared<ExprStmtNode>();
-	case Tag::ReturnVoid: return std::make_shared<BareKeywordNode>(tag);
-	case Tag::Return: return std::make_shared<KeywordExprNode>(tag);
-	case Tag::Add: return std::make_shared<KeywordExprNode>(tag);
-	case Tag::Delete: return std::make_shared<KeywordExprNode>(tag);
-	case Tag::Assert: return std::make_shared<KeywordExprNode>(tag);
-	case Tag::EventStmt: return std::make_shared<EventStmtNode>();
-	case Tag::Print: return std::make_shared<PrintStmtNode>();
 	case Tag::GlobalDecl: return std::make_shared<DeclNode>(tag);
 	case Tag::LocalDecl: return std::make_shared<DeclNode>(tag);
-	case Tag::ModuleDecl: return std::make_shared<ModuleDeclNode>();
 	case Tag::FuncDecl: return std::make_shared<FuncDeclNode>();
-	case Tag::ExportDecl: return std::make_shared<ExportNode>();
 	case Tag::Switch: return std::make_shared<SwitchNode>();
-	case Tag::TypeDeclAlias: return std::make_shared<TypeDeclAliasNode>();
 	case Tag::TypeDeclEnum: return std::make_shared<TypeDeclEnumNode>();
 	case Tag::TypeDeclRecord: return std::make_shared<TypeDeclRecordNode>();
 	case Tag::Preproc: return std::make_shared<PreprocNode>();
@@ -144,17 +155,10 @@ NodePtr MakeNode(Tag tag)
 	}
 
 static const std::unordered_map<Tag, const char*> token_syntax = {
-	{Tag::Comma, ","},
-	{Tag::LParen, "("},
-	{Tag::RParen, ")"},
-	{Tag::LBrace, "{"},
-	{Tag::RBrace, "}"},
-	{Tag::LBracket, "["},
-	{Tag::RBracket, "]"},
-	{Tag::Colon, ":"},
-	{Tag::Dollar, "$"},
-	{Tag::Question, "?"},
-	{Tag::Semi, ";"},
+	{Tag::Comma, ","}, {Tag::LParen, "("}, {Tag::RParen, ")"},
+	{Tag::LBrace, "{"}, {Tag::RBrace, "}"}, {Tag::LBracket, "["},
+	{Tag::RBracket, "]"}, {Tag::Colon, ":"}, {Tag::Dollar, "$"},
+	{Tag::Question, "?"}, {Tag::Semi, ";"},
 };
 
 std::string Node::Text() const

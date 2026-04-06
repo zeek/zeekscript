@@ -1,52 +1,5 @@
-#include <cstdio>
-
 #include "fmt_util.h"
 #include "stmt.h"
-
-// Standalone comment at statement level.
-Candidates CommentNode::Format(const FmtContext& ctx) const
-	{
-	return BuildLayout({arg(0)}, ctx);
-	}
-
-// Children: [0]=KEYWORD [1]=SP ... [last]=SEMI
-Candidates BareKeywordNode::Format(const FmtContext& ctx) const
-	{
-	return BuildLayout({0U, last()}, ctx);
-	}
-
-Candidates KeywordExprNode::Format(const FmtContext& ctx) const
-	{
-	return BuildLayout({0U, soft_sp, expr(2), last()}, ctx);
-	}
-
-Candidates PrintStmtNode::Format(const FmtContext& ctx) const
-	{
-	return BuildLayout({fill_list(), last()}, ctx);
-	}
-
-// Event statement: event name(args);
-// Children: [0]=KEYWORD [1]=SP [2]=ARGS [3]=SEMI
-Candidates EventStmtNode::Format(const FmtContext& ctx) const
-	{
-	return BuildLayout({0U, " ", arg(0), arglist(2), 3}, ctx);
-	}
-
-
-// Expression statement: expr ;
-// Children: [0]=expr ... [last]=SEMI
-Candidates ExprStmtNode::Format(const FmtContext& ctx) const
-	{
-	return BuildLayout({expr(0), last()}, ctx);
-	}
-
-// Export declaration: export { decls }
-// Children: [0]=KEYWORD [1]=SP [2]=LBRACE ... [last]=RBRACE
-Candidates ExportNode::Format(const FmtContext& ctx) const
-	{
-	return BuildLayout({0U, soft_sp, 2, indent_up,
-		stmt_body(), indent_down, last()}, ctx);
-	}
 
 // Switch statement: switch expr { case val: body ... }
 static void append_case_body(const NodePtr& body, Formatting& result,

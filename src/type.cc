@@ -96,18 +96,9 @@ FmtPtr Node::ComputeRetType(ComputeCtx& cctx, const FmtContext& ctx) const
 	auto returns = FindOptChild(Tag::Returns);
 	if ( ! returns )
 		return nullptr;
-	auto rt = returns->FindTypeChild();
-	if ( ! rt )
-		return nullptr;
 	return std::make_shared<Formatting>(
 		Formatting(FindChild(Tag::Colon)) + " " +
-		best(format_expr(*rt, ctx)).Fmt());
-	}
-
-// TYPE-FUNC: [0]=PARAMS [optional COLON, RETURNS]
-Candidates TypeFuncNode::Format(const FmtContext& ctx) const
-	{
-	return BuildLayout({arg(0), arglist(0, &Node::ComputeRetType)}, ctx);
+		best(format_expr(*returns->FindTypeChild(), ctx)).Fmt());
 	}
 
 static const NodePtr& get_non_token_child(const Node& parent)

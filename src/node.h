@@ -143,8 +143,7 @@ private:
 // on a fixed sequence of LayoutItems.
 class LayoutNode : public Node {
 public:
-	LayoutNode(Tag t, LayoutItems items)
-		: Node(t), layout(std::move(items)) {}
+	LayoutNode(Tag t, const LayoutItems& items) : Node(t), layout(items) {}
 	Candidates Format(const FmtContext& ctx) const override
 		{ return BuildLayout(layout, ctx); }
 

@@ -11,47 +11,6 @@ public:
 	virtual Candidates Format(const FmtContext& ctx) const = 0;
 };
 
-// Atoms: IDENTIFIER, CONSTANT, TYPE-ATOM
-
-class AtomNode : public ExprNode {
-public:
-	AtomNode(Tag t) : ExprNode(t) { }
-	Candidates Format(const FmtContext& ctx) const override;
-};
-
-// INTERVAL
-
-class IntervalNode : public ExprNode {
-public:
-	IntervalNode() : ExprNode(Tag::Interval) { }
-	Candidates Format(const FmtContext& ctx) const override;
-};
-
-// Prefix operators: shared operand/op child structure.
-
-class PrefixExprNode : public ExprNode {
-public:
-	PrefixExprNode(Tag t) : ExprNode(t) { }
-};
-
-class CardinalityNode : public PrefixExprNode {
-public:
-	CardinalityNode() : PrefixExprNode(Tag::Cardinality) { }
-	Candidates Format(const FmtContext& ctx) const override;
-};
-
-class NegationNode : public PrefixExprNode {
-public:
-	NegationNode() : PrefixExprNode(Tag::Negation) { }
-	Candidates Format(const FmtContext& ctx) const override;
-};
-
-class UnaryNode : public PrefixExprNode {
-public:
-	UnaryNode() : PrefixExprNode(Tag::UnaryOp) { }
-	Candidates Format(const FmtContext& ctx) const override;
-};
-
 // Binary operators: shared lhs/op/rhs child structure.
 
 class BinaryExprNode : public ExprNode {
@@ -71,12 +30,6 @@ public:
 	Candidates Format(const FmtContext& ctx) const override;
 };
 
-class HasFieldNode : public BinaryExprNode {
-public:
-	HasFieldNode() : BinaryExprNode(Tag::HasField) { }
-	Candidates Format(const FmtContext& ctx) const override;
-};
-
 class DivNode : public BinaryExprNode {
 public:
 	DivNode() : BinaryExprNode(Tag::Div) { }
@@ -84,18 +37,6 @@ public:
 };
 
 // Compound expressions
-
-class FieldAccessNode : public ExprNode {
-public:
-	FieldAccessNode() : ExprNode(Tag::FieldAccess) { }
-	Candidates Format(const FmtContext& ctx) const override;
-};
-
-class FieldAssignNode : public ExprNode {
-public:
-	FieldAssignNode() : ExprNode(Tag::FieldAssign) { }
-	Candidates Format(const FmtContext& ctx) const override;
-};
 
 class CallNode : public ExprNode {
 public:
@@ -124,18 +65,6 @@ public:
 class SliceNode : public ExprNode {
 public:
 	SliceNode() : ExprNode(Tag::Slice) { }
-	Candidates Format(const FmtContext& ctx) const override;
-};
-
-class ParenNode : public PrefixExprNode {
-public:
-	ParenNode() : PrefixExprNode(Tag::Paren) { }
-	Candidates Format(const FmtContext& ctx) const override;
-};
-
-class ScheduleNode : public ExprNode {
-public:
-	ScheduleNode() : ExprNode(Tag::Schedule) { }
 	Candidates Format(const FmtContext& ctx) const override;
 };
 
@@ -178,13 +107,5 @@ public:
 class ParamNode : public ExprNode {
 public:
 	ParamNode() : ExprNode(Tag::Param) { }
-	Candidates Format(const FmtContext& ctx) const override;
-};
-
-// TYPE-FUNC: event(params), function(params): rettype
-
-class TypeFuncNode : public ExprNode {
-public:
-	TypeFuncNode() : ExprNode(Tag::TypeFunc) { }
 	Candidates Format(const FmtContext& ctx) const override;
 };

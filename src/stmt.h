@@ -11,71 +11,6 @@ public:
 	virtual Candidates Format(const FmtContext& ctx) const = 0;
 };
 
-// Standalone comment at statement level.
-
-class CommentNode : public StmtNode {
-public:
-	CommentNode() : StmtNode(Tag::CommentLeading) { }
-	Candidates Format(const FmtContext& ctx) const override;
-};
-
-// Expression statement: expr ;
-
-class ExprStmtNode : public StmtNode {
-public:
-	ExprStmtNode() : StmtNode(Tag::ExprStmt) { }
-	Candidates Format(const FmtContext& ctx) const override;
-};
-
-// Bare keyword statement: keyword ;  (e.g. return;)
-
-class BareKeywordNode : public StmtNode {
-public:
-	BareKeywordNode(Tag t) : StmtNode(t) { }
-	Candidates Format(const FmtContext& ctx) const override;
-};
-
-// Keyword + single expression: keyword expr ;
-
-class KeywordExprNode : public StmtNode {
-public:
-	KeywordExprNode(Tag t) : StmtNode(t) { }
-	Candidates Format(const FmtContext& ctx) const override;
-};
-
-// Print statement: print expr, expr, ... ;
-
-class PrintStmtNode : public StmtNode {
-public:
-	PrintStmtNode() : StmtNode(Tag::Print) { }
-	Candidates Format(const FmtContext& ctx) const override;
-};
-
-// Event statement: event name(args);
-
-class EventStmtNode : public StmtNode {
-public:
-	EventStmtNode() : StmtNode(Tag::EventStmt) { }
-	Candidates Format(const FmtContext& ctx) const override;
-};
-
-
-// Export declaration: export { decls }
-
-class ExportNode : public StmtNode {
-public:
-	ExportNode() : StmtNode(Tag::ExportDecl) { }
-	Candidates Format(const FmtContext& ctx) const override;
-};
-
-// Type declarations: type name : alias/enum/record ;
-
-class TypeDeclAliasNode : public StmtNode {
-public:
-	TypeDeclAliasNode() : StmtNode(Tag::TypeDeclAlias) { }
-	Candidates Format(const FmtContext& ctx) const override;
-};
-
 // Braced type declarations (enum, record): shared head/close framing,
 // virtual FormatBody for the inner content.
 class TypeDeclBracedNode : public StmtNode {
@@ -142,14 +77,6 @@ public:
 		{ return FindOptChild(Tag::DeclType); }
 	const NodePtr& InitWrapper() const
 		{ return FindOptChild(Tag::DeclInit); }
-};
-
-// Module declaration: module name;
-
-class ModuleDeclNode : public StmtNode {
-public:
-	ModuleDeclNode() : StmtNode(Tag::ModuleDecl) { }
-	Candidates Format(const FmtContext& ctx) const override;
 };
 
 // Function/event/hook declarations

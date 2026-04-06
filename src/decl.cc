@@ -296,16 +296,6 @@ Candidates DeclNode::Format(const FmtContext& ctx) const
 	}
 
 // ------------------------------------------------------------------
-// Module declaration: module SomeName;
-// ------------------------------------------------------------------
-
-// MODULE: [0]=KEYWORD [1]=SP [2]=IDENTIFIER [3]=SEMI
-Candidates ModuleDeclNode::Format(const FmtContext& ctx) const
-	{
-	return BuildLayout({0U, soft_sp, 2, 3}, ctx);
-	}
-
-// ------------------------------------------------------------------
 // Function/event/hook declarations
 // ------------------------------------------------------------------
 
@@ -514,17 +504,6 @@ static Formatting format_field(const Node& node, const Formatting& suffix,
 		}
 
 	return head + type_str + "\n" + pad + all_attrs + suffix;
-	}
-
-// ------------------------------------------------------------------
-// Type alias: type name: basetype ;
-// Children: [0]=KEYWORD [1]=SP [2]=IDENTIFIER [3]=COLON [4]=SP
-//   [5]=type_expr [6]=SEMI
-// ------------------------------------------------------------------
-
-Candidates TypeDeclAliasNode::Format(const FmtContext& ctx) const
-	{
-	return BuildLayout({0U, soft_sp, 2, 3, soft_sp, expr(5), 6}, ctx);
 	}
 
 // ------------------------------------------------------------------
