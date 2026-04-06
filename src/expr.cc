@@ -29,10 +29,6 @@ Candidates FieldAssignNode::Format(const FmtContext& ctx) const
 	return {Candidate(prefix + val.Fmt(), ctx)};
 	}
 
-static Candidates FormatConstructor_args(const Formatting& open,
-	const Formatting& close, const ArgComments& items,
-	const FmtContext& ctx);
-
 // Call: func(args)
 Candidates CallNode::Format(const FmtContext& ctx) const
 	{
