@@ -43,6 +43,11 @@ LayoutItem arglist(unsigned child_index, Formatting suffix)
 	return {ArgList, child_index, std::move(suffix)};
 	}
 
+LayoutItem arglist(unsigned child_index, ComputeFn suffix_fn)
+	{
+	return {ArgList, child_index, suffix_fn};
+	}
+
 LayoutItem fill_list()
 	{
 	return {FillList};
@@ -56,6 +61,11 @@ LayoutItem stmt_body(int flags)
 LayoutItem stmt_body(unsigned child_index, int flags)
 	{
 	return {StmtBody, child_index, flags};
+	}
+
+LayoutItem compute(ComputeFn fn)
+	{
+	return {Computed, fn};
 	}
 
 static constexpr int BEAM_WIDTH = 4;
@@ -197,7 +207,7 @@ static Partials layout_one_item(const LayoutItem& item, Partials& beam,
 			}
 
 		case Tok: case ExprIdx: case LastTok: case ArgIdx:
-		case StmtBody: case FillList:
+		case StmtBody: case FillList: case Computed:
 			assert(false);  // resolved before reaching here
 			break;
 
@@ -338,9 +348,19 @@ Candidates build_layout(LayoutItems items, const FmtContext& ctx)
 
 Candidates Node::BuildLayout(LayoutItems items, const FmtContext& ctx) const
 	{
+	ComputeCtx cctx;
+
 	for ( size_t i = 0; i < items.size(); ++i )
 		{
 		auto& item = items[i];
+
+		if ( item.kind == Computed )
+			{
+			auto result = (this->*item.CompFn())(cctx, ctx);
+			item = result ? LayoutItem(*result)
+			              : LayoutItem(Formatting());
+			continue;
+			}
 
 		if ( item.kind == Tok )
 			{
@@ -356,8 +376,17 @@ Candidates Node::BuildLayout(LayoutItems items, const FmtContext& ctx) const
 		else if ( item.kind == ArgIdx )
 			item = LayoutItem(Arg(item.ChildIdx()));
 		else if ( item.kind == ArgList )
+			{
+			Formatting suffix = item.Fmt();
+			if ( item.CompFn() )
+				{
+				auto r = (this->*item.CompFn())(cctx, ctx);
+				if ( r )
+					suffix = *r;
+				}
 			item = LayoutItem(ArgList, Child(item.ChildIdx()),
-					item.Fmt());
+					std::move(suffix));
+			}
 		else if ( item.kind == FillList )
 			{
 			auto prefix = Formatting(Children().front()) + " ";

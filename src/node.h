@@ -111,6 +111,9 @@ public:
 	// Find the first type child (TypeAtom, TypeParameterized, TypeFunc).
 	const NodePtr& FindTypeChild() const;
 
+	// Compute functions for declarative BuildLayout resolution.
+	FmtPtr ComputeRetType(ComputeCtx& cctx, const FmtContext& ctx) const;
+
 	// Format an ATTR-LIST node as a single string.
 	Formatting FormatAttrList(const FmtContext& ctx) const;
 

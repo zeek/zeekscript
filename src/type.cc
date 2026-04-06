@@ -90,16 +90,24 @@ Candidates ParamNode::Format(const FmtContext& ctx) const
 	return {Candidate(std::move(fmt), ctx)};
 	}
 
+// Compute the return type suffix for a TYPE-FUNC node: ": rettype".
+FmtPtr Node::ComputeRetType(ComputeCtx& cctx, const FmtContext& ctx) const
+	{
+	auto returns = FindOptChild(Tag::Returns);
+	if ( ! returns )
+		return nullptr;
+	auto rt = returns->FindTypeChild();
+	if ( ! rt )
+		return nullptr;
+	return std::make_shared<Formatting>(
+		Formatting(FindChild(Tag::Colon)) + " " +
+		best(format_expr(*rt, ctx)).Fmt());
+	}
+
 // TYPE-FUNC: [0]=PARAMS [optional COLON, RETURNS]
 Candidates TypeFuncNode::Format(const FmtContext& ctx) const
 	{
-	Formatting ret_str;
-	if ( auto returns = FindOptChild(Tag::Returns) )
-		if ( auto rt = returns->FindTypeChild() )
-			ret_str = Formatting(FindChild(Tag::Colon)) + " " +
-				best(format_expr(*rt, ctx)).Fmt();
-
-	return BuildLayout({arg(0), arglist(0, ret_str)}, ctx);
+	return BuildLayout({arg(0), arglist(0, &Node::ComputeRetType)}, ctx);
 	}
 
 static const NodePtr& get_non_token_child(const Node& parent)

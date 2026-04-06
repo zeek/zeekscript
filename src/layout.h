@@ -24,8 +24,17 @@ std::string line_prefix(int indent, int col);
 
 // Layout item kinds.
 enum LIKind { Lit, FmtExpr, Sp, Tok, ExprIdx, LastTok, ArgIdx,
-              ArgList, FillList, FlatSplit, IndentUp, IndentDown,
-              HardBreak, StmtBody };
+              ArgList, FillList, FlatSplit, Computed, IndentUp,
+              IndentDown, HardBreak, StmtBody };
+
+// Shared context for Computed layout items within a single
+// BuildLayout call.  Earlier compute functions can populate
+// fields that later ones read.
+struct ComputeCtx {
+	Formatting fmt;
+};
+
+using ComputeFn = FmtPtr (Node::*)(ComputeCtx&, const FmtContext&) const;
 
 // A piece in a flat-or-split sequence.
 class FmtStep {
@@ -153,6 +162,15 @@ public:
 		  splits(std::move(sp)), force_flat(ff),
 		  must_break(false) {}
 
+	// Computed: calls a member function during BuildLayout resolution.
+	LayoutItem(LIKind k, ComputeFn fn)
+		: kind(k), compute_fn(fn), must_break(false) {}
+
+	// ArgList with computed suffix.
+	LayoutItem(LIKind k, unsigned child_index, ComputeFn fn)
+		: kind(k), child_idx(static_cast<int>(child_index)),
+		  compute_fn(fn), must_break(false) {}
+
 	const Formatting& Fmt() const { return fmt; }
 	const NodePtr& LI_Node() const { return node; }
 	int ChildIdx() const { return child_idx; }
@@ -162,6 +180,7 @@ public:
 	const FmtSteps& Steps() const { return steps; }
 	const std::vector<SplitAt>& Splits() const { return splits; }
 	bool ForceFlatSubs() const { return force_flat; }
+	ComputeFn CompFn() const { return compute_fn; }
 
 	void SetMustBreak(bool mb) { must_break = mb; }
 
@@ -174,6 +193,7 @@ private:
 	int sub_child_idx = -1;
 	int sb_flags = 0;
 	bool force_flat = false;
+	ComputeFn compute_fn = nullptr;
 	bool must_break;	// force next Sp to break (trailing comment)
 	};
 
@@ -205,6 +225,7 @@ LayoutItem arg(unsigned arg_index);
 // appended after the close bracket (e.g. return type).
 LayoutItem arglist(unsigned child_index);
 LayoutItem arglist(unsigned child_index, Formatting suffix);
+LayoutItem arglist(unsigned child_index, ComputeFn suffix_fn);
 
 // Bare fill list: flat_or_fill on collected args with the first
 // child (keyword) as prefix.  No open/close brackets.
@@ -215,6 +236,10 @@ LayoutItem fill_list();
 // children; SB_AllChildren selects all.  Use SBFlag for options.
 LayoutItem stmt_body(int flags = 0);
 LayoutItem stmt_body(unsigned child_index, int flags = 0);
+
+// Computed value: calls a member function on the node during
+// BuildLayout resolution, replacing itself with the result.
+LayoutItem compute(ComputeFn fn);
 
 // Build layout candidates from a sequence of components using
 // beam search.  At each Fmt node, all of its candidates are tried;
