@@ -93,27 +93,13 @@ Candidates ParamNode::Format(const FmtContext& ctx) const
 // TYPE-FUNC: [0]=PARAMS [optional COLON, RETURNS]
 Candidates TypeFuncNode::Format(const FmtContext& ctx) const
 	{
-	const auto& keyword = Arg();
-
-	// Return type suffix.
 	Formatting ret_str;
 	if ( auto returns = FindOptChild(Tag::Returns) )
-		{
 		if ( auto rt = returns->FindTypeChild() )
 			ret_str = Formatting(FindChild(Tag::Colon)) + " " +
 				best(format_expr(*rt, ctx)).Fmt();
-		}
 
-	auto params = Child(0, Tag::Params);
-	auto items = collect_args(params->Children());
-
-	auto lp = params->Child(0, Tag::LParen);
-	const auto& rp = params->Children().back();
-
-	if ( items.empty() )
-		return {Candidate(Formatting(keyword) + lp + rp + ret_str, ctx)};
-
-	return flat_or_fill(keyword, lp, rp, ret_str, items, ctx);
+	return BuildLayout({arg(0), arglist(0, ret_str)}, ctx);
 	}
 
 static const NodePtr& get_non_token_child(const Node& parent)

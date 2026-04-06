@@ -54,22 +54,7 @@ Candidates KeywordStmtNode::Format(const FmtContext& ctx) const
 // Children: [0]=KEYWORD [1]=SP [2]=ARGS [3]=SEMI
 Candidates EventStmtNode::Format(const FmtContext& ctx) const
 	{
-	auto args_node = Child(2, Tag::Args);
-	auto semi = Child(3, Tag::Semi);
-	auto prefix = Formatting(Child(0, Tag::Keyword)) + " " + Arg();
-	auto lp = args_node->Child(0, Tag::LParen);
-	const auto& rp = args_node->Children().back();
-	auto items = collect_args(args_node->Children());
-
-	if ( items.empty() )
-		return {Candidate(prefix + lp + rp + semi, ctx)};
-
-	int semi_w = semi->Width();
-	FmtContext inner = ctx.Reserve(semi_w);
-	auto cs = flat_or_fill(prefix, lp, rp, "", items, inner,
-				args_node->TrailingComment());
-
-	return append_suffix(cs, semi, ctx.Col());
+	return BuildLayout({0U, " ", arg(0), arglist(2), 3}, ctx);
 	}
 
 

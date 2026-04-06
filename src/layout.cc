@@ -29,6 +29,16 @@ LayoutItem arg(unsigned arg_index)
 	return {LayoutItem::Kind::ArgIdx, arg_index};
 	}
 
+LayoutItem arglist(unsigned child_index)
+	{
+	return {LayoutItem::Kind::ArgList, child_index};
+	}
+
+LayoutItem arglist(unsigned child_index, Formatting suffix)
+	{
+	return {LayoutItem::Kind::ArgList, child_index, std::move(suffix)};
+	}
+
 static constexpr int BEAM_WIDTH = 4;
 
 struct Partial {
@@ -68,6 +78,50 @@ static Partials layout_one_item(const LayoutItem& item, Partials& beam,
 			int avail = ctx.MaxCol() - p.col;
 			FmtContext sub(ctx.Indent(), p.col, avail, trail);
 			auto cs = format_expr(*item.LI_Node(), sub);
+			for ( const auto& c : cs )
+				{
+				Partial np = p;
+				np.fmt += c.Fmt();
+				np.overflow += c.Ovf();
+				np.must_break = false;
+				if ( c.Lines() > 1 )
+					{
+					np.lines += c.Lines() - 1;
+					np.col = c.Width();
+					}
+				else
+					np.col += c.Width();
+				next.push_back(std::move(np));
+				}
+			break;
+			}
+
+		case LayoutItem::Kind::ArgList:
+			{
+			auto child = item.LI_Node();
+			auto open = Formatting(child->Children().front());
+			auto close = Formatting(child->Children().back());
+			auto items = collect_args(child->Children());
+			auto& suffix = item.Fmt();
+
+			if ( items.empty() )
+				{
+				Partial np = p;
+				np.fmt += open + close + suffix;
+				np.col += open.Size() + close.Size()
+						+ suffix.Size();
+				np.overflow += ovf_at(np.col);
+				np.must_break = false;
+				next.push_back(std::move(np));
+				break;
+				}
+
+			int avail = ctx.MaxCol() - p.col;
+			FmtContext sub(ctx.Indent(), p.col, avail, trail);
+			auto cs = flat_or_fill(Formatting(), open, close,
+					suffix, items, sub,
+					child->TrailingComment());
+
 			for ( const auto& c : cs )
 				{
 				Partial np = p;
@@ -198,6 +252,10 @@ Candidates Node::BuildLayout(LayoutItems items, const FmtContext& ctx) const
 			item = tok(Children().back());
 		else if ( item.kind == LayoutItem::Kind::ArgIdx )
 			item = LayoutItem(Arg(item.ChildIdx()));
+		else if ( item.kind == LayoutItem::Kind::ArgList )
+			item = LayoutItem(LayoutItem::Kind::ArgList,
+					Child(item.ChildIdx()),
+					item.Fmt());
 		}
 
 	return build_layout(items, ctx);

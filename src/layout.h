@@ -29,7 +29,8 @@ std::string line_prefix(int indent, int col);
 class LayoutItem
 	{
 public:
-	enum class Kind { Lit, Fmt, Sp, Tok, ExprIdx, LastTok, ArgIdx } kind;
+	enum class Kind { Lit, Fmt, Sp, Tok, ExprIdx, LastTok, ArgIdx,
+	                  ArgList } kind;
 
 	// Literal text.
 	LayoutItem(const std::string& s)
@@ -67,6 +68,17 @@ public:
 	// Soft space (private; use soft_sp constant).
 	LayoutItem(Kind k) : kind(k), must_break(false) {}
 
+	// Kind + child index + suffix (for arglist with suffix).
+	LayoutItem(Kind k, unsigned child_index, Formatting suffix)
+		: kind(k), fmt(std::move(suffix)),
+		  child_idx(static_cast<int>(child_index)),
+		  must_break(false) {}
+
+	// Resolved arglist: node + suffix.
+	LayoutItem(Kind k, const NodePtr& n, Formatting suffix)
+		: kind(k), fmt(std::move(suffix)), node(n),
+		  must_break(false) {}
+
 	const Formatting& Fmt() const { return fmt; }
 	const NodePtr& LI_Node() const { return node; }
 	int ChildIdx() const { return child_idx; }
@@ -101,6 +113,13 @@ LayoutItem last();
 // Node argument by index: resolved by BuildLayout into
 // Formatting(Arg(n)) as a literal.
 LayoutItem arg(unsigned arg_index);
+
+// Bracketed argument list: child at child_index is expected to have
+// open/close brackets as first/last children.  Resolved by BuildLayout
+// and handled in the beam via flat_or_fill.  Optional suffix is
+// appended after the close bracket (e.g. return type).
+LayoutItem arglist(unsigned child_index);
+LayoutItem arglist(unsigned child_index, Formatting suffix);
 
 // Build layout candidates from a sequence of components using
 // beam search.  At each Fmt node, all of its candidates are tried;
