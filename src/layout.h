@@ -24,8 +24,58 @@ std::string line_prefix(int indent, int col);
 
 // Layout item kinds.
 enum LIKind { Lit, FmtExpr, Sp, Tok, ExprIdx, LastTok, ArgIdx,
-              ArgList, FillList, IndentUp, IndentDown, HardBreak,
-              StmtBody };
+              ArgList, FillList, FlatSplit, IndentUp, IndentDown,
+              HardBreak, StmtBody };
+
+// A piece in a flat-or-split sequence.
+class FmtStep {
+public:
+	enum Kind { SLit, SExpr, SSp };
+
+	// Fixed text.
+	static FmtStep L(const char* s)
+		{ return {SLit, Formatting(s), nullptr}; }
+	static FmtStep L(const std::string& s)
+		{ return {SLit, Formatting(s), nullptr}; }
+	static FmtStep L(const Formatting& f)
+		{ return {SLit, f, nullptr}; }
+	static FmtStep L(const NodePtr& n)
+		{ return {SLit, Formatting(n), nullptr}; }
+
+	// Sub-expression: formatted in context, re-formatted after split.
+	static FmtStep E(const NodePtr& n)
+		{ return {SExpr, Formatting(), n}; }
+
+	// Soft space: included in flat, dropped after a split point.
+	static FmtStep S(const std::string& s = " ")
+		{ return {SSp, Formatting(s), nullptr}; }
+
+	Kind kind;
+	Formatting text;
+	NodePtr node;
+
+private:
+	FmtStep(Kind k, Formatting f, NodePtr n)
+		: kind(k), text(std::move(f)), node(std::move(n)) {}
+};
+
+using FmtSteps = std::vector<FmtStep>;
+
+// Where and how to break when flat overflows.
+struct SplitAt {
+	int after;	// break after this piece index
+
+	enum Style {
+		Indented,	// ctx.Indented()
+		SameCol,	// ctx.AtCol(ctx.Col())
+		IndentedOrSame,	// Indented if at indent col, else SameCol
+		AlignWith,	// ctx.AtCol(flat position of piece align_piece)
+	};
+
+	Style style;
+	int align_piece = -1;
+	bool skip_if_multiline = false;
+};
 
 // Flags for StmtBody layout items.
 enum SBFlag {
@@ -97,21 +147,33 @@ public:
 		: kind(k), fmt(std::move(suffix)), node(n),
 		  must_break(false) {}
 
+	// Flat-or-split: steps + split points, resolved in the beam.
+	LayoutItem(FmtSteps s, std::vector<SplitAt> sp, bool ff = false)
+		: kind(FlatSplit), steps(std::move(s)),
+		  splits(std::move(sp)), force_flat(ff),
+		  must_break(false) {}
+
 	const Formatting& Fmt() const { return fmt; }
 	const NodePtr& LI_Node() const { return node; }
 	int ChildIdx() const { return child_idx; }
 	int SubChildIdx() const { return sub_child_idx; }
 	int Flags() const { return sb_flags; }
 	bool MustBreak() const { return must_break; }
+	const FmtSteps& Steps() const { return steps; }
+	const std::vector<SplitAt>& Splits() const { return splits; }
+	bool ForceFlatSubs() const { return force_flat; }
 
 	void SetMustBreak(bool mb) { must_break = mb; }
 
 private:
 	Formatting fmt;
 	NodePtr node;
+	FmtSteps steps;
+	std::vector<SplitAt> splits;
 	int child_idx = -1;
 	int sub_child_idx = -1;
 	int sb_flags = 0;
+	bool force_flat = false;
 	bool must_break;	// force next Sp to break (trailing comment)
 	};
 

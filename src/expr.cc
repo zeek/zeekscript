@@ -312,16 +312,14 @@ Candidates SliceNode::Format(const FmtContext& ctx) const
 	// Split after ":" (4): hi aligns after "[" (piece 2).
 	// force_flat: prevent hi from wrapping internally - the
 	// colon split should handle overflow at this level.
-	return flat_or_split({
-		FmtStep::E(Child(0)),
-		FmtStep::L(Child(1, Tag::LBracket)),
-		FmtStep::E(Child(2)),
-		FmtStep::L(" "), FmtStep::L(colon), FmtStep::S(),
-		FmtStep::E(Child(4)),
-		FmtStep::L(Child(5, Tag::RBracket)),
-	}, {
-		{4, SplitAt::AlignWith, 2},
-	}, ctx, true);
+	return BuildLayout({LayoutItem(
+		{FmtStep::E(Child(0)),
+		 FmtStep::L(Child(1, Tag::LBracket)),
+		 FmtStep::E(Child(2)),
+		 FmtStep::L(" "), FmtStep::L(colon), FmtStep::S(),
+		 FmtStep::E(Child(4)),
+		 FmtStep::L(Child(5, Tag::RBracket))},
+		{{4, SplitAt::AlignWith, 2}}, true)}, ctx);
 	}
 
 // Paren: (expr)
@@ -460,31 +458,25 @@ Candidates HasFieldNode::Format(const FmtContext& ctx) const
 	return BuildLayout({expr(0), 1, 2}, ctx);
 	}
 
-// Shared binary-op formatter.  sep is "" for tight (Div) or " "
-// for spaced (Binary).
-Candidates BinaryExprNode::FormatBinaryOp(const FmtContext& ctx,
-                                          const std::string& sep,
-                                          const std::vector<SplitAt>& splits) const
-	{
-	return flat_or_split({
-		FmtStep::E(Child(0)),
-		FmtStep::L(sep), FmtStep::L(Child(1)), FmtStep::S(sep),
-		FmtStep::E(Child(2)),
-	}, splits, ctx);
-	}
-
 // Division with atomic RHS: no spaces (subnet masking notation)
 // Children: [0]=left [1]=OP("/") [2]=right
 Candidates DivNode::Format(const FmtContext& ctx) const
 	{
-	return FormatBinaryOp(ctx, "", {{2, SplitAt::IndentedOrSame, true}});
+	return BuildLayout({LayoutItem(
+		{FmtStep::E(Child(0)), FmtStep::L(Child(1)),
+		 FmtStep::S(""), FmtStep::E(Child(2))},
+		{{2, SplitAt::IndentedOrSame, true}})}, ctx);
 	}
 
 // Binary: lhs op rhs
 // Children: [0]=left [1]=OP [2]=right
 Candidates BinaryNode::Format(const FmtContext& ctx) const
 	{
-	return FormatBinaryOp(ctx, " ", {{2, SplitAt::IndentedOrSame}});
+	return BuildLayout({LayoutItem(
+		{FmtStep::E(Child(0)), FmtStep::L(" "),
+		 FmtStep::L(Child(1)), FmtStep::S(),
+		 FmtStep::E(Child(2))},
+		{{2, SplitAt::IndentedOrSame}})}, ctx);
 	}
 
 // Interval constant: always a space before the unit
@@ -501,16 +493,14 @@ Candidates TernaryNode::Format(const FmtContext& ctx) const
 	//  E(cond) L(" ") L(?) S(" ") E(tv)   L(" ") L(:) S(" ") E(fv)
 	// Split after ":" (6): fv aligns under tv (piece 4).
 	// Split after "?" (2): tv+fv on continuation at same column.
-	return flat_or_split({
-		FmtStep::E(Child(0)),
-		FmtStep::L(" "), FmtStep::L(Child(1, Tag::Question)),
-		FmtStep::S(),
-		FmtStep::E(Child(2)),
-		FmtStep::L(" "), FmtStep::L(Child(3, Tag::Colon)),
-		FmtStep::S(),
-		FmtStep::E(Child(4)),
-	}, {
-		{6, SplitAt::AlignWith, 4},
-		{2, SplitAt::SameCol},
-	}, ctx);
+	return BuildLayout({LayoutItem(
+		{FmtStep::E(Child(0)),
+		 FmtStep::L(" "), FmtStep::L(Child(1, Tag::Question)),
+		 FmtStep::S(),
+		 FmtStep::E(Child(2)),
+		 FmtStep::L(" "), FmtStep::L(Child(3, Tag::Colon)),
+		 FmtStep::S(),
+		 FmtStep::E(Child(4))},
+		{{6, SplitAt::AlignWith, 4},
+		 {2, SplitAt::SameCol}})}, ctx);
 	}

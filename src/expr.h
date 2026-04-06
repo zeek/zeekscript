@@ -1,6 +1,5 @@
 #pragma once
 
-#include "flat_split.h"
 #include "layout.h"
 #include "node.h"
 
@@ -58,11 +57,6 @@ public:
 class BinaryExprNode : public ExprNode {
 public:
 	BinaryExprNode(Tag t) : ExprNode(t) { }
-protected:
-	// Format "lhs sep op sep rhs" via flat_or_split.
-	Candidates FormatBinaryOp(const FmtContext& ctx,
-	                          const std::string& sep,
-	                          const std::vector<SplitAt>& splits) const;
 };
 
 class BinaryNode : public BinaryExprNode {

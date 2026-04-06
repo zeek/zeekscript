@@ -12,7 +12,7 @@ static void format_flat(FmtSteps& steps, const FmtContext& ctx,
 	int used = 0;
 	for ( auto& s : steps )
 		{
-		if ( s.kind == FmtStep::Expr )
+		if ( s.kind == FmtStep::SExpr )
 			{
 			auto sub_ctx = force_flat ? ctx : ctx.After(used);
 			s.text = best(format_expr(*s.node, sub_ctx)).Fmt();
@@ -78,12 +78,12 @@ static Candidate build_split(const FmtSteps& steps, const SplitAt& sp,
 		{
 		auto& s = steps[i];
 
-		if ( at_start && s.kind == FmtStep::Sp )
+		if ( at_start && s.kind == FmtStep::SSp )
 			continue;
 
 		at_start = false;
 
-		if ( s.kind == FmtStep::Expr )
+		if ( s.kind == FmtStep::SExpr )
 			{
 			auto c = best(format_expr(*s.node, cont.After(used)));
 			rest += c.Fmt();

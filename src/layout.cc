@@ -1,6 +1,7 @@
 #include <algorithm>
 #include <cassert>
 
+#include "flat_split.h"
 #include "fmt_util.h"
 
 // Layout combinator
@@ -153,6 +154,30 @@ static Partials layout_one_item(const LayoutItem& item, Partials& beam,
 					suffix, items, sub,
 					child->TrailingComment());
 
+			for ( const auto& c : cs )
+				{
+				Partial np = p;
+				np.fmt += c.Fmt();
+				np.overflow += c.Ovf();
+				np.must_break = false;
+				if ( c.Lines() > 1 )
+					{
+					np.lines += c.Lines() - 1;
+					np.col = c.Width();
+					}
+				else
+					np.col += c.Width();
+				next.push_back(std::move(np));
+				}
+			break;
+			}
+
+		case FlatSplit:
+			{
+			int avail = ctx.MaxCol() - p.col;
+			FmtContext sub(ctx.Indent(), p.col, avail, trail);
+			auto cs = flat_or_split(item.Steps(), item.Splits(),
+						sub, item.ForceFlatSubs());
 			for ( const auto& c : cs )
 				{
 				Partial np = p;
