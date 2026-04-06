@@ -329,51 +329,31 @@ Candidates SliceNode::Format(const FmtContext& ctx) const
 	}
 
 // Paren: (expr)
-// Format child 1 bracketed by children 0 and 2.
-// Used by PAREN and CARDINALITY.
-Candidates PrefixExprNode::FormatBracketed(const FmtContext& ctx) const
-	{
-	auto lp = Child(0);
-	auto rp = Child(2);
-	auto inner = best(format_expr(*Child(1), ctx.After(lp->Width())));
-	return {Candidate(Formatting(lp), ctx).Cat(inner).Cat(rp).In(ctx)};
-	}
-
 // Children: [0]=LPAREN [1]=expr [2]=RPAREN
 Candidates ParenNode::Format(const FmtContext& ctx) const
 	{
-	return FormatBracketed(ctx);
+	return BuildLayout({0U, expr(1), 2}, ctx);
 	}
 
 // Cardinality/absolute value: |expr|
 // Children: [0]=OP("|") [1]=expr [2]=OP("|")
 Candidates CardinalityNode::Format(const FmtContext& ctx) const
 	{
-	return FormatBracketed(ctx);
-	}
-
-// Format "op[sep]child(1)" - shared by Negation (space) and Unary (no space).
-Candidates PrefixExprNode::FormatPrefix(const FmtContext& ctx,
-                                        const std::string& sep) const
-	{
-	auto op = Formatting(Child(0, Tag::Op)) + sep;
-	Candidate prefix(std::move(op), ctx);
-	auto operand = best(format_expr(*Child(1), ctx.After(prefix.Width())));
-	return {prefix.Cat(operand).In(ctx)};
+	return BuildLayout({0U, expr(1), 2}, ctx);
 	}
 
 // Negation: ! expr (Zeek style: space after !)
 // Children: [0]=OP("!") [1]=expr
 Candidates NegationNode::Format(const FmtContext& ctx) const
 	{
-	return FormatPrefix(ctx, " ");
+	return BuildLayout({0U, " ", expr(1)}, ctx);
 	}
 
 // Unary prefix: -expr, ~expr
 // Children: [0]=OP [1]=expr
 Candidates UnaryNode::Format(const FmtContext& ctx) const
 	{
-	return FormatPrefix(ctx, "");
+	return BuildLayout({0U, expr(1)}, ctx);
 	}
 
 // Boolean chain: operands are direct children (flattened by emitter),
@@ -481,20 +461,7 @@ Candidates BoolChainNode::Format(const FmtContext& ctx) const
 // Children: [0]=expr [1]=OP("?$") [2]=IDENTIFIER
 Candidates HasFieldNode::Format(const FmtContext& ctx) const
 	{
-	auto op_node = Child(1, Tag::Op);
-	auto rhs = best(format_expr(*Child(2), ctx));
-	int suffix_w = op_node->Width() + rhs.Width();
-
-	auto lhs_cs = format_expr(*Child(0), ctx.Reserve(suffix_w));
-	auto lhs = best(lhs_cs);
-
-	auto fmt = lhs.Fmt() + op_node + rhs.Fmt();
-
-	if ( lhs.Lines() <= 1 )
-		return {Candidate(std::move(fmt), ctx)};
-
-	int last_w = lhs.Width() + suffix_w;
-	return {{std::move(fmt), last_w, lhs.Lines(), lhs.Ovf(), ctx.Col()}};
+	return BuildLayout({expr(0), 1, 2}, ctx);
 	}
 
 // Shared binary-op formatter.  sep is "" for tight (Div) or " "

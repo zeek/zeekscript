@@ -33,12 +33,6 @@ public:
 class PrefixExprNode : public ExprNode {
 public:
 	PrefixExprNode(Tag t) : ExprNode(t) { }
-protected:
-	// Format child 1 bracketed by children 0 and 2.
-	Candidates FormatBracketed(const FmtContext& ctx) const;
-	// Format "op[sep]child(1)" - shared by Negation and Unary.
-	Candidates FormatPrefix(const FmtContext& ctx,
-	                        const std::string& sep) const;
 };
 
 class CardinalityNode : public PrefixExprNode {
