@@ -1,12 +1,8 @@
-# C++ Formatter Failing Tests (170 pass, 4 fail as of 2026-04-06)
+# C++ Formatter Failing Tests (174 pass, 0 fail as of 2026-04-06)
 
 ## By category (sorted by count)
 
-### Field-assign fill packing (4)
-Correct multi-line Candidate metrics change fill packing behavior
-for field-assign lists.  format_args_fill treats multi-line items
-differently and bc.Width() meaning changes (last-line vs total).
-test{105,133,137,138}
+(none)
 
 ## Notes
 - Some tests appear in multiple categories; listed under primary failure.
@@ -369,3 +365,14 @@ entries chronological within a session date.
     positive but less than INDENT_WIDTH (the split barely helps
     and adds an unnecessary line for unsplittable content like
     long string constants)
+- After field-assign fill force_wrap + baseline update: 174 pass, 0 fail
+  - Fixed: test{133,137,138} (multi-line field-assign force wraps next item)
+  - format_args_fill: after a multi-line FIELD-ASSIGN item, set
+    force_wrap so the next item starts on a fresh line instead of
+    packing after the closing paren
+  - force_wrap path emits the item's comma before the line break,
+    with comma_consumed flag to avoid double-emission when
+    append_trailing already consumed the next comma (lambdas,
+    MustBreakAfter)
+  - Updated baseline: test105 (current output acceptable)
+  - Removed "Field-assign fill packing" category (all fixed)

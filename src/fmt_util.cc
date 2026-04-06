@@ -99,7 +99,8 @@ Candidate format_args_flat(const ArgComments& items, const FmtContext& ctx)
 // the item's own trailing comment and the next comma (which may carry
 // a trailing comment that forces a wrap).
 static void append_trailing(const ArgComment& it, const NodePtr& next_comma,
-                           Formatting& fmt, int& cur_col, bool& force_wrap)
+                           Formatting& fmt, int& cur_col, bool& force_wrap,
+                           bool& next_comma_consumed)
 	{
 	// The item's own trailing comment (rare for non-last items).
 	if ( ! it.comment.empty() )
@@ -116,6 +117,7 @@ static void append_trailing(const ArgComment& it, const NodePtr& next_comma,
 		fmt += next_comma;
 		cur_col += next_comma->Width();
 		force_wrap = true;
+		next_comma_consumed = true;
 		}
 
 	// Lambda body forces following args onto a new line.
@@ -127,6 +129,7 @@ static void append_trailing(const ArgComment& it, const NodePtr& next_comma,
 			{
 			fmt += next_comma;
 			cur_col += next_comma->Width();
+			next_comma_consumed = true;
 			}
 		force_wrap = true;
 		}
@@ -164,6 +167,7 @@ Candidate format_args_fill(const ArgComments& items, int align_col, int indent,
 	int lines = 1;
 	int total_overflow = 0;
 	bool force_wrap = false;
+	bool comma_consumed = false;
 
 	for ( size_t i = 0; i < items.size(); ++i )
 		{
@@ -217,7 +221,8 @@ Candidate format_args_fill(const ArgComments& items, int align_col, int indent,
 
 			format_fill_arg(*it.arg, indent, max_col,
 			              fmt, cur_col, lines, total_overflow);
-			append_trailing(it, nc, fmt, cur_col, force_wrap);
+			append_trailing(it, nc, fmt, cur_col, force_wrap,
+			              comma_consumed);
 			continue;
 			}
 
@@ -233,14 +238,18 @@ Candidate format_args_fill(const ArgComments& items, int align_col, int indent,
 
 		else if ( force_wrap )
 			{
+			if ( it.comma && ! comma_consumed )
+				fmt += it.comma;
 			fmt += "\n" + pad;
 			cur_col = align_col;
 			force_wrap = false;
+			comma_consumed = false;
 
 			format_fill_arg(*it.arg, indent, max_col,
 			              fmt, cur_col, lines, total_overflow);
 			++lines;
-			append_trailing(it, nc, fmt, cur_col, force_wrap);
+			append_trailing(it, nc, fmt, cur_col, force_wrap,
+			              comma_consumed);
 			continue;
 			}
 
@@ -281,7 +290,8 @@ Candidate format_args_fill(const ArgComments& items, int align_col, int indent,
 								+ sb.Width();
 						total_overflow += sb.Ovf();
 						append_trailing(it, nc, fmt,
-							cur_col, force_wrap);
+							cur_col, force_wrap,
+							comma_consumed);
 						continue;
 						}
 					}
@@ -296,10 +306,19 @@ Candidate format_args_fill(const ArgComments& items, int align_col, int indent,
 				fmt += Formatting(it.comma) + "\n" + pad;
 				cur_col = align_col;
 
+				int prev_lines = lines;
 				format_fill_arg(*it.arg, indent, max_col, fmt,
 						cur_col, lines, total_overflow);
 				++lines;
-				append_trailing(it, nc, fmt, cur_col, force_wrap);
+
+				// Multi-line field-assign: next item
+				// starts on a fresh line.
+				if ( lines - prev_lines > 1 &&
+				     it.arg->GetTag() == Tag::FieldAssign )
+					force_wrap = true;
+
+				append_trailing(it, nc, fmt, cur_col, force_wrap,
+						comma_consumed);
 				continue;
 				}
 			}
@@ -308,10 +327,13 @@ Candidate format_args_fill(const ArgComments& items, int align_col, int indent,
 			{
 			lines += bc.Lines() - 1;
 			cur_col = fmt.LastLineLen();
+			if ( it.arg->GetTag() == Tag::FieldAssign )
+				force_wrap = true;
 			}
 
 		total_overflow += bc.Ovf();
-		append_trailing(it, nc, fmt, cur_col, force_wrap);
+		append_trailing(it, nc, fmt, cur_col, force_wrap,
+				comma_consumed);
 		}
 
 	int end_ovf = std::max(0, cur_col - max_col);
