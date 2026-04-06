@@ -12,15 +12,7 @@ Candidates AtomNode::Format(const FmtContext& ctx) const
 // Children: [0]=expr [1]=DOLLAR [2]=IDENTIFIER
 Candidates FieldAccessNode::Format(const FmtContext& ctx) const
 	{
-	auto lhs_cs = format_expr(*Child(0), ctx);
-	const auto& lhs = best(lhs_cs);
-
-	auto dollar = Child(1, Tag::Dollar);
-	int dw = dollar->Width();
-	auto rhs_cs = format_expr(*Child(2, Tag::Identifier), ctx.After(lhs.Width() + dw));
-	auto rhs = best(rhs_cs);
-
-	return {lhs.Cat(dollar).Cat(rhs).In(ctx)};
+	return BuildLayout({expr(0), 1, 2}, ctx);
 	}
 
 // Field assign: $field=expr
