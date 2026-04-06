@@ -19,67 +19,69 @@ GLOBAL-DECL {
     ASSIGN "="
     CONSTRUCTOR {
       KEYWORD "table"
-      LPAREN
-      BINARY-OP "=" {
-        INDEX-LITERAL {
-          LBRACKET
-          CONSTANT "0x00"
-          RBRACKET
+      ARGS {
+        LPAREN
+        BINARY-OP "=" {
+          INDEX-LITERAL {
+            LBRACKET
+            CONSTANT "0x00"
+            RBRACKET
+          }
+          OP "="
+          CONSTANT "\"AAAA\""
         }
-        OP "="
-        CONSTANT "\"AAAA\""
-      }
-      COMMA
-      BINARY-OP "=" {
-        INDEX-LITERAL {
-          LBRACKET
-          CONSTANT "0x01"
-          RBRACKET
+        COMMA
+        BINARY-OP "=" {
+          INDEX-LITERAL {
+            LBRACKET
+            CONSTANT "0x01"
+            RBRACKET
+          }
+          OP "="
+          CONSTANT "\"BBBB\""
         }
-        OP "="
-        CONSTANT "\"BBBB\""
-      }
-      COMMA
-      BINARY-OP "=" {
-        INDEX-LITERAL {
-          LBRACKET
-          CONSTANT "0x02"
-          RBRACKET
+        COMMA
+        BINARY-OP "=" {
+          INDEX-LITERAL {
+            LBRACKET
+            CONSTANT "0x02"
+            RBRACKET
+          }
+          OP "="
+          CONSTANT "\"CCCC\""
         }
-        OP "="
-        CONSTANT "\"CCCC\""
-      }
-      COMMA
-      BINARY-OP "=" {
-        INDEX-LITERAL {
-          LBRACKET
-          CONSTANT "0x03"
-          RBRACKET
+        COMMA
+        BINARY-OP "=" {
+          INDEX-LITERAL {
+            LBRACKET
+            CONSTANT "0x03"
+            RBRACKET
+          }
+          OP "="
+          CONSTANT "\"DDDD\""
         }
-        OP "="
-        CONSTANT "\"DDDD\""
-      }
-      COMMA
-      BINARY-OP "=" {
-        INDEX-LITERAL {
-          LBRACKET
-          CONSTANT "0x04"
-          RBRACKET
+        COMMA
+        BINARY-OP "=" {
+          INDEX-LITERAL {
+            LBRACKET
+            CONSTANT "0x04"
+            RBRACKET
+          }
+          OP "="
+          CONSTANT "\"EEEE\""
         }
-        OP "="
-        CONSTANT "\"EEEE\""
-      }
-      COMMA
-      BINARY-OP "=" {
-        INDEX-LITERAL {
-          LBRACKET
-          CONSTANT "0x05"
-          RBRACKET
+        COMMA
+        BINARY-OP "=" {
+          INDEX-LITERAL {
+            LBRACKET
+            CONSTANT "0x05"
+            RBRACKET
+          }
+          OP "="
+          CONSTANT "\"FFFF\""
         }
-        OP "="
-        CONSTANT "\"FFFF\""
+        RPAREN
       }
-      RPAREN
     }
   }
   SEMI

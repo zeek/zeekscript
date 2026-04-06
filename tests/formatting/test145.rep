@@ -6,11 +6,13 @@ GLOBAL-DECL {
     ASSIGN "="
     CONSTRUCTOR {
       KEYWORD "set"
-      LPAREN
-      CONSTANT "1.2.3.4"
-      COMMA
-      CONSTANT "5.6.7.8"
-      RPAREN
+      ARGS {
+        LPAREN
+        CONSTANT "1.2.3.4"
+        COMMA
+        CONSTANT "5.6.7.8"
+        RPAREN
+      }
     }
   }
   SEMI

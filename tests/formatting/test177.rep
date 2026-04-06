@@ -14,13 +14,15 @@ GLOBAL-DECL {
     ASSIGN "="
     CONSTRUCTOR {
       KEYWORD "vector"
-      LPAREN
-      CONSTANT "1"
-      COMMA
-      CONSTANT "2"
-      COMMA
-      CONSTANT "3"
-      RPAREN
+      ARGS {
+        LPAREN
+        CONSTANT "1"
+        COMMA
+        CONSTANT "2"
+        COMMA
+        CONSTANT "3"
+        RPAREN
+      }
     }
   }
   SEMI

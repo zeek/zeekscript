@@ -6,21 +6,23 @@ LOCAL-DECL {
     ASSIGN "="
     CONSTRUCTOR {
       KEYWORD "set"
-      LPAREN
-      CONSTANT "1.0.0.2/31"
-      COMMA
-      CONSTANT "1.1.1.2/31"
-      COMMA
-      CONSTANT "3.7.176.123/32"
-      COMMA
-      CONSTANT "5.1.66.255/32"
-      COMMA
-      CONSTANT "5.2.75.75/32"
-      COMMA
-      CONSTANT "5.45.107.88/32"
-      COMMA
-      CONSTANT "8.8.4.4/32"
-      RPAREN
+      ARGS {
+        LPAREN
+        CONSTANT "1.0.0.2/31"
+        COMMA
+        CONSTANT "1.1.1.2/31"
+        COMMA
+        CONSTANT "3.7.176.123/32"
+        COMMA
+        CONSTANT "5.1.66.255/32"
+        COMMA
+        CONSTANT "5.2.75.75/32"
+        COMMA
+        CONSTANT "5.45.107.88/32"
+        COMMA
+        CONSTANT "8.8.4.4/32"
+        RPAREN
+      }
     }
   }
   SEMI

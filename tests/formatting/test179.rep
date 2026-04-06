@@ -14,14 +14,16 @@ GLOBAL-DECL {
     ASSIGN "="
     CONSTRUCTOR {
       KEYWORD "vector"
-      LPAREN
-      CONSTANT "0.01"
-      COMMA
-      CONSTANT "0.02"
-      COMMA
-      COMMENT-TRAILING "# note"
-      CONSTANT "0.03"
-      RPAREN
+      ARGS {
+        LPAREN
+        CONSTANT "0.01"
+        COMMA
+        CONSTANT "0.02"
+        COMMA
+        COMMENT-TRAILING "# note"
+        CONSTANT "0.03"
+        RPAREN
+      }
     }
   }
   SEMI

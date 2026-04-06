@@ -129,20 +129,41 @@ static Partials layout_one_item(const LayoutItem& item, Partials& beam,
 				break;
 				}
 
-			auto cs = flat_or_fill(Formatting(), open, close,
+			Candidates cs;
+			if ( fl & AL_FlatOrVertical )
+				{
+				if ( ! has_breaks(items) )
+					{
+					int open_w = open.Size();
+					int close_w = close.Size();
+					FmtContext ac(sub.Indent(),
+						p.col + open_w,
+						sub.Width() - open_w - close_w);
+					auto flat = open +
+						format_args_flat(items, ac).Fmt()
+						+ close + suffix;
+					Candidate fc(std::move(flat), sub);
+					cs.push_back(fc);
+					}
+				if ( cs.empty() || cs.back().Ovf() > 0 )
+					cs.push_back(format_args_vertical(
+						open, close, items, sub));
+				}
+			else
+				{
+				cs = flat_or_fill(Formatting(), open, close,
 					suffix, items, sub,
 					child->TrailingComment());
 
-			// When fill wraps every single-line item to its
-			// own line, vertical layout is cleaner.
-			if ( (fl & AL_VerticalUpgrade) &&
-			     items.size() >= 3 && cs.size() > 1 &&
-			     cs.back().Lines() ==
-			       static_cast<int>(items.size()) )
-				{
-				cs.pop_back();
-				cs.push_back(format_args_vertical(
-					open, close, items, sub));
+				if ( (fl & AL_VerticalUpgrade) &&
+				     items.size() >= 3 && cs.size() > 1 &&
+				     cs.back().Lines() ==
+				       static_cast<int>(items.size()) )
+					{
+					cs.pop_back();
+					cs.push_back(format_args_vertical(
+						open, close, items, sub));
+					}
 				}
 
 			for ( const auto& c : cs )

@@ -432,10 +432,17 @@ class Emitter:
                         and nargs >= 7):
                     self._open('CONSTRUCTOR')
                     self._w(f'KEYWORD {_quote(first_text)}')
+                    self._open('ARGS')
                     self._w('LPAREN')
                     if args:
                         self._emit_expr_list(args[0])
+                        el_kids = self._children(args[0])
+                        if (el_kids
+                                and not el_kids[-1].is_named
+                                and self._text(el_kids[-1]) == ","):
+                            self._w('TRAILING-COMMA')
                     self._w('RPAREN')
+                    self._close()
                     self._close()
                     self._mark_content(node)
                     return
@@ -641,10 +648,17 @@ class Emitter:
                             break
             self._open('CONSTRUCTOR')
             self._w(f'KEYWORD {_quote(keyword)}')
+            self._open('ARGS')
             self._w('LPAREN')
             if args:
                 self._emit_expr_list(args[0])
+                el_kids = self._children(args[0])
+                if (el_kids
+                        and not el_kids[-1].is_named
+                        and self._text(el_kids[-1]) == ","):
+                    self._w('TRAILING-COMMA')
             self._w('RPAREN')
+            self._close()
             self._close()
             self._mark_content(node)
             return
@@ -1075,10 +1089,17 @@ class Emitter:
                 args = [k for k in kids if k.type == "expr_list"]
                 self._open('CONSTRUCTOR')
                 self._w(f'KEYWORD {_quote(ctor_name)}')
+                self._open('ARGS')
                 self._w('LPAREN')
                 if args:
                     self._emit_expr_list(args[0])
+                    el_kids = self._children(args[0])
+                    if (el_kids
+                            and not el_kids[-1].is_named
+                            and self._text(el_kids[-1]) == ","):
+                        self._w('TRAILING-COMMA')
                 self._w('RPAREN')
+                self._close()
                 self._close()
                 return
         self._emit_expr(node)

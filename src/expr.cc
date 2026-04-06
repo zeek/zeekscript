@@ -81,59 +81,6 @@ Candidates LambdaNode::FormatLambda(const Formatting& prefix,
 	return {{std::move(fmt), last_w, lines, ovf, ctx.Col()}};
 	}
 
-// Shared constructor layout: flat or vertical (one per line).
-static Candidates FormatConstructor_args(const Formatting& open,
-	const Formatting& close, const ArgComments& items,
-	const FmtContext& ctx)
-	{
-	Candidates result;
-
-	if ( ! has_breaks(items) )
-		{
-		int open_w = open.Size();
-		int close_w = close.Size();
-		FmtContext args_ctx(ctx.Indent(), ctx.Col() + open_w,
-		                    ctx.Width() - open_w - close_w);
-		auto flat_args = format_args_flat(items, args_ctx);
-		auto flat_fmt = open + flat_args.Fmt() + close;
-		Candidate flat_c(std::move(flat_fmt), ctx);
-		result.push_back(flat_c);
-
-		if ( flat_c.Ovf() == 0 )
-			return result;
-		}
-
-	result.push_back(format_args_vertical(open, close, items, ctx));
-	return result;
-	}
-
-// Constructor: table(...), set(...), vector(...), {1, 2, 3}
-// Children: [0]=KEYWORD [1]=LPAREN ... [last]=RPAREN
-Candidates ConstructorNode::Format(const FmtContext& ctx) const
-	{
-	auto kw = Child(0, Tag::Keyword);
-	auto lp = Child(1, Tag::LParen);
-	const auto& rp = Children().back();
-	auto open = Formatting(kw) + lp;
-
-	auto items = collect_args(Children());
-	if ( items.empty() )
-		return {Candidate(open + rp, ctx)};
-
-	// Detect trailing comma: N items have N-1 separators, so
-	// N commas means the last one is trailing.
-	int commas = 0;
-	for ( const auto& c : Children() )
-		if ( c->GetTag() == Tag::Comma )
-			++commas;
-
-	bool trailing = commas >= static_cast<int>(items.size());
-	if ( trailing )
-		return {format_args_vertical(open, rp, items, ctx, true)};
-
-	return FormatConstructor_args(open, rp, items, ctx);
-	}
-
 // Index literal: [$field=expr, ...]
 // Children: [0]=LBRACKET ... [last]=RBRACKET
 Candidates IndexLiteralNode::Format(const FmtContext& ctx) const

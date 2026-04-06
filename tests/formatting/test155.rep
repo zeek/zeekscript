@@ -6,19 +6,21 @@ GLOBAL-DECL {
     ASSIGN "="
     CONSTRUCTOR {
       KEYWORD "table"
-      LPAREN
-      BINARY-OP "=" {
-        CONSTANT "[1]"
-        OP "="
-        CONSTANT "\"a\""
+      ARGS {
+        LPAREN
+        BINARY-OP "=" {
+          CONSTANT "[1]"
+          OP "="
+          CONSTANT "\"a\""
+        }
+        COMMA
+        BINARY-OP "=" {
+          CONSTANT "[2]"
+          OP "="
+          CONSTANT "\"b\""
+        }
+        RPAREN
       }
-      COMMA
-      BINARY-OP "=" {
-        CONSTANT "[2]"
-        OP "="
-        CONSTANT "\"b\""
-      }
-      RPAREN
     }
   }
   SEMI

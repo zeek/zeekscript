@@ -101,6 +101,7 @@ struct SplitAt {
 enum ALFlag {
 	AL_TrailingCommaVertical = 1,  // trailing comma -> vertical
 	AL_VerticalUpgrade       = 2,  // fill-wraps-all -> vertical
+	AL_FlatOrVertical        = 4,  // vertical instead of fill on overflow
 };
 
 // Flags for StmtBody layout items.

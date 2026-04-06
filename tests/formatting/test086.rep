@@ -6,8 +6,10 @@ LOCAL-DECL {
     ASSIGN "="
     CONSTRUCTOR {
       KEYWORD "set"
-      LPAREN
-      RPAREN
+      ARGS {
+        LPAREN
+        RPAREN
+      }
     }
   }
   SEMI

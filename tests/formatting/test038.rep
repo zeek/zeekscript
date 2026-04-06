@@ -19,48 +19,51 @@ GLOBAL-DECL {
     ASSIGN "="
     CONSTRUCTOR {
       KEYWORD "table"
-      LPAREN
-      BINARY-OP "=" {
-        INDEX-LITERAL {
-          LBRACKET
-          CONSTANT "\"some-key-aa\""
-          RBRACKET
+      ARGS {
+        LPAREN
+        BINARY-OP "=" {
+          INDEX-LITERAL {
+            LBRACKET
+            CONSTANT "\"some-key-aa\""
+            RBRACKET
+          }
+          OP "="
+          CONSTANT "\"val-aa\""
         }
-        OP "="
-        CONSTANT "\"val-aa\""
-      }
-      COMMA
-      BINARY-OP "=" {
-        INDEX-LITERAL {
-          LBRACKET
-          CONSTANT "\"some-key-bb\""
-          RBRACKET
+        COMMA
+        BINARY-OP "=" {
+          INDEX-LITERAL {
+            LBRACKET
+            CONSTANT "\"some-key-bb\""
+            RBRACKET
+          }
+          OP "="
+          CONSTANT "\"val-bb\""
         }
-        OP "="
-        CONSTANT "\"val-bb\""
-      }
-      COMMA
-      BINARY-OP "=" {
-        INDEX-LITERAL {
-          LBRACKET
-          CONSTANT "\"some-key-cc\""
-          RBRACKET
+        COMMA
+        BINARY-OP "=" {
+          INDEX-LITERAL {
+            LBRACKET
+            CONSTANT "\"some-key-cc\""
+            RBRACKET
+          }
+          OP "="
+          CONSTANT "\"val-cc\""
         }
-        OP "="
-        CONSTANT "\"val-cc\""
-      }
-      COMMA
-      BINARY-OP "=" {
-        INDEX-LITERAL {
-          LBRACKET
-          CONSTANT "\"some-key-dd\""
-          RBRACKET
+        COMMA
+        BINARY-OP "=" {
+          INDEX-LITERAL {
+            LBRACKET
+            CONSTANT "\"some-key-dd\""
+            RBRACKET
+          }
+          OP "="
+          CONSTANT "\"val-dd\""
         }
-        OP "="
-        CONSTANT "\"val-dd\""
+        COMMA
+        TRAILING-COMMA
+        RPAREN
       }
-      COMMA
-      RPAREN
     }
   }
   ATTR-LIST {
