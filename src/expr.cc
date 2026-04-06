@@ -19,14 +19,7 @@ Candidates FieldAccessNode::Format(const FmtContext& ctx) const
 // Children: [0]=DOLLAR [1]=ASSIGN [2]=expr
 Candidates FieldAssignNode::Format(const FmtContext& ctx) const
 	{
-	auto prefix = Formatting(Child(0, Tag::Dollar)) + Arg() +
-			Child(1, Tag::Assign);
-	int pw = prefix.Size();
-
-	auto val_cs = format_expr(*Child(2), ctx.After(pw));
-	auto val = best(val_cs);
-
-	return {Candidate(prefix + val.Fmt(), ctx)};
+	return BuildLayout({0U, arg(0), 1, expr(2)}, ctx);
 	}
 
 // Call: func(args)
