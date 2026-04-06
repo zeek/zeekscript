@@ -209,37 +209,41 @@ LayoutItem tok(const NodePtr& n);
 // Expression child by index: resolved by BuildLayout into a Fmt
 // item via Child(n).  Parallel to integer Tok shorthand but the
 // child is formatted as an expression (producing candidates).
-LayoutItem expr(unsigned child_index);
+inline LayoutItem expr(unsigned child_index) { return {ExprIdx, child_index}; }
 
 // Last child as token: resolved by BuildLayout into
 // tok(Children().back()).
-LayoutItem last();
+inline LayoutItem last() { return {LastTok}; }
 
 // Node argument by index: resolved by BuildLayout into
 // Formatting(Arg(n)) as a literal.
-LayoutItem arg(unsigned arg_index);
+inline LayoutItem arg(unsigned arg_index) { return {ArgIdx, arg_index}; }
 
 // Bracketed argument list: child at child_index is expected to have
 // open/close brackets as first/last children.  Resolved by BuildLayout
 // and handled in the beam via flat_or_fill.  Optional suffix is
 // appended after the close bracket (e.g. return type).
-LayoutItem arglist(unsigned child_index);
-LayoutItem arglist(unsigned child_index, Formatting suffix);
-LayoutItem arglist(unsigned child_index, ComputeFn suffix_fn);
+inline LayoutItem arglist(unsigned child_index)
+	{ return {ArgList, child_index}; }
+inline LayoutItem arglist(unsigned child_index, Formatting suffix)
+	{ return {ArgList, child_index, std::move(suffix)}; }
+inline LayoutItem arglist(unsigned child_index, ComputeFn suffix_fn)
+	{ return {ArgList, child_index, suffix_fn}; }
 
 // Bare fill list: flat_or_fill on collected args with the first
 // child (keyword) as prefix.  No open/close brackets.
-LayoutItem fill_list();
+inline LayoutItem fill_list() { return {FillList}; }
 
 // Statement body: formats children as a statement list at the
 // current indent level, prepending "\n".  Default selects non-token
 // children; SB_AllChildren selects all.  Use SBFlag for options.
-LayoutItem stmt_body(int flags = 0);
-LayoutItem stmt_body(unsigned child_index, int flags = 0);
+inline LayoutItem stmt_body(int flags = 0) { return {StmtBody, flags}; }
+inline LayoutItem stmt_body(unsigned child_index, int flags = 0)
+	{ return {StmtBody, child_index, flags}; }
 
 // Computed value: calls a member function on the node during
 // BuildLayout resolution, replacing itself with the result.
-LayoutItem compute(ComputeFn fn);
+inline LayoutItem compute(ComputeFn fn) { return {Computed, fn}; }
 
 // Build layout candidates from a sequence of components using
 // beam search.  At each Fmt node, all of its candidates are tried;

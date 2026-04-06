@@ -18,56 +18,6 @@ LayoutItem tok(const NodePtr& n)
 	return item;
 	}
 
-LayoutItem expr(unsigned child_index)
-	{
-	return {ExprIdx, child_index};
-	}
-
-LayoutItem last()
-	{
-	return {LastTok};
-	}
-
-LayoutItem arg(unsigned arg_index)
-	{
-	return {ArgIdx, arg_index};
-	}
-
-LayoutItem arglist(unsigned child_index)
-	{
-	return {ArgList, child_index};
-	}
-
-LayoutItem arglist(unsigned child_index, Formatting suffix)
-	{
-	return {ArgList, child_index, std::move(suffix)};
-	}
-
-LayoutItem arglist(unsigned child_index, ComputeFn suffix_fn)
-	{
-	return {ArgList, child_index, suffix_fn};
-	}
-
-LayoutItem fill_list()
-	{
-	return {FillList};
-	}
-
-LayoutItem stmt_body(int flags)
-	{
-	return {StmtBody, flags};
-	}
-
-LayoutItem stmt_body(unsigned child_index, int flags)
-	{
-	return {StmtBody, child_index, flags};
-	}
-
-LayoutItem compute(ComputeFn fn)
-	{
-	return {Computed, fn};
-	}
-
 static constexpr int BEAM_WIDTH = 4;
 
 struct Partial {
