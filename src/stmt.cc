@@ -41,7 +41,7 @@ Candidates KeywordStmtNode::Format(const FmtContext& ctx) const
 		return {Candidate(Formatting(kw) + semi, ctx)};
 
 	if ( items.size() == 1 )
-		return build_layout({tok(kw), soft_sp, items[0].arg,
+		return BuildLayout({0U, soft_sp, items[0].arg,
 					tok(semi)}, ctx);
 
 	int semi_w = semi->Width();

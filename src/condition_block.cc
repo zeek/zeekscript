@@ -22,12 +22,10 @@ Candidates ConditionBlockNode::Format(const FmtContext& ctx) const
 				ctx.MaxCol() - cond_col, rp_w);
 	auto cond = BuildCondition(cond_ctx);
 
-	// Build the head via build_layout so trailing comments on keyword
+	// Build the head via BuildLayout so trailing comments on keyword
 	// or lparen correctly force line breaks.
-	LayoutItems los{tok(kw_node), soft_sp, tok(lparen_node), soft_sp,
-			cond, Formatting(" ") + rparen_node};
-	auto head_cs = build_layout(los, ctx);
-	auto head = best(head_cs).Fmt();
+	auto head = best(BuildLayout({0U, soft_sp, 2, soft_sp,
+			cond, Formatting(" ") + rparen_node}, ctx)).Fmt();
 
 	auto body_node = Child(rp_pos + 1, Tag::Body);
 	auto result = head + body_node->FormatBodyText(ctx) +
