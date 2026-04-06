@@ -6,6 +6,8 @@
 // Layout combinator
 
 const LayoutItem soft_sp{LayoutItem::Kind::Sp};
+const LayoutItem indent_up{LayoutItem::Kind::IndentUp};
+const LayoutItem indent_down{LayoutItem::Kind::IndentDown};
 
 LayoutItem tok(const NodePtr& n)
 	{
@@ -44,6 +46,7 @@ static constexpr int BEAM_WIDTH = 4;
 struct Partial {
 	Formatting fmt;
 	int col;      // current column (end of last line)
+	int indent;   // current indent level
 	int lines;
 	int overflow;
 	bool must_break;  // preceding token forces next Sp to break
@@ -65,9 +68,21 @@ static Partials layout_one_item(const LayoutItem& item, Partials& beam,
 		case LayoutItem::Kind::Lit:
 			{
 			Partial np = p;
-			np.fmt += item.Fmt();
-			np.col += item.Fmt().Size();
-			np.overflow += ovf_at(np.col);
+			const auto& f = item.Fmt();
+			np.fmt += f;
+			int nl = f.CountLines() - 1;
+			if ( nl > 0 )
+				{
+				np.lines += nl;
+				np.col = f.LastLineLen();
+				np.overflow += f.MaxLineOverflow(
+					p.col, ctx.MaxCol());
+				}
+			else
+				{
+				np.col += f.Size();
+				np.overflow += ovf_at(np.col);
+				}
 			np.must_break = item.MustBreak();
 			next.push_back(std::move(np));
 			break;
@@ -161,15 +176,46 @@ static Partials layout_one_item(const LayoutItem& item, Partials& beam,
 				}
 
 			// Option 2: break + indent.
-			FmtContext brk = ctx.Indented();
-			auto pad = "\n" + line_prefix(brk.Indent(),
-							brk.IndentCol());
+			int brk_indent = p.indent + 1;
+			int brk_col = brk_indent * INDENT_WIDTH;
+			auto pad = "\n" + line_prefix(brk_indent,
+							brk_col);
 			Partial bp = p;
 			bp.fmt += pad;
-			bp.col = brk.IndentCol();
+			bp.col = brk_col;
 			++bp.lines;
 			bp.must_break = false;
 			next.push_back(std::move(bp));
+			break;
+			}
+
+		case LayoutItem::Kind::IndentUp:
+			{
+			Partial np = p;
+			++np.indent;
+			next.push_back(std::move(np));
+			break;
+			}
+
+		case LayoutItem::Kind::IndentDown:
+			{
+			Partial np = p;
+
+			// Emit pre-comments for the following token at the
+			// current (inner) indent.
+			if ( item.LI_Node() )
+				{
+				int inner_col = np.indent * INDENT_WIDTH;
+				auto inner_pad = line_prefix(np.indent, inner_col);
+				np.fmt += item.LI_Node()->EmitPreComments(inner_pad);
+				}
+
+			--np.indent;
+			int new_col = np.indent * INDENT_WIDTH;
+			auto pad = line_prefix(np.indent, new_col);
+			np.fmt += pad;
+			np.col = new_col;
+			next.push_back(std::move(np));
 			break;
 			}
 		}
@@ -206,10 +252,14 @@ Candidates build_layout(LayoutItems items, const FmtContext& ctx)
 		int w = 0;
 		for ( size_t j = i + 1; j < items.size(); ++j )
 			{
-			if ( items[j].kind == LayoutItem::Kind::Lit )
+			auto k = items[j].kind;
+			if ( k == LayoutItem::Kind::Lit )
 				w += items[j].Fmt().Size();
-			else if ( items[j].kind == LayoutItem::Kind::Sp )
+			else if ( k == LayoutItem::Kind::Sp )
 				++w;  // space in the flat case
+			else if ( k == LayoutItem::Kind::IndentUp ||
+				  k == LayoutItem::Kind::IndentDown )
+				continue;
 			else
 				break;
 			}
@@ -217,7 +267,7 @@ Candidates build_layout(LayoutItems items, const FmtContext& ctx)
 		return w;
 		};
 
-	Partials beam = {{Formatting(), ctx.Col(), 1, 0, false}};
+	Partials beam = {{Formatting(), ctx.Col(), ctx.Indent(), 1, 0, false}};
 
 	for ( size_t i = 0; i < items.size(); ++i )
 		beam = layout_one_item(items[i], beam, ctx, trail_after(i));
@@ -237,8 +287,10 @@ Candidates build_layout(LayoutItems items, const FmtContext& ctx)
 
 Candidates Node::BuildLayout(LayoutItems items, const FmtContext& ctx) const
 	{
-	for ( auto& item : items )
+	for ( size_t i = 0; i < items.size(); ++i )
 		{
+		auto& item = items[i];
+
 		if ( item.kind == LayoutItem::Kind::Tok )
 			{
 			auto c = Child(item.ChildIdx());
@@ -256,6 +308,33 @@ Candidates Node::BuildLayout(LayoutItems items, const FmtContext& ctx) const
 			item = LayoutItem(LayoutItem::Kind::ArgList,
 					Child(item.ChildIdx()),
 					item.Fmt());
+		else if ( item.kind == LayoutItem::Kind::IndentDown )
+			{
+			// Peek ahead to find the next token and
+			// attach its node for pre-comment emission.
+			for ( size_t j = i + 1; j < items.size(); ++j )
+				{
+				auto k = items[j].kind;
+				if ( k == LayoutItem::Kind::Tok )
+					{
+					auto& i_j = items[j];
+					auto c = Child(i_j.ChildIdx());
+					if ( i_j.SubChildIdx() >= 0 )
+						c = c->Child(i_j.SubChildIdx());
+					item = LayoutItem(LayoutItem::Kind::IndentDown,
+						c, Formatting());
+					break;
+					}
+				if ( k == LayoutItem::Kind::LastTok )
+					{
+					item = LayoutItem(
+						LayoutItem::Kind::IndentDown,
+						Children().back(),
+						Formatting());
+					break;
+					}
+				}
+			}
 		}
 
 	return build_layout(items, ctx);

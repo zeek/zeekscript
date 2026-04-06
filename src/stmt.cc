@@ -69,24 +69,16 @@ Candidates ExprStmtNode::Format(const FmtContext& ctx) const
 // Children: [0]=KEYWORD [1]=SP [2]=LBRACE ... [last]=RBRACE
 Candidates ExportNode::Format(const FmtContext& ctx) const
 	{
-	// Collect non-token children for the body.
 	NodeVec body;
 	for ( const auto& c : Children() )
 		if ( ! c->IsToken() )
 			body.push_back(c);
 
 	auto body_text = format_stmt_list(body, ctx.Indented());
-	auto pad = line_prefix(ctx.Indent(), ctx.Col());
 
-	int up_indent = ctx.Indent() + 1;
-	auto inner_pad = line_prefix(up_indent, up_indent * INDENT_WIDTH);
-
-	const auto& rb = Children().back();
-	auto close = rb->EmitPreComments(inner_pad) + pad + rb;
-	auto head = best(BuildLayout({0U, soft_sp, 2}, ctx)).Fmt();
-
-	auto fmt = head + "\n" + body_text + close;
-	return {Candidate(std::move(fmt), ctx)};
+	return BuildLayout({0U, soft_sp, 2, indent_up,
+		Formatting("\n" + body_text),
+		indent_down, last()}, ctx);
 	}
 
 // Switch statement: switch expr { case val: body ... }

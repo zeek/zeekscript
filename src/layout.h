@@ -30,7 +30,7 @@ class LayoutItem
 	{
 public:
 	enum class Kind { Lit, Fmt, Sp, Tok, ExprIdx, LastTok, ArgIdx,
-	                  ArgList } kind;
+	                  ArgList, IndentUp, IndentDown } kind;
 
 	// Literal text.
 	LayoutItem(const std::string& s)
@@ -96,6 +96,8 @@ private:
 	};
 
 extern const LayoutItem soft_sp;
+extern const LayoutItem indent_up;
+extern const LayoutItem indent_down;
 
 // Token literal: wraps the node in a lazy Formatting piece and
 // forces the next soft_sp to break if it has a trailing comment.
