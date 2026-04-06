@@ -121,6 +121,8 @@ void FmtPiece::AccumOverflow(int& col, int max_col, int& ovf) const
 				ovf += col - max_col;
 			col = 0;
 			}
+		else if ( c == '\t' )
+			col = (col / INDENT_WIDTH + 1) * INDENT_WIDTH;
 		else
 			++col;
 	}

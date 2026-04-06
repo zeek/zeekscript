@@ -1,13 +1,16 @@
-# C++ Formatter Failing Tests (167 pass, 7 fail as of 2026-04-06)
+# C++ Formatter Failing Tests (169 pass, 5 fail as of 2026-04-06)
 
 ## By category (sorted by count)
 
-### Multi-line Candidate metrics cascade (7)
-Fixing the Candidate(Formatting, FmtContext) constructor to compute
-correct multi-line metrics (lines, width, overflow, spread) exposed
-callers that relied on bogus lines=1.  Remaining failures are in
-VarDeclNode init-split decisions and field-assign fill packing.
-test{100,105,107,128,133,137,138}
+### Field-assign fill packing (4)
+Correct multi-line Candidate metrics change fill packing behavior
+for field-assign lists.  format_args_fill treats multi-line items
+differently and bc.Width() meaning changes (last-line vs total).
+test{105,133,137,138}
+
+### Baseline update needed (1)
+Output is correct per formatting rules but baseline not yet updated.
+test{093}
 
 ## Notes
 - Some tests appear in multiple categories; listed under primary failure.
@@ -354,3 +357,13 @@ entries chronological within a session date.
   - reduce_overflow in top.cc: shift overflowing lines left by
     removing leading spaces (never tabs) to end at column 80;
     only when shift fully eliminates overflow; stops at indent_col + 1
+- After AccumOverflow tab fix + decl split gate: 169 pass, 5 fail
+  - Fixed: test{100,107} (decl split-after-= for multi-line RHS)
+  - FmtPiece::AccumOverflow: was treating tabs as 1 column instead
+    of expanding to tab stops (AccumMaxOverflow was already correct);
+    caused TextOverflow to return 0 for lines with leading tabs
+  - decl_with_init: changed split gate from result[0].Ovf() > 0 to
+    flat_mlo > 0 (MaxLineOverflow of assembled text); simplified
+    multi-line flat candidate to use TextOverflow directly
+  - Renamed category: "Multi-line Candidate metrics cascade" ->
+    "Field-assign fill packing" (4) + "Baseline update needed" (1)

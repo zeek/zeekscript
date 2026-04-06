@@ -53,33 +53,29 @@ static void decl_with_init(const DeclParts& d, Candidates& result,
 		{
 		int last_w = flat.LastLineLen();
 		int lines = flat.CountLines();
-
-		int nl = val.Fmt().Find('\n');
-		int first_val_w = (nl < 0) ? val.Width() : nl;
-		int ovf = ovf_no_trail(before_w + first_val_w, ctx) + val.Ovf();
-
-		if ( last_w > ctx.MaxCol() )
-			ovf += last_w - ctx.MaxCol();
-
+		int ovf = flat.TextOverflow(ctx.Col(), ctx.MaxCol());
 		result.push_back({flat, last_w, lines, ovf, ctx.Col()});
 		}
 	else
 		result.push_back(Candidate(flat, ctx));
 
-	// Split after init operator.
-	if ( result[0].Ovf() > 0 )
-		{
-		// The split moves the value from col before_w to
-		// col indent_col.  Skip if the worst-line overflow
-		// barely improves.
-		int flat_mlo = flat.MaxLineOverflow(ctx.Col(), ctx.MaxCol());
-		int savings = before_w - ctx.Indented().Col();
+	// Split after init operator when the flat candidate overflows.
+	// Use per-line overflow of the assembled text, which catches
+	// cases where the Candidate overflow is 0 but continuation
+	// lines extend past max_col.
+	int flat_mlo = flat.MaxLineOverflow(ctx.Col(), ctx.MaxCol());
 
-		if ( flat_mlo == 0 && val.Lines() > 1 )
-			return;
-		if ( savings > 0 && savings < flat_mlo &&
-		     savings < INDENT_WIDTH )
-			return;
+	if ( flat_mlo > 0 )
+		{
+		// Skip when the savings barely help a single-line
+		// overflow.
+		if ( val.Lines() == 1 )
+			{
+			int savings = before_w - ctx.Indented().Col();
+			if ( savings > 0 && savings < flat_mlo &&
+			     savings < INDENT_WIDTH )
+				return;
+			}
 
 		FmtContext cont = ctx.Indented().Reserve(suffix_w);
 		auto val2 = best(format_expr(*d.init_val, cont));
