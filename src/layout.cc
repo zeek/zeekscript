@@ -167,7 +167,12 @@ Candidates Node::BuildLayout(LayoutItems items, const FmtContext& ctx) const
 	{
 	for ( auto& item : items )
 		if ( item.kind == LayoutItem::Kind::Tok )
-			item = tok(Child(item.ChildIdx()));
+			{
+			auto c = Child(item.ChildIdx());
+			if ( item.SubChildIdx() >= 0 )
+				c = c->Child(item.SubChildIdx());
+			item = tok(c);
+			}
 
 	return build_layout(items, ctx);
 	}

@@ -115,12 +115,21 @@ public:
 	LayoutItem(unsigned child_index) : kind(Kind::Tok),
 		child_idx(static_cast<int>(child_index)), must_break(false) {}
 
+	// Sub-child token: {parent_idx, child_idx} resolves to
+	// tok(Child(parent_idx)->Child(child_idx)).
+	LayoutItem(unsigned parent_index, unsigned sub_index)
+		: kind(Kind::Tok),
+		  child_idx(static_cast<int>(parent_index)),
+		  sub_child_idx(static_cast<int>(sub_index)),
+		  must_break(false) {}
+
 	// Soft space (private; use soft_sp constant).
 	LayoutItem(Kind k) : kind(k), must_break(false) {}
 
 	const Formatting& Fmt() const { return fmt; }
 	const NodePtr& LI_Node() const { return node; }
 	int ChildIdx() const { return child_idx; }
+	int SubChildIdx() const { return sub_child_idx; }
 	bool MustBreak() const { return must_break; }
 
 	void SetMustBreak(bool mb) { must_break = mb; }
@@ -129,6 +138,7 @@ private:
 	Formatting fmt;
 	NodePtr node;
 	int child_idx = -1;
+	int sub_child_idx = -1;
 	bool must_break;	// force next Sp to break (trailing comment)
 	};
 

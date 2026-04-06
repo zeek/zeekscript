@@ -538,8 +538,8 @@ Candidates TypeDeclBracedNode::Format(const FmtContext& ctx) const
 
 	auto head = best(BuildLayout(
 		{0U, soft_sp, 2, 3,
-		 soft_sp, tok(inner->Child(0, Tag::Keyword)),
-		 soft_sp, tok(inner->Child(2, Tag::LBrace))}, ctx)).Fmt();
+		 soft_sp, {5, 0U},
+		 soft_sp, {5, 2}}, ctx)).Fmt();
 
 	auto body = FormatBody(inner, ctx);
 
