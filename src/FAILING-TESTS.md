@@ -1,11 +1,13 @@
-# C++ Formatter Failing Tests (172 pass, 1 fail as of 2026-04-04)
+# C++ Formatter Failing Tests (167 pass, 7 fail as of 2026-04-06)
 
 ## By category (sorted by count)
 
-### Field-assign underflow (1)
-Long field-assign values should underflow (shift left) rather than
-overflow at the alignment column.
-test127
+### Multi-line Candidate metrics cascade (7)
+Fixing the Candidate(Formatting, FmtContext) constructor to compute
+correct multi-line metrics (lines, width, overflow, spread) exposed
+callers that relied on bogus lines=1.  Remaining failures are in
+VarDeclNode init-split decisions and field-assign fill packing.
+test{100,105,107,128,133,137,138}
 
 ## Notes
 - Some tests appear in multiple categories; listed under primary failure.
@@ -332,3 +334,23 @@ entries chronological within a session date.
     when first line fits and there's no overflow; re-format at actual
     position (after ", ") so internal fill alignment is correct
   - Removed "Unnecessary init split" category (all 6 fixed)
+
+## Session progress (2026-04-06)
+- After Candidate constructor multi-line fix: 167 pass, 7 fail
+  - Fixed Candidate(Formatting, FmtContext) to compute lines, width,
+    overflow, spread correctly for multi-line content (was hardcoded
+    lines=1)
+  - flat_or_fill: exclude multi-line flat candidates from competing
+    with fill (lambdas, deep expressions won in beam with low per-line
+    overflow)
+  - decl_no_init: same single-line gate; use last-line width for
+    continuation fit check
+  - Updated baseline: test103 (value stays on same line as =)
+  - Removed "Field-assign underflow" category (test127 fixed by
+    underflow post-processing)
+  - Added "Multi-line Candidate metrics cascade" category for
+    remaining test{100,105,107,128,133,137,138}
+- After underflow post-processing: fixes test127
+  - reduce_overflow in top.cc: shift overflowing lines left by
+    removing leading spaces (never tabs) to end at column 80;
+    only when shift fully eliminates overflow; stops at indent_col + 1
