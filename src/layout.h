@@ -39,33 +39,43 @@ using ComputeFn = FmtPtr (Node::*)(ComputeCtx&, const FmtContext&) const;
 // A piece in a flat-or-split sequence.
 class FmtStep {
 public:
-	enum Kind { SLit, SExpr, SSp };
+	enum Kind { SLit, SExpr, SSp, SExprIdx, STokIdx };
 
 	// Fixed text.
 	static FmtStep L(const char* s)
-		{ return {SLit, Formatting(s), nullptr}; }
+		{ return {SLit, Formatting(s), nullptr, -1}; }
 	static FmtStep L(const std::string& s)
-		{ return {SLit, Formatting(s), nullptr}; }
+		{ return {SLit, Formatting(s), nullptr, -1}; }
 	static FmtStep L(const Formatting& f)
-		{ return {SLit, f, nullptr}; }
+		{ return {SLit, f, nullptr, -1}; }
 	static FmtStep L(const NodePtr& n)
-		{ return {SLit, Formatting(n), nullptr}; }
+		{ return {SLit, Formatting(n), nullptr, -1}; }
 
 	// Sub-expression: formatted in context, re-formatted after split.
 	static FmtStep E(const NodePtr& n)
-		{ return {SExpr, Formatting(), n}; }
+		{ return {SExpr, Formatting(), n, -1}; }
+
+	// Expression child by index: resolved during BuildLayout.
+	static FmtStep EI(unsigned idx)
+		{ return {SExprIdx, Formatting(), nullptr, static_cast<int>(idx)}; }
+
+	// Token child by index: resolved during BuildLayout.
+	static FmtStep TI(unsigned idx)
+		{ return {STokIdx, Formatting(), nullptr, static_cast<int>(idx)}; }
 
 	// Soft space: included in flat, dropped after a split point.
 	static FmtStep S(const std::string& s = " ")
-		{ return {SSp, Formatting(s), nullptr}; }
+		{ return {SSp, Formatting(s), nullptr, -1}; }
 
 	Kind kind;
 	Formatting text;
 	NodePtr node;
+	int child_idx;
 
 private:
-	FmtStep(Kind k, Formatting f, NodePtr n)
-		: kind(k), text(std::move(f)), node(std::move(n)) {}
+	FmtStep(Kind k, Formatting f, NodePtr n, int idx)
+		: kind(k), text(std::move(f)), node(std::move(n)),
+		  child_idx(idx) {}
 };
 
 using FmtSteps = std::vector<FmtStep>;
@@ -244,6 +254,12 @@ inline LayoutItem stmt_body(unsigned child_index, int flags = 0)
 // Computed value: calls a member function on the node during
 // BuildLayout resolution, replacing itself with the result.
 inline LayoutItem compute(ComputeFn fn) { return {Computed, fn}; }
+
+// Flat-or-split with deferred child references: FmtStep::EI(n)
+// and FmtStep::TI(n) are resolved during BuildLayout.
+inline LayoutItem flat_split(FmtSteps s, std::vector<SplitAt> sp,
+                             bool ff = false)
+	{ return {std::move(s), std::move(sp), ff}; }
 
 // Build layout candidates from a sequence of components using
 // beam search.  At each Fmt node, all of its candidates are tried;

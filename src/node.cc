@@ -118,6 +118,25 @@ static const std::unordered_map<Tag, LayoutItems> layout_table = {
 		stmt_body(), {IndentDown}, last()}},
 	{Tag::ModuleDecl, {0U, {Sp}, 2, 3}},
 	{Tag::TypeDeclAlias, {0U, {Sp}, 2, 3, {Sp}, expr(5), 6}},
+	{Tag::Div, {flat_split(
+		{FmtStep::EI(0), FmtStep::TI(1),
+		 FmtStep::S(""), FmtStep::EI(2)},
+		{{2, SplitAt::IndentedOrSame, true}})}},
+	{Tag::BinaryOp, {flat_split(
+		{FmtStep::EI(0), FmtStep::L(" "),
+		 FmtStep::TI(1), FmtStep::S(),
+		 FmtStep::EI(2)},
+		{{2, SplitAt::IndentedOrSame}})}},
+	{Tag::Ternary, {flat_split(
+		{FmtStep::EI(0),
+		 FmtStep::L(" "), FmtStep::TI(1),
+		 FmtStep::S(),
+		 FmtStep::EI(2),
+		 FmtStep::L(" "), FmtStep::TI(3),
+		 FmtStep::S(),
+		 FmtStep::EI(4)},
+		{{6, SplitAt::AlignWith, 4},
+		 {2, SplitAt::SameCol}})}},
 };
 
 NodePtr MakeNode(Tag tag)
@@ -131,15 +150,12 @@ NodePtr MakeNode(Tag tag)
 	case Tag::IfElse: return std::make_shared<IfElseNode>();
 	case Tag::For: return std::make_shared<ForNode>();
 	case Tag::While: return std::make_shared<WhileNode>();
-	case Tag::BinaryOp: return std::make_shared<BinaryNode>();
 	case Tag::BoolChain: return std::make_shared<BoolChainNode>();
-	case Tag::Div: return std::make_shared<DivNode>();
 	case Tag::Call: return std::make_shared<CallNode>();
 	case Tag::Constructor: return std::make_shared<ConstructorNode>();
 	case Tag::Index: return std::make_shared<IndexNode>();
 	case Tag::IndexLiteral: return std::make_shared<IndexLiteralNode>();
 	case Tag::Slice: return std::make_shared<SliceNode>();
-	case Tag::Ternary: return std::make_shared<TernaryNode>();
 	case Tag::Lambda: return std::make_shared<LambdaNode>();
 	case Tag::LambdaCaptures: return std::make_shared<LambdaCapturesNode>();
 	case Tag::TypeParameterized: return std::make_shared<TypeParamNode>();

@@ -11,28 +11,12 @@ public:
 	virtual Candidates Format(const FmtContext& ctx) const = 0;
 };
 
-// Binary operators: shared lhs/op/rhs child structure.
+// Boolean chain: operands are direct children (flattened),
+// formatted with fill layout.
 
-class BinaryExprNode : public ExprNode {
+class BoolChainNode : public ExprNode {
 public:
-	BinaryExprNode(Tag t) : ExprNode(t) { }
-};
-
-class BinaryNode : public BinaryExprNode {
-public:
-	BinaryNode() : BinaryExprNode(Tag::BinaryOp) { }
-	Candidates Format(const FmtContext& ctx) const override;
-};
-
-class BoolChainNode : public BinaryExprNode {
-public:
-	BoolChainNode() : BinaryExprNode(Tag::BoolChain) { }
-	Candidates Format(const FmtContext& ctx) const override;
-};
-
-class DivNode : public BinaryExprNode {
-public:
-	DivNode() : BinaryExprNode(Tag::Div) { }
+	BoolChainNode() : ExprNode(Tag::BoolChain) { }
 	Candidates Format(const FmtContext& ctx) const override;
 };
 
@@ -65,12 +49,6 @@ public:
 class SliceNode : public ExprNode {
 public:
 	SliceNode() : ExprNode(Tag::Slice) { }
-	Candidates Format(const FmtContext& ctx) const override;
-};
-
-class TernaryNode : public ExprNode {
-public:
-	TernaryNode() : ExprNode(Tag::Ternary) { }
 	Candidates Format(const FmtContext& ctx) const override;
 };
 

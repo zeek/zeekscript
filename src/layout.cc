@@ -337,6 +337,20 @@ Candidates Node::BuildLayout(LayoutItems items, const FmtContext& ctx) const
 			item = LayoutItem(ArgList, Child(item.ChildIdx()),
 					std::move(suffix));
 			}
+		else if ( item.kind == FlatSplit )
+			{
+			// Resolve deferred child references in steps.
+			auto steps = item.Steps();
+			for ( auto& s : steps )
+				{
+				if ( s.kind == FmtStep::SExprIdx )
+					s = FmtStep::E(Child(s.child_idx));
+				else if ( s.kind == FmtStep::STokIdx )
+					s = FmtStep::L(Child(s.child_idx));
+				}
+			item = LayoutItem(std::move(steps),
+				item.Splits(), item.ForceFlatSubs());
+			}
 		else if ( item.kind == FillList )
 			{
 			auto prefix = Formatting(Children().front()) + " ";
