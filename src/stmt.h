@@ -11,33 +11,6 @@ public:
 	virtual Candidates Format(const FmtContext& ctx) const = 0;
 };
 
-// Braced type declarations (enum, record): shared head/close framing,
-// virtual FormatBody for the inner content.
-class TypeDeclBracedNode : public StmtNode {
-public:
-	TypeDeclBracedNode(Tag t) : StmtNode(t) { }
-	Candidates Format(const FmtContext& ctx) const override;
-protected:
-	virtual Formatting FormatBody(const NodePtr& inner,
-	                              const FmtContext& ctx) const = 0;
-};
-
-class TypeDeclEnumNode : public TypeDeclBracedNode {
-public:
-	TypeDeclEnumNode() : TypeDeclBracedNode(Tag::TypeDeclEnum) { }
-protected:
-	Formatting FormatBody(const NodePtr& inner,
-	                       const FmtContext& ctx) const override;
-};
-
-class TypeDeclRecordNode : public TypeDeclBracedNode {
-public:
-	TypeDeclRecordNode() : TypeDeclBracedNode(Tag::TypeDeclRecord) { }
-protected:
-	Formatting FormatBody(const NodePtr& inner,
-	                       const FmtContext& ctx) const override;
-};
-
 // Preprocessor directives.  Not StmtNodes (no Candidates), but
 // provide FormatText() for FormatStmtList and depth-control queries.
 // PREPROC-COND always opens depth and sits at column 0.  Plain

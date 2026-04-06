@@ -127,6 +127,10 @@ static const std::unordered_map<Tag, LayoutItems> layout_table = {
 		stmt_body(), {IndentDown}, last()}},
 	{Tag::ModuleDecl, {0U, {Sp}, 2, 3}},
 	{Tag::TypeDeclAlias, {0U, {Sp}, 2, 3, {Sp}, expr(5), 6}},
+	{Tag::TypeDeclEnum, {0U, {Sp}, 2, 3, {Sp}, {5, 0U}, {Sp}, {5, 2},
+		compute(&Node::ComputeEnumBody), last()}},
+	{Tag::TypeDeclRecord, {0U, {Sp}, 2, 3, {Sp}, {5, 0U}, {Sp}, {5, 2},
+		compute(&Node::ComputeRecordBody), last()}},
 	{Tag::Slice, {flat_split(
 		{FmtStep::EI(0), FmtStep::TI(1),
 		 FmtStep::EI(2),
@@ -175,8 +179,6 @@ NodePtr MakeNode(Tag tag)
 	case Tag::FuncDecl: return std::make_shared<FuncDeclNode>();
 	case Tag::FuncDeclRet: return std::make_shared<FuncDeclNode>(tag);
 	case Tag::Switch: return std::make_shared<SwitchNode>();
-	case Tag::TypeDeclEnum: return std::make_shared<TypeDeclEnumNode>();
-	case Tag::TypeDeclRecord: return std::make_shared<TypeDeclRecordNode>();
 	case Tag::Preproc: return std::make_shared<PreprocNode>();
 	case Tag::PreprocCond: return std::make_shared<PreprocCondNode>();
 	default: return std::make_shared<Node>(tag);

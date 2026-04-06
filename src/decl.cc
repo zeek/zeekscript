@@ -507,33 +507,12 @@ static Formatting format_field(const Node& node, const Formatting& suffix,
 	}
 
 // ------------------------------------------------------------------
-// Braced type declarations (enum, record): shared head/close framing.
-// Children: [0]=KEYWORD [1]=SP [2]=IDENTIFIER [3]=COLON [4]=SP
-//   [5]=TYPE-ENUM or TYPE-RECORD [6]=SEMI
-// Inner: [0]=KEYWORD [1]=SP [2]=LBRACE ... [last]=RBRACE
-// ------------------------------------------------------------------
-
-Candidates TypeDeclBracedNode::Format(const FmtContext& ctx) const
+// Enum body + close brace.  Inner = Child(5) = TYPE-ENUM node.
+LayoutItem Node::ComputeEnumBody(ComputeCtx& /*cctx*/,
+                                 const FmtContext& ctx) const
 	{
 	auto inner = Child(5);
 
-	auto head = best(BuildLayout(
-		{0U, soft_sp, 2, 3,
-		 soft_sp, {5, 0U},
-		 soft_sp, {5, 2}}, ctx)).Fmt();
-
-	auto body = FormatBody(inner, ctx);
-
-	auto close_pad = line_prefix(ctx.Indent(), ctx.Col());
-	auto fmt = head + "\n" + body + close_pad +
-			inner->Children().back() + Child(6, Tag::Semi);
-	return {Candidate(std::move(fmt), ctx)};
-	}
-
-// Enum body: collect values with commas, one per line.
-Formatting TypeDeclEnumNode::FormatBody(const NodePtr& inner,
-                                        const FmtContext& ctx) const
-	{
 	std::vector<std::string> values;
 	NodeVec commas;
 	bool has_trailing_comma = false;
@@ -551,10 +530,8 @@ Formatting TypeDeclEnumNode::FormatBody(const NodePtr& inner,
 			commas.push_back(pending_comma);
 			pending_comma = nullptr;
 			}
-
 		else if ( c->GetTag() == Tag::Comma )
 			pending_comma = c;
-
 		else if ( c->GetTag() == Tag::TrailingComma )
 			has_trailing_comma = true;
 		}
@@ -576,13 +553,15 @@ Formatting TypeDeclEnumNode::FormatBody(const NodePtr& inner,
 		body += "\n";
 		}
 
-	return body;
+	auto close_pad = line_prefix(ctx.Indent(), ctx.Col());
+	return Formatting("\n") + body + close_pad + inner->Children().back();
 	}
 
-// Record body: fields, comments, blanks.
-Formatting TypeDeclRecordNode::FormatBody(const NodePtr& inner,
-                                          const FmtContext& ctx) const
+// Record body + close brace.  Inner = Child(5) = TYPE-RECORD node.
+LayoutItem Node::ComputeRecordBody(ComputeCtx& /*cctx*/,
+                                   const FmtContext& ctx) const
 	{
+	auto inner = Child(5);
 	int field_indent = ctx.Indent() + 1;
 	int field_col = field_indent * INDENT_WIDTH;
 	FmtContext field_ctx(field_indent, field_col, ctx.MaxCol() - field_col);
@@ -612,5 +591,6 @@ Formatting TypeDeclRecordNode::FormatBody(const NodePtr& inner,
 			}
 		}
 
-	return body;
+	auto close_pad = line_prefix(ctx.Indent(), ctx.Col());
+	return Formatting("\n") + body + close_pad + inner->Children().back();
 	}

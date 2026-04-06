@@ -115,6 +115,8 @@ public:
 	LayoutItem ComputeRetType(ComputeCtx& cctx, const FmtContext& ctx) const;
 	LayoutItem ComputeParamType(ComputeCtx& cctx, const FmtContext& ctx) const;
 	LayoutItem ComputeOfType(ComputeCtx& cctx, const FmtContext& ctx) const;
+	LayoutItem ComputeEnumBody(ComputeCtx& cctx, const FmtContext& ctx) const;
+	LayoutItem ComputeRecordBody(ComputeCtx& cctx, const FmtContext& ctx) const;
 
 	// Format an ATTR-LIST node as a single string.
 	Formatting FormatAttrList(const FmtContext& ctx) const;
