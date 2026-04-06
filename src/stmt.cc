@@ -38,11 +38,10 @@ Candidates KeywordStmtNode::Format(const FmtContext& ctx) const
 	auto items = collect_args(Children());
 
 	if ( items.empty() )
-		return {Candidate(Formatting(kw) + semi, ctx)};
+		return BuildLayout({0U, last()}, ctx);
 
 	if ( items.size() == 1 )
-		return BuildLayout({0U, soft_sp, items[0].arg,
-					tok(semi)}, ctx);
+		return BuildLayout({0U, soft_sp, items[0].arg, last()}, ctx);
 
 	int semi_w = semi->Width();
 	FmtContext inner = ctx.Reserve(semi_w);
@@ -78,10 +77,7 @@ Candidates EventStmtNode::Format(const FmtContext& ctx) const
 // Children: [0]=expr ... [last]=SEMI
 Candidates ExprStmtNode::Format(const FmtContext& ctx) const
 	{
-	const auto& semi = Children().back();
-	int semi_w = semi->Width();
-	auto expr_cs = format_expr(*Child(0), ctx.Reserve(semi_w));
-	return append_suffix(expr_cs, semi, ctx.Col(), &ctx);
+	return BuildLayout({expr(0), last()}, ctx);
 	}
 
 // Export declaration: export { decls }

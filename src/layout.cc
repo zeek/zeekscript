@@ -19,6 +19,16 @@ LayoutItem expr(unsigned child_index)
 	return {LayoutItem::Kind::ExprIdx, child_index};
 	}
 
+LayoutItem last()
+	{
+	return {LayoutItem::Kind::LastTok};
+	}
+
+LayoutItem arg(unsigned arg_index)
+	{
+	return {LayoutItem::Kind::ArgIdx, arg_index};
+	}
+
 static constexpr int BEAM_WIDTH = 4;
 
 struct Partial {
@@ -78,6 +88,8 @@ static Partials layout_one_item(const LayoutItem& item, Partials& beam,
 
 		case LayoutItem::Kind::Tok:
 		case LayoutItem::Kind::ExprIdx:
+		case LayoutItem::Kind::LastTok:
+		case LayoutItem::Kind::ArgIdx:
 			assert(false);  // resolved before reaching here
 			break;
 
@@ -180,9 +192,12 @@ Candidates Node::BuildLayout(LayoutItems items, const FmtContext& ctx) const
 				c = c->Child(item.SubChildIdx());
 			item = tok(c);
 			}
-
 		else if ( item.kind == LayoutItem::Kind::ExprIdx )
 			item = LayoutItem(Child(item.ChildIdx()));
+		else if ( item.kind == LayoutItem::Kind::LastTok )
+			item = tok(Children().back());
+		else if ( item.kind == LayoutItem::Kind::ArgIdx )
+			item = LayoutItem(Arg(item.ChildIdx()));
 		}
 
 	return build_layout(items, ctx);

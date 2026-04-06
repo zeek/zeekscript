@@ -93,7 +93,7 @@ std::string line_prefix(int indent, int col);
 class LayoutItem
 	{
 public:
-	enum class Kind { Lit, Fmt, Sp, Tok, ExprIdx } kind;
+	enum class Kind { Lit, Fmt, Sp, Tok, ExprIdx, LastTok, ArgIdx } kind;
 
 	// Literal text.
 	LayoutItem(const std::string& s)
@@ -157,6 +157,14 @@ LayoutItem tok(const NodePtr& n);
 // item via Child(n).  Parallel to integer Tok shorthand but the
 // child is formatted as an expression (producing candidates).
 LayoutItem expr(unsigned child_index);
+
+// Last child as token: resolved by BuildLayout into
+// tok(Children().back()).
+LayoutItem last();
+
+// Node argument by index: resolved by BuildLayout into
+// Formatting(Arg(n)) as a literal.
+LayoutItem arg(unsigned arg_index);
 
 // Build layout candidates from a sequence of components using
 // beam search.  At each Fmt node, all of its candidates are tried;

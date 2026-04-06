@@ -494,7 +494,7 @@ Candidates BinaryNode::Format(const FmtContext& ctx) const
 // Interval constant: always a space before the unit
 Candidates IntervalNode::Format(const FmtContext& ctx) const
 	{
-	return {Candidate(Arg(0) + " " + Arg(1), ctx)};
+	return BuildLayout({arg(0), " ", arg(1)}, ctx);
 	}
 
 // Ternary: cond ? true_val : false_val
