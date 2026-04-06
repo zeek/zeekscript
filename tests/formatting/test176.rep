@@ -5,13 +5,15 @@ GLOBAL-DECL {
   DECL-TYPE {
     COLON
     TYPE-PARAMETERIZED "table" {
-      LBRACKET
-      TYPE-ATOM "SomeModule::CertInfo"
-      COMMA
-      TYPE-ATOM "SomeModule::AltNameInfo"
-      COMMA
-      TYPE-ATOM "SomeModule::ConstraintInfo"
-      RBRACKET
+      SUBSCRIPTS {
+        LBRACKET
+        TYPE-ATOM "SomeModule::CertInfo"
+        COMMA
+        TYPE-ATOM "SomeModule::AltNameInfo"
+        COMMA
+        TYPE-ATOM "SomeModule::ConstraintInfo"
+        RBRACKET
+      }
       KEYWORD "of"
       SP
       TYPE-ATOM "count"

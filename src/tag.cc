@@ -41,6 +41,7 @@ static const std::unordered_map<std::string, TagEntry> tag_map = {
 	// Types
 	{"TYPE-ATOM", {Tag::TypeAtom, false}},
 	{"TYPE-PARAMETERIZED", {Tag::TypeParameterized, false}},
+	{"TYPE-OF", {Tag::TypeOf, false}},
 	{"TYPE-FUNC", {Tag::TypeFunc, false}},
 	{"TYPE-FUNC-RET", {Tag::TypeFuncRet, false}},
 	{"TYPE-RECORD", {Tag::TypeRecord, false}},

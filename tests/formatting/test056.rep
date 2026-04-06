@@ -25,9 +25,11 @@ GLOBAL-DECL {
         PARAM "sources" {
           COLON
           TYPE-PARAMETERIZED "set" {
-            LBRACKET
-            TYPE-ATOM "string"
-            RBRACKET
+            SUBSCRIPTS {
+              LBRACKET
+              TYPE-ATOM "string"
+              RBRACKET
+            }
           }
         }
         COMMA

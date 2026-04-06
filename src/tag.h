@@ -37,6 +37,7 @@ enum class Tag {
 	// Types
 	TypeAtom,
 	TypeParameterized,
+	TypeOf,
 	TypeFunc,
 	TypeFuncRet,
 	TypeRecord,
@@ -151,7 +152,7 @@ inline bool is_lambda(Tag t)
 inline bool is_type_tag(Tag t)
 	{
 	return t == Tag::TypeAtom || t == Tag::TypeParameterized ||
-		t == Tag::TypeFunc || t == Tag::TypeFuncRet;
+		t == Tag::TypeOf || t == Tag::TypeFunc || t == Tag::TypeFuncRet;
 	}
 
 // Marker nodes: separators and whitespace that are not content.

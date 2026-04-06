@@ -66,11 +66,4 @@ protected:
 	Formatting BuildPrefix(const FmtContext& ctx) const override;
 };
 
-// TYPE-PARAMETERIZED: table[k] of v, set[t], vector of t
-
-class TypeParamNode : public ExprNode {
-public:
-	TypeParamNode() : ExprNode(Tag::TypeParameterized) { }
-	Candidates Format(const FmtContext& ctx) const override;
-};
 

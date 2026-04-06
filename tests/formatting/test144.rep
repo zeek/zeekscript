@@ -5,9 +5,11 @@ GLOBAL-DECL {
   DECL-TYPE {
     COLON
     TYPE-PARAMETERIZED "set" {
-      LBRACKET
-      TYPE-ATOM "addr"
-      RBRACKET
+      SUBSCRIPTS {
+        LBRACKET
+        TYPE-ATOM "addr"
+        RBRACKET
+      }
     }
   }
   DECL-INIT {

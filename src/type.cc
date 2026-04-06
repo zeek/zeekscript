@@ -1,70 +1,14 @@
 #include "expr.h"
 #include "fmt_util.h"
 
-// TYPE-PARAMETERIZED: table[k] of v, set[t], vector of t
-Candidates TypeParamNode::Format(const FmtContext& ctx) const
+// Compute "of type" suffix for TYPE-PARAMETERIZED: " of type".
+LayoutItem Node::ComputeOfType(ComputeCtx& cctx, const FmtContext& ctx) const
 	{
-	const auto& keyword = Arg();	// "table", "set", "vector"
-
-	// Collect bracketed type args (between LBRACKET/RBRACKET)
-	// and "of" type (after KEYWORD "of").
-	ArgComments bt_items;
-	NodePtr of_type;
-	NodePtr pending_comma;
-	bool in_brackets = false;
-	bool past_of = false;
-
-	for ( const auto& c : Children() )
-		{
-		Tag t = c->GetTag();
-
-		if ( t == Tag::LBracket )
-			{
-			in_brackets = true;
-			continue;
-			}
-
-		if ( t == Tag::RBracket )
-			{
-			in_brackets = false;
-			continue;
-			}
-
-		if ( t == Tag::Keyword )
-			{
-			past_of = true;
-			continue;
-			}
-
-		if ( t == Tag::Comma )
-			{
-			pending_comma = c;
-			continue;
-			}
-
-		if ( c->IsToken() )
-			continue;
-
-		if ( past_of )
-			of_type = c;
-
-		else if ( in_brackets )
-			{
-			bt_items.push_back({c, "", {}, pending_comma});
-			pending_comma = nullptr;
-			}
-		}
-
-	Formatting suffix;
-	if ( of_type )
-		suffix = " " + FindChild(Tag::Keyword) + " " +
-			best(format_expr(*of_type, ctx)).Fmt();
-
-	if ( bt_items.empty() )
-		return {Candidate(Formatting(keyword) + suffix, ctx)};
-
-	return flat_or_fill(keyword, FindChild(Tag::LBracket),
-		FindChild(Tag::RBracket), suffix, bt_items, ctx);
+	auto kw = FindOptChild(Tag::Keyword);
+	if ( ! kw )
+		return Formatting();
+	return " " + Formatting(kw) + " " +
+		best(format_expr(*FindTypeChild(), ctx)).Fmt();
 	}
 
 // Find the first type child (TypeAtom, TypeParameterized, TypeFunc).

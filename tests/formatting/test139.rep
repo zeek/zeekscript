@@ -15,9 +15,11 @@ EXPORT {
       FIELD "some_strings" {
         COLON
         TYPE-PARAMETERIZED "set" {
-          LBRACKET
-          TYPE-ATOM "string"
-          RBRACKET
+          SUBSCRIPTS {
+            LBRACKET
+            TYPE-ATOM "string"
+            RBRACKET
+          }
         }
         ATTR-LIST {
           ATTR "&log"

@@ -756,12 +756,14 @@ class Emitter:
             params = [k for i, k in enumerate(kids)
                       if k.type == "type" and i != of_idx]
             self._open(f'TYPE-PARAMETERIZED {_quote(first_text)}')
+            self._open('SUBSCRIPTS')
             self._w('LBRACKET')
             for j, p in enumerate(params):
                 if j > 0:
                     self._w('COMMA')
                 self._emit_type(p)
             self._w('RBRACKET')
+            self._close()
             if of_type and of_type.type == "type":
                 self._kw("of")
                 self._emit_type(of_type)
@@ -776,7 +778,7 @@ class Emitter:
                         of_type = kids[i + 1]
                     break
             if of_type:
-                self._open(f'TYPE-PARAMETERIZED "vector"')
+                self._open('TYPE-OF "vector"')
                 self._kw("of")
                 self._emit_type(of_type)
                 self._close()

@@ -5,13 +5,15 @@ GLOBAL-DECL {
   DECL-TYPE {
     COLON
     TYPE-PARAMETERIZED "set" {
-      LBRACKET
-      TYPE-ATOM "string"
-      COMMA
-      TYPE-ATOM "string"
-      COMMA
-      TYPE-ATOM "string"
-      RBRACKET
+      SUBSCRIPTS {
+        LBRACKET
+        TYPE-ATOM "string"
+        COMMA
+        TYPE-ATOM "string"
+        COMMA
+        TYPE-ATOM "string"
+        RBRACKET
+      }
     }
   }
   ATTR-LIST {

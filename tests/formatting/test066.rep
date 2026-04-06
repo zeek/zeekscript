@@ -5,17 +5,19 @@ GLOBAL-DECL {
   DECL-TYPE {
     COLON
     TYPE-PARAMETERIZED "set" {
-      LBRACKET
-      TYPE-ATOM "string"
-      COMMA
-      TYPE-ATOM "subnet"
-      COMMA
-      TYPE-ATOM "subnet"
-      COMMA
-      TYPE-ATOM "transport_proto"
-      COMMA
-      TYPE-ATOM "SomeModule::SomeType"
-      RBRACKET
+      SUBSCRIPTS {
+        LBRACKET
+        TYPE-ATOM "string"
+        COMMA
+        TYPE-ATOM "subnet"
+        COMMA
+        TYPE-ATOM "subnet"
+        COMMA
+        TYPE-ATOM "transport_proto"
+        COMMA
+        TYPE-ATOM "SomeModule::SomeType"
+        RBRACKET
+      }
     }
   }
   ATTR-LIST {

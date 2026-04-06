@@ -5,11 +5,13 @@ GLOBAL-DECL {
   DECL-TYPE {
     COLON
     TYPE-PARAMETERIZED "table" {
-      LBRACKET
-      TYPE-ATOM "count"
-      COMMA
-      TYPE-ATOM "string"
-      RBRACKET
+      SUBSCRIPTS {
+        LBRACKET
+        TYPE-ATOM "count"
+        COMMA
+        TYPE-ATOM "string"
+        RBRACKET
+      }
       KEYWORD "of"
       SP
       TYPE-ATOM "TrackingRec"

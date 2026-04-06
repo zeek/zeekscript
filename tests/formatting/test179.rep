@@ -4,7 +4,7 @@ GLOBAL-DECL {
   IDENTIFIER "xs"
   DECL-TYPE {
     COLON
-    TYPE-PARAMETERIZED "vector" {
+    TYPE-OF "vector" {
       KEYWORD "of"
       SP
       TYPE-ATOM "double"
