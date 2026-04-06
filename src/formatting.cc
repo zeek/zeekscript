@@ -1,5 +1,5 @@
 #include "formatting.h"
-#include "layout.h"
+#include "fmt_context.h"
 #include "node.h"
 
 #include <cassert>

@@ -3,7 +3,7 @@
 #include <climits>
 
 #include "cand.h"
-#include "layout.h"
+#include "fmt_context.h"
 
 Candidate::Candidate(Formatting t, const FmtContext& ctx)
 	: fmt(std::move(t)), width(fmt.Size()), lines(1), spread(0)
