@@ -1,4 +1,3 @@
-#include "expr.h"
 #include "fmt_util.h"
 
 // Compute "of type" suffix for TYPE-PARAMETERIZED: " of type".

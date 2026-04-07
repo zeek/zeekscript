@@ -3,7 +3,6 @@
 #include <unordered_map>
 
 #include "node.h"
-#include "expr.h"
 #include "layout.h"
 #include "stmt.h"
 
@@ -156,6 +155,10 @@ static const std::unordered_map<Tag, LayoutItems> layout_table = {
 		 FmtStep::TI(1), FmtStep::S(),
 		 FmtStep::EI(2)},
 		{{2, SplitAt::IndentedOrSame}})}},
+	{Tag::Lambda, {compute(&Node::ComputeLambdaSig),
+		compute(&Node::ComputeLambdaBody)}},
+	{Tag::LambdaCaptures, {compute(&Node::ComputeLambdaSig),
+		compute(&Node::ComputeLambdaBody)}},
 	{Tag::FuncDecl, {compute_cands(&Node::ComputeFuncSig),
 		compute(&Node::ComputeFuncBody)}},
 	{Tag::FuncDeclRet, {compute_cands(&Node::ComputeFuncSig),
@@ -180,8 +183,6 @@ NodePtr MakeNode(Tag tag)
 		return std::make_shared<LayoutNode>(tag, it->second);
 
 	switch ( tag ) {
-	case Tag::Lambda: return std::make_shared<LambdaNode>();
-	case Tag::LambdaCaptures: return std::make_shared<LambdaCapturesNode>();
 	case Tag::GlobalDecl: return std::make_shared<DeclNode>(tag);
 	case Tag::LocalDecl: return std::make_shared<DeclNode>(tag);
 	case Tag::Switch: return std::make_shared<SwitchNode>();
