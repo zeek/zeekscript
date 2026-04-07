@@ -574,6 +574,10 @@ public:
 	Candidates BuildLayout(LayoutItems items,
 	                       const FmtContext& ctx) const;
 
+	// Resolve a single layout item during BuildLayout.
+	void ResolveItem(LayoutItems& items, size_t i,
+	                 const FmtContext& ctx) const;
+
 	Tag GetTag() const { return tag; }
 	bool IsLambda() const { return is_lambda(tag); }
 	bool IsMarker() const { return is_marker(tag); }

@@ -7,6 +7,7 @@
 #include <cstdio>
 #include <stdexcept>
 #include <unordered_map>
+#include <unordered_set>
 
 #include "flat_split.h"
 #include "fmt_util.h"
@@ -813,201 +814,197 @@ Candidates build_layout(LayoutItems items, const FmtContext& ctx)
 
 // ---- BuildLayout resolution ----------------------------------------------
 
+static const std::unordered_set<LIKind> computed_kinds = {
+	ParamType, OfType, RetType, EnumBody, RecordBody, LambdaPrefix,
+	LambdaRet, LambdaBody, FuncRet, FuncAttrs, FuncBody, SwitchExpr,
+	SwitchCases, ElseFollowOn, DeclCands,
+	};
+
 static bool is_computed(LIKind k)
 	{
-	switch ( k ) {
-	case ParamType: case OfType: case RetType:
-	case EnumBody: case RecordBody:
-	case LambdaPrefix: case LambdaRet: case LambdaBody:
-	case FuncRet: case FuncAttrs: case FuncBody:
-	case SwitchExpr: case SwitchCases:
-	case ElseFollowOn: case DeclCands:
-		return true;
-	default:
-		return false;
-	}
+	return computed_kinds.count(k) > 0;
 	}
 
-static LIPtr dispatch_compute(const Layout& node, LIKind op,
-                               const FmtContext& ctx)
+using ComputeFn = LIPtr (Layout::*)(const FmtContext&) const;
+
+static const std::unordered_map<LIKind, ComputeFn> compute_map = {
+	{ParamType, &Layout::ComputeParamType},
+	{OfType, &Layout::ComputeOfType},
+	{RetType, &Layout::ComputeRetType},
+	{EnumBody, &Layout::ComputeEnumBody},
+	{RecordBody, &Layout::ComputeRecordBody},
+	{LambdaPrefix, &Layout::ComputeLambdaPrefix},
+	{LambdaRet, &Layout::ComputeLambdaRet},
+	{LambdaBody, &Layout::ComputeLambdaBody},
+	{FuncRet, &Layout::ComputeFuncRet},
+	{FuncAttrs, &Layout::ComputeFuncAttrs},
+	{FuncBody, &Layout::ComputeFuncBody},
+	{SwitchExpr, &Layout::ComputeSwitchExpr},
+	{SwitchCases, &Layout::ComputeSwitchCases},
+	{ElseFollowOn, &Layout::ComputeElseFollowOn},
+	};
+
+static LIPtr run_compute(const Layout& node, LIKind op, const FmtContext& ctx)
 	{
-	switch ( op ) {
-	case ParamType: return node.ComputeParamType(ctx);
-	case OfType: return node.ComputeOfType(ctx);
-	case RetType: return node.ComputeRetType(ctx);
-	case EnumBody: return node.ComputeEnumBody(ctx);
-	case RecordBody: return node.ComputeRecordBody(ctx);
-	case LambdaPrefix: return node.ComputeLambdaPrefix(ctx);
-	case LambdaRet: return node.ComputeLambdaRet(ctx);
-	case LambdaBody: return node.ComputeLambdaBody(ctx);
-	case FuncRet: return node.ComputeFuncRet(ctx);
-	case FuncAttrs: return node.ComputeFuncAttrs(ctx);
-	case FuncBody: return node.ComputeFuncBody(ctx);
-	case SwitchExpr: return node.ComputeSwitchExpr(ctx);
-	case SwitchCases: return node.ComputeSwitchCases(ctx);
-	case ElseFollowOn: return node.ComputeElseFollowOn(ctx);
-	case DeclCands:
-		assert(false);  // DeclCands returns Candidates, not LIPtr
-		return lit(Formatting());
-	default:
-		assert(false);
-		return lit(Formatting());
-	}
+	auto it = compute_map.find(op);
+	assert(it != compute_map.end());
+	return (node.*(it->second))(ctx);
 	}
 
 Candidates Layout::BuildLayout(LayoutItems items, const FmtContext& ctx) const
 	{
 	for ( size_t i = 0; i < items.size(); ++i )
-		{
-		auto& item = items[i];
-
-		if ( item->kind == DeclCands )
-			{
-			auto cs = ComputeDecl(ctx);
-			item = std::make_shared<LIDeclCandsR>(std::move(cs));
-			continue;
-			}
-
-		if ( is_computed(item->kind) )
-			{
-			item = dispatch_compute(*this, item->kind, ctx);
-			continue;
-			}
-
-		if ( item->kind == SoftCont )
-			{
-			auto result = dispatch_compute(*this,
-				item->SuffixOp(), ctx);
-			item = std::make_shared<LISoftContR>(result->Fmt());
-			continue;
-			}
-
-		if ( item->kind == Tok )
-			{
-			auto c = Child(item->ChildIdx());
-			if ( item->SubChildIdx() >= 0 )
-				c = c->Child(item->SubChildIdx());
-			item = tok(c);
-			}
-		else if ( item->kind == ExprIdx )
-			item = std::make_shared<LIExpr>(
-				Child(item->ChildIdx()));
-		else if ( item->kind == LastTok )
-			item = tok(Children().back());
-		else if ( item->kind == ArgIdx )
-			item = lit(Formatting(Arg(item->ChildIdx())));
-		else if ( item->kind == ArgList )
-			{
-			Formatting suffix = item->Fmt();
-			Formatting prefix;
-			int flags = item->Flags();
-			if ( item->SuffixOp() != Lit )
-				suffix = dispatch_compute(*this,
-					item->SuffixOp(), ctx)->Fmt();
-			if ( item->PrefixOp() != Lit )
-				prefix = dispatch_compute(*this,
-					item->PrefixOp(), ctx)->Fmt();
-			if ( flags )
-				item = std::make_shared<LIArgListR>(
-					Child(item->ChildIdx()),
-					std::move(prefix),
-					std::move(suffix), flags);
-			else
-				item = std::make_shared<LIArgListR>(
-					Child(item->ChildIdx()),
-					std::move(prefix),
-					std::move(suffix));
-			}
-		else if ( item->kind == FlatSplit )
-			{
-			// Resolve deferred child references in steps.
-			auto steps = item->Steps();
-			for ( auto& s : steps )
-				{
-				if ( s.kind == FmtStep::SExprIdx )
-					s = FmtStep::E(Child(s.child_idx));
-				else if ( s.kind == FmtStep::STokIdx )
-					s = FmtStep::L(Child(s.child_idx));
-				}
-			item = std::make_shared<LIFlatSplitR>(
-				std::move(steps), item->Splits(),
-				item->ForceFlatSubs());
-			}
-		else if ( item->kind == FillList )
-			{
-			auto prefix = Formatting(Children().front()) + " ";
-			auto args = collect_args(Children());
-			auto cs = flat_or_fill(prefix, "", "", "", args, ctx);
-			item = lit(best(cs).Fmt());
-			}
-		else if ( item->kind == StmtBody )
-			{
-			// Collect children and format as stmt list.
-			const Layout& src = (item->ChildIdx() >= 0)
-				? *Child(item->ChildIdx()) : *this;
-			int fl = item->Flags();
-
-			LayoutVec body;
-			if ( fl & SB_AllChildren )
-				body = src.Children();
-			else
-				for ( const auto& c : src.Children() )
-					if ( ! c->IsToken() )
-						body.push_back(c);
-
-			auto sub = ctx.Indented();
-			auto text = format_stmt_list(body, sub,
-				(fl & SB_SkipBlanks) != 0);
-
-			if ( (fl & SB_StripNewline) &&
-			     ! text.Empty() && text.Back() == '\n' )
-				text.PopBack();
-
-			item = lit(Formatting("\n" + text));
-			}
-		else if ( item->kind == BodyText )
-			item = lit(*Child(item->ChildIdx())->FormatBodyText(ctx));
-		else if ( item->kind == OpFill )
-			{
-			auto op_str = Arg();
-			auto ops = ContentChildren();
-			item = std::make_shared<LIOpFillR>(
-				std::move(op_str), std::move(ops));
-			}
-		else if ( item->kind == IndentDown )
-			{
-			// Peek ahead to find the next token and
-			// attach its node for pre-comment emission.
-			for ( size_t j = i + 1; j < items.size(); ++j )
-				{
-				auto k = items[j]->kind;
-				if ( k == Tok )
-					{
-					auto& i_j = items[j];
-					auto c = Child(i_j->ChildIdx());
-					if ( i_j->SubChildIdx() >= 0 )
-						c = c->Child(
-							i_j->SubChildIdx());
-					item = std::make_shared<LIIndentDown>(
-						c);
-					break;
-					}
-				if ( k == LastTok )
-					{
-					item = std::make_shared<LIIndentDown>(
-						Children().back());
-					break;
-					}
-				}
-
-			// If no following token found, create without node.
-			if ( item->kind == IndentDown &&
-			     ! dynamic_cast<LIIndentDown*>(item.get()) )
-				item = std::make_shared<LIIndentDown>();
-			}
-		}
+		ResolveItem(items, i, ctx);
 
 	return build_layout(items, ctx);
+	}
+
+void Layout::ResolveItem(LayoutItems& items, size_t i,
+                          const FmtContext& ctx) const
+	{
+	auto& item = items[i];
+
+	if ( item->kind == DeclCands )
+		{
+		auto cs = ComputeDecl(ctx);
+		item = std::make_shared<LIDeclCandsR>(std::move(cs));
+		return;
+		}
+
+	if ( is_computed(item->kind) )
+		{
+		item = run_compute(*this, item->kind, ctx);
+		return;
+		}
+
+	if ( item->kind == SoftCont )
+		{
+		auto result = run_compute(*this, item->SuffixOp(), ctx);
+		item = std::make_shared<LISoftContR>(result->Fmt());
+		return;
+		}
+
+	if ( item->kind == Tok )
+		{
+		auto c = Child(item->ChildIdx());
+		if ( item->SubChildIdx() >= 0 )
+			c = c->Child(item->SubChildIdx());
+		item = tok(c);
+		}
+	else if ( item->kind == ExprIdx )
+		item = std::make_shared<LIExpr>(
+			Child(item->ChildIdx()));
+	else if ( item->kind == LastTok )
+		item = tok(Children().back());
+	else if ( item->kind == ArgIdx )
+		item = lit(Formatting(Arg(item->ChildIdx())));
+	else if ( item->kind == ArgList )
+		{
+		Formatting suffix = item->Fmt();
+		Formatting prefix;
+		int flags = item->Flags();
+		if ( item->SuffixOp() != Lit )
+			suffix = run_compute(*this,
+				item->SuffixOp(), ctx)->Fmt();
+		if ( item->PrefixOp() != Lit )
+			prefix = run_compute(*this,
+				item->PrefixOp(), ctx)->Fmt();
+		if ( flags )
+			item = std::make_shared<LIArgListR>(
+				Child(item->ChildIdx()), std::move(prefix),
+				std::move(suffix), flags);
+		else
+			item = std::make_shared<LIArgListR>(
+				Child(item->ChildIdx()), std::move(prefix),
+				std::move(suffix));
+		}
+	else if ( item->kind == FlatSplit )
+		{
+		// Resolve deferred child references in steps.
+		auto steps = item->Steps();
+		for ( auto& s : steps )
+			{
+			if ( s.kind == FmtStep::SExprIdx )
+				s = FmtStep::E(Child(s.child_idx));
+			else if ( s.kind == FmtStep::STokIdx )
+				s = FmtStep::L(Child(s.child_idx));
+			}
+		item = std::make_shared<LIFlatSplitR>(
+			std::move(steps), item->Splits(),
+			item->ForceFlatSubs());
+		}
+	else if ( item->kind == FillList )
+		{
+		auto prefix = Formatting(Children().front()) + " ";
+		auto args = collect_args(Children());
+		auto cs = flat_or_fill(prefix, "", "", "", args, ctx);
+		item = lit(best(cs).Fmt());
+		}
+	else if ( item->kind == StmtBody )
+		{
+		// Collect children and format as stmt list.
+		const Layout& src = (item->ChildIdx() >= 0)
+			? *Child(item->ChildIdx()) : *this;
+		int fl = item->Flags();
+
+		LayoutVec body;
+		if ( fl & SB_AllChildren )
+			body = src.Children();
+		else
+			for ( const auto& c : src.Children() )
+				if ( ! c->IsToken() )
+					body.push_back(c);
+
+		auto sub = ctx.Indented();
+		auto text = format_stmt_list(body, sub,
+			(fl & SB_SkipBlanks) != 0);
+
+		if ( (fl & SB_StripNewline) &&
+		     ! text.Empty() && text.Back() == '\n' )
+			text.PopBack();
+
+		item = lit(Formatting("\n" + text));
+		}
+	else if ( item->kind == BodyText )
+		item = lit(*Child(item->ChildIdx())->FormatBodyText(ctx));
+	else if ( item->kind == OpFill )
+		{
+		auto op_str = Arg();
+		auto ops = ContentChildren();
+		item = std::make_shared<LIOpFillR>(
+			std::move(op_str), std::move(ops));
+		}
+	else if ( item->kind == IndentDown )
+		{
+		// Peek ahead to find the next token and
+		// attach its node for pre-comment emission.
+		for ( size_t j = i + 1; j < items.size(); ++j )
+			{
+			auto k = items[j]->kind;
+			if ( k == Tok )
+				{
+				auto& i_j = items[j];
+				auto c = Child(i_j->ChildIdx());
+				if ( i_j->SubChildIdx() >= 0 )
+					c = c->Child(
+						i_j->SubChildIdx());
+				item = std::make_shared<LIIndentDown>(
+					c);
+				break;
+				}
+			if ( k == LastTok )
+				{
+				item = std::make_shared<LIIndentDown>(
+					Children().back());
+				break;
+				}
+			}
+
+		// If no following token found, create without node.
+		if ( item->kind == IndentDown &&
+		     ! dynamic_cast<LIIndentDown*>(item.get()) )
+			item = std::make_shared<LIIndentDown>();
+		}
 	}
 
 // ---- Layout table + factory ----------------------------------------------
