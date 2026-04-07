@@ -299,21 +299,43 @@ Candidates DeclNode::Format(const FmtContext& ctx) const
 // Function/event/hook declarations
 // ------------------------------------------------------------------
 
+// Optional return type suffix for FUNC-DECL: ": rettype" or empty.
+LayoutItem Node::ComputeFuncRet(ComputeCtx& /*cctx*/,
+                                const FmtContext& ctx) const
+	{
+	auto returns = FindOptChild(Tag::Returns);
+	if ( ! returns )
+		return Formatting();
+
+	auto rt = returns->FindTypeChild();
+	if ( ! rt )
+		return Formatting();
+
+	return Formatting(FindChild(Tag::Colon)) + " " +
+		best(format_expr(*rt, ctx)).Fmt();
+	}
+
+// Trailing comment + Whitesmith body block for FUNC-DECL.
+LayoutItem Node::ComputeFuncBody(ComputeCtx& /*cctx*/,
+                                 const FmtContext& ctx) const
+	{
+	const auto& body = Children().back();
+	return Formatting(body->TrailingComment()) +
+		body->FormatWhitesmithBlock(ctx);
+	}
+
 // FUNC-DECL: [0]=KEYWORD [1]=SP [2]=IDENTIFIER [3]=PARAMS
 //   [optional COLON, RETURNS, ATTR-LIST] [last]=BODY
 Candidates FuncDeclNode::Format(const FmtContext& ctx) const
 	{
+	ComputeCtx cctx;
+	auto ret_str = ComputeFuncRet(cctx, ctx).Fmt();
+	auto body_fmt = ComputeFuncBody(cctx, ctx).Fmt();
+
 	auto params = Child(3, Tag::Params);
 	auto lp = Formatting(params->Child(0, Tag::LParen));
 	auto rp = Formatting(params->Children().back());
 	auto items = collect_args(params->Children());
-
-	// Return type suffix.
-	Formatting ret_str;
-	if ( auto returns = FindOptChild(Tag::Returns) )
-		if ( auto rt = returns->FindTypeChild() )
-			ret_str = Formatting(FindChild(Tag::Colon)) + " " +
-				best(format_expr(*rt, ctx)).Fmt();
 
 	// Attribute suffix.
 	std::string attr_str;
@@ -324,28 +346,22 @@ Candidates FuncDeclNode::Format(const FmtContext& ctx) const
 			attr_str = " " + as.Str();
 		}
 
-	// Trailing comment and body block.
-	const auto& body = Children().back();
-	auto trail_str = body->TrailingComment();
-	auto block = body->FormatWhitesmithBlock(ctx);
-
 	auto prefix = Formatting(Child(0, Tag::Keyword)) + " " +
 			Child(2, Tag::Identifier);
 	int align_col = ctx.Col() + prefix.Size() + lp.Size();
 	int max_col = ctx.MaxCol();
 	int suffix_w = rp.Size() + ret_str.Size() +
-			static_cast<int>(attr_str.size()) +
-			static_cast<int>(trail_str.size());
+			static_cast<int>(attr_str.size());
 
 	// --- Candidate 1: flat signature ---
 	FmtContext inner_ctx(ctx.Indent(), align_col,
 			max_col - align_col - suffix_w);
 	auto flat_args = format_args_flat(items, inner_ctx);
 	auto sig = prefix + lp + flat_args.Fmt() + rp + ret_str +
-			attr_str + trail_str;
+			attr_str;
 
 	Candidates result;
-	result.push_back(Candidate(sig + block, ctx));
+	result.push_back(Candidate(sig + body_fmt, ctx));
 
 	if ( result[0].Ovf() <= 0 )
 		return result;
@@ -366,7 +382,7 @@ Candidates FuncDeclNode::Format(const FmtContext& ctx) const
 		wrapped += "\n" + attr_pad + bare_attr;
 		}
 
-	wrapped += trail_str + block;
+	wrapped += body_fmt;
 
 	int last_w = wrapped.LastLineLen();
 	int lines = wrapped.CountLines();
