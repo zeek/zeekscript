@@ -52,10 +52,4 @@ public:
 		{ return FindOptChild(Tag::DeclInit); }
 };
 
-// Switch statement: switch expr { case val: body ... }
-
-class SwitchNode : public StmtNode {
-public:
-	SwitchNode() : StmtNode(Tag::Switch) { }
-	Candidates Format(const FmtContext& ctx) const override;
-};
+// (SwitchNode removed - now a layout table entry)

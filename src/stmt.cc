@@ -15,33 +15,32 @@ static void append_case_body(const NodePtr& body, Formatting& result,
 	result += "\n" + text;
 	}
 
-// Children: [0]=KEYWORD [1]=SP [2]=expr [3]=LBRACE ... [last]=RBRACE
-Candidates SwitchNode::Format(const FmtContext& ctx) const
+// Switch expression: unwrap parens for Zeek-style ( expr ) spacing.
+LayoutItem Node::ComputeSwitchExpr(ComputeCtx& /*cctx*/,
+                                   const FmtContext& ctx) const
 	{
 	auto switch_expr = Child(2);
 
-	// Format the expression.  If the source used parens, unwrap
-	// the PAREN node and apply Zeek-style ( expr ) spacing.
-	Formatting expr_text;
 	if ( switch_expr->GetTag() == Tag::Paren )
 		{
-		// PAREN: [0]=LPAREN [1]=expr [2]=RPAREN
 		auto pc = switch_expr->ContentChildren();
 		if ( ! pc.empty() )
-			{
-			expr_text = Formatting(switch_expr->Child(0, Tag::LParen)) +
+			return Formatting(switch_expr->Child(0, Tag::LParen)) +
 				" " + best(format_expr(*pc[0], ctx)).Fmt() +
 				" " + switch_expr->Child(2, Tag::RParen);
-			}
 		}
-	else
-		expr_text += best(format_expr(*switch_expr, ctx)).Fmt();
 
+	return best(format_expr(*switch_expr, ctx)).Fmt();
+	}
+
+// Switch cases: format each CASE/DEFAULT with fill-packed values
+// and indented bodies.
+LayoutItem Node::ComputeSwitchCases(ComputeCtx& /*cctx*/,
+                                    const FmtContext& ctx) const
+	{
 	auto pad = line_prefix(ctx.Indent(), ctx.Col());
-	auto result = Formatting(Child(0, Tag::Keyword)) +
-			" " + expr_text + " " + Child(3, Tag::LBrace);
+	Formatting result;
 
-	// Format each CASE/DEFAULT.
 	for ( const auto& c : Children() )
 		{
 		if ( c->GetTag() != Tag::Case && c->GetTag() != Tag::Default )
@@ -118,10 +117,7 @@ Candidates SwitchNode::Format(const FmtContext& ctx) const
 		append_case_body(c->FindOptChild(Tag::Body), result, ctx);
 		}
 
-	result += "\n" + pad;
-	result += Children().back();
-
-	return {Candidate(std::move(result), ctx)};
+	return result;
 	}
 
 // PreprocBaseNode methods.  PREPROC-COND (@if/@ifdef/@ifndef) always

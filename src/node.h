@@ -123,6 +123,8 @@ public:
 	LayoutItem ComputeFuncBody(ComputeCtx& cctx, const FmtContext& ctx) const;
 	LayoutItem ComputeLambdaSig(ComputeCtx& cctx, const FmtContext& ctx) const;
 	LayoutItem ComputeLambdaBody(ComputeCtx& cctx, const FmtContext& ctx) const;
+	LayoutItem ComputeSwitchExpr(ComputeCtx& cctx, const FmtContext& ctx) const;
+	LayoutItem ComputeSwitchCases(ComputeCtx& cctx, const FmtContext& ctx) const;
 
 	// Format an ATTR-LIST node as a single string.
 	Formatting FormatAttrList(const FmtContext& ctx) const;
