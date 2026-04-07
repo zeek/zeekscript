@@ -91,11 +91,11 @@ static std::string reduce_overflow(const std::string& text, int max_col)
 				- n_spaces;
 		int line_end = content_col + content_len;
 
-		// Shift left to end at max_col, but keep at
+		// Shift left to end at max_col - 1, but keep at
 		// least indent_col + 1 as the starting column.
 		if ( line_end > max_col && n_spaces > 0 )
 			{
-			int ovf = line_end - max_col;
+			int ovf = line_end - max_col + 1;
 			int removable = std::min(ovf, n_spaces - 1);
 
 			if ( removable > 0 && removable >= ovf )
