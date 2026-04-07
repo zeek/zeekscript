@@ -227,6 +227,38 @@ LIPtr tok(const LayoutPtr& n)
 
 static constexpr int BEAM_WIDTH = 4;
 
+// Merge a Candidate into a Partial: append text, accumulate
+// overflow/lines, and advance column.
+static void merge_candidate(Partial& np, const Candidate& c)
+	{
+	np.fmt += c.Fmt();
+	np.overflow += c.Ovf();
+	np.must_break = false;
+
+	if ( c.Lines() > 1 )
+		{
+		np.lines += c.Lines() - 1;
+		np.col = 0;
+		}
+
+	np.col += c.Width();
+	}
+
+// Check whether every item in a list carries a trailing comment
+// (either on the item itself or on the following comma).
+static bool all_items_commented(const ArgComments& items)
+	{
+	for ( size_t j = 0; j < items.size(); ++j )
+		{
+		auto nc = (j + 1 < items.size()) ? items[j + 1].comma : nullptr;
+		if ( items[j].comment.empty() &&
+		     ! (nc && nc->MustBreakAfter()) )
+			return false;
+		}
+
+	return true;
+	}
+
 // Default LayoutStep: asserts - resolution items must be resolved
 // before the beam runs.
 Partials LayoutItem::LayoutStep(Partials&, const FmtContext&, int) const
@@ -273,16 +305,7 @@ Partials LIExpr::LayoutStep(Partials& beam, const FmtContext& ctx,
 		for ( const auto& c : cs )
 			{
 			Partial np = p;
-			np.fmt += c.Fmt();
-			np.overflow += c.Ovf();
-			np.must_break = false;
-			if ( c.Lines() > 1 )
-				{
-				np.lines += c.Lines() - 1;
-				np.col = c.Width();
-				}
-			else
-				np.col += c.Width();
+			merge_candidate(np, c);
 			next.push_back(std::move(np));
 			}
 		}
@@ -424,34 +447,16 @@ Partials LIArgListR::LayoutStep(Partials& beam, const FmtContext& ctx,
 
 		// All-comments or trailing comma: force vertical.
 		bool force_vert = has_tc;
-		if ( ! force_vert && all_comments_vert && has_breaks(items) )
-			{
-			force_vert = true;
-			for ( size_t j = 0; j < items.size(); ++j )
-				{
-				auto& it = items[j];
-				auto nc = (j + 1 < items.size()) ?
-					items[j + 1].comma : nullptr;
-				if ( it.comment.empty() &&
-				     ! (nc && nc->MustBreakAfter()) )
-					{
-					force_vert = false;
-					break;
-					}
-				}
-			}
+		if ( ! force_vert && all_comments_vert &&
+		     has_breaks(items) )
+			force_vert = all_items_commented(items);
 
 		if ( force_vert )
 			{
 			auto c = format_args_vertical(open, close, items,
 							sub, has_tc);
 			Partial np = p;
-			np.fmt += c.Fmt();
-			np.overflow += c.Ovf();
-			np.must_break = false;
-			np.lines += c.Lines() - 1;
-			np.col = c.Width();
-
+			merge_candidate(np, c);
 			next.push_back(std::move(np));
 			continue;
 			}
@@ -503,18 +508,8 @@ Partials LIArgListR::LayoutStep(Partials& beam, const FmtContext& ctx,
 		for ( const auto& c : cs )
 			{
 			Partial np = p;
-			np.fmt += c.Fmt();
-			np.overflow += c.Ovf();
-			np.must_break = false;
 			np.align_col = al_col;
-
-			if ( c.Lines() > 1 )
-				{
-				np.lines += c.Lines() - 1;
-				np.col = 0;
-				}
-
-			np.col += c.Width();
+			merge_candidate(np, c);
 			next.push_back(std::move(np));
 			}
 		}
@@ -652,17 +647,7 @@ Partials LIFlatSplitR::LayoutStep(Partials& beam, const FmtContext& ctx,
 		for ( const auto& c : cs )
 			{
 			Partial np = p;
-			np.fmt += c.Fmt();
-			np.overflow += c.Ovf();
-			np.must_break = false;
-
-			if ( c.Lines() > 1 )
-				{
-				np.lines += c.Lines() - 1;
-				np.col = 0;
-				}
-
-			np.col += c.Width();
+			merge_candidate(np, c);
 			next.push_back(std::move(np));
 			}
 		}
@@ -678,17 +663,7 @@ Partials LIDeclCandsR::LayoutStep(Partials& beam, const FmtContext&, int) const
 		for ( const auto& c : Cands() )
 			{
 			Partial np = p;
-			np.fmt += c.Fmt();
-			np.overflow += c.Ovf();
-			np.must_break = false;
-
-			if ( c.Lines() > 1 )
-				{
-				np.lines += c.Lines() - 1;
-				np.col = 0;
-				}
-
-			np.col += c.Width();
+			merge_candidate(np, c);
 			next.push_back(std::move(np));
 			}
 

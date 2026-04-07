@@ -155,6 +155,37 @@ static void format_fill_arg(const Layout& arg, int indent, int max_col,
 	total_overflow += bc.Ovf();
 	}
 
+// Emit leading comments for a fill-layout arg onto fresh lines.
+static void emit_fill_leading(const std::vector<std::string>& leading,
+                              const std::string& pad,
+                              Formatting& fmt, int& lines)
+	{
+	for ( const auto& lc : leading )
+		{
+		// Leading '\n' = blank line merged from adjacent BLANK.
+		size_t start = 0;
+		while ( start < lc.size() && lc[start] == '\n' )
+			{
+			fmt += "\n";
+			++lines;
+			++start;
+			}
+
+		size_t end = lc.size();
+		while ( end > start && lc[end - 1] == '\n' )
+			--end;
+
+		fmt += "\n" + pad + lc.substr(start, end - start);
+		++lines;
+
+		for ( size_t j = end; j < lc.size(); ++j )
+			{
+			fmt += "\n";
+			++lines;
+			}
+		}
+	}
+
 Candidate format_args_fill(const ArgComments& items, int align_col, int indent,
                          const FmtContext& first_line_ctx)
 	{
@@ -184,34 +215,7 @@ Candidate format_args_fill(const ArgComments& items, int align_col, int indent,
 				cur_col += it.comma->Width();
 				}
 
-			for ( const auto& lc : it.leading )
-				{
-				// Leading '\n' = blank line merged
-				// from adjacent BLANK.
-				size_t start = 0;
-				while ( start < lc.size() &&
-				        lc[start] == '\n' )
-					{
-					fmt += "\n";
-					++lines;
-					++start;
-					}
-
-				size_t end = lc.size();
-				while ( end > start &&
-				        lc[end - 1] == '\n' )
-					--end;
-
-				fmt += "\n" + pad +
-					lc.substr(start, end - start);
-				++lines;
-
-				for ( size_t j = end; j < lc.size(); ++j )
-					{
-					fmt += "\n";
-					++lines;
-					}
-				}
+			emit_fill_leading(it.leading, pad, fmt, lines);
 
 			fmt += "\n" + pad;
 			++lines;
@@ -486,6 +490,72 @@ Candidate format_args_vertical(const Formatting& open, const Formatting& close,
 // Statement list formatting
 // ------------------------------------------------------------------
 
+// Recompute preproc context/pad after a depth change.
+static void update_preproc_indent(int depth, int max_col,
+                                  FmtContext& ctx, std::string& pad)
+	{
+	int col = depth * INDENT_WIDTH;
+	ctx = FmtContext(depth, col, max_col - col);
+	pad = line_prefix(depth, col);
+	}
+
+// Format a preprocessor directive, adjusting preproc_depth.
+static void format_preproc(const Layout& node, int& preproc_depth,
+                           int max_col, FmtContext& ctx,
+                           std::string& pad, Formatting& result)
+	{
+	if ( node.ClosesDepth() )
+		{
+		--preproc_depth;
+		update_preproc_indent(preproc_depth, max_col, ctx, pad);
+		}
+
+	if ( node.AtColumnZero() )
+		result += node.FormatText() + "\n";
+	else
+		result += pad + node.FormatText() + "\n";
+
+	if ( node.OpensDepth() )
+		{
+		++preproc_depth;
+		update_preproc_indent(preproc_depth, max_col, ctx, pad);
+		}
+	}
+
+// Format a statement node, consuming a following SEMI sibling.
+static void format_stmt(const Layout& node, const LayoutVec& nodes,
+                        size_t& i, const FmtContext& ctx,
+                        const std::string& pad, Formatting& result)
+	{
+	// Consume a following SEMI sibling.
+	LayoutPtr sibling_semi;
+	if ( i + 1 < nodes.size() &&
+	     nodes[i + 1]->GetTag() == Tag::Semi )
+		sibling_semi = nodes[++i];
+
+	int semi_w = sibling_semi ? sibling_semi->Width() : 0;
+
+	// Check for trailing comment on the node or its SEMI.
+	auto comment_text = node.TrailingComment();
+	if ( comment_text.empty() && sibling_semi )
+		comment_text = sibling_semi->TrailingComment();
+
+	int comment_w = static_cast<int>(comment_text.size());
+	int trail_w = semi_w + comment_w;
+
+	// Bare KEYWORD at statement level: break, next, etc.
+	Formatting stmt_fmt;
+	if ( node.GetTag() == Tag::Keyword )
+		stmt_fmt = node.Arg();
+	else
+		stmt_fmt = best(node.Format(ctx.Reserve(trail_w))).Fmt();
+
+	result += pad + stmt_fmt;
+	if ( sibling_semi )
+		result += sibling_semi;
+	result += comment_text + "\n";
+	}
+
 Formatting format_stmt_list(const LayoutVec& nodes, const FmtContext& ctx,
                            bool skip_leading_blanks)
 	{
@@ -514,68 +584,14 @@ Formatting format_stmt_list(const LayoutVec& nodes, const FmtContext& ctx,
 
 		result += node.EmitPreComments(pad);
 
-		// Preprocessor directives.
 		if ( t == Tag::Preproc || t == Tag::PreprocCond )
 			{
-			if ( node.ClosesDepth() )
-				{
-				--preproc_depth;
-				int new_indent = preproc_depth;
-				int new_col = new_indent * INDENT_WIDTH;
-				cur_ctx = FmtContext(new_indent, new_col,
-						max_col - new_col);
-				pad = line_prefix(new_indent, new_col);
-				}
-
-			if ( node.AtColumnZero() )
-				result += node.FormatText() + "\n";
-			else
-				result += pad + node.FormatText() + "\n";
-
-			if ( node.OpensDepth() )
-				{
-				++preproc_depth;
-				int new_indent = preproc_depth;
-				int new_col = new_indent * INDENT_WIDTH;
-				cur_ctx = FmtContext(new_indent, new_col,
-						max_col - new_col);
-				pad = line_prefix(new_indent, new_col);
-				}
-
+			format_preproc(node, preproc_depth, max_col,
+			               cur_ctx, pad, result);
 			continue;
 			}
 
-		// Consume a following SEMI sibling.
-		LayoutPtr sibling_semi;
-		if ( i + 1 < nodes.size() &&
-		     nodes[i + 1]->GetTag() == Tag::Semi )
-			{
-			sibling_semi = nodes[i + 1];
-			++i;
-			}
-
-		int semi_w = sibling_semi ? sibling_semi->Width() : 0;
-
-		// Check for trailing comment on the node or its SEMI.
-		auto comment_text = node.TrailingComment();
-		if ( comment_text.empty() && sibling_semi )
-			comment_text = sibling_semi->TrailingComment();
-
-		int comment_w = static_cast<int>(comment_text.size());
-		int trail_w = semi_w + comment_w;
-
-		// Bare KEYWORD at statement level: break, next, etc.
-		Formatting stmt_fmt;
-		if ( t == Tag::Keyword )
-			stmt_fmt = node.Arg();
-		else
-			stmt_fmt = best(node.Format(
-					cur_ctx.Reserve(trail_w))).Fmt();
-
-		result += pad + stmt_fmt;
-		if ( sibling_semi )
-			result += sibling_semi;
-		result += comment_text + "\n";
+		format_stmt(node, nodes, i, cur_ctx, pad, result);
 		}
 
 	return result;

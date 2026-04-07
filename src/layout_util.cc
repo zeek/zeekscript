@@ -707,6 +707,71 @@ LIPtr Layout::ComputeSwitchExpr(const FmtContext& ctx) const
 	return lit(best(format_expr(*switch_expr, ctx)).Fmt());
 	}
 
+// Format a single CASE node with fill-packed values.
+// CASE: [0]=KEYWORD [1]=SP [2]=VALUES [3]=COLON [4]=BODY
+static Formatting format_case(const Layout& c, const FmtContext& ctx)
+	{
+	auto& kw = c.Child(0, Tag::Keyword);
+	auto values = c.Child(2, Tag::Values);
+	Formatting case_text(kw);
+	case_text += " ";
+
+	// Collect formatted values and commas.
+	std::vector<Formatting> vals;
+	LayoutVec vcommas;
+	LayoutPtr vpending;
+
+	for ( const auto& vc : values->Children() )
+		{
+		Tag vt = vc->GetTag();
+
+		if ( vt == Tag::Comma )
+			{
+			vpending = vc;
+			continue;
+			}
+
+		if ( vc->IsToken() || vc->IsMarker() )
+			continue;
+
+		vals.push_back(best(format_expr(*vc, ctx)).Fmt());
+		vcommas.push_back(vpending);
+		vpending = nullptr;
+		}
+
+	// Fill-pack values, wrapping at comma.
+	int case_col = ctx.Col() + case_text.Size();
+	auto vpad = line_prefix(ctx.Indent(), case_col);
+	int max_col = ctx.MaxCol();
+	int cur_col = case_col;
+
+	for ( size_t i = 0; i < vals.size(); ++i )
+		{
+		auto& vi = vals[i];
+		int need = vi.Size();
+		if ( i > 0 )
+			need += 2;
+
+		if ( i > 0 && cur_col + need > max_col )
+			{
+			case_text += Formatting(vcommas[i]) + "\n" + vpad;
+			cur_col = case_col;
+			}
+
+		else if ( i > 0 )
+			{
+			case_text += Formatting(vcommas[i]) + " ";
+			cur_col += 2;
+			}
+
+		case_text += vi;
+		cur_col += vi.Size();
+		}
+
+	case_text += c.Child(3, Tag::Colon);
+	return case_text;
+	}
+
 // Switch cases: format each CASE/DEFAULT with fill-packed values
 // and indented bodies.
 LIPtr Layout::ComputeSwitchCases(const FmtContext& ctx) const
@@ -719,8 +784,8 @@ LIPtr Layout::ComputeSwitchCases(const FmtContext& ctx) const
 		if ( c->GetTag() != Tag::Case && c->GetTag() != Tag::Default )
 			continue;
 
-		// DEFAULT: [0]=KEYWORD [1]=COLON [optional BODY]
 		auto& kw = c->Child(0, Tag::Keyword);
+
 		if ( c->GetTag() == Tag::Default )
 			{
 			result += "\n" + pad + kw + c->Child(1, Tag::Colon);
@@ -728,66 +793,7 @@ LIPtr Layout::ComputeSwitchCases(const FmtContext& ctx) const
 			continue;
 			}
 
-		// CASE: [0]=KEYWORD [1]=SP [2]=VALUES [3]=COLON [4]=BODY
-		auto values = c->Child(2, Tag::Values);
-		auto case_text = Formatting(kw) + " ";
-
-		// Collect formatted values and commas.
-		std::vector<Formatting> vals;
-		LayoutVec vcommas;
-		LayoutPtr vpending;
-
-		for ( const auto& vc : values->Children() )
-			{
-			Tag vt = vc->GetTag();
-
-			if ( vt == Tag::Comma )
-				{
-				vpending = vc;
-				continue;
-				}
-
-			if ( vc->IsToken() || vc->IsMarker() )
-				continue;
-
-			vals.push_back(best(format_expr(*vc, ctx)).Fmt());
-			vcommas.push_back(vpending);
-			vpending = nullptr;
-			}
-
-		// Fill-pack values, wrapping at comma.
-		int case_col = ctx.Col() + case_text.Size();
-		auto vpad = line_prefix(ctx.Indent(), case_col);
-		int max_col = ctx.MaxCol();
-		int cur_col = case_col;
-
-		for ( size_t i = 0; i < vals.size(); ++i )
-			{
-			auto& vi = vals[i];
-			int need = vi.Size();
-			if ( i > 0 )
-				need += 2;
-
-			if ( i > 0 && cur_col + need > max_col )
-				{
-				case_text += Formatting(vcommas[i]) +
-						"\n" + vpad;
-				cur_col = case_col;
-				}
-
-			else if ( i > 0 )
-				{
-				case_text += Formatting(vcommas[i]) + " ";
-				cur_col += 2;
-				}
-
-			case_text += vi;
-			cur_col += vi.Size();
-			}
-
-		case_text += c->Child(3, Tag::Colon);
-
-		result += "\n" + pad + case_text;
+		result += "\n" + pad + format_case(*c, ctx);
 		append_case_body(c->FindOptChild(Tag::Body), result, ctx);
 		}
 
