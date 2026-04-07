@@ -36,10 +36,10 @@ bool has_breaks(const ArgComments& items)
 	return false;
 	}
 
-ArgComments collect_args(const NodeVec& children)
+ArgComments collect_args(const LayoutVec& children)
 	{
 	ArgComments items;
-	NodePtr pending_comma;
+	LayoutPtr pending_comma;
 
 	for ( size_t i = 0; i < children.size(); ++i )
 		{
@@ -97,7 +97,7 @@ Candidate format_args_flat(const ArgComments& items, const FmtContext& ctx)
 // Append trailing material after an item in a fill layout.  Handles
 // the item's own trailing comment and the next comma (which may carry
 // a trailing comment that forces a wrap).
-static void append_trailing(const ArgComment& it, const NodePtr& next_comma,
+static void append_trailing(const ArgComment& it, const LayoutPtr& next_comma,
                            Formatting& fmt, int& cur_col, bool& force_wrap,
                            bool& next_comma_consumed)
 	{
@@ -136,7 +136,7 @@ static void append_trailing(const ArgComment& it, const NodePtr& next_comma,
 
 // Format an arg at the current column, appending to fmt and
 // updating position/lines/overflow.
-static void format_fill_arg(const Node& arg, int indent, int max_col,
+static void format_fill_arg(const Layout& arg, int indent, int max_col,
                            Formatting& fmt, int& cur_col,
                            int& lines, int& total_overflow)
 	{
@@ -486,7 +486,7 @@ Candidate format_args_vertical(const Formatting& open, const Formatting& close,
 // Statement list formatting
 // ------------------------------------------------------------------
 
-Formatting format_stmt_list(const NodeVec& nodes, const FmtContext& ctx,
+Formatting format_stmt_list(const LayoutVec& nodes, const FmtContext& ctx,
                            bool skip_leading_blanks)
 	{
 	const int max_col = ctx.MaxCol();
@@ -546,7 +546,7 @@ Formatting format_stmt_list(const NodeVec& nodes, const FmtContext& ctx,
 			}
 
 		// Consume a following SEMI sibling.
-		NodePtr sibling_semi;
+		LayoutPtr sibling_semi;
 		if ( i + 1 < nodes.size() &&
 		     nodes[i + 1]->GetTag() == Tag::Semi )
 			{

@@ -6,7 +6,7 @@
 
 // Prefix for arglist: keyword for plain lambda, keyword[captures]
 // for lambda-with-captures.
-LayoutItem Node::ComputeLambdaPrefix(ComputeCtx& /*cctx*/,
+LayoutItem Layout::ComputeLambdaPrefix(ComputeCtx& /*cctx*/,
                                      const FmtContext& ctx) const
 	{
 	if ( GetTag() != Tag::LambdaCaptures )
@@ -26,7 +26,7 @@ LayoutItem Node::ComputeLambdaPrefix(ComputeCtx& /*cctx*/,
 	}
 
 // Return type suffix for lambda: ": type" or empty.
-LayoutItem Node::ComputeLambdaRet(ComputeCtx& /*cctx*/,
+LayoutItem Layout::ComputeLambdaRet(ComputeCtx& /*cctx*/,
                                   const FmtContext& ctx) const
 	{
 	int pp = (GetTag() == Tag::LambdaCaptures) ? 3 : 2;
@@ -45,7 +45,7 @@ LayoutItem Node::ComputeLambdaRet(ComputeCtx& /*cctx*/,
 
 // Body block for lambda: uses column-based indent so the
 // Whitesmith block aligns to the next tab stop.
-LayoutItem Node::ComputeLambdaBody(ComputeCtx& /*cctx*/,
+LayoutItem Layout::ComputeLambdaBody(ComputeCtx& /*cctx*/,
                                    const FmtContext& ctx) const
 	{
 	int lambda_indent = ctx.Col() / INDENT_WIDTH;

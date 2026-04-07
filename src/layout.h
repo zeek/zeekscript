@@ -7,13 +7,13 @@
 #include "fmt_context.h"
 
 // Top-level entry point: format a list of top-level nodes.
-std::string Format(const NodeVec& nodes);
+std::string Format(const LayoutVec& nodes);
 
 // Format a single node in a given context, returning one or more candidates.
-Candidates format_node(const Node& node, const FmtContext& ctx);
+Candidates format_node(const Layout& node, const FmtContext& ctx);
 
 // Format an expression node, dispatching by tag.
-Candidates format_expr(const Node& node, const FmtContext& ctx);
+Candidates format_expr(const Layout& node, const FmtContext& ctx);
 
 // Emit a line prefix for a given indent level and starting column: tabs
 // for indent levels, then spaces to reach the target column.  This is the
@@ -36,8 +36,8 @@ struct ComputeCtx {
 };
 
 class LayoutItem;
-using ComputeFn = LayoutItem (Node::*)(ComputeCtx&, const FmtContext&) const;
-using ComputeCandsFn = Candidates (Node::*)(ComputeCtx&, const FmtContext&) const;
+using ComputeFn = LayoutItem (Layout::*)(ComputeCtx&, const FmtContext&) const;
+using ComputeCandsFn = Candidates (Layout::*)(ComputeCtx&, const FmtContext&) const;
 
 // A piece in a flat-or-split sequence.
 class FmtStep {
@@ -51,11 +51,11 @@ public:
 		{ return {SLit, Formatting(s), nullptr, -1}; }
 	static FmtStep L(const Formatting& f)
 		{ return {SLit, f, nullptr, -1}; }
-	static FmtStep L(const NodePtr& n)
+	static FmtStep L(const LayoutPtr& n)
 		{ return {SLit, Formatting(n), nullptr, -1}; }
 
 	// Sub-expression: formatted in context, re-formatted after split.
-	static FmtStep E(const NodePtr& n)
+	static FmtStep E(const LayoutPtr& n)
 		{ return {SExpr, Formatting(), n, -1}; }
 
 	// Expression child by index: resolved during BuildLayout.
@@ -72,11 +72,11 @@ public:
 
 	Kind kind;
 	Formatting text;
-	NodePtr node;
+	LayoutPtr node;
 	int child_idx;
 
 private:
-	FmtStep(Kind k, Formatting f, NodePtr n, int idx)
+	FmtStep(Kind k, Formatting f, LayoutPtr n, int idx)
 		: kind(k), text(std::move(f)), node(std::move(n)),
 		  child_idx(idx) {}
 };
@@ -135,8 +135,8 @@ public:
 	LayoutItem(Formatting&& f)
 		: kind(Lit), fmt(std::move(f)), must_break(false) {}
 
-	// Node to format (produces candidates).
-	LayoutItem(const NodePtr& n)
+	// Layout to format (produces candidates).
+	LayoutItem(const LayoutPtr& n)
 		: kind(FmtExpr), node(n), must_break(false) {}
 
 	// Child token: resolved by BuildLayout into a Lit via tok().
@@ -174,12 +174,12 @@ public:
 		  sb_flags(fl), must_break(false) {}
 
 	// Resolved arglist: node + suffix.
-	LayoutItem(LIKind k, const NodePtr& n, Formatting suffix)
+	LayoutItem(LIKind k, const LayoutPtr& n, Formatting suffix)
 		: kind(k), fmt(std::move(suffix)), node(n),
 		  must_break(false) {}
 
 	// Resolved arglist with flags: node + suffix + flags.
-	LayoutItem(LIKind k, const NodePtr& n, Formatting suffix, int fl)
+	LayoutItem(LIKind k, const LayoutPtr& n, Formatting suffix, int fl)
 		: kind(k), fmt(std::move(suffix)), node(n),
 		  sb_flags(fl), must_break(false) {}
 
@@ -214,11 +214,11 @@ public:
 		  must_break(false) {}
 
 	// Resolved arglist with prefix, suffix, and optional flags.
-	LayoutItem(LIKind k, const NodePtr& n,
+	LayoutItem(LIKind k, const LayoutPtr& n,
 	           Formatting prefix, Formatting suffix)
 		: kind(k), fmt(std::move(suffix)), li_prefix(std::move(prefix)),
 		  node(n), must_break(false) {}
-	LayoutItem(LIKind k, const NodePtr& n,
+	LayoutItem(LIKind k, const LayoutPtr& n,
 	           Formatting prefix, Formatting suffix, int fl)
 		: kind(k), fmt(std::move(suffix)), li_prefix(std::move(prefix)),
 		  node(n), sb_flags(fl), must_break(false) {}
@@ -228,12 +228,12 @@ public:
 		: kind(k), fmt(std::move(f)), must_break(false) {}
 
 	// Resolved OpFill: operator string + operand nodes.
-	LayoutItem(LIKind k, std::string op, NodeVec ops)
+	LayoutItem(LIKind k, std::string op, LayoutVec ops)
 		: kind(k), fmt(std::move(op)),
 		  operands(std::move(ops)), must_break(false) {}
 
 	const Formatting& Fmt() const { return fmt; }
-	const NodePtr& LI_Node() const { return node; }
+	const LayoutPtr& LI_Node() const { return node; }
 	int ChildIdx() const { return child_idx; }
 	int SubChildIdx() const { return sub_child_idx; }
 	int Flags() const { return sb_flags; }
@@ -244,7 +244,7 @@ public:
 	ComputeFn CompFn() const { return compute_fn; }
 	ComputeFn PrefixFn() const { return prefix_compute_fn; }
 	ComputeCandsFn CompCandsFn() const { return compute_cands_fn; }
-	const NodeVec& Operands() const { return operands; }
+	const LayoutVec& Operands() const { return operands; }
 	const Candidates& Cands() const { return cands; }
 	const Formatting& Prefix() const { return li_prefix; }
 
@@ -253,8 +253,8 @@ public:
 private:
 	Formatting fmt;
 	Formatting li_prefix;
-	NodePtr node;
-	NodeVec operands;
+	LayoutPtr node;
+	LayoutVec operands;
 	Candidates cands;
 	FmtSteps steps;
 	std::vector<SplitAt> splits;
@@ -275,7 +275,7 @@ extern const LayoutItem indent_down;
 
 // Token literal: wraps the node in a lazy Formatting piece and
 // forces the next soft_sp to break if it has a trailing comment.
-LayoutItem tok(const NodePtr& n);
+LayoutItem tok(const LayoutPtr& n);
 
 // Expression child by index: resolved by BuildLayout into a Fmt
 // item via Child(n).  Parallel to integer Tok shorthand but the
@@ -286,7 +286,7 @@ inline LayoutItem expr(unsigned child_index) { return {ExprIdx, child_index}; }
 // tok(Children().back()).
 inline LayoutItem last() { return {LastTok}; }
 
-// Node argument by index: resolved by BuildLayout into
+// Layout argument by index: resolved by BuildLayout into
 // Formatting(Arg(n)) as a literal.
 inline LayoutItem arg(unsigned arg_index) { return {ArgIdx, arg_index}; }
 

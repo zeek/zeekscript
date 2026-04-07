@@ -5,21 +5,24 @@
 #include "node.h"
 #include "layout.h"
 
-Candidates Node::Format(const FmtContext& ctx) const
+Candidates Layout::Format(const FmtContext& ctx) const
 	{
+	if ( ! layout.empty() )
+		return BuildLayout(layout, ctx);
+
 	auto fallback = std::string("/* ") + TagToString(tag) + " */";
 	return {Candidate(fallback, ctx)};
 	}
 
-const std::string& Node::Arg(size_t i) const
+const std::string& Layout::Arg(size_t i) const
 	{
 	static const std::string empty;
 	return i < args.size() ? args[i] : empty;
 	}
 
-const NodePtr null_node;
+const LayoutPtr null_node;
 
-const NodePtr& Node::Child(size_t i, Tag t) const
+const LayoutPtr& Layout::Child(size_t i, Tag t) const
 	{
 	const auto& c = children[i];
 	if ( c->GetTag() != t )
@@ -31,7 +34,7 @@ const NodePtr& Node::Child(size_t i, Tag t) const
 	return c;
 	}
 
-const NodePtr& Node::FindOptChild(Tag t) const
+const LayoutPtr& Layout::FindOptChild(Tag t) const
 	{
 	for ( const auto& c : children )
 		if ( c->GetTag() == t )
@@ -39,7 +42,7 @@ const NodePtr& Node::FindOptChild(Tag t) const
 	return null_node;
 	}
 
-const NodePtr& Node::FindChild(Tag t) const
+const LayoutPtr& Layout::FindChild(Tag t) const
 	{
 	const auto& n = FindOptChild(t);
 	if ( ! n )
@@ -49,7 +52,7 @@ const NodePtr& Node::FindChild(Tag t) const
 	return n;
 	}
 
-const NodePtr& Node::FindChild(Tag t, const NodePtr& after) const
+const LayoutPtr& Layout::FindChild(Tag t, const LayoutPtr& after) const
 	{
 	bool past = false;
 	for ( const auto& c : children )
@@ -63,9 +66,9 @@ const NodePtr& Node::FindChild(Tag t, const NodePtr& after) const
 	return null_node;
 	}
 
-NodeVec Node::ContentChildren() const
+LayoutVec Layout::ContentChildren() const
 	{
-	NodeVec result;
+	LayoutVec result;
 	for ( const auto& c : children )
 		if ( ! c->IsToken() && ! c->IsMarker() )
 			result.push_back(c);
@@ -73,7 +76,7 @@ NodeVec Node::ContentChildren() const
 	return result;
 	}
 
-NodeVec Node::ContentChildren(const char* name, int n) const
+LayoutVec Layout::ContentChildren(const char* name, int n) const
 	{
 	auto result = ContentChildren();
 	if ( static_cast<int>(result.size()) < n )
@@ -99,7 +102,7 @@ static const std::unordered_map<Tag, LayoutItems> layout_table = {
 	{Tag::HasField, {expr(0), 1, 2}},
 	{Tag::Paren, {0U, expr(1), 2}},
 	{Tag::Schedule, {0U, {Sp}, expr(2), {Sp}, 3, {Sp}, expr(4), {Sp}, 5}},
-	{Tag::Param, {arg(0), compute(&Node::ComputeParamType)}},
+	{Tag::Param, {arg(0), compute(&Layout::ComputeParamType)}},
 	{Tag::Call, {expr(0), arglist(1,
 		AL_TrailingCommaVertical | AL_VerticalUpgrade)}},
 	{Tag::Constructor, {0U, arglist(1,
@@ -107,10 +110,10 @@ static const std::unordered_map<Tag, LayoutItems> layout_table = {
 	{Tag::IndexLiteral, {arglist(0,
 		AL_AllCommentsVertical | AL_TrailingCommaFill)}},
 	{Tag::Index, {expr(0), arglist(1)}},
-	{Tag::TypeParameterized, {arg(0), arglist(0, &Node::ComputeOfType)}},
+	{Tag::TypeParameterized, {arg(0), arglist(0, &Layout::ComputeOfType)}},
 	{Tag::TypeOf, {arg(0), " ", 0U, " ", expr(2)}},
 	{Tag::TypeFunc, {arg(0), arglist(0)}},
-	{Tag::TypeFuncRet, {arg(0), arglist(0, &Node::ComputeRetType)}},
+	{Tag::TypeFuncRet, {arg(0), arglist(0, &Layout::ComputeRetType)}},
 	{Tag::CommentLeading, {arg(0)}},
 	{Tag::ExprStmt, {expr(0), last()}},
 	{Tag::ReturnVoid, {0U, last()}},
@@ -125,12 +128,12 @@ static const std::unordered_map<Tag, LayoutItems> layout_table = {
 	{Tag::ModuleDecl, {0U, {Sp}, 2, 3}},
 	{Tag::TypeDeclAlias, {0U, {Sp}, 2, 3, {Sp}, expr(5), 6}},
 	{Tag::TypeDeclEnum, {0U, {Sp}, 2, 3, {Sp}, {5, 0U}, {Sp}, {5, 2},
-		compute(&Node::ComputeEnumBody), last()}},
+		compute(&Layout::ComputeEnumBody), last()}},
 	{Tag::TypeDeclRecord, {0U, {Sp}, 2, 3, {Sp}, {5, 0U}, {Sp}, {5, 2},
-		compute(&Node::ComputeRecordBody), last()}},
+		compute(&Layout::ComputeRecordBody), last()}},
 	{Tag::IfNoElse, {0U, " ", 2, " ", expr(3), " ", 4, body_text(5)}},
 	{Tag::IfElse, {0U, " ", 2, " ", expr(3), " ", 4, body_text(5),
-		compute(&Node::ComputeElseFollowOn)}},
+		compute(&Layout::ComputeElseFollowOn)}},
 	{Tag::While, {0U, " ", 2, " ", expr(3), " ", 4, body_text(5)}},
 	{Tag::ForCond, {expr(0), " ", 1, " ", expr(2)}},
 	{Tag::ForCondVal, {expr(0), 1, " ", expr(2), " ", 3, " ", expr(4)}},
@@ -154,20 +157,20 @@ static const std::unordered_map<Tag, LayoutItems> layout_table = {
 		 FmtStep::TI(1), FmtStep::S(),
 		 FmtStep::EI(2)},
 		{{2, SplitAt::IndentedOrSame}})}},
-	{Tag::Lambda, {arglist_prefix(2, &Node::ComputeLambdaPrefix,
-		&Node::ComputeLambdaRet), compute(&Node::ComputeLambdaBody)}},
-	{Tag::LambdaCaptures, {arglist_prefix(3, &Node::ComputeLambdaPrefix,
-		&Node::ComputeLambdaRet), compute(&Node::ComputeLambdaBody)}},
-	{Tag::FuncDecl, {0U, " ", 2U, arglist(3, &Node::ComputeFuncRet),
-		soft_cont(&Node::ComputeFuncAttrs),
-		compute(&Node::ComputeFuncBody)}},
-	{Tag::FuncDeclRet, {0U, " ", 2U, arglist(3, &Node::ComputeFuncRet),
-		soft_cont(&Node::ComputeFuncAttrs),
-		compute(&Node::ComputeFuncBody)}},
-	{Tag::Switch, {0U, " ", compute(&Node::ComputeSwitchExpr), " ", 3U,
-		compute(&Node::ComputeSwitchCases), {HardBreak}, last()}},
-	{Tag::GlobalDecl, {compute_cands(&Node::ComputeDecl)}},
-	{Tag::LocalDecl, {compute_cands(&Node::ComputeDecl)}},
+	{Tag::Lambda, {arglist_prefix(2, &Layout::ComputeLambdaPrefix,
+		&Layout::ComputeLambdaRet), compute(&Layout::ComputeLambdaBody)}},
+	{Tag::LambdaCaptures, {arglist_prefix(3, &Layout::ComputeLambdaPrefix,
+		&Layout::ComputeLambdaRet), compute(&Layout::ComputeLambdaBody)}},
+	{Tag::FuncDecl, {0U, " ", 2U, arglist(3, &Layout::ComputeFuncRet),
+		soft_cont(&Layout::ComputeFuncAttrs),
+		compute(&Layout::ComputeFuncBody)}},
+	{Tag::FuncDeclRet, {0U, " ", 2U, arglist(3, &Layout::ComputeFuncRet),
+		soft_cont(&Layout::ComputeFuncAttrs),
+		compute(&Layout::ComputeFuncBody)}},
+	{Tag::Switch, {0U, " ", compute(&Layout::ComputeSwitchExpr), " ", 3U,
+		compute(&Layout::ComputeSwitchCases), {HardBreak}, last()}},
+	{Tag::GlobalDecl, {compute_cands(&Layout::ComputeDecl)}},
+	{Tag::LocalDecl, {compute_cands(&Layout::ComputeDecl)}},
 	{Tag::BoolChain, {op_fill()}},
 	{Tag::Ternary, {flat_split(
 		{FmtStep::EI(0),
@@ -181,13 +184,13 @@ static const std::unordered_map<Tag, LayoutItems> layout_table = {
 		 {2, SplitAt::SameCol}})}},
 };
 
-NodePtr MakeNode(Tag tag)
+LayoutPtr MakeNode(Tag tag)
 	{
 	auto it = layout_table.find(tag);
 	if ( it != layout_table.end() )
-		return std::make_shared<LayoutNode>(tag, it->second);
+		return std::make_shared<Layout>(tag, it->second);
 
-	return std::make_shared<Node>(tag);
+	return std::make_shared<Layout>(tag);
 	}
 
 static const std::unordered_map<Tag, const char*> token_syntax = {
@@ -197,7 +200,7 @@ static const std::unordered_map<Tag, const char*> token_syntax = {
 	{Tag::Question, "?"}, {Tag::Semi, ";"},
 };
 
-std::string Node::Text() const
+std::string Layout::Text() const
 	{
 	auto it = token_syntax.find(tag);
 	if ( it != token_syntax.end() )
@@ -234,7 +237,7 @@ static void do_indent(int n)
 		printf("  ");
 	}
 
-void Node::Dump(int indent) const
+void Layout::Dump(int indent) const
 	{
 	// Emit pre-comments as COMMENT-LEADING siblings, then any
 	// interleaved markers (BLANK etc.), before this node.

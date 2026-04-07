@@ -16,17 +16,22 @@
 // Container nodes like  CALL { ... }  have children (and
 // possibly args).
 // Bare markers like  SEMI  or  BLANK  have neither.
+//
+// Nodes with a layout specification are formatted declaratively
+// via BuildLayout + beam search.  Other nodes (tokens, markers,
+// preproc) use the default fallback.
 
-class Node;
-using NodePtr = std::shared_ptr<Node>;
-using NodeVec = std::vector<NodePtr>;
-extern const NodePtr null_node;
+class Layout;
+using LayoutPtr = std::shared_ptr<Layout>;
+using LayoutVec = std::vector<LayoutPtr>;
+extern const LayoutPtr null_node;
 
-class Node {
+class Layout {
 public:
-	Node(Tag tag) : tag(tag) {}
-	virtual ~Node() = default;
-	virtual Candidates Format(const FmtContext& ctx) const;
+	Layout(Tag tag) : tag(tag) {}
+	Layout(Tag tag, const LayoutItems& li) : tag(tag), layout(li) {}
+
+	Candidates Format(const FmtContext& ctx) const;
 
 	// Layout combinator: resolves integer LayoutItems as tok(Child(i))
 	// before delegating to the beam-search layout engine.
@@ -41,29 +46,29 @@ public:
 
 	const std::vector<std::string>& Args() const { return args; }
 
-	const NodeVec& Children() const { return children; }
-	NodeVec& Children() { return children; }
+	const LayoutVec& Children() const { return children; }
+	LayoutVec& Children() { return children; }
 
 	// Direct positional child access.
-	const NodePtr& Child(size_t i) const { return children[i]; }
+	const LayoutPtr& Child(size_t i) const { return children[i]; }
 
 	// Positional child access with tag verification.
-	const NodePtr& Child(size_t i, Tag t) const;
+	const LayoutPtr& Child(size_t i, Tag t) const;
 
-	// Find a child node by tag, or null NodePtr if absent.
-	const NodePtr& FindOptChild(Tag tag) const;
+	// Find a child node by tag, or null LayoutPtr if absent.
+	const LayoutPtr& FindOptChild(Tag tag) const;
 
 	// Find a required child node by tag.  Aborts if not found.
-	const NodePtr& FindChild(Tag tag) const;
+	const LayoutPtr& FindChild(Tag tag) const;
 
 	// Find a child by tag, starting after the given child.
-	const NodePtr& FindChild(Tag tag, const NodePtr& after) const;
+	const LayoutPtr& FindChild(Tag tag, const LayoutPtr& after) const;
 
 	// Collect non-token, non-comment children.
-	NodeVec ContentChildren() const;
+	LayoutVec ContentChildren() const;
 
 	// Same but there must be at least n or throw an exception.
-	NodeVec ContentChildren(const char* name, int n) const;
+	LayoutVec ContentChildren(const char* name, int n) const;
 
 	const std::string& TrailingComment() const { return trailing_comment; }
 	void SetTrailingComment(std::string c)
@@ -77,12 +82,12 @@ public:
 
 	// Marker nodes (BLANK, etc.) that appeared between the
 	// pre-comments and this node - preserved for round-trip.
-	const NodeVec& PreMarkers() const { return pre_markers; }
-	void AddPreMarker(NodePtr m)
+	const LayoutVec& PreMarkers() const { return pre_markers; }
+	void AddPreMarker(LayoutPtr m)
 		{ pre_markers.push_back(std::move(m)); }
 
 	void AddArg(std::string a) { args.push_back(std::move(a)); }
-	void AddChild(NodePtr child)
+	void AddChild(LayoutPtr child)
 		{ children.push_back(std::move(child)); }
 
 	// Convenience: i-th arg, or empty string if absent.
@@ -109,7 +114,7 @@ public:
 	FmtPtr EmitPreComments(const std::string& pad) const;
 
 	// Find the first type child (TypeAtom, TypeParameterized, TypeFunc).
-	const NodePtr& FindTypeChild() const;
+	const LayoutPtr& FindTypeChild() const;
 
 	// Compute functions for declarative BuildLayout resolution.
 	LayoutItem ComputeRetType(ComputeCtx& cctx, const FmtContext& ctx) const;
@@ -151,25 +156,14 @@ public:
 
 private:
 	Tag tag;
+	LayoutItems layout;
 	std::vector<std::string> args;
-	NodeVec children;
+	LayoutVec children;
 	std::string trailing_comment;
 	std::vector<std::string> pre_comments;
-	NodeVec pre_markers;
+	LayoutVec pre_markers;
 	bool has_block = false;
 };
 
-// A node whose Format is purely declarative: just runs BuildLayout
-// on a fixed sequence of LayoutItems.
-class LayoutNode : public Node {
-public:
-	LayoutNode(Tag t, const LayoutItems& items) : Node(t), layout(items) {}
-	Candidates Format(const FmtContext& ctx) const override
-		{ return BuildLayout(layout, ctx); }
-
-private:
-	LayoutItems layout;
-};
-
-// Factory: creates the appropriate Node subclass based on tag.
-NodePtr MakeNode(Tag tag);
+// Factory: creates a Layout with optional layout items based on tag.
+LayoutPtr MakeNode(Tag tag);

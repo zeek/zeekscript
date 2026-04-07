@@ -7,9 +7,9 @@
 #include <vector>
 
 class Formatting;
-class Node;
-using NodePtr = std::shared_ptr<Node>;
-using NodeVec = std::vector<NodePtr>;
+class Layout;
+using LayoutPtr = std::shared_ptr<Layout>;
+using LayoutVec = std::vector<LayoutPtr>;
 
 // A piece of formatted output: a borrowed view (for string literals),
 // an owned string, a shared reference to another Formatting, or a
@@ -19,7 +19,7 @@ public:
 	FmtPiece(std::string_view sv) : data(sv) {}
 	FmtPiece(std::string s) : data(std::move(s)) {}
 	FmtPiece(std::shared_ptr<Formatting> f) : data(std::move(f)) {}
-	FmtPiece(NodePtr n) : data(std::move(n)) {}
+	FmtPiece(LayoutPtr n) : data(std::move(n)) {}
 
 	// Defined in formatting.cc (needs complete Formatting type).
 	size_t Size() const;
@@ -38,7 +38,7 @@ private:
 	void AccumMaxOverflow(int& col, int max_col, int& max_ovf) const;
 
 	std::variant<std::string_view, std::string,
-	             std::shared_ptr<Formatting>, NodePtr> data;
+	             std::shared_ptr<Formatting>, LayoutPtr> data;
 	mutable std::string node_cache;
 };
 
@@ -74,12 +74,12 @@ public:
 
 	// Construct from a leaf node (token or atom).  Asserts the
 	// node is not compound.
-	Formatting(const NodePtr& n);
+	Formatting(const LayoutPtr& n);
 
 	Formatting& operator+=(const Formatting& o);
 	Formatting& operator+=(Formatting&& o);
 	Formatting& operator+=(const std::shared_ptr<Formatting>& p);
-	Formatting& operator+=(const NodePtr& n);
+	Formatting& operator+=(const LayoutPtr& n);
 	Formatting& operator+=(const std::string& s);
 	Formatting& operator+=(const char* s);
 
@@ -91,7 +91,7 @@ public:
 		{ Formatting r(*this); r += s; return r; }
 	Formatting operator+(const std::shared_ptr<Formatting>& p) const
 		{ Formatting r(*this); r += p; return r; }
-	Formatting operator+(const NodePtr& n) const
+	Formatting operator+(const LayoutPtr& n) const
 		{ Formatting r(*this); r += n; return r; }
 
 	// Materialize the cord into a single string.
@@ -133,10 +133,10 @@ inline Formatting operator+(const std::string& lhs, const Formatting& rhs)
 inline Formatting operator+(const char* lhs, const Formatting& rhs)
 	{ return Formatting(lhs) += rhs; }
 
-// Allow mixing NodePtr in concatenation chains.
-inline Formatting operator+(const std::string& lhs, const NodePtr& rhs)
+// Allow mixing LayoutPtr in concatenation chains.
+inline Formatting operator+(const std::string& lhs, const LayoutPtr& rhs)
 	{ Formatting r(lhs); r += rhs; return r; }
-inline Formatting operator+(const char* lhs, const NodePtr& rhs)
+inline Formatting operator+(const char* lhs, const LayoutPtr& rhs)
 	{ Formatting r(lhs); r += rhs; return r; }
 
 // Allow mixing shared_ptr<Formatting> in concatenation chains.

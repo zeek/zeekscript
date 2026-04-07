@@ -19,13 +19,13 @@ class Parser {
 public:
 	// Parse the entire input, returning top-level nodes.
 	// On error, prints to stderr and returns empty.
-	static NodeVec Parse(const std::string& input);
+	static LayoutVec Parse(const std::string& input);
 
 private:
 	Parser(const std::string& input) : input(input) {}
 
-	NodeVec ParseFile();
-	NodePtr ParseNode();
+	LayoutVec ParseFile();
+	LayoutPtr ParseNode();
 	std::string ParseTag();
 	std::string ParseQuotedString();
 

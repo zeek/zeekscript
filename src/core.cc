@@ -13,7 +13,7 @@ std::string line_prefix(int indent, int col)
 	}
 
 // Pre-comment / pre-marker emission
-FmtPtr Node::EmitPreComments(const std::string& pad) const
+FmtPtr Layout::EmitPreComments(const std::string& pad) const
 	{
 	auto result = std::make_shared<Formatting>();
 

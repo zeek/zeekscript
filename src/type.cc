@@ -1,7 +1,7 @@
 #include "fmt_util.h"
 
 // Compute "of type" suffix for TYPE-PARAMETERIZED: " of type".
-LayoutItem Node::ComputeOfType(ComputeCtx& cctx, const FmtContext& ctx) const
+LayoutItem Layout::ComputeOfType(ComputeCtx& cctx, const FmtContext& ctx) const
 	{
 	auto kw = FindOptChild(Tag::Keyword);
 	if ( ! kw )
@@ -11,7 +11,7 @@ LayoutItem Node::ComputeOfType(ComputeCtx& cctx, const FmtContext& ctx) const
 	}
 
 // Find the first type child (TypeAtom, TypeParameterized, TypeFunc).
-const NodePtr& Node::FindTypeChild() const
+const LayoutPtr& Layout::FindTypeChild() const
 	{
 	for ( const auto& c : Children() )
 		if ( c->IsType() )
@@ -23,21 +23,21 @@ const NodePtr& Node::FindTypeChild() const
 // TYPE-FUNC: event(params), function(params): rettype
 
 // Compute the type suffix for a PARAM node: ": type".
-LayoutItem Node::ComputeParamType(ComputeCtx& cctx, const FmtContext& ctx) const
+LayoutItem Layout::ComputeParamType(ComputeCtx& cctx, const FmtContext& ctx) const
 	{
 	return Formatting(Child(0, Tag::Colon)) + " " +
 		best(format_expr(*FindTypeChild(), ctx)).Fmt();
 	}
 
 // Compute the return type suffix for a TYPE-FUNC-RET node: ": rettype".
-LayoutItem Node::ComputeRetType(ComputeCtx& cctx, const FmtContext& ctx) const
+LayoutItem Layout::ComputeRetType(ComputeCtx& cctx, const FmtContext& ctx) const
 	{
 	auto& returns = FindChild(Tag::Returns);
 	return Formatting(FindChild(Tag::Colon)) + " " +
 		best(format_expr(*returns->FindTypeChild(), ctx)).Fmt();
 	}
 
-static const NodePtr& get_non_token_child(const Node& parent)
+static const LayoutPtr& get_non_token_child(const Layout& parent)
 	{
 	for ( const auto& c : parent.Children() )
 		if ( ! c->IsToken() )
@@ -47,7 +47,7 @@ static const NodePtr& get_non_token_child(const Node& parent)
 
 // Check whether any attr value in an ATTR-LIST contains blanks.
 // If so, all attrs use " = " spacing; otherwise "=".
-static bool attr_list_needs_spaces(const Node& node, const FmtContext& ctx)
+static bool attr_list_needs_spaces(const Layout& node, const FmtContext& ctx)
 	{
 	for ( const auto& attr : node.Children() )
 		{
@@ -67,7 +67,7 @@ static bool attr_list_needs_spaces(const Node& node, const FmtContext& ctx)
 	}
 
 // Format a single attr: "&name" or "&name=value" / "&name = value".
-static Formatting format_one_attr(const Node& attr, bool spaced,
+static Formatting format_one_attr(const Layout& attr, bool spaced,
                                   const FmtContext& ctx)
 	{
 	Formatting fmt(attr.Arg());
@@ -84,7 +84,7 @@ static Formatting format_one_attr(const Node& attr, bool spaced,
 	return fmt;
 	}
 
-std::vector<Formatting> Node::FormatAttrStrings(const FmtContext& ctx) const
+std::vector<Formatting> Layout::FormatAttrStrings(const FmtContext& ctx) const
 	{
 	bool spaced = attr_list_needs_spaces(*this, ctx);
 	std::vector<Formatting> result;
@@ -96,7 +96,7 @@ std::vector<Formatting> Node::FormatAttrStrings(const FmtContext& ctx) const
 	return result;
 	}
 
-Formatting Node::FormatAttrList(const FmtContext& ctx) const
+Formatting Layout::FormatAttrList(const FmtContext& ctx) const
 	{
 	Formatting fmt;
 	for ( const auto& a : FormatAttrStrings(ctx) )

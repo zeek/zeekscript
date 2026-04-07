@@ -4,7 +4,7 @@
 
 #include <cassert>
 
-Formatting::Formatting(const NodePtr& n)
+Formatting::Formatting(const LayoutPtr& n)
 	{
 	assert(n);
 	assert(! n->HasChildren());
@@ -13,12 +13,12 @@ Formatting::Formatting(const NodePtr& n)
 	dirty = total > 0;
 	}
 
-// FmtPiece methods (need complete Formatting/Node types).
+// FmtPiece methods (need complete Formatting/Layout types).
 
 const std::string& FmtPiece::NodeText() const
 	{
 	if ( node_cache.empty() )
-		node_cache = std::get<NodePtr>(data)->Text();
+		node_cache = std::get<LayoutPtr>(data)->Text();
 	return node_cache;
 	}
 
@@ -199,7 +199,7 @@ Formatting& Formatting::operator+=(const std::shared_ptr<Formatting>& p)
 	return *this;
 	}
 
-Formatting& Formatting::operator+=(const NodePtr& n)
+Formatting& Formatting::operator+=(const LayoutPtr& n)
 	{
 	pieces.emplace_back(n);
 	total += pieces.back().Size();

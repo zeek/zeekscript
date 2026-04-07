@@ -35,7 +35,7 @@ public:
 	// Overflow is not set; use In() to finalize.
 	Candidate Cat(const Candidate& o) const
 		{ return Candidate(fmt + o.fmt); }
-	Candidate Cat(const NodePtr& n) const
+	Candidate Cat(const LayoutPtr& n) const
 		{ return Candidate(fmt + n); }
 
 	// Return a copy with overflow computed against a context.

@@ -17,10 +17,10 @@ int fit_col(int align_col, int w, int max_col);
 // Arg lists with trailing comments.
 struct ArgComment
 	{
-	NodePtr arg;
+	LayoutPtr arg;
 	std::string comment;	// trailing: empty or " # ..."
 	std::vector<std::string> leading;	// leading comments before item
-	NodePtr comma;			// preceding COMMA token, if any
+	LayoutPtr comma;			// preceding COMMA token, if any
 
 	bool HasBreak() const
 		{
@@ -36,7 +36,7 @@ using ArgComments = std::vector<ArgComment>;
 
 bool has_breaks(const ArgComments& items);
 
-ArgComments collect_args(const NodeVec& children);
+ArgComments collect_args(const LayoutVec& children);
 
 Candidate format_args_flat(const ArgComments& items, const FmtContext& ctx);
 
@@ -53,5 +53,5 @@ Candidate format_args_vertical(const Formatting& open, const Formatting& close,
                              const ArgComments& items, const FmtContext& ctx,
                              bool trailing_comma = false);
 
-Formatting format_stmt_list(const NodeVec& nodes, const FmtContext& ctx,
+Formatting format_stmt_list(const LayoutVec& nodes, const FmtContext& ctx,
                            bool skip_leading_blanks = false);

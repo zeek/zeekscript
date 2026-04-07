@@ -3,8 +3,8 @@
 // Declarations: global/local/const/redef name [: type] [= init] [attrs] ;
 
 // Build the suffix: attrs + optional semicolon.
-static Formatting decl_suffix(const NodePtr& attrs_node,
-                              const NodePtr& semi_node,
+static Formatting decl_suffix(const LayoutPtr& attrs_node,
+                              const LayoutPtr& semi_node,
                               const FmtContext& ctx)
 	{
 	Formatting suffix;
@@ -28,11 +28,11 @@ struct DeclParts {
 	Formatting type_str;	// ": type" or ""
 	Formatting suffix;	// " &attr1 &attr2;" or ";" or ""
 	Formatting assign_op;	// "=", "+=", or ""
-	NodePtr type_node;	// direct type child (after COLON)
-	NodePtr colon_node;	// COLON before type
-	NodePtr init_val;		// direct init value (after ASSIGN)
-	NodePtr attrs_node;	// ATTR-LIST child
-	NodePtr semi_node;	// SEMI child
+	LayoutPtr type_node;	// direct type child (after COLON)
+	LayoutPtr colon_node;	// COLON before type
+	LayoutPtr init_val;		// direct init value (after ASSIGN)
+	LayoutPtr attrs_node;	// ATTR-LIST child
+	LayoutPtr semi_node;	// SEMI child
 };
 
 // Flat candidate + split-after-init for declarations with initializers.
@@ -243,7 +243,7 @@ static void decl_type_split(const DeclParts& d, Candidates& result,
 
 // GLOBAL-DECL/LOCAL-DECL: [0]=KEYWORD [1]=SP [2]=IDENTIFIER
 //   [optional DECL-TYPE, DECL-INIT, ATTR-LIST] SEMI
-Candidates Node::ComputeDecl(ComputeCtx& /*cctx*/,
+Candidates Layout::ComputeDecl(ComputeCtx& /*cctx*/,
                               const FmtContext& ctx) const
 	{
 	auto kw_node = Child(0, Tag::Keyword);
@@ -300,7 +300,7 @@ Candidates Node::ComputeDecl(ComputeCtx& /*cctx*/,
 // ------------------------------------------------------------------
 
 // Optional return type suffix for FUNC-DECL: ": rettype" or empty.
-LayoutItem Node::ComputeFuncRet(ComputeCtx& /*cctx*/,
+LayoutItem Layout::ComputeFuncRet(ComputeCtx& /*cctx*/,
                                 const FmtContext& ctx) const
 	{
 	auto returns = FindOptChild(Tag::Returns);
@@ -316,7 +316,7 @@ LayoutItem Node::ComputeFuncRet(ComputeCtx& /*cctx*/,
 	}
 
 // Attribute list for FUNC-DECL: bare attrs or empty.
-LayoutItem Node::ComputeFuncAttrs(ComputeCtx& /*cctx*/,
+LayoutItem Layout::ComputeFuncAttrs(ComputeCtx& /*cctx*/,
                                   const FmtContext& ctx) const
 	{
 	auto attrs = FindOptChild(Tag::AttrList);
@@ -331,7 +331,7 @@ LayoutItem Node::ComputeFuncAttrs(ComputeCtx& /*cctx*/,
 	}
 
 // Trailing comment + Whitesmith body block for FUNC-DECL.
-LayoutItem Node::ComputeFuncBody(ComputeCtx& /*cctx*/,
+LayoutItem Layout::ComputeFuncBody(ComputeCtx& /*cctx*/,
                                  const FmtContext& ctx) const
 	{
 	const auto& body = Children().back();
@@ -346,7 +346,7 @@ LayoutItem Node::ComputeFuncBody(ComputeCtx& /*cctx*/,
 // Format a record field.  suffix includes ";" and any trailing
 // comment so we can measure overflow and wrap attrs if needed.
 // FIELD: [0]=COLON [1]=type_expr [optional ATTR-LIST] [last]=SEMI
-static Formatting format_field(const Node& node, const Formatting& suffix,
+static Formatting format_field(const Layout& node, const Formatting& suffix,
                               const FmtContext& ctx)
 	{
 	Formatting head = node.Arg() + Formatting(node.Child(0, Tag::Colon)) +
@@ -391,15 +391,15 @@ static Formatting format_field(const Node& node, const Formatting& suffix,
 
 // ------------------------------------------------------------------
 // Enum body + close brace.  Inner = Child(5) = TYPE-ENUM node.
-LayoutItem Node::ComputeEnumBody(ComputeCtx& /*cctx*/,
+LayoutItem Layout::ComputeEnumBody(ComputeCtx& /*cctx*/,
                                  const FmtContext& ctx) const
 	{
 	auto inner = Child(5);
 
 	std::vector<std::string> values;
-	NodeVec commas;
+	LayoutVec commas;
 	bool has_trailing_comma = false;
-	NodePtr pending_comma;
+	LayoutPtr pending_comma;
 
 	for ( const auto& c : inner->Children() )
 		{
@@ -441,7 +441,7 @@ LayoutItem Node::ComputeEnumBody(ComputeCtx& /*cctx*/,
 	}
 
 // Record body + close brace.  Inner = Child(5) = TYPE-RECORD node.
-LayoutItem Node::ComputeRecordBody(ComputeCtx& /*cctx*/,
+LayoutItem Layout::ComputeRecordBody(ComputeCtx& /*cctx*/,
                                    const FmtContext& ctx) const
 	{
 	auto inner = Child(5);

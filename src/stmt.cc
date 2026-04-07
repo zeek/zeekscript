@@ -1,7 +1,7 @@
 #include "fmt_util.h"
 
 // Switch statement: switch expr { case val: body ... }
-static void append_case_body(const NodePtr& body, Formatting& result,
+static void append_case_body(const LayoutPtr& body, Formatting& result,
                            const FmtContext& ctx)
 	{
 	if ( ! body )
@@ -15,7 +15,7 @@ static void append_case_body(const NodePtr& body, Formatting& result,
 	}
 
 // Switch expression: unwrap parens for Zeek-style ( expr ) spacing.
-LayoutItem Node::ComputeSwitchExpr(ComputeCtx& /*cctx*/,
+LayoutItem Layout::ComputeSwitchExpr(ComputeCtx& /*cctx*/,
                                    const FmtContext& ctx) const
 	{
 	auto switch_expr = Child(2);
@@ -34,7 +34,7 @@ LayoutItem Node::ComputeSwitchExpr(ComputeCtx& /*cctx*/,
 
 // Switch cases: format each CASE/DEFAULT with fill-packed values
 // and indented bodies.
-LayoutItem Node::ComputeSwitchCases(ComputeCtx& /*cctx*/,
+LayoutItem Layout::ComputeSwitchCases(ComputeCtx& /*cctx*/,
                                     const FmtContext& ctx) const
 	{
 	auto pad = line_prefix(ctx.Indent(), ctx.Col());
@@ -60,8 +60,8 @@ LayoutItem Node::ComputeSwitchCases(ComputeCtx& /*cctx*/,
 
 		// Collect formatted values and commas.
 		std::vector<Formatting> vals;
-		NodeVec vcommas;
-		NodePtr vpending;
+		LayoutVec vcommas;
+		LayoutPtr vpending;
 
 		for ( const auto& vc : values->Children() )
 			{
@@ -121,7 +121,7 @@ LayoutItem Node::ComputeSwitchCases(ComputeCtx& /*cctx*/,
 
 // Preprocessor directive formatting.  PREPROC-COND has children
 // [0]=LPAREN [1]=RPAREN; plain PREPROC has only args.
-FmtPtr Node::FormatText() const
+FmtPtr Layout::FormatText() const
 	{
 	const auto& directive = Arg(0);
 	const auto& a = Arg(1);
@@ -140,12 +140,12 @@ FmtPtr Node::FormatText() const
 	return std::make_shared<Formatting>(directive + " " + a);
 	}
 
-bool Node::OpensDepth() const
+bool Layout::OpensDepth() const
 	{
 	return GetTag() == Tag::PreprocCond || Arg(0) == "@else";
 	}
 
-bool Node::ClosesDepth() const
+bool Layout::ClosesDepth() const
 	{
 	if ( GetTag() == Tag::PreprocCond )
 		return false;
@@ -153,7 +153,7 @@ bool Node::ClosesDepth() const
 	return d == "@else" || d == "@endif";
 	}
 
-bool Node::AtColumnZero() const
+bool Layout::AtColumnZero() const
 	{
 	if ( GetTag() == Tag::PreprocCond )
 		return true;
@@ -162,7 +162,7 @@ bool Node::AtColumnZero() const
 	}
 
 // Format a BODY or BLOCK node as a Whitesmith-style braced block.
-Formatting Node::FormatWhitesmithBlock(const FmtContext& ctx) const
+Formatting Layout::FormatWhitesmithBlock(const FmtContext& ctx) const
 	{
 	auto block_ctx = ctx.Indented();
 	auto brace_pad = line_prefix(block_ctx.Indent(), block_ctx.Col());
@@ -172,7 +172,7 @@ Formatting Node::FormatWhitesmithBlock(const FmtContext& ctx) const
 	auto lb = FindChild(Tag::LBrace);
 	auto rb = FindChild(Tag::RBrace);
 	auto close_trail = rb->TrailingComment();
-	NodeVec inner;
+	LayoutVec inner;
 
 	bool past_open = false;
 	for ( const auto& c : Children() )
@@ -214,7 +214,7 @@ Formatting Node::FormatWhitesmithBlock(const FmtContext& ctx) const
 	}
 
 // Format a single-statement body (no braces, indented one level).
-static Formatting format_single_stmt_body(const Node& body, const FmtContext& ctx)
+static Formatting format_single_stmt_body(const Layout& body, const FmtContext& ctx)
 	{
 
 	auto text = format_stmt_list(body.Children(), ctx.Indented());
@@ -228,7 +228,7 @@ static Formatting format_single_stmt_body(const Node& body, const FmtContext& ct
 
 // Format a BODY node: Whitesmith block if first child is BLOCK,
 // otherwise indented single-statement body.
-FmtPtr Node::FormatBodyText(const FmtContext& ctx) const
+FmtPtr Layout::FormatBodyText(const FmtContext& ctx) const
 	{
 	auto content = ContentChildren();
 	if ( content.empty() || content[0]->GetTag() != Tag::Block )

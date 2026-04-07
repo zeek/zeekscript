@@ -2,18 +2,18 @@
 
 #include "fmt_util.h"
 
-Candidates format_expr(const Node& node, const FmtContext& ctx)
+Candidates format_expr(const Layout& node, const FmtContext& ctx)
 	{
 	return node.Format(ctx);
 	}
 
-Candidates format_node(const Node& node, const FmtContext& ctx)
+Candidates format_node(const Layout& node, const FmtContext& ctx)
 	{
 	return node.Format(ctx);
 	}
 
 // Collect all trailing comments from node fields.
-static void collect_trailing(const Node& node,
+static void collect_trailing(const Layout& node,
                             std::vector<std::string>& out)
 	{
 	if ( ! node.TrailingComment().empty() )
@@ -25,7 +25,7 @@ static void collect_trailing(const Node& node,
 // Check that every trailing comment appears on a line that has
 // preceding content - never as a standalone line.
 static void warn_standalone_trailing(const std::string& output,
-                                   const NodeVec& nodes)
+                                   const LayoutVec& nodes)
 	{
 	std::vector<std::string> trailing;
 	for ( const auto& n : nodes )
@@ -112,7 +112,7 @@ static std::string reduce_overflow(const std::string& text, int max_col)
 	return result;
 	}
 
-std::string Format(const NodeVec& nodes)
+std::string Format(const LayoutVec& nodes)
 	{
 	static constexpr int MAX_WIDTH = 80;
 	FmtContext ctx(0, 0, MAX_WIDTH);

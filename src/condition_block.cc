@@ -3,11 +3,11 @@
 #include "node.h"
 
 // Else follow-on for if-else.
-LayoutItem Node::ComputeElseFollowOn(ComputeCtx& /*cctx*/,
+LayoutItem Layout::ComputeElseFollowOn(ComputeCtx& /*cctx*/,
                                       const FmtContext& ctx) const
 	{
 	// Find ElseIf or ElseBody child.
-	NodePtr else_node;
+	LayoutPtr else_node;
 	for ( const auto& c : Children() )
 		{
 		Tag t = c->GetTag();

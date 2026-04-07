@@ -6,7 +6,7 @@
 // If the node is a container, push down to its first concrete
 // child so the formatter doesn't need special container logic.
 static void AttachPreComments(std::vector<std::string>& pending,
-                              NodeVec& markers, Node& node)
+                              LayoutVec& markers, Layout& node)
 	{
 	if ( pending.empty() )
 		return;
@@ -37,17 +37,17 @@ static void AttachPreComments(std::vector<std::string>& pending,
 	pending.clear();
 	}
 
-NodeVec Parser::Parse(const std::string& input)
+LayoutVec Parser::Parse(const std::string& input)
 	{
 	Parser p(input);
 	return p.ParseFile();
 	}
 
-NodeVec Parser::ParseFile()
+LayoutVec Parser::ParseFile()
 	{
-	NodeVec nodes;
+	LayoutVec nodes;
 	std::vector<std::string> pending_pre;
-	NodeVec pending_nodes;
+	LayoutVec pending_nodes;
 
 	SkipWhitespace();
 
@@ -111,7 +111,7 @@ NodeVec Parser::ParseFile()
 	return nodes;
 	}
 
-NodePtr Parser::ParseNode()
+LayoutPtr Parser::ParseNode()
 	{
 	SkipWhitespace();
 
@@ -148,7 +148,7 @@ NodePtr Parser::ParseNode()
 	SkipWhitespace();
 
 	std::vector<std::string> pending_pre;
-	NodeVec pending_children;
+	LayoutVec pending_children;
 
 	while ( ! AtEnd() && Peek() != /* { to balance */ '}' )
 		{

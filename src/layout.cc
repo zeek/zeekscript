@@ -11,7 +11,7 @@ const LayoutItem hard_break{HardBreak};
 const LayoutItem indent_up{IndentUp};
 const LayoutItem indent_down{IndentDown};
 
-LayoutItem tok(const NodePtr& n)
+LayoutItem tok(const LayoutPtr& n)
 	{
 	LayoutItem item{Formatting(n)};
 	item.SetMustBreak(n->MustBreakAfter());
@@ -559,7 +559,7 @@ Candidates build_layout(LayoutItems items, const FmtContext& ctx)
 	return result;
 	}
 
-Candidates Node::BuildLayout(LayoutItems items, const FmtContext& ctx) const
+Candidates Layout::BuildLayout(LayoutItems items, const FmtContext& ctx) const
 	{
 	ComputeCtx cctx;
 
@@ -642,11 +642,11 @@ Candidates Node::BuildLayout(LayoutItems items, const FmtContext& ctx) const
 		else if ( item.kind == StmtBody )
 			{
 			// Collect children and format as stmt list.
-			const Node& src = (item.ChildIdx() >= 0)
+			const Layout& src = (item.ChildIdx() >= 0)
 				? *Child(item.ChildIdx()) : *this;
 			int fl = item.Flags();
 
-			NodeVec body;
+			LayoutVec body;
 			if ( fl & SB_AllChildren )
 				body = src.Children();
 			else
