@@ -3,7 +3,6 @@
 #include <unordered_map>
 
 #include "node.h"
-#include "condition_block.h"
 #include "expr.h"
 #include "layout.h"
 #include "stmt.h"
@@ -131,6 +130,12 @@ static const std::unordered_map<Tag, LayoutItems> layout_table = {
 		compute(&Node::ComputeEnumBody), last()}},
 	{Tag::TypeDeclRecord, {0U, {Sp}, 2, 3, {Sp}, {5, 0U}, {Sp}, {5, 2},
 		compute(&Node::ComputeRecordBody), last()}},
+	{Tag::IfNoElse, {0U, " ", 2, " ", expr(3), " ", 4, body_text(5)}},
+	{Tag::IfElse, {0U, " ", 2, " ", expr(3), " ", 4, body_text(5),
+		compute(&Node::ComputeElseFollowOn)}},
+	{Tag::While, {0U, " ", 2, " ", expr(3), " ", 4, body_text(5)}},
+	{Tag::For, {0U, {Sp}, 2, {Sp},
+		compute(&Node::ComputeForCond), body_text(8)}},
 	{Tag::Slice, {flat_split(
 		{FmtStep::EI(0), FmtStep::TI(1),
 		 FmtStep::EI(2),
@@ -168,10 +173,6 @@ NodePtr MakeNode(Tag tag)
 		return std::make_shared<LayoutNode>(tag, it->second);
 
 	switch ( tag ) {
-	case Tag::IfNoElse: return std::make_shared<IfNoElseNode>();
-	case Tag::IfElse: return std::make_shared<IfElseNode>();
-	case Tag::For: return std::make_shared<ForNode>();
-	case Tag::While: return std::make_shared<WhileNode>();
 	case Tag::Lambda: return std::make_shared<LambdaNode>();
 	case Tag::LambdaCaptures: return std::make_shared<LambdaCapturesNode>();
 	case Tag::GlobalDecl: return std::make_shared<DeclNode>(tag);

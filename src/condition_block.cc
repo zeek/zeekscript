@@ -1,58 +1,26 @@
-#include "condition_block.h"
 #include "fmt_util.h"
+#include "layout.h"
+#include "node.h"
 
-// ------------------------------------------------------------------
-// Shared condition-block formatting: keyword ( condition ) body
-// ------------------------------------------------------------------
-
-// Children: [0]=KEYWORD [1]=SP [2]=LPAREN ... [rp]=RPAREN [rp+1]=BODY
-// RPAREN position varies: 4 for if/while, 7 for for (via RParenPos).
-Candidates ConditionBlockNode::Format(const FmtContext& ctx) const
+// Condition compute for for-loop: rparen at position 7.
+// FOR: [0]=KW [1]=SP [2]=LPAREN [3]=VARS [4]=KW("in")
+//   [5]=SP [6]=ITERABLE [7]=RPAREN [8]=BODY
+LayoutItem Node::ComputeForCond(ComputeCtx& /*cctx*/,
+                                 const FmtContext& ctx) const
 	{
-	int rp_pos = RParenPos();
-	auto kw_node = Child(0, Tag::Keyword);
-	auto lparen_node = Child(2, Tag::LParen);
-	auto rparen_node = Child(rp_pos, Tag::RParen);
+	auto kw = Child(0, Tag::Keyword);
+	auto lp = Child(2, Tag::LParen);
+	auto rp = Child(7, Tag::RParen);
 
-	// Format the condition assuming the common (non-break) column.
-	int cond_col =
-		ctx.Col() + kw_node->Width() + 1 + lparen_node->Width() + 1;
-	int rp_w = 1 + rparen_node->Width();
+	int cond_col = ctx.Col() + kw->Width() + 1 + lp->Width() + 1;
+	int rp_w = 1 + rp->Width();
 	FmtContext cond_ctx(ctx.Indent(), cond_col,
 				ctx.MaxCol() - cond_col, rp_w);
-	auto cond = BuildCondition(cond_ctx);
 
-	// Build the head via BuildLayout so trailing comments on keyword
-	// or lparen correctly force line breaks.
-	auto head = best(BuildLayout({0U, soft_sp, 2, soft_sp,
-			cond, Formatting(" ") + rparen_node}, ctx)).Fmt();
-
-	auto body_node = Child(rp_pos + 1, Tag::Body);
-	auto result = head + body_node->FormatBodyText(ctx) +
-			BuildFollowOn(ctx);
-
-	return {Candidate(std::move(result), ctx)};
-	}
-
-// Default: format the single expression between parens.
-Formatting ConditionBlockNode::BuildCondition(const FmtContext& cond_ctx) const
-	{
-	return best(format_expr(*ContentChildren()[0], cond_ctx)).Fmt();
-	}
-
-// ------------------------------------------------------------------
-// ForNode: for ( vars in iterable ) body
-// ------------------------------------------------------------------
-
-// FOR children: [0]=KEYWORD [1]=SP [2]=LPAREN [3]=VARS
-//   [4]=KEYWORD("in") [5]=SP [6]=ITERABLE [7]=RPAREN [8]=BODY
-Formatting ForNode::BuildCondition(const FmtContext& cond_ctx) const
-	{
 	auto vars_node = Child(3, Tag::Vars);
 	auto in_node = Child(4, Tag::Keyword);
 	auto iter_node = Child(6, Tag::Iterable);
 
-	// Format vars (comma-separated identifiers).
 	Formatting vars_text;
 	auto vars_content = vars_node->ContentChildren();
 	bool first = true;
@@ -65,38 +33,32 @@ Formatting ForNode::BuildCondition(const FmtContext& cond_ctx) const
 		vars_text += best(format_expr(*v, cond_ctx)).Fmt();
 		}
 
-	// Format iterable.
 	Formatting iter_text;
 	auto iter_content = iter_node->ContentChildren();
 	if ( ! iter_content.empty() )
 		iter_text += best(format_expr(*iter_content[0], cond_ctx)).Fmt();
 
-	return vars_text + " " + in_node + " " + iter_text;
+	auto cond = vars_text + " " + Formatting(in_node) + " " + iter_text;
+	return cond + " " + Formatting(rp);
 	}
 
-// ------------------------------------------------------------------
-// IfElseNode: else clause follow-on
-// ------------------------------------------------------------------
-
-// Find the ElseIf or ElseBody child.
-static const NodePtr& find_else(const Node& node)
+// Else follow-on for if-else.
+LayoutItem Node::ComputeElseFollowOn(ComputeCtx& /*cctx*/,
+                                      const FmtContext& ctx) const
 	{
-	for ( const auto& c : node.Children() )
+	// Find ElseIf or ElseBody child.
+	NodePtr else_node;
+	for ( const auto& c : Children() )
 		{
 		Tag t = c->GetTag();
 		if ( t == Tag::ElseIf || t == Tag::ElseBody )
-			return c;
+			{
+			else_node = c;
+			break;
+			}
 		}
 
-	return null_node;
-	}
-
-FmtPtr IfElseNode::BuildFollowOn(const FmtContext& ctx) const
-	{
-	auto else_node = find_else(*this);
-
-	// Check for standalone blank lines before the else
-	// (not merged with comments).
+	// Check for standalone blank lines before the else.
 	bool has_blank = false;
 	for ( const auto& c : Children() )
 		if ( c->GetTag() == Tag::Blank )
@@ -105,16 +67,15 @@ FmtPtr IfElseNode::BuildFollowOn(const FmtContext& ctx) const
 	auto stmt_pad = line_prefix(ctx.Indent(), ctx.Col());
 	auto comments = else_node->EmitPreComments(stmt_pad);
 
-	// Strip trailing newline - the else line provides its own.
 	if ( ! comments->Empty() && comments->Back() == '\n' )
 		comments->PopBack();
 
-	auto result = std::make_shared<Formatting>();
+	Formatting result;
 
 	if ( has_blank || ! comments->Empty() )
-		*result += "\n";
+		result += "\n";
 
-	*result += comments;
+	result += *comments;
 
 	// ELSE-IF/ELSE-BODY: [0]=KEYWORD [1]=SP [2]=content
 	auto else_child = else_node->Child(2);
@@ -123,20 +84,18 @@ FmtPtr IfElseNode::BuildFollowOn(const FmtContext& ctx) const
 	if ( else_node->GetTag() == Tag::ElseIf )
 		{
 		auto inner_cs = format_expr(*else_child, ctx);
-		*result += "\n" + stmt_pad + else_kw + " " +
+		result += "\n" + stmt_pad + Formatting(else_kw) + " " +
 				best(inner_cs).Fmt();
 		}
-
 	else if ( else_child->GetTag() == Tag::Block )
-		*result += "\n" + stmt_pad + else_kw +
+		result += "\n" + stmt_pad + Formatting(else_kw) +
 				else_child->FormatWhitesmithBlock(ctx);
-
 	else
 		{
-		FmtContext else_ctx = ctx.Indented();
+		auto else_ctx = ctx.Indented();
 		auto cs = format_expr(*else_child, else_ctx);
 		auto epad = line_prefix(else_ctx.Indent(), else_ctx.Col());
-		*result += "\n" + stmt_pad + else_kw + "\n" +
+		result += "\n" + stmt_pad + Formatting(else_kw) + "\n" +
 				epad + best(cs).Fmt();
 		}
 

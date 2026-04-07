@@ -345,7 +345,7 @@ static Partials layout_one_item(const LayoutItem& item, Partials& beam,
 			}
 
 		case Tok: case ExprIdx: case LastTok: case ArgIdx:
-		case StmtBody: case FillList: case Computed:
+		case StmtBody: case BodyText: case FillList: case Computed:
 			assert(false);  // resolved before reaching here
 			break;
 
@@ -453,7 +453,11 @@ Candidates build_layout(LayoutItems items, const FmtContext& ctx)
 			{
 			auto k = items[j].kind;
 			if ( k == Lit )
+				{
+				if ( items[j].Fmt().Contains('\n') )
+					break;
 				w += items[j].Fmt().Size();
+				}
 			else if ( k == Sp )
 				++w;  // space in the flat case
 			else if ( k == IndentUp || k == IndentDown ||
@@ -572,6 +576,8 @@ Candidates Node::BuildLayout(LayoutItems items, const FmtContext& ctx) const
 
 			item = LayoutItem(Formatting("\n" + text));
 			}
+		else if ( item.kind == BodyText )
+			item = LayoutItem(*Child(item.ChildIdx())->FormatBodyText(ctx));
 		else if ( item.kind == OpFill )
 			{
 			auto op = Arg();

@@ -25,7 +25,7 @@ std::string line_prefix(int indent, int col);
 // Layout item kinds.
 enum LIKind { Lit, FmtExpr, Sp, Tok, ExprIdx, LastTok, ArgIdx,
               ArgList, FillList, FlatSplit, Computed, IndentUp,
-              IndentDown, HardBreak, StmtBody, OpFill };
+              IndentDown, HardBreak, StmtBody, BodyText, OpFill };
 
 // Shared context for Computed layout items within a single
 // BuildLayout call.  Earlier compute functions can populate
@@ -274,6 +274,11 @@ inline LayoutItem fill_list() { return {FillList}; }
 inline LayoutItem stmt_body(int flags = 0) { return {StmtBody, flags}; }
 inline LayoutItem stmt_body(unsigned child_index, int flags = 0)
 	{ return {StmtBody, child_index, flags}; }
+
+// Body text: formats a BODY child via FormatBodyText (Whitesmith
+// block if braced, indented single statement otherwise).
+inline LayoutItem body_text(unsigned child_index)
+	{ return {BodyText, child_index}; }
 
 // Computed value: calls a member function on the node during
 // BuildLayout resolution, replacing itself with the result.

@@ -17,7 +17,7 @@ $(TARGET): $(OBJS)
 
 # Header dependencies
 main.o: cand.h fmt_context.h layout.h formatting.h node.h parser.h tag.h
-node.o: cand.h condition_block.h expr.h fmt_context.h layout.h formatting.h node.h stmt.h tag.h
+node.o: cand.h expr.h fmt_context.h layout.h formatting.h node.h stmt.h tag.h
 parser.o: cand.h formatting.h node.h parser.h tag.h
 tag.o: tag.h
 formatting.o: fmt_context.h formatting.h node.h
@@ -31,7 +31,7 @@ type.o: cand.h expr.h fmt_context.h fmt_util.h layout.h formatting.h node.h tag.
 decl.o: cand.h fmt_context.h fmt_util.h layout.h formatting.h node.h stmt.h tag.h
 stmt.o: cand.h fmt_context.h fmt_util.h layout.h formatting.h node.h stmt.h tag.h
 top.o: cand.h fmt_context.h fmt_util.h layout.h formatting.h node.h tag.h
-condition_block.o: cand.h condition_block.h fmt_context.h fmt_util.h layout.h formatting.h node.h tag.h
+condition_block.o: cand.h fmt_context.h fmt_util.h layout.h formatting.h node.h tag.h
 
 SHELL = /bin/bash
 
