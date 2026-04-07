@@ -14,6 +14,10 @@ using LayoutPtr = std::shared_ptr<Layout>;
 using LayoutVec = std::vector<LayoutPtr>;
 extern const LayoutPtr null_node;
 
+class LayoutItem;
+using LIPtr = std::shared_ptr<LayoutItem>;
+using ComputeFn = LIPtr (Layout::*)(const FmtContext&) const;
+
 // Top-level entry point: format a list of top-level nodes.
 std::string Format(const LayoutVec& nodes);
 
@@ -61,21 +65,6 @@ enum LIKind {
 	FillList,	// keyword + args as fill (e.g. "print a, b, c")
 	FlatSplit,	// flat-or-split binary/ternary expression
 
-	// Computed layout items - resolved by BuildLayout via dispatch.
-	ParamType,	// ": type" suffix for PARAM
-	OfType,		// " of type" suffix for TYPE-PARAMETERIZED
-	RetType,	// ": rettype" suffix for TYPE-FUNC-RET
-	EnumBody,	// enum body + close brace
-	RecordBody,	// record body + close brace
-	LambdaPrefix,	// keyword (+ captures) before lambda param list
-	LambdaRet,	// ": type" return type for lambda
-	LambdaBody,	// Whitesmith body block for lambda
-	FuncRet,	// ": rettype" for function declaration
-	FuncAttrs,	// attribute list for function declaration
-	FuncBody,	// trailing comment + Whitesmith body for function
-	SwitchExpr,	// switch expression (unwraps parens)
-	SwitchCases,	// switch cases with fill-packed values
-	ElseFollowOn,	// else/else-if follow-on block
 	DeclCands,	// declaration candidates (multi-candidate)
 
 	// Indent/break control.
@@ -93,8 +82,6 @@ enum LIKind {
 	// Boolean chain fill: "a || b || c" with greedy line packing.
 	OpFill,
 };
-
-class LayoutItem;
 
 // A piece in a flat-or-split sequence.
 class FmtStep {
@@ -256,16 +243,20 @@ public:
 	LayoutItem(LIKind k, Candidates cs)
 		: kind(k), cands(std::move(cs)), must_break(false) {}
 
+	// Computed layout item: kind + compute function pointer.
+	LayoutItem(LIKind k, ComputeFn fn)
+		: kind(k), compute_fn(fn), must_break(false) {}
+
 	// ArgList with computed suffix.
-	LayoutItem(LIKind k, unsigned child_index, LIKind suffix)
+	LayoutItem(LIKind k, unsigned child_index, ComputeFn suffix)
 		: kind(k), child_idx(static_cast<int>(child_index)),
-		  suffix_op(suffix), must_break(false) {}
+		  suffix_fn(suffix), must_break(false) {}
 
 	// ArgList with computed prefix and suffix.
 	LayoutItem(LIKind k, unsigned child_index,
-	           LIKind prefix, LIKind suffix)
+	           ComputeFn prefix, ComputeFn suffix)
 		: kind(k), child_idx(static_cast<int>(child_index)),
-		  suffix_op(suffix), prefix_op(prefix),
+		  suffix_fn(suffix), prefix_fn(prefix),
 		  must_break(false) {}
 
 	// Resolved arglist with prefix, suffix, and optional flags.
@@ -296,8 +287,9 @@ public:
 	const FmtSteps& Steps() const { return steps; }
 	const std::vector<SplitAt>& Splits() const { return splits; }
 	bool ForceFlatSubs() const { return force_flat; }
-	LIKind SuffixOp() const { return suffix_op; }
-	LIKind PrefixOp() const { return prefix_op; }
+	ComputeFn GetComputeFn() const { return compute_fn; }
+	ComputeFn SuffixFn() const { return suffix_fn; }
+	ComputeFn PrefixFn() const { return prefix_fn; }
 	const LayoutVec& Operands() const { return operands; }
 	const Candidates& Cands() const { return cands; }
 	const Formatting& Prefix() const { return li_prefix; }
@@ -316,12 +308,12 @@ protected:
 	int sub_child_idx = -1;
 	int sb_flags = 0;
 	bool force_flat = false;
-	LIKind suffix_op = Lit;
-	LIKind prefix_op = Lit;
+	ComputeFn compute_fn = nullptr;
+	ComputeFn suffix_fn = nullptr;
+	ComputeFn prefix_fn = nullptr;
 	bool must_break;	// force next Sp to break (trailing comment)
 	};
 
-using LIPtr = std::shared_ptr<LayoutItem>;
 using LayoutItems = std::vector<LIPtr>;
 
 // ---- Beam item subclasses ------------------------------------------------
@@ -478,9 +470,14 @@ inline LIPtr last()
 inline LIPtr arg(unsigned arg_index)
 	{ return std::make_shared<LayoutItem>(ArgIdx, arg_index); }
 
-// Computed layout item: resolved by BuildLayout via dispatch.
-inline LIPtr computed(LIKind k)
-	{ return std::make_shared<LayoutItem>(k); }
+// Computed layout item: resolved by BuildLayout via stored ComputeFn.
+inline LIPtr computed(ComputeFn fn)
+	{ return std::make_shared<LayoutItem>(Lit, fn); }
+
+// DeclCands returns Candidates (not LIPtr) and is resolved
+// by its own case in ResolveItem, not via ComputeFn.
+inline LIPtr decl_cands()
+	{ return std::make_shared<LayoutItem>(DeclCands); }
 
 // Bracketed argument list: child at child_index is expected to have
 // open/close brackets as first/last children.  Resolved by BuildLayout
@@ -491,7 +488,7 @@ inline LIPtr arglist(unsigned child_index)
 inline LIPtr arglist(unsigned child_index, Formatting suffix)
 	{ return std::make_shared<LayoutItem>(ArgList, child_index,
 		std::move(suffix)); }
-inline LIPtr arglist(unsigned child_index, LIKind suffix)
+inline LIPtr arglist(unsigned child_index, ComputeFn suffix)
 	{ return std::make_shared<LayoutItem>(ArgList, child_index, suffix); }
 inline LIPtr arglist(unsigned child_index, int flags)
 	{ return std::make_shared<LayoutItem>(ArgList, child_index, flags); }
@@ -500,10 +497,10 @@ inline LIPtr arglist(unsigned child_index, int flags)
 // flat_or_fill as the prefix argument (e.g. "function" before
 // the param list in a lambda).
 inline LIPtr arglist_prefix(unsigned child_index,
-                            LIKind prefix, LIKind suffix = Lit)
+                            ComputeFn prefix, ComputeFn suffix = nullptr)
 	{
 	return std::make_shared<LayoutItem>(ArgList, child_index,
-						prefix, suffix);
+		prefix, suffix);
 	}
 
 // Bare fill list: flat_or_fill on collected args with the first
@@ -527,7 +524,7 @@ inline LIPtr body_text(unsigned child_index)
 // or on a continuation line (break + indent + content).  Both
 // options enter the beam; the best is selected by pruning.
 // Empty content is a no-op.
-inline LIPtr soft_cont(LIKind op)
+inline LIPtr soft_cont(ComputeFn op)
 	{ return std::make_shared<LayoutItem>(SoftCont, 0U, op); }
 
 // Operator fill: format content children separated by arg(0),

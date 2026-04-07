@@ -813,32 +813,6 @@ Candidates build_layout(LayoutItems items, const FmtContext& ctx)
 
 // ---- BuildLayout resolution ----------------------------------------------
 
-using ComputeFn = LIPtr (Layout::*)(const FmtContext&) const;
-
-static const std::unordered_map<LIKind, ComputeFn> compute_map = {
-	{ParamType, &Layout::ComputeParamType},
-	{OfType, &Layout::ComputeOfType},
-	{RetType, &Layout::ComputeRetType},
-	{EnumBody, &Layout::ComputeEnumBody},
-	{RecordBody, &Layout::ComputeRecordBody},
-	{LambdaPrefix, &Layout::ComputeLambdaPrefix},
-	{LambdaRet, &Layout::ComputeLambdaRet},
-	{LambdaBody, &Layout::ComputeLambdaBody},
-	{FuncRet, &Layout::ComputeFuncRet},
-	{FuncAttrs, &Layout::ComputeFuncAttrs},
-	{FuncBody, &Layout::ComputeFuncBody},
-	{SwitchExpr, &Layout::ComputeSwitchExpr},
-	{SwitchCases, &Layout::ComputeSwitchCases},
-	{ElseFollowOn, &Layout::ComputeElseFollowOn},
-	};
-
-static LIPtr run_compute(const Layout& node, LIKind op, const FmtContext& ctx)
-	{
-	auto it = compute_map.find(op);
-	assert(it != compute_map.end());
-	return (node.*(it->second))(ctx);
-	}
-
 Candidates Layout::BuildLayout(LayoutItems items, const FmtContext& ctx) const
 	{
 	for ( size_t i = 0; i < items.size(); ++i )
@@ -852,22 +826,20 @@ void Layout::ResolveItem(LayoutItems& items, size_t i,
 	{
 	auto& item = items[i];
 
+	if ( item->GetComputeFn() )
+		{
+		item = (this->*(item->GetComputeFn()))(ctx);
+		return;
+		}
+
 	switch ( item->kind ) {
 	case DeclCands:
 		item = std::make_shared<LIDeclCandsR>(ComputeDecl(ctx));
 		break;
 
-	// Computed kinds - dispatched via compute_map.
-	case ParamType: case OfType: case RetType: case EnumBody:
-	case RecordBody: case LambdaPrefix: case LambdaRet: case LambdaBody:
-	case FuncRet: case FuncAttrs: case FuncBody: case SwitchExpr:
-	case SwitchCases: case ElseFollowOn:
-		item = run_compute(*this, item->kind, ctx);
-		break;
-
 	case SoftCont:
 		{
-		auto result = run_compute(*this, item->SuffixOp(), ctx);
+		auto result = (this->*(item->SuffixFn()))(ctx);
 		item = std::make_shared<LISoftContR>(result->Fmt());
 		break;
 		}
@@ -899,10 +871,10 @@ void Layout::ResolveItem(LayoutItems& items, size_t i,
 		Formatting prefix;
 		int flags = item->Flags();
 
-		if ( item->SuffixOp() != Lit )
-			suffix = run_compute(*this, item->SuffixOp(), ctx)->Fmt();
-		if ( item->PrefixOp() != Lit )
-			prefix = run_compute(*this, item->PrefixOp(), ctx)->Fmt();
+		if ( item->SuffixFn() )
+			suffix = (this->*(item->SuffixFn()))(ctx)->Fmt();
+		if ( item->PrefixFn() )
+			prefix = (this->*(item->PrefixFn()))(ctx)->Fmt();
 		if ( flags )
 			item = std::make_shared<LIArgListR>(
 				Child(item->ChildIdx()), std::move(prefix),
@@ -1015,6 +987,22 @@ void Layout::ResolveItem(LayoutItems& items, size_t i,
 
 // ---- Layout table + factory ----------------------------------------------
 
+// Compute function pointer constants for the layout table.
+static constexpr ComputeFn CParamType = &Layout::ComputeParamType;
+static constexpr ComputeFn COfType = &Layout::ComputeOfType;
+static constexpr ComputeFn CRetType = &Layout::ComputeRetType;
+static constexpr ComputeFn CEnumBody = &Layout::ComputeEnumBody;
+static constexpr ComputeFn CRecordBody = &Layout::ComputeRecordBody;
+static constexpr ComputeFn CLambdaPrefix = &Layout::ComputeLambdaPrefix;
+static constexpr ComputeFn CLambdaRet = &Layout::ComputeLambdaRet;
+static constexpr ComputeFn CLambdaBody = &Layout::ComputeLambdaBody;
+static constexpr ComputeFn CFuncRet = &Layout::ComputeFuncRet;
+static constexpr ComputeFn CFuncAttrs = &Layout::ComputeFuncAttrs;
+static constexpr ComputeFn CFuncBody = &Layout::ComputeFuncBody;
+static constexpr ComputeFn CSwitchExpr = &Layout::ComputeSwitchExpr;
+static constexpr ComputeFn CSwitchCases = &Layout::ComputeSwitchCases;
+static constexpr ComputeFn CElseFollowOn = &Layout::ComputeElseFollowOn;
+
 // Tag-to-layout table for purely declarative nodes.
 static const std::unordered_map<Tag, LayoutItems> layout_table = {
 	{Tag::Identifier, {arg(0)}},
@@ -1030,7 +1018,7 @@ static const std::unordered_map<Tag, LayoutItems> layout_table = {
 	{Tag::Paren, {tok(0), expr(1), tok(2)}},
 	{Tag::Schedule, {tok(0), sp(), expr(2), sp(), tok(3), sp(),
 		expr(4), sp(), tok(5)}},
-	{Tag::Param, {arg(0), computed(ParamType)}},
+	{Tag::Param, {arg(0), computed(CParamType)}},
 	{Tag::Call, {expr(0), arglist(1,
 		AL_TrailingCommaVertical | AL_VerticalUpgrade)}},
 	{Tag::Constructor, {tok(0), arglist(1,
@@ -1038,10 +1026,10 @@ static const std::unordered_map<Tag, LayoutItems> layout_table = {
 	{Tag::IndexLiteral, {arglist(0,
 		AL_AllCommentsVertical | AL_TrailingCommaFill)}},
 	{Tag::Index, {expr(0), arglist(1)}},
-	{Tag::TypeParameterized, {arg(0), arglist(0, OfType)}},
+	{Tag::TypeParameterized, {arg(0), arglist(0, COfType)}},
 	{Tag::TypeOf, {arg(0), lit(" "), tok(0), lit(" "), expr(2)}},
 	{Tag::TypeFunc, {arg(0), arglist(0)}},
-	{Tag::TypeFuncRet, {arg(0), arglist(0, RetType)}},
+	{Tag::TypeFuncRet, {arg(0), arglist(0, CRetType)}},
 	{Tag::CommentLeading, {arg(0)}},
 	{Tag::ExprStmt, {expr(0), last()}},
 	{Tag::ReturnVoid, {tok(0), last()}},
@@ -1058,15 +1046,15 @@ static const std::unordered_map<Tag, LayoutItems> layout_table = {
 		expr(5), tok(6)}},
 	{Tag::TypeDeclEnum, {tok(0), sp(), tok(2), tok(3), sp(),
 		tok(5, 0), sp(), tok(5, 2),
-		computed(EnumBody), last()}},
+		computed(CEnumBody), last()}},
 	{Tag::TypeDeclRecord, {tok(0), sp(), tok(2), tok(3), sp(),
 		tok(5, 0), sp(), tok(5, 2),
-		computed(RecordBody), last()}},
+		computed(CRecordBody), last()}},
 	{Tag::IfNoElse, {tok(0), lit(" "), tok(2), lit(" "), expr(3),
 		lit(" "), tok(4), body_text(5)}},
 	{Tag::IfElse, {tok(0), lit(" "), tok(2), lit(" "), expr(3),
 		lit(" "), tok(4), body_text(5),
-		computed(ElseFollowOn)}},
+		computed(CElseFollowOn)}},
 	{Tag::While, {tok(0), lit(" "), tok(2), lit(" "), expr(3),
 		lit(" "), tok(4), body_text(5)}},
 	{Tag::ForCond, {expr(0), lit(" "), tok(1), lit(" "), expr(2)}},
@@ -1096,19 +1084,19 @@ static const std::unordered_map<Tag, LayoutItems> layout_table = {
 		 FmtStep::TI(1), FmtStep::S(),
 		 FmtStep::EI(2)},
 		{{2, SplitAt::IndentedOrSame}})}},
-	{Tag::Lambda, {arglist_prefix(2, LambdaPrefix, LambdaRet),
-		computed(LambdaBody)}},
-	{Tag::LambdaCaptures, {arglist_prefix(3, LambdaPrefix, LambdaRet),
-		computed(LambdaBody)}},
-	{Tag::FuncDecl, {tok(0), lit(" "), tok(2), arglist(3, FuncRet),
-		soft_cont(FuncAttrs), computed(FuncBody)}},
+	{Tag::Lambda, {arglist_prefix(2, CLambdaPrefix, CLambdaRet),
+		computed(CLambdaBody)}},
+	{Tag::LambdaCaptures, {arglist_prefix(3, CLambdaPrefix, CLambdaRet),
+		computed(CLambdaBody)}},
+	{Tag::FuncDecl, {tok(0), lit(" "), tok(2), arglist(3, CFuncRet),
+		soft_cont(CFuncAttrs), computed(CFuncBody)}},
 	{Tag::FuncDeclRet, {tok(0), lit(" "), tok(2),
-		arglist(3, FuncRet), soft_cont(FuncAttrs),
-		computed(FuncBody)}},
-	{Tag::Switch, {tok(0), lit(" "), computed(SwitchExpr), lit(" "),
-		tok(3), computed(SwitchCases), hard_brk(), last()}},
-	{Tag::GlobalDecl, {computed(DeclCands)}},
-	{Tag::LocalDecl, {computed(DeclCands)}},
+		arglist(3, CFuncRet), soft_cont(CFuncAttrs),
+		computed(CFuncBody)}},
+	{Tag::Switch, {tok(0), lit(" "), computed(CSwitchExpr), lit(" "),
+		tok(3), computed(CSwitchCases), hard_brk(), last()}},
+	{Tag::GlobalDecl, {decl_cands()}},
+	{Tag::LocalDecl, {decl_cands()}},
 	{Tag::BoolChain, {op_fill()}},
 	{Tag::Ternary, {flat_split(
 		{FmtStep::EI(0),
