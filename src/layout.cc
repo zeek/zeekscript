@@ -7,7 +7,6 @@
 #include <cstdio>
 #include <stdexcept>
 #include <unordered_map>
-#include <unordered_set>
 
 #include "flat_split.h"
 #include "fmt_util.h"
@@ -814,17 +813,6 @@ Candidates build_layout(LayoutItems items, const FmtContext& ctx)
 
 // ---- BuildLayout resolution ----------------------------------------------
 
-static const std::unordered_set<LIKind> computed_kinds = {
-	ParamType, OfType, RetType, EnumBody, RecordBody, LambdaPrefix,
-	LambdaRet, LambdaBody, FuncRet, FuncAttrs, FuncBody, SwitchExpr,
-	SwitchCases, ElseFollowOn, DeclCands,
-	};
-
-static bool is_computed(LIKind k)
-	{
-	return computed_kinds.count(k) > 0;
-	}
-
 using ComputeFn = LIPtr (Layout::*)(const FmtContext&) const;
 
 static const std::unordered_map<LIKind, ComputeFn> compute_map = {
@@ -864,51 +852,57 @@ void Layout::ResolveItem(LayoutItems& items, size_t i,
 	{
 	auto& item = items[i];
 
-	if ( item->kind == DeclCands )
-		{
-		auto cs = ComputeDecl(ctx);
-		item = std::make_shared<LIDeclCandsR>(std::move(cs));
-		return;
-		}
+	switch ( item->kind ) {
+	case DeclCands:
+		item = std::make_shared<LIDeclCandsR>(ComputeDecl(ctx));
+		break;
 
-	if ( is_computed(item->kind) )
-		{
+	// Computed kinds - dispatched via compute_map.
+	case ParamType: case OfType: case RetType: case EnumBody:
+	case RecordBody: case LambdaPrefix: case LambdaRet: case LambdaBody:
+	case FuncRet: case FuncAttrs: case FuncBody: case SwitchExpr:
+	case SwitchCases: case ElseFollowOn:
 		item = run_compute(*this, item->kind, ctx);
-		return;
-		}
+		break;
 
-	if ( item->kind == SoftCont )
+	case SoftCont:
 		{
 		auto result = run_compute(*this, item->SuffixOp(), ctx);
 		item = std::make_shared<LISoftContR>(result->Fmt());
-		return;
+		break;
 		}
 
-	if ( item->kind == Tok )
+	case Tok:
 		{
 		auto c = Child(item->ChildIdx());
 		if ( item->SubChildIdx() >= 0 )
 			c = c->Child(item->SubChildIdx());
 		item = tok(c);
+		break;
 		}
-	else if ( item->kind == ExprIdx )
-		item = std::make_shared<LIExpr>(
-			Child(item->ChildIdx()));
-	else if ( item->kind == LastTok )
+
+	case ExprIdx:
+		item = std::make_shared<LIExpr>(Child(item->ChildIdx()));
+		break;
+
+	case LastTok:
 		item = tok(Children().back());
-	else if ( item->kind == ArgIdx )
+		break;
+
+	case ArgIdx:
 		item = lit(Formatting(Arg(item->ChildIdx())));
-	else if ( item->kind == ArgList )
+		break;
+
+	case ArgList:
 		{
 		Formatting suffix = item->Fmt();
 		Formatting prefix;
 		int flags = item->Flags();
+
 		if ( item->SuffixOp() != Lit )
-			suffix = run_compute(*this,
-				item->SuffixOp(), ctx)->Fmt();
+			suffix = run_compute(*this, item->SuffixOp(), ctx)->Fmt();
 		if ( item->PrefixOp() != Lit )
-			prefix = run_compute(*this,
-				item->PrefixOp(), ctx)->Fmt();
+			prefix = run_compute(*this, item->PrefixOp(), ctx)->Fmt();
 		if ( flags )
 			item = std::make_shared<LIArgListR>(
 				Child(item->ChildIdx()), std::move(prefix),
@@ -917,8 +911,10 @@ void Layout::ResolveItem(LayoutItems& items, size_t i,
 			item = std::make_shared<LIArgListR>(
 				Child(item->ChildIdx()), std::move(prefix),
 				std::move(suffix));
+		break;
 		}
-	else if ( item->kind == FlatSplit )
+
+	case FlatSplit:
 		{
 		// Resolve deferred child references in steps.
 		auto steps = item->Steps();
@@ -929,26 +925,32 @@ void Layout::ResolveItem(LayoutItems& items, size_t i,
 			else if ( s.kind == FmtStep::STokIdx )
 				s = FmtStep::L(Child(s.child_idx));
 			}
-		item = std::make_shared<LIFlatSplitR>(
-			std::move(steps), item->Splits(),
-			item->ForceFlatSubs());
+		item = std::make_shared<LIFlatSplitR>(std::move(steps),
+					item->Splits(), item->ForceFlatSubs());
+		break;
 		}
-	else if ( item->kind == FillList )
+
+	case FillList:
 		{
 		auto prefix = Formatting(Children().front()) + " ";
 		auto args = collect_args(Children());
 		auto cs = flat_or_fill(prefix, "", "", "", args, ctx);
 		item = lit(best(cs).Fmt());
+		break;
 		}
-	else if ( item->kind == StmtBody )
+
+	case StmtBody:
 		{
-		// Collect children and format as stmt list.
-		const Layout& src = (item->ChildIdx() >= 0)
-			? *Child(item->ChildIdx()) : *this;
 		int fl = item->Flags();
+		auto all_children = fl & SB_AllChildren;
+		auto skip_blanks = fl & SB_SkipBlanks;
+		auto strip_newline = fl & SB_StripNewline;
+
+		auto cidx = item->ChildIdx();
+		const Layout& src = (cidx >= 0) ? *Child(cidx) : *this;
 
 		LayoutVec body;
-		if ( fl & SB_AllChildren )
+		if ( all_children )
 			body = src.Children();
 		else
 			for ( const auto& c : src.Children() )
@@ -956,42 +958,41 @@ void Layout::ResolveItem(LayoutItems& items, size_t i,
 					body.push_back(c);
 
 		auto sub = ctx.Indented();
-		auto text = format_stmt_list(body, sub,
-			(fl & SB_SkipBlanks) != 0);
+		auto text = format_stmt_list(body, sub, skip_blanks);
 
-		if ( (fl & SB_StripNewline) &&
-		     ! text.Empty() && text.Back() == '\n' )
+		if ( strip_newline && ! text.Empty() && text.Back() == '\n' )
 			text.PopBack();
 
 		item = lit(Formatting("\n" + text));
+		break;
 		}
-	else if ( item->kind == BodyText )
+
+	case BodyText:
 		item = lit(*Child(item->ChildIdx())->FormatBodyText(ctx));
-	else if ( item->kind == OpFill )
-		{
-		auto op_str = Arg();
-		auto ops = ContentChildren();
-		item = std::make_shared<LIOpFillR>(
-			std::move(op_str), std::move(ops));
-		}
-	else if ( item->kind == IndentDown )
+		break;
+
+	case OpFill:
+		item = std::make_shared<LIOpFillR>(Arg(), ContentChildren());
+		break;
+
+	case IndentDown:
 		{
 		// Peek ahead to find the next token and
 		// attach its node for pre-comment emission.
 		for ( size_t j = i + 1; j < items.size(); ++j )
 			{
 			auto k = items[j]->kind;
+
 			if ( k == Tok )
 				{
 				auto& i_j = items[j];
 				auto c = Child(i_j->ChildIdx());
 				if ( i_j->SubChildIdx() >= 0 )
-					c = c->Child(
-						i_j->SubChildIdx());
-				item = std::make_shared<LIIndentDown>(
-					c);
+					c = c->Child(i_j->SubChildIdx());
+				item = std::make_shared<LIIndentDown>(c);
 				break;
 				}
+
 			if ( k == LastTok )
 				{
 				item = std::make_shared<LIIndentDown>(
@@ -1004,7 +1005,12 @@ void Layout::ResolveItem(LayoutItems& items, size_t i,
 		if ( item->kind == IndentDown &&
 		     ! dynamic_cast<LIIndentDown*>(item.get()) )
 			item = std::make_shared<LIIndentDown>();
+		break;
 		}
+
+	default:
+		break;
+	}
 	}
 
 // ---- Layout table + factory ----------------------------------------------
