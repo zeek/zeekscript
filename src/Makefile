@@ -3,7 +3,7 @@ CXXFLAGS ?= -std=c++17 -Wall -Wextra -g
 TARGET = zeek-format
 
 SRCS = main.cc parser.cc tag.cc formatting.cc cand.cc \
-       layout.cc flat_split.cc fmt_util.cc top.cc
+       layout.cc layout_util.cc flat_split.cc fmt_util.cc top.cc
 OBJS = $(SRCS:.cc=.o)
 
 all: $(TARGET)
@@ -21,6 +21,7 @@ tag.o: tag.h
 formatting.o: fmt_context.h formatting.h layout.h
 cand.o: cand.h fmt_context.h formatting.h
 layout.o: cand.h flat_split.h fmt_context.h fmt_util.h layout.h formatting.h tag.h
+layout_util.o: cand.h fmt_context.h fmt_util.h layout.h formatting.h tag.h
 flat_split.o: cand.h flat_split.h fmt_context.h fmt_util.h layout.h formatting.h tag.h
 fmt_util.o: cand.h fmt_context.h fmt_util.h layout.h formatting.h tag.h
 top.o: cand.h fmt_context.h fmt_util.h layout.h formatting.h tag.h
