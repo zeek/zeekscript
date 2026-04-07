@@ -117,7 +117,6 @@ public:
 	LayoutItem ComputeOfType(ComputeCtx& cctx, const FmtContext& ctx) const;
 	LayoutItem ComputeEnumBody(ComputeCtx& cctx, const FmtContext& ctx) const;
 	LayoutItem ComputeRecordBody(ComputeCtx& cctx, const FmtContext& ctx) const;
-	LayoutItem ComputeForCond(ComputeCtx& cctx, const FmtContext& ctx) const;
 	LayoutItem ComputeElseFollowOn(ComputeCtx& cctx, const FmtContext& ctx) const;
 
 	// Format an ATTR-LIST node as a single string.

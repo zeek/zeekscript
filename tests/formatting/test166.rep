@@ -12,12 +12,9 @@ FUNC-DECL {
       KEYWORD "for"
       SP
       LPAREN
-      VARS {
+      FOR-COND {
         IDENTIFIER "val"
-      }
-      KEYWORD "in"
-      SP
-      ITERABLE {
+        KEYWORD "in"
         IDENTIFIER "some_set"
       }
       RPAREN

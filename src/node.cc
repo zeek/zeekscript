@@ -134,8 +134,11 @@ static const std::unordered_map<Tag, LayoutItems> layout_table = {
 	{Tag::IfElse, {0U, " ", 2, " ", expr(3), " ", 4, body_text(5),
 		compute(&Node::ComputeElseFollowOn)}},
 	{Tag::While, {0U, " ", 2, " ", expr(3), " ", 4, body_text(5)}},
-	{Tag::For, {0U, {Sp}, 2, {Sp},
-		compute(&Node::ComputeForCond), body_text(8)}},
+	{Tag::ForCond, {expr(0), " ", 1, " ", expr(2)}},
+	{Tag::ForCondVal, {expr(0), 1, " ", expr(2), " ", 3, " ", expr(4)}},
+	{Tag::ForCondBracket, {arglist(0), " ", 1, " ", expr(2)}},
+	{Tag::ForCondBracketVal, {arglist(0), 1, " ", expr(2), " ", 3, " ", expr(4)}},
+	{Tag::For, {0U, " ", 2, " ", expr(3), " ", 4, body_text(5)}},
 	{Tag::Slice, {flat_split(
 		{FmtStep::EI(0), FmtStep::TI(1),
 		 FmtStep::EI(2),

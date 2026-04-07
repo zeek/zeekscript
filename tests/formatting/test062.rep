@@ -12,12 +12,9 @@ FUNC-DECL {
       KEYWORD "for"
       SP
       LPAREN
-      VARS {
+      FOR-COND {
         IDENTIFIER "idx"
-      }
-      KEYWORD "in"
-      SP
-      ITERABLE {
+        KEYWORD "in"
         FIELD-ACCESS {
           IDENTIFIER "result"
           DOLLAR
@@ -30,12 +27,9 @@ FUNC-DECL {
           KEYWORD "for"
           SP
           LPAREN
-          VARS {
+          FOR-COND {
             IDENTIFIER "conn_idx"
-          }
-          KEYWORD "in"
-          SP
-          ITERABLE {
+            KEYWORD "in"
             FIELD-ACCESS {
               IDENTIFIER "result"
               DOLLAR

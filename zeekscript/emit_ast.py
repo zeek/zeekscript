@@ -1507,7 +1507,43 @@ class Emitter:
         self._mark_content(node)
 
     def _emit_for(self, node: tree_sitter.Node) -> None:
+        # Pre-scan raw children (not _iter_children, which emits
+        # extras as a side effect) to detect the for-loop variant.
+        raw = [c for c in node.children if not c.is_extra]
+        texts = [self._text(c) if not c.is_named else c.type
+                 for c in raw]
+        has_bracket = "[" in texts
+        has_val_after_bracket = False
+        if has_bracket:
+            try:
+                rb = texts.index("]")
+                in_idx = texts.index("in")
+                has_val_after_bracket = any(
+                    raw[i].type == "id"
+                    for i in range(rb + 1, in_idx))
+            except ValueError:
+                pass
+
+        id_count = 0
+        if not has_bracket:
+            for c in raw:
+                if not c.is_named and self._text(c) == "in":
+                    break
+                if c.type == "id":
+                    id_count += 1
+
+        if has_bracket and has_val_after_bracket:
+            cond_tag = 'FOR-COND-BRACKET-VAL'
+        elif has_bracket:
+            cond_tag = 'FOR-COND-BRACKET'
+        elif id_count >= 2:
+            cond_tag = 'FOR-COND-VAL'
+        else:
+            cond_tag = 'FOR-COND'
+
         self._open('FOR')
+
+        in_cond = False
         in_vars = False
         for child in self._iter_children(node):
             if not child.is_named:
@@ -1517,28 +1553,47 @@ class Emitter:
                 elif text == "(":
                     self._w('LPAREN')
                 elif text == ")":
+                    if in_cond:
+                        self._close()
+                        in_cond = False
                     self._w('RPAREN')
+                elif text == "[":
+                    if not in_cond:
+                        self._open(cond_tag)
+                        in_cond = True
+                    self._open('VARS')
+                    self._w('LBRACKET')
+                elif text == "]":
+                    self._w('RBRACKET')
+                    self._close()  # close VARS
                 elif text == "in":
                     if in_vars:
-                        self._close()
+                        self._close()  # close VARS (non-bracket)
                         in_vars = False
-                    self._kw("in")
+                    self._w('KEYWORD "in"')
                 elif text == ",":
                     self._w('COMMA')
             elif child.type == "id":
-                if not in_vars:
-                    self._open('VARS')
-                    in_vars = True
+                if not in_cond:
+                    self._open(cond_tag)
+                    in_cond = True
+                if not has_bracket and not in_vars:
+                    pass  # ids are direct children of FOR-COND*
                 self._w(f'IDENTIFIER {_quote(self._text(child))}')
             elif child.type == "expr":
-                self._open('ITERABLE')
+                if not in_cond:
+                    self._open(cond_tag)
+                    in_cond = True
                 self._emit_expr(child)
-                self._close()
             elif child.type == "stmt":
+                if in_cond:
+                    self._close()
+                    in_cond = False
                 self._open('BODY')
                 self._emit_stmt(child)
                 self._close()
-        if in_vars:
+
+        if in_cond:
             self._close()
         self._close()
         self._mark_content(node)

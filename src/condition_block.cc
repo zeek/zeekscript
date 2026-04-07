@@ -2,46 +2,6 @@
 #include "layout.h"
 #include "node.h"
 
-// Condition compute for for-loop: rparen at position 7.
-// FOR: [0]=KW [1]=SP [2]=LPAREN [3]=VARS [4]=KW("in")
-//   [5]=SP [6]=ITERABLE [7]=RPAREN [8]=BODY
-LayoutItem Node::ComputeForCond(ComputeCtx& /*cctx*/,
-                                 const FmtContext& ctx) const
-	{
-	auto kw = Child(0, Tag::Keyword);
-	auto lp = Child(2, Tag::LParen);
-	auto rp = Child(7, Tag::RParen);
-
-	int cond_col = ctx.Col() + kw->Width() + 1 + lp->Width() + 1;
-	int rp_w = 1 + rp->Width();
-	FmtContext cond_ctx(ctx.Indent(), cond_col,
-				ctx.MaxCol() - cond_col, rp_w);
-
-	auto vars_node = Child(3, Tag::Vars);
-	auto in_node = Child(4, Tag::Keyword);
-	auto iter_node = Child(6, Tag::Iterable);
-
-	Formatting vars_text;
-	auto vars_content = vars_node->ContentChildren();
-	bool first = true;
-
-	for ( const auto& v : vars_content )
-		{
-		if ( ! first )
-			vars_text += ", ";
-		first = false;
-		vars_text += best(format_expr(*v, cond_ctx)).Fmt();
-		}
-
-	Formatting iter_text;
-	auto iter_content = iter_node->ContentChildren();
-	if ( ! iter_content.empty() )
-		iter_text += best(format_expr(*iter_content[0], cond_ctx)).Fmt();
-
-	auto cond = vars_text + " " + Formatting(in_node) + " " + iter_text;
-	return cond + " " + Formatting(rp);
-	}
-
 // Else follow-on for if-else.
 LayoutItem Node::ComputeElseFollowOn(ComputeCtx& /*cctx*/,
                                       const FmtContext& ctx) const
