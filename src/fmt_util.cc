@@ -430,6 +430,35 @@ Candidates flat_or_fill(const Formatting& prefix, const Formatting& open,
 	return result;
 	}
 
+// Format one item in vertical layout: expr + optional comma +
+// trailing comment.  Returns the total line width.
+static int format_vert_item(const ArgComment& it, const LayoutPtr& next_comma,
+                            bool trailing_comma, int body_col,
+                            const FmtContext& body_ctx, Formatting& fmt)
+	{
+	auto bc = best(format_expr(*it.arg, body_ctx));
+	fmt += bc.Fmt();
+	int line_w = body_col + bc.Width();
+
+	if ( next_comma || trailing_comma )
+		{
+		if ( next_comma )
+			{
+			fmt += next_comma;
+			line_w += next_comma->Width();
+			}
+		else
+			{
+			fmt += ",";
+			line_w += 1;
+			}
+		}
+
+	fmt += it.comment;
+	line_w += static_cast<int>(it.comment.size());
+	return line_w;
+	}
+
 Candidate format_args_vertical(const Formatting& open, const Formatting& close,
                              const ArgComments& items, const FmtContext& ctx,
                              bool trailing_comma)
@@ -449,32 +478,10 @@ Candidate format_args_vertical(const Formatting& open, const Formatting& close,
 		fmt += "\n" + body_pad;
 		++lines;
 
-		auto& it = items[i];
-		auto bc = best(format_expr(*it.arg, body_ctx));
-		fmt += bc.Fmt();
-
-		int line_w = body_col + bc.Width();
-
 		auto nc = (i + 1 < items.size()) ?
 					items[i + 1].comma : nullptr;
-
-		if ( nc || trailing_comma )
-			{
-			if ( nc )
-				{
-				fmt += nc;
-				line_w += nc->Width();
-				}
-			else
-				{
-				fmt += ",";
-				line_w += 1;
-				}
-			}
-
-		fmt += it.comment;
-		line_w += static_cast<int>(it.comment.size());
-
+		int line_w = format_vert_item(items[i], nc, trailing_comma,
+		                              body_col, body_ctx, fmt);
 		if ( line_w > ctx.MaxCol() )
 			ovf += line_w - ctx.MaxCol();
 		}

@@ -585,17 +585,20 @@ static Formatting format_field(const Layout& node, const Formatting& suffix,
 	return head + type_str + "\n" + pad + join_attrs(attr_strs) + suffix;
 	}
 
-// Enum body + close brace.  Inner = Child(5) = TYPE-ENUM node.
-LIPtr Layout::ComputeEnumBody(const FmtContext& ctx) const
-	{
-	auto inner = Child(5);
-
+// Collect enum values and their associated commas from a TYPE-ENUM node.
+struct EnumValues {
 	std::vector<std::string> values;
 	LayoutVec commas;
-	bool has_trailing_comma = false;
+	bool has_trailing_comma;
+};
+
+static EnumValues collect_enum_values(const Layout& inner)
+	{
+	EnumValues ev;
+	ev.has_trailing_comma = false;
 	LayoutPtr pending_comma;
 
-	for ( const auto& c : inner->Children() )
+	for ( const auto& c : inner.Children() )
 		{
 		if ( c->GetTag() == Tag::EnumValue )
 			{
@@ -603,8 +606,8 @@ LIPtr Layout::ComputeEnumBody(const FmtContext& ctx) const
 			if ( ! c->Arg(1).empty() )
 				v += " " + c->Arg(1);
 
-			values.push_back(v);
-			commas.push_back(pending_comma);
+			ev.values.push_back(v);
+			ev.commas.push_back(pending_comma);
 			pending_comma = nullptr;
 			}
 
@@ -612,17 +615,27 @@ LIPtr Layout::ComputeEnumBody(const FmtContext& ctx) const
 			pending_comma = c;
 
 		else if ( c->GetTag() == Tag::TrailingComma )
-			has_trailing_comma = true;
+			ev.has_trailing_comma = true;
 		}
+
+	return ev;
+	}
+
+// Enum body + close brace.  Inner = Child(5) = TYPE-ENUM node.
+LIPtr Layout::ComputeEnumBody(const FmtContext& ctx) const
+	{
+	auto inner = Child(5);
+	auto ev = collect_enum_values(*inner);
 
 	auto pad = line_prefix(ctx.Indent() + 1,
 				(ctx.Indent() + 1) * INDENT_WIDTH);
 	Formatting body;
-	for ( size_t i = 0; i < values.size(); ++i )
+	for ( size_t i = 0; i < ev.values.size(); ++i )
 		{
-		body += pad + values[i];
-		auto nc = (i + 1 < commas.size()) ? commas[i + 1] : nullptr;
-		if ( nc || has_trailing_comma )
+		body += pad + ev.values[i];
+		auto nc = (i + 1 < ev.commas.size()) ?
+					ev.commas[i + 1] : nullptr;
+		if ( nc || ev.has_trailing_comma )
 			{
 			if ( nc )
 				body += nc;

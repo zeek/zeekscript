@@ -287,9 +287,11 @@ Partials LILit::LayoutStep(Partials& beam, const FmtContext& ctx, int) const
 			np.col += f.Size();
 			np.overflow += std::max(0, np.col - ctx.MaxCol());
 			}
+
 		np.must_break = MustBreak();
 		next.push_back(std::move(np));
 		}
+
 	return next;
 	}
 
@@ -309,6 +311,7 @@ Partials LIExpr::LayoutStep(Partials& beam, const FmtContext& ctx,
 			next.push_back(std::move(np));
 			}
 		}
+
 	return next;
 	}
 
@@ -401,6 +404,7 @@ Partials LIIndentDown::LayoutStep(Partials& beam, const FmtContext&, int) const
 
 		next.push_back(std::move(np));
 		}
+
 	return next;
 	}
 
@@ -427,6 +431,7 @@ Partials LIArgListR::LayoutStep(Partials& beam, const FmtContext& ctx,
 			np.must_break = false;
 			next.push_back(std::move(np));
 			}
+
 		return next;
 		}
 
@@ -447,8 +452,7 @@ Partials LIArgListR::LayoutStep(Partials& beam, const FmtContext& ctx,
 
 		// All-comments or trailing comma: force vertical.
 		bool force_vert = has_tc;
-		if ( ! force_vert && all_comments_vert &&
-		     has_breaks(items) )
+		if ( ! force_vert && all_comments_vert && has_breaks(items) )
 			force_vert = all_items_commented(items);
 
 		if ( force_vert )
@@ -517,6 +521,111 @@ Partials LIArgListR::LayoutStep(Partials& beam, const FmtContext& ctx,
 	return next;
 	}
 
+// Try formatting operator-separated operands on a single line.
+struct OpFlatResult {
+	Formatting fmt;
+	int width;
+	bool fits;
+};
+
+static OpFlatResult try_flat_ops(const LayoutVec& operands,
+                                 const Formatting& sep, int sep_w,
+                                 const FmtContext& ctx, int col, int trail)
+	{
+	Formatting flat;
+	int flat_w = 0;
+	bool any_multiline = false;
+
+	for ( size_t j = 0; j < operands.size(); ++j )
+		{
+		auto bc = best(format_expr(*operands[j],
+					ctx.After(col + flat_w)));
+		if ( bc.Lines() > 1 )
+			any_multiline = true;
+
+		if ( j > 0 )
+			{
+			flat += sep;
+			flat_w += sep_w;
+			}
+
+		flat += bc.Fmt();
+		flat_w += bc.Width();
+		}
+
+	int ovf = std::max(0, col + flat_w + trail - ctx.MaxCol());
+	return {std::move(flat), flat_w, ovf == 0 && ! any_multiline};
+	}
+
+// Fill-pack operator-separated operands, wrapping at operator
+// boundaries onto continuation lines.
+struct OpFillResult {
+	Formatting fmt;
+	int col;
+	int lines;
+	int overflow;
+};
+
+static OpFillResult fill_pack_ops(const LayoutVec& operands,
+                                  const Formatting& op,
+                                  const Formatting& sep, int sep_w,
+                                  int max_col, int start_col,
+                                  const FmtContext& cont_ctx,
+                                  const std::string& pad)
+	{
+	Formatting text;
+	int cur_col = start_col;
+	int fill_lines = 0;
+	int fill_ovf = 0;
+
+	for ( size_t j = 0; j < operands.size(); ++j )
+		{
+		FmtContext sub(cont_ctx.Indent(), cur_col, max_col - cur_col);
+		auto bc = best(format_expr(*operands[j], sub));
+		int w = bc.Width();
+
+		if ( j == 0 )
+			{
+			text += bc.Fmt();
+			cur_col += w;
+			}
+		else
+			{
+			int need = bc.Lines() > 1 ? max_col + 1 : sep_w + w;
+
+			if ( cur_col + need <= max_col )
+				{
+				text += sep + bc.Fmt();
+				cur_col += need;
+				}
+			else
+				{
+				text += " " + op + "\n" + pad;
+				cur_col = cont_ctx.Col();
+				++fill_lines;
+
+				FmtContext ws(cont_ctx.Indent(), cur_col,
+						max_col - cur_col);
+				auto wb = best(format_expr(*operands[j], ws));
+				text += wb.Fmt();
+				cur_col += wb.Width();
+				fill_ovf += wb.Ovf();
+				}
+			}
+
+		if ( bc.Lines() > 1 )
+			{
+			fill_lines += bc.Lines() - 1;
+			cur_col = text.LastLineLen();
+			}
+
+		fill_ovf += bc.Ovf();
+		}
+
+	fill_ovf += std::max(0, cur_col - max_col);
+	return {std::move(text), cur_col, fill_lines, fill_ovf};
+	}
+
 Partials LIOpFillR::LayoutStep(Partials& beam, const FmtContext& ctx,
                                int trail) const
 	{
@@ -529,105 +638,30 @@ Partials LIOpFillR::LayoutStep(Partials& beam, const FmtContext& ctx,
 
 	for ( auto& p : beam )
 		{
-		// Try flat.
-		Formatting flat;
-		int flat_w = 0;
-		bool any_multiline = false;
-		for ( size_t j = 0; j < operands.size(); ++j )
-			{
-			auto cs = format_expr(*operands[j],
-						ctx.After(p.col + flat_w));
-			auto bc = best(cs);
-			if ( bc.Lines() > 1 )
-				any_multiline = true;
-
-			if ( j > 0 )
-				{
-				flat += sep;
-				flat_w += sep_w;
-				}
-
-			flat += bc.Fmt();
-			flat_w += bc.Width();
-			}
-
-		int flat_ovf = std::max(0, p.col + flat_w +
-						trail - ctx.MaxCol());
-		if ( flat_ovf == 0 && ! any_multiline )
+		auto fr = try_flat_ops(operands, sep, sep_w, ctx, p.col, trail);
+		if ( fr.fits )
 			{
 			Partial np = p;
-			np.fmt += flat;
-			np.col += flat_w;
+			np.fmt += fr.fmt;
+			np.col += fr.width;
 			np.must_break = false;
 			next.push_back(std::move(np));
 			continue;
 			}
 
-		// Fill: greedy pack with wrap at operator.
 		FmtContext cont_ctx = p.col == ctx.IndentCol() ?
 					ctx.Indented() : ctx.AtCol(p.col);
 		auto pad = line_prefix(cont_ctx.Indent(), cont_ctx.Col());
 
-		Formatting text;
-		int cur_col = p.col;
-		int fill_lines = 0;
-		int fill_ovf = 0;
-
-		for ( size_t j = 0; j < operands.size(); ++j )
-			{
-			FmtContext sub(cont_ctx.Indent(), cur_col,
-					max_col - cur_col);
-			auto bc = best(format_expr(*operands[j], sub));
-			int w = bc.Width();
-
-			if ( j == 0 )
-				{
-				text += bc.Fmt();
-				cur_col += w;
-				}
-			else
-				{
-				int need = bc.Lines() > 1 ?
-						max_col + 1 : sep_w + w;
-
-				if ( cur_col + need <= max_col )
-					{
-					text += sep + bc.Fmt();
-					cur_col += need;
-					}
-				else
-					{
-					text += " " + op + "\n" + pad;
-					cur_col = cont_ctx.Col();
-					++fill_lines;
-
-					FmtContext ws(cont_ctx.Indent(),
-						cur_col, max_col - cur_col);
-					auto wb = best(format_expr(*operands[j], ws));
-					text += wb.Fmt();
-					cur_col += wb.Width();
-					fill_ovf += wb.Ovf();
-					}
-				}
-
-			if ( bc.Lines() > 1 )
-				{
-				fill_lines += bc.Lines() - 1;
-				cur_col = text.LastLineLen();
-				}
-
-			fill_ovf += bc.Ovf();
-			}
-
-		fill_ovf += std::max(0, cur_col - max_col);
+		auto fl = fill_pack_ops(operands, op, sep, sep_w,
+					max_col, p.col, cont_ctx, pad);
 
 		Partial np = p;
-		np.fmt += text;
-		np.col = cur_col;
-		np.lines += fill_lines;
-		np.overflow += fill_ovf;
+		np.fmt += fl.fmt;
+		np.col = fl.col;
+		np.lines += fl.lines;
+		np.overflow += fl.overflow;
 		np.must_break = false;
-
 		next.push_back(std::move(np));
 		}
 
