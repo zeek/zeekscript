@@ -167,6 +167,8 @@ static const std::unordered_map<Tag, LayoutItems> layout_table = {
 		compute(&Node::ComputeFuncBody)}},
 	{Tag::Switch, {0U, " ", compute(&Node::ComputeSwitchExpr), " ", 3U,
 		compute(&Node::ComputeSwitchCases), {HardBreak}, last()}},
+	{Tag::GlobalDecl, {compute_cands(&Node::ComputeDecl)}},
+	{Tag::LocalDecl, {compute_cands(&Node::ComputeDecl)}},
 	{Tag::BoolChain, {op_fill()}},
 	{Tag::Ternary, {flat_split(
 		{FmtStep::EI(0),
@@ -187,8 +189,6 @@ NodePtr MakeNode(Tag tag)
 		return std::make_shared<LayoutNode>(tag, it->second);
 
 	switch ( tag ) {
-	case Tag::GlobalDecl: return std::make_shared<DeclNode>(tag);
-	case Tag::LocalDecl: return std::make_shared<DeclNode>(tag);
 	case Tag::Preproc: return std::make_shared<PreprocNode>();
 	case Tag::PreprocCond: return std::make_shared<PreprocCondNode>();
 	default: return std::make_shared<Node>(tag);

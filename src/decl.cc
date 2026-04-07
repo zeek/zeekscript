@@ -1,5 +1,4 @@
 #include "fmt_util.h"
-#include "stmt.h"
 
 // Declarations: global/local/const/redef name [: type] [= init] [attrs] ;
 
@@ -244,7 +243,8 @@ static void decl_type_split(const DeclParts& d, Candidates& result,
 
 // GLOBAL-DECL/LOCAL-DECL: [0]=KEYWORD [1]=SP [2]=IDENTIFIER
 //   [optional DECL-TYPE, DECL-INIT, ATTR-LIST] SEMI
-Candidates DeclNode::Format(const FmtContext& ctx) const
+Candidates Node::ComputeDecl(ComputeCtx& /*cctx*/,
+                              const FmtContext& ctx) const
 	{
 	auto kw_node = Child(0, Tag::Keyword);
 	auto id_node = Child(2, Tag::Identifier);
@@ -254,14 +254,14 @@ Candidates DeclNode::Format(const FmtContext& ctx) const
 	d.attrs_node = FindOptChild(Tag::AttrList);
 	d.semi_node = FindChild(Tag::Semi);
 
-	if ( auto dt = TypeWrapper() )
+	if ( auto dt = FindOptChild(Tag::DeclType) )
 		{
 		d.colon_node = dt->FindChild(Tag::Colon);
 		if ( auto tc = dt->FindTypeChild() )
 			d.type_node = tc;
 		}
 
-	if ( auto di = InitWrapper() )
+	if ( auto di = FindOptChild(Tag::DeclInit) )
 		{
 		auto assign = di->FindChild(Tag::Assign);
 		d.assign_op = assign->Arg();
