@@ -118,10 +118,11 @@ public:
 	LayoutItem ComputeEnumBody(ComputeCtx& cctx, const FmtContext& ctx) const;
 	LayoutItem ComputeRecordBody(ComputeCtx& cctx, const FmtContext& ctx) const;
 	LayoutItem ComputeElseFollowOn(ComputeCtx& cctx, const FmtContext& ctx) const;
-	Candidates ComputeFuncSig(ComputeCtx& cctx, const FmtContext& ctx) const;
 	LayoutItem ComputeFuncRet(ComputeCtx& cctx, const FmtContext& ctx) const;
+	LayoutItem ComputeFuncAttrs(ComputeCtx& cctx, const FmtContext& ctx) const;
 	LayoutItem ComputeFuncBody(ComputeCtx& cctx, const FmtContext& ctx) const;
-	LayoutItem ComputeLambdaSig(ComputeCtx& cctx, const FmtContext& ctx) const;
+	LayoutItem ComputeLambdaPrefix(ComputeCtx& cctx, const FmtContext& ctx) const;
+	LayoutItem ComputeLambdaRet(ComputeCtx& cctx, const FmtContext& ctx) const;
 	LayoutItem ComputeLambdaBody(ComputeCtx& cctx, const FmtContext& ctx) const;
 	LayoutItem ComputeSwitchExpr(ComputeCtx& cctx, const FmtContext& ctx) const;
 	LayoutItem ComputeSwitchCases(ComputeCtx& cctx, const FmtContext& ctx) const;

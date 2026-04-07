@@ -315,6 +315,21 @@ LayoutItem Node::ComputeFuncRet(ComputeCtx& /*cctx*/,
 		best(format_expr(*rt, ctx)).Fmt();
 	}
 
+// Attribute list for FUNC-DECL: bare attrs or empty.
+LayoutItem Node::ComputeFuncAttrs(ComputeCtx& /*cctx*/,
+                                  const FmtContext& ctx) const
+	{
+	auto attrs = FindOptChild(Tag::AttrList);
+	if ( ! attrs )
+		return Formatting();
+
+	auto as = attrs->FormatAttrList(ctx);
+	if ( as.Empty() )
+		return Formatting();
+
+	return as;
+	}
+
 // Trailing comment + Whitesmith body block for FUNC-DECL.
 LayoutItem Node::ComputeFuncBody(ComputeCtx& /*cctx*/,
                                  const FmtContext& ctx) const
@@ -322,74 +337,6 @@ LayoutItem Node::ComputeFuncBody(ComputeCtx& /*cctx*/,
 	const auto& body = Children().back();
 	return Formatting(body->TrailingComment()) +
 		body->FormatWhitesmithBlock(ctx);
-	}
-
-// Signature candidates for FUNC-DECL: flat and fill layouts
-// for params + return type + attrs.  The beam selects the best.
-// FUNC-DECL: [0]=KEYWORD [1]=SP [2]=IDENTIFIER [3]=PARAMS
-//   [optional COLON, RETURNS, ATTR-LIST] [last]=BODY
-Candidates Node::ComputeFuncSig(ComputeCtx& cctx,
-                                const FmtContext& ctx) const
-	{
-	auto ret_str = ComputeFuncRet(cctx, ctx).Fmt();
-
-	auto params = Child(3, Tag::Params);
-	auto lp = Formatting(params->Child(0, Tag::LParen));
-	auto rp = Formatting(params->Children().back());
-	auto items = collect_args(params->Children());
-
-	// Attribute suffix.
-	std::string attr_str;
-	if ( auto attrs = FindOptChild(Tag::AttrList) )
-		{
-		auto as = attrs->FormatAttrList(ctx);
-		if ( ! as.Empty() )
-			attr_str = " " + as.Str();
-		}
-
-	auto prefix = Formatting(Child(0, Tag::Keyword)) + " " +
-			Child(2, Tag::Identifier);
-	int align_col = ctx.Col() + prefix.Size() + lp.Size();
-	int max_col = ctx.MaxCol();
-	int suffix_w = rp.Size() + ret_str.Size() +
-			static_cast<int>(attr_str.size());
-
-	// --- Candidate 1: flat signature ---
-	FmtContext inner_ctx(ctx.Indent(), align_col,
-			max_col - align_col - suffix_w);
-	auto flat_args = format_args_flat(items, inner_ctx);
-	auto sig = prefix + lp + flat_args.Fmt() + rp + ret_str +
-			attr_str;
-
-	Candidates result;
-	result.push_back(Candidate(sig, ctx));
-
-	if ( result[0].Ovf() <= 0 )
-		return result;
-
-	// --- Candidate 2: fill params + attrs on continuation ---
-	FmtContext fill_ctx(ctx.Indent(), align_col,
-			max_col - align_col);
-	auto fill = format_args_fill(items, align_col, ctx.Indent(),
-			fill_ctx);
-	auto wrapped = prefix + lp + fill.Fmt() + rp + ret_str;
-
-	if ( ! attr_str.empty() )
-		{
-		auto bare_attr = attr_str.substr(1);
-		int aw = static_cast<int>(bare_attr.size());
-		int attr_col = fit_col(align_col, aw, max_col);
-		auto attr_pad = line_prefix(ctx.Indent(), attr_col);
-		wrapped += "\n" + attr_pad + bare_attr;
-		}
-
-	int last_w = wrapped.LastLineLen();
-	int lines = wrapped.CountLines();
-	int overflow = wrapped.TextOverflow(ctx.Col(), max_col);
-	result.push_back({std::move(wrapped), last_w, lines, overflow,
-			ctx.Col()});
-
-	return result;
 	}
 
 // ------------------------------------------------------------------

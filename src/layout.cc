@@ -27,6 +27,7 @@ struct Partial {
 	int lines;
 	int overflow;
 	bool must_break;  // preceding token forces next Sp to break
+	int align_col;    // alignment column set by ArgList for SoftCont
 };
 
 using Partials = std::vector<Partial>;
@@ -95,13 +96,14 @@ static Partials layout_one_item(const LayoutItem& item, Partials& beam,
 			auto close = Formatting(child->Children().back());
 			auto items = collect_args(child->Children());
 			auto& suffix = item.Fmt();
+			auto& prefix = item.Prefix();
 
 			if ( items.empty() )
 				{
+				auto empty_list = prefix + open + close + suffix;
 				Partial np = p;
-				np.fmt += open + close + suffix;
-				np.col += open.Size() + close.Size()
-						+ suffix.Size();
+				np.fmt += empty_list;
+				np.col += empty_list.Size();
 				np.overflow += ovf_at(np.col);
 				np.must_break = false;
 				next.push_back(std::move(np));
@@ -155,12 +157,14 @@ static Partials layout_one_item(const LayoutItem& item, Partials& beam,
 				{
 				if ( ! has_breaks(items) )
 					{
+					int pfx_w = prefix.Size();
 					int open_w = open.Size();
 					int close_w = close.Size();
 					FmtContext ac(sub.Indent(),
-						p.col + open_w,
-						sub.Width() - open_w - close_w);
-					auto flat = open +
+						p.col + pfx_w + open_w,
+						sub.Width() - pfx_w - open_w
+							- close_w);
+					auto flat = prefix + open +
 						format_args_flat(items, ac).Fmt()
 						+ close + suffix;
 					Candidate fc(std::move(flat), sub);
@@ -177,7 +181,7 @@ static Partials layout_one_item(const LayoutItem& item, Partials& beam,
 				     child->FindOptChild(Tag::TrailingComma) )
 					close_pfx = ", ";
 
-				cs = flat_or_fill(Formatting(), open, close,
+				cs = flat_or_fill(prefix, open, close,
 					suffix, items, sub,
 					child->TrailingComment(), close_pfx);
 
@@ -192,12 +196,14 @@ static Partials layout_one_item(const LayoutItem& item, Partials& beam,
 					}
 				}
 
+			int al_col = p.col + prefix.Size() + open.Size();
 			for ( const auto& c : cs )
 				{
 				Partial np = p;
 				np.fmt += c.Fmt();
 				np.overflow += c.Ovf();
 				np.must_break = false;
+				np.align_col = al_col;
 				if ( c.Lines() > 1 )
 					{
 					np.lines += c.Lines() - 1;
@@ -364,6 +370,43 @@ static Partials layout_one_item(const LayoutItem& item, Partials& beam,
 			break;
 			}
 
+		case SoftCont:
+			{
+			auto& f = item.Fmt();
+			if ( f.Empty() )
+				{
+				next.push_back(p);
+				break;
+				}
+
+			// Option 1: inline (space + content).
+			if ( ! p.must_break )
+				{
+				Partial np = p;
+				np.fmt += " " + f;
+				np.col += 1 + f.Size();
+				np.overflow += ovf_at(np.col);
+				np.must_break = false;
+				next.push_back(std::move(np));
+				}
+
+			// Option 2: continuation at arglist alignment column
+			// (or indented if no preceding arglist).
+			{
+			int brk_col = (p.align_col >= 0) ? p.align_col
+				: (p.indent + 1) * INDENT_WIDTH;
+			auto pad = "\n" + line_prefix(p.indent, brk_col);
+			Partial bp = p;
+			bp.fmt += pad + f;
+			bp.col = brk_col + f.Size();
+			++bp.lines;
+			bp.overflow += std::max(0, bp.col - ctx.MaxCol());
+			bp.must_break = false;
+			next.push_back(std::move(bp));
+			}
+			break;
+			}
+
 		case Tok: case ExprIdx: case LastTok: case ArgIdx:
 		case StmtBody: case BodyText: case FillList: case Computed:
 			assert(false);  // resolved before reaching here
@@ -480,6 +523,14 @@ Candidates build_layout(LayoutItems items, const FmtContext& ctx)
 				}
 			else if ( k == Sp )
 				++w;  // space in the flat case
+			else if ( k == SoftCont )
+				{
+				// Conservative: assume inline placement.
+				auto& f = items[j].Fmt();
+				if ( f.Contains('\n') )
+					break;
+				w += 1 + f.Size();
+				}
 			else if ( k == IndentUp || k == IndentDown ||
 				  k == HardBreak )
 				continue;
@@ -490,7 +541,7 @@ Candidates build_layout(LayoutItems items, const FmtContext& ctx)
 		return w;
 		};
 
-	Partials beam = {{Formatting(), ctx.Col(), ctx.Indent(), 1, 0, false}};
+	Partials beam = {{Formatting(), ctx.Col(), ctx.Indent(), 1, 0, false, -1}};
 
 	for ( size_t i = 0; i < items.size(); ++i )
 		beam = layout_one_item(items[i], beam, ctx, trail_after(i));
@@ -530,6 +581,13 @@ Candidates Node::BuildLayout(LayoutItems items, const FmtContext& ctx) const
 			continue;
 			}
 
+		if ( item.kind == SoftCont )
+			{
+			auto result = (this->*item.CompFn())(cctx, ctx);
+			item = LayoutItem(SoftCont, result.Fmt());
+			continue;
+			}
+
 		if ( item.kind == Tok )
 			{
 			auto c = Child(item.ChildIdx());
@@ -546,17 +604,19 @@ Candidates Node::BuildLayout(LayoutItems items, const FmtContext& ctx) const
 		else if ( item.kind == ArgList )
 			{
 			Formatting suffix = item.Fmt();
+			Formatting prefix;
 			int flags = item.Flags();
 			if ( item.CompFn() )
 				suffix = (this->*item.CompFn())(cctx, ctx).Fmt();
-			item = LayoutItem(ArgList, Child(item.ChildIdx()),
-					std::move(suffix));
+			if ( item.PrefixFn() )
+				prefix = (this->*item.PrefixFn())(cctx, ctx).Fmt();
 			if ( flags )
-				{
-				Formatting s = item.Fmt();
-				item = LayoutItem(ArgList, item.LI_Node(),
-					std::move(s), flags);
-				}
+				item = LayoutItem(ArgList, Child(item.ChildIdx()),
+					std::move(prefix), std::move(suffix),
+					flags);
+			else
+				item = LayoutItem(ArgList, Child(item.ChildIdx()),
+					std::move(prefix), std::move(suffix));
 			}
 		else if ( item.kind == FlatSplit )
 			{

@@ -25,8 +25,8 @@ std::string line_prefix(int indent, int col);
 // Layout item kinds.
 enum LIKind { Lit, FmtExpr, Sp, Tok, ExprIdx, LastTok, ArgIdx,
               ArgList, FillList, FlatSplit, Computed, ComputedCands,
-              IndentUp, IndentDown, HardBreak, StmtBody, BodyText,
-              OpFill };
+              IndentUp, IndentDown, HardBreak, SoftCont, StmtBody,
+              BodyText, OpFill };
 
 // Shared context for Computed layout items within a single
 // BuildLayout call.  Earlier compute functions can populate
@@ -206,6 +206,27 @@ public:
 		: kind(k), child_idx(static_cast<int>(child_index)),
 		  compute_fn(fn), must_break(false) {}
 
+	// ArgList with computed prefix and suffix.
+	LayoutItem(LIKind k, unsigned child_index,
+	           ComputeFn prefix_fn, ComputeFn suffix_fn)
+		: kind(k), child_idx(static_cast<int>(child_index)),
+		  compute_fn(suffix_fn), prefix_compute_fn(prefix_fn),
+		  must_break(false) {}
+
+	// Resolved arglist with prefix, suffix, and optional flags.
+	LayoutItem(LIKind k, const NodePtr& n,
+	           Formatting prefix, Formatting suffix)
+		: kind(k), fmt(std::move(suffix)), li_prefix(std::move(prefix)),
+		  node(n), must_break(false) {}
+	LayoutItem(LIKind k, const NodePtr& n,
+	           Formatting prefix, Formatting suffix, int fl)
+		: kind(k), fmt(std::move(suffix)), li_prefix(std::move(prefix)),
+		  node(n), sb_flags(fl), must_break(false) {}
+
+	// Resolved SoftCont: kind + content.
+	LayoutItem(LIKind k, Formatting f)
+		: kind(k), fmt(std::move(f)), must_break(false) {}
+
 	// Resolved OpFill: operator string + operand nodes.
 	LayoutItem(LIKind k, std::string op, NodeVec ops)
 		: kind(k), fmt(std::move(op)),
@@ -221,14 +242,17 @@ public:
 	const std::vector<SplitAt>& Splits() const { return splits; }
 	bool ForceFlatSubs() const { return force_flat; }
 	ComputeFn CompFn() const { return compute_fn; }
+	ComputeFn PrefixFn() const { return prefix_compute_fn; }
 	ComputeCandsFn CompCandsFn() const { return compute_cands_fn; }
 	const NodeVec& Operands() const { return operands; }
 	const Candidates& Cands() const { return cands; }
+	const Formatting& Prefix() const { return li_prefix; }
 
 	void SetMustBreak(bool mb) { must_break = mb; }
 
 private:
 	Formatting fmt;
+	Formatting li_prefix;
 	NodePtr node;
 	NodeVec operands;
 	Candidates cands;
@@ -239,6 +263,7 @@ private:
 	int sb_flags = 0;
 	bool force_flat = false;
 	ComputeFn compute_fn = nullptr;
+	ComputeFn prefix_compute_fn = nullptr;
 	ComputeCandsFn compute_cands_fn = nullptr;
 	bool must_break;	// force next Sp to break (trailing comment)
 	};
@@ -278,6 +303,14 @@ inline LayoutItem arglist(unsigned child_index, ComputeFn suffix_fn)
 inline LayoutItem arglist(unsigned child_index, int flags)
 	{ return {ArgList, child_index, flags}; }
 
+// Bracketed argument list with a computed prefix, passed to
+// flat_or_fill as the prefix argument (e.g. "function" before
+// the param list in a lambda).
+inline LayoutItem arglist_prefix(unsigned child_index,
+                                 ComputeFn prefix_fn,
+                                 ComputeFn suffix_fn = nullptr)
+	{ return {ArgList, child_index, prefix_fn, suffix_fn}; }
+
 // Bare fill list: flat_or_fill on collected args with the first
 // child (keyword) as prefix.  No open/close brackets.
 inline LayoutItem fill_list() { return {FillList}; }
@@ -302,6 +335,12 @@ inline LayoutItem compute(ComputeFn fn) { return {Computed, fn}; }
 // handled in the beam like FmtExpr (each candidate fans out).
 inline LayoutItem compute_cands(ComputeCandsFn fn)
 	{ return {ComputedCands, fn}; }
+
+// Soft continuation: content is placed inline (space + content)
+// or on a continuation line (break + indent + content).  Both
+// options enter the beam; the best is selected by pruning.
+// Empty content is a no-op.
+inline LayoutItem soft_cont(ComputeFn fn) { return {SoftCont, fn}; }
 
 // Operator fill: format content children separated by arg(0),
 // try flat, then greedy-fill with wrap at operator.
