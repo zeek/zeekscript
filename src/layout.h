@@ -24,8 +24,9 @@ std::string line_prefix(int indent, int col);
 
 // Layout item kinds.
 enum LIKind { Lit, FmtExpr, Sp, Tok, ExprIdx, LastTok, ArgIdx,
-              ArgList, FillList, FlatSplit, Computed, IndentUp,
-              IndentDown, HardBreak, StmtBody, BodyText, OpFill };
+              ArgList, FillList, FlatSplit, Computed, ComputedCands,
+              IndentUp, IndentDown, HardBreak, StmtBody, BodyText,
+              OpFill };
 
 // Shared context for Computed layout items within a single
 // BuildLayout call.  Earlier compute functions can populate
@@ -36,6 +37,7 @@ struct ComputeCtx {
 
 class LayoutItem;
 using ComputeFn = LayoutItem (Node::*)(ComputeCtx&, const FmtContext&) const;
+using ComputeCandsFn = Candidates (Node::*)(ComputeCtx&, const FmtContext&) const;
 
 // A piece in a flat-or-split sequence.
 class FmtStep {
@@ -191,6 +193,14 @@ public:
 	LayoutItem(LIKind k, ComputeFn fn)
 		: kind(k), compute_fn(fn), must_break(false) {}
 
+	// ComputedCands: calls a member function that returns Candidates.
+	LayoutItem(LIKind k, ComputeCandsFn fn)
+		: kind(k), compute_cands_fn(fn), must_break(false) {}
+
+	// Resolved ComputedCands: holds pre-computed Candidates.
+	LayoutItem(LIKind k, Candidates cs)
+		: kind(k), cands(std::move(cs)), must_break(false) {}
+
 	// ArgList with computed suffix.
 	LayoutItem(LIKind k, unsigned child_index, ComputeFn fn)
 		: kind(k), child_idx(static_cast<int>(child_index)),
@@ -211,7 +221,9 @@ public:
 	const std::vector<SplitAt>& Splits() const { return splits; }
 	bool ForceFlatSubs() const { return force_flat; }
 	ComputeFn CompFn() const { return compute_fn; }
+	ComputeCandsFn CompCandsFn() const { return compute_cands_fn; }
 	const NodeVec& Operands() const { return operands; }
+	const Candidates& Cands() const { return cands; }
 
 	void SetMustBreak(bool mb) { must_break = mb; }
 
@@ -219,6 +231,7 @@ private:
 	Formatting fmt;
 	NodePtr node;
 	NodeVec operands;
+	Candidates cands;
 	FmtSteps steps;
 	std::vector<SplitAt> splits;
 	int child_idx = -1;
@@ -226,6 +239,7 @@ private:
 	int sb_flags = 0;
 	bool force_flat = false;
 	ComputeFn compute_fn = nullptr;
+	ComputeCandsFn compute_cands_fn = nullptr;
 	bool must_break;	// force next Sp to break (trailing comment)
 	};
 
@@ -283,6 +297,11 @@ inline LayoutItem body_text(unsigned child_index)
 // Computed value: calls a member function on the node during
 // BuildLayout resolution, replacing itself with the result.
 inline LayoutItem compute(ComputeFn fn) { return {Computed, fn}; }
+
+// Computed candidates: calls a member function returning Candidates,
+// handled in the beam like FmtExpr (each candidate fans out).
+inline LayoutItem compute_cands(ComputeCandsFn fn)
+	{ return {ComputedCands, fn}; }
 
 // Operator fill: format content children separated by arg(0),
 // try flat, then greedy-fill with wrap at operator.

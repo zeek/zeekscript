@@ -118,6 +118,7 @@ public:
 	LayoutItem ComputeEnumBody(ComputeCtx& cctx, const FmtContext& ctx) const;
 	LayoutItem ComputeRecordBody(ComputeCtx& cctx, const FmtContext& ctx) const;
 	LayoutItem ComputeElseFollowOn(ComputeCtx& cctx, const FmtContext& ctx) const;
+	Candidates ComputeFuncSig(ComputeCtx& cctx, const FmtContext& ctx) const;
 	LayoutItem ComputeFuncRet(ComputeCtx& cctx, const FmtContext& ctx) const;
 	LayoutItem ComputeFuncBody(ComputeCtx& cctx, const FmtContext& ctx) const;
 

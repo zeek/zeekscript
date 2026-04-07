@@ -324,13 +324,14 @@ LayoutItem Node::ComputeFuncBody(ComputeCtx& /*cctx*/,
 		body->FormatWhitesmithBlock(ctx);
 	}
 
+// Signature candidates for FUNC-DECL: flat and fill layouts
+// for params + return type + attrs.  The beam selects the best.
 // FUNC-DECL: [0]=KEYWORD [1]=SP [2]=IDENTIFIER [3]=PARAMS
 //   [optional COLON, RETURNS, ATTR-LIST] [last]=BODY
-Candidates FuncDeclNode::Format(const FmtContext& ctx) const
+Candidates Node::ComputeFuncSig(ComputeCtx& cctx,
+                                const FmtContext& ctx) const
 	{
-	ComputeCtx cctx;
 	auto ret_str = ComputeFuncRet(cctx, ctx).Fmt();
-	auto body_fmt = ComputeFuncBody(cctx, ctx).Fmt();
 
 	auto params = Child(3, Tag::Params);
 	auto lp = Formatting(params->Child(0, Tag::LParen));
@@ -361,7 +362,7 @@ Candidates FuncDeclNode::Format(const FmtContext& ctx) const
 			attr_str;
 
 	Candidates result;
-	result.push_back(Candidate(sig + body_fmt, ctx));
+	result.push_back(Candidate(sig, ctx));
 
 	if ( result[0].Ovf() <= 0 )
 		return result;
@@ -381,8 +382,6 @@ Candidates FuncDeclNode::Format(const FmtContext& ctx) const
 		auto attr_pad = line_prefix(ctx.Indent(), attr_col);
 		wrapped += "\n" + attr_pad + bare_attr;
 		}
-
-	wrapped += body_fmt;
 
 	int last_w = wrapped.LastLineLen();
 	int lines = wrapped.CountLines();

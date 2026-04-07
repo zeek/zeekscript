@@ -344,6 +344,26 @@ static Partials layout_one_item(const LayoutItem& item, Partials& beam,
 			break;
 			}
 
+		case ComputedCands:
+			{
+			for ( const auto& c : item.Cands() )
+				{
+				Partial np = p;
+				np.fmt += c.Fmt();
+				np.overflow += c.Ovf();
+				np.must_break = false;
+				if ( c.Lines() > 1 )
+					{
+					np.lines += c.Lines() - 1;
+					np.col = c.Width();
+					}
+				else
+					np.col += c.Width();
+				next.push_back(std::move(np));
+				}
+			break;
+			}
+
 		case Tok: case ExprIdx: case LastTok: case ArgIdx:
 		case StmtBody: case BodyText: case FillList: case Computed:
 			assert(false);  // resolved before reaching here
@@ -499,6 +519,14 @@ Candidates Node::BuildLayout(LayoutItems items, const FmtContext& ctx) const
 		if ( item.kind == Computed )
 			{
 			item = (this->*item.CompFn())(cctx, ctx);
+			continue;
+			}
+
+		if ( item.kind == ComputedCands )
+			{
+			auto fn = item.CompCandsFn();
+			auto cs = (this->*fn)(cctx, ctx);
+			item = LayoutItem(ComputedCands, std::move(cs));
 			continue;
 			}
 

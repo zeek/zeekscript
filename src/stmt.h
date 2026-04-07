@@ -52,14 +52,6 @@ public:
 		{ return FindOptChild(Tag::DeclInit); }
 };
 
-// Function/event/hook declarations
-
-class FuncDeclNode : public StmtNode {
-public:
-	FuncDeclNode(Tag t = Tag::FuncDecl) : StmtNode(t) { }
-	Candidates Format(const FmtContext& ctx) const override;
-};
-
 // Switch statement: switch expr { case val: body ... }
 
 class SwitchNode : public StmtNode {
