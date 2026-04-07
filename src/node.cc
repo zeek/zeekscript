@@ -4,7 +4,6 @@
 
 #include "node.h"
 #include "layout.h"
-#include "stmt.h"
 
 Candidates Node::Format(const FmtContext& ctx) const
 	{
@@ -188,11 +187,7 @@ NodePtr MakeNode(Tag tag)
 	if ( it != layout_table.end() )
 		return std::make_shared<LayoutNode>(tag, it->second);
 
-	switch ( tag ) {
-	case Tag::Preproc: return std::make_shared<PreprocNode>();
-	case Tag::PreprocCond: return std::make_shared<PreprocCondNode>();
-	default: return std::make_shared<Node>(tag);
-	}
+	return std::make_shared<Node>(tag);
 	}
 
 static const std::unordered_map<Tag, const char*> token_syntax = {

@@ -17,7 +17,7 @@ $(TARGET): $(OBJS)
 
 # Header dependencies
 main.o: cand.h fmt_context.h layout.h formatting.h node.h parser.h tag.h
-node.o: cand.h fmt_context.h layout.h formatting.h node.h stmt.h tag.h
+node.o: cand.h fmt_context.h layout.h formatting.h node.h tag.h
 parser.o: cand.h formatting.h node.h parser.h tag.h
 tag.o: tag.h
 formatting.o: fmt_context.h formatting.h node.h
@@ -25,11 +25,11 @@ cand.o: cand.h fmt_context.h formatting.h node.h
 core.o: cand.h fmt_context.h fmt_util.h layout.h formatting.h node.h tag.h
 layout.o: cand.h fmt_context.h fmt_util.h layout.h formatting.h node.h tag.h
 flat_split.o: cand.h flat_split.h fmt_context.h fmt_util.h layout.h formatting.h node.h tag.h
-fmt_util.o: cand.h fmt_context.h fmt_util.h layout.h formatting.h node.h stmt.h tag.h
+fmt_util.o: cand.h fmt_context.h fmt_util.h layout.h formatting.h node.h tag.h
 expr.o: cand.h fmt_context.h fmt_util.h layout.h formatting.h node.h tag.h
 type.o: cand.h fmt_context.h fmt_util.h layout.h formatting.h node.h tag.h
-decl.o: cand.h fmt_context.h fmt_util.h layout.h formatting.h node.h stmt.h tag.h
-stmt.o: cand.h fmt_context.h fmt_util.h layout.h formatting.h node.h stmt.h tag.h
+decl.o: cand.h fmt_context.h fmt_util.h layout.h formatting.h node.h tag.h
+stmt.o: cand.h fmt_context.h fmt_util.h layout.h formatting.h node.h tag.h
 top.o: cand.h fmt_context.h fmt_util.h layout.h formatting.h node.h tag.h
 condition_block.o: cand.h fmt_context.h fmt_util.h layout.h formatting.h node.h tag.h
 

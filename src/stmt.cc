@@ -1,5 +1,4 @@
 #include "fmt_util.h"
-#include "stmt.h"
 
 // Switch statement: switch expr { case val: body ... }
 static void append_case_body(const NodePtr& body, Formatting& result,
@@ -120,37 +119,33 @@ LayoutItem Node::ComputeSwitchCases(ComputeCtx& /*cctx*/,
 	return result;
 	}
 
-// PreprocBaseNode methods.  PREPROC-COND (@if/@ifdef/@ifndef) always
-// opens depth and sits at column 0.  Plain PREPROC checks the
-// directive string for @else/@endif.
-
-FmtPtr PreprocNode::FormatText() const
+// Preprocessor directive formatting.  PREPROC-COND has children
+// [0]=LPAREN [1]=RPAREN; plain PREPROC has only args.
+FmtPtr Node::FormatText() const
 	{
 	const auto& directive = Arg(0);
-	const auto& arg = Arg(1);
+	const auto& a = Arg(1);
 
-	if ( arg.empty() )
+	if ( GetTag() == Tag::PreprocCond )
+		{
+		auto result = Formatting(directive + " ") +
+				Child(0, Tag::LParen) + " " + a + " " +
+				Child(1, Tag::RParen);
+		return std::make_shared<Formatting>(std::move(result));
+		}
+
+	if ( a.empty() )
 		return std::make_shared<Formatting>(directive);
 
-	return std::make_shared<Formatting>(directive + " " + arg);
+	return std::make_shared<Formatting>(directive + " " + a);
 	}
 
-// Children: [0]=LPAREN [1]=RPAREN
-FmtPtr PreprocCondNode::FormatText() const
-	{
-	const auto& directive = Arg(0);
-	const auto& arg = Arg(1);
-	auto result = Formatting(directive + " ") + Child(0, Tag::LParen) +
-			" " + arg + " " + Child(1, Tag::RParen);
-	return std::make_shared<Formatting>(std::move(result));
-	}
-
-bool PreprocBaseNode::OpensDepth() const
+bool Node::OpensDepth() const
 	{
 	return GetTag() == Tag::PreprocCond || Arg(0) == "@else";
 	}
 
-bool PreprocBaseNode::ClosesDepth() const
+bool Node::ClosesDepth() const
 	{
 	if ( GetTag() == Tag::PreprocCond )
 		return false;
@@ -158,7 +153,7 @@ bool PreprocBaseNode::ClosesDepth() const
 	return d == "@else" || d == "@endif";
 	}
 
-bool PreprocBaseNode::AtColumnZero() const
+bool Node::AtColumnZero() const
 	{
 	if ( GetTag() == Tag::PreprocCond )
 		return true;

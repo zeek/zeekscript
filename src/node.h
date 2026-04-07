@@ -140,6 +140,12 @@ public:
 	// Format a Whitesmith-style braced block.
 	Formatting FormatWhitesmithBlock(const FmtContext& ctx) const;
 
+	// Preprocessor directive formatting and depth control.
+	FmtPtr FormatText() const;
+	bool OpensDepth() const;
+	bool ClosesDepth() const;
+	bool AtColumnZero() const;
+
 	// Debug: print tree to stdout.
 	void Dump(int indent = 0) const;
 

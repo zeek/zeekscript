@@ -1,7 +1,6 @@
 #include <algorithm>
 
 #include "fmt_util.h"
-#include "stmt.h"
 
 // ------------------------------------------------------------------
 // Overflow and text measurement helpers
@@ -518,9 +517,7 @@ Formatting format_stmt_list(const NodeVec& nodes, const FmtContext& ctx,
 		// Preprocessor directives.
 		if ( t == Tag::Preproc || t == Tag::PreprocCond )
 			{
-			auto& pp = static_cast<const PreprocBaseNode&>(node);
-
-			if ( pp.ClosesDepth() )
+			if ( node.ClosesDepth() )
 				{
 				--preproc_depth;
 				int new_indent = preproc_depth;
@@ -530,12 +527,12 @@ Formatting format_stmt_list(const NodeVec& nodes, const FmtContext& ctx,
 				pad = line_prefix(new_indent, new_col);
 				}
 
-			if ( pp.AtColumnZero() )
-				result += pp.FormatText() + "\n";
+			if ( node.AtColumnZero() )
+				result += node.FormatText() + "\n";
 			else
-				result += pad + pp.FormatText() + "\n";
+				result += pad + node.FormatText() + "\n";
 
-			if ( pp.OpensDepth() )
+			if ( node.OpensDepth() )
 				{
 				++preproc_depth;
 				int new_indent = preproc_depth;
