@@ -28,6 +28,19 @@ Candidates format_expr(const Layout& node, const FmtContext& ctx);
 // *only* place tabs appear.
 std::string line_prefix(int indent, int col);
 
+// Beam search partial result.
+struct Partial {
+	Formatting fmt;
+	int col;      // current column (end of last line)
+	int indent;   // current indent level
+	int lines;
+	int overflow;
+	bool must_break;  // preceding token forces next Sp to break
+	int align_col;    // alignment column set by ArgList for SoftCont
+};
+
+using Partials = std::vector<Partial>;
+
 // Layout combinator
 
 // Layout item kinds.
@@ -160,14 +173,20 @@ enum SBFlag {
 	SB_RelocComment = 8,  // relocate close-brace trailing comment
 };
 
-// A component in a layout specification.  Implicit constructors
-// let callers mix child indices, node pointers, strings, and
-// SP markers freely:
-//   BuildLayout({0U, soft_sp, Child(2), soft_sp, 3}, ctx)
+// Base class for layout items.  Resolution items (Tok, ExprIdx,
+// computed kinds, etc.) use the base class directly.  Beam items
+// (Lit, Sp, ArgList, etc.) are subclasses that override LayoutStep.
 class LayoutItem
 	{
 public:
 	LIKind kind;
+	virtual ~LayoutItem() = default;
+
+	// Beam search step: process this item against the current beam.
+	// Default asserts - resolution items must be resolved before
+	// the beam runs.
+	virtual Partials LayoutStep(Partials& beam,
+		const FmtContext& ctx, int trail) const;
 
 	// Literal text.
 	LayoutItem(const std::string& s)
@@ -285,7 +304,7 @@ public:
 
 	void SetMustBreak(bool mb) { must_break = mb; }
 
-private:
+protected:
 	Formatting fmt;
 	Formatting li_prefix;
 	LayoutPtr node;
@@ -302,86 +321,231 @@ private:
 	bool must_break;	// force next Sp to break (trailing comment)
 	};
 
-extern const LayoutItem soft_sp;
-extern const LayoutItem hard_break;
-extern const LayoutItem indent_up;
-extern const LayoutItem indent_down;
+using LIPtr = std::shared_ptr<LayoutItem>;
+using LayoutItems = std::vector<LIPtr>;
+
+// ---- Beam item subclasses ------------------------------------------------
+// Each overrides LayoutStep to implement its beam search behavior.
+// Implementations are in layout.cc.
+
+class LILit : public LayoutItem {
+public:
+	LILit(const Formatting& f) : LayoutItem(f) {}
+	LILit(Formatting&& f) : LayoutItem(std::move(f)) {}
+	Partials LayoutStep(Partials& beam, const FmtContext& ctx,
+		int trail) const override;
+};
+
+class LIExpr : public LayoutItem {
+public:
+	LIExpr(const LayoutPtr& n) : LayoutItem(n) {}
+	Partials LayoutStep(Partials& beam, const FmtContext& ctx,
+		int trail) const override;
+};
+
+class LISp : public LayoutItem {
+public:
+	LISp() : LayoutItem(Sp) {}
+	Partials LayoutStep(Partials& beam, const FmtContext& ctx,
+		int trail) const override;
+};
+
+class LIHardBreak : public LayoutItem {
+public:
+	LIHardBreak() : LayoutItem(HardBreak) {}
+	Partials LayoutStep(Partials& beam, const FmtContext& ctx,
+		int trail) const override;
+};
+
+class LIIndentUp : public LayoutItem {
+public:
+	LIIndentUp() : LayoutItem(IndentUp) {}
+	Partials LayoutStep(Partials& beam, const FmtContext& ctx,
+		int trail) const override;
+};
+
+class LIIndentDown : public LayoutItem {
+public:
+	LIIndentDown() : LayoutItem(IndentDown) {}
+	LIIndentDown(const LayoutPtr& n)
+		: LayoutItem(IndentDown, n, Formatting()) {}
+	Partials LayoutStep(Partials& beam, const FmtContext& ctx,
+		int trail) const override;
+};
+
+// "R" = Resolved: these items hold fully resolved data (child nodes,
+// formatted suffixes, etc.) produced by BuildLayout's resolution phase.
+// Their unresolved counterparts live in the layout table as base
+// LayoutItem instances and are replaced with these during resolution.
+
+class LIArgListR : public LayoutItem {
+public:
+	LIArgListR(const LayoutPtr& n, Formatting suffix)
+		: LayoutItem(ArgList, n, std::move(suffix)) {}
+	LIArgListR(const LayoutPtr& n, Formatting suffix, int fl)
+		: LayoutItem(ArgList, n, std::move(suffix), fl) {}
+	LIArgListR(const LayoutPtr& n, Formatting prefix, Formatting suffix)
+		: LayoutItem(ArgList, n, std::move(prefix),
+			std::move(suffix)) {}
+	LIArgListR(const LayoutPtr& n, Formatting prefix,
+	           Formatting suffix, int fl)
+		: LayoutItem(ArgList, n, std::move(prefix),
+			std::move(suffix), fl) {}
+	Partials LayoutStep(Partials& beam, const FmtContext& ctx,
+		int trail) const override;
+};
+
+class LIOpFillR : public LayoutItem {
+public:
+	LIOpFillR(std::string op, LayoutVec ops)
+		: LayoutItem(OpFill, std::move(op), std::move(ops)) {}
+	Partials LayoutStep(Partials& beam, const FmtContext& ctx,
+		int trail) const override;
+};
+
+class LIFlatSplitR : public LayoutItem {
+public:
+	LIFlatSplitR(FmtSteps s, std::vector<SplitAt> sp,
+	             bool ff = false)
+		: LayoutItem(std::move(s), std::move(sp), ff) {}
+	Partials LayoutStep(Partials& beam, const FmtContext& ctx,
+		int trail) const override;
+};
+
+class LIDeclCandsR : public LayoutItem {
+public:
+	LIDeclCandsR(Candidates cs)
+		: LayoutItem(DeclCands, std::move(cs)) {}
+	Partials LayoutStep(Partials& beam, const FmtContext& ctx,
+		int trail) const override;
+};
+
+class LISoftContR : public LayoutItem {
+public:
+	LISoftContR(Formatting f) : LayoutItem(SoftCont, std::move(f)) {}
+	Partials LayoutStep(Partials& beam, const FmtContext& ctx,
+		int trail) const override;
+};
+
+// ---- Factory functions ---------------------------------------------------
 
 // Token literal: wraps the node in a lazy Formatting piece and
 // forces the next soft_sp to break if it has a trailing comment.
-LayoutItem tok(const LayoutPtr& n);
+LIPtr tok(const LayoutPtr& n);
+
+// Token by child index: resolved by BuildLayout into a Lit via tok().
+// Use 0U for child 0 to avoid null-pointer ambiguity.
+inline LIPtr tok(unsigned child_index)
+	{ return std::make_shared<LayoutItem>(child_index); }
+
+// Sub-child token: tok(parent_idx, child_idx) resolves to
+// tok(Child(parent_idx)->Child(child_idx)).
+inline LIPtr tok(unsigned parent_index, unsigned sub_index)
+	{ return std::make_shared<LayoutItem>(parent_index, sub_index); }
+
+// Literal text.
+inline LIPtr lit(const char* s)
+	{ return std::make_shared<LILit>(Formatting(s)); }
+inline LIPtr lit(const std::string& s)
+	{ return std::make_shared<LILit>(Formatting(s)); }
+inline LIPtr lit(const Formatting& f) { return std::make_shared<LILit>(f); }
+inline LIPtr lit(Formatting&& f)
+	{ return std::make_shared<LILit>(std::move(f)); }
+
+// Soft space: beam explores both " " and newline+indent.
+inline LIPtr sp() { return std::make_shared<LISp>(); }
+
+// Hard break: unconditional newline + indent.
+inline LIPtr hard_brk() { return std::make_shared<LIHardBreak>(); }
+
+// Indent control.
+inline LIPtr indent_up() { return std::make_shared<LIIndentUp>(); }
+inline LIPtr indent_down() { return std::make_shared<LayoutItem>(IndentDown); }
 
 // Expression child by index: resolved by BuildLayout into a Fmt
 // item via Child(n).  Parallel to integer Tok shorthand but the
 // child is formatted as an expression (producing candidates).
-inline LayoutItem expr(unsigned child_index) { return {ExprIdx, child_index}; }
+inline LIPtr expr(unsigned child_index)
+	{ return std::make_shared<LayoutItem>(ExprIdx, child_index); }
 
 // Last child as token: resolved by BuildLayout into
 // tok(Children().back()).
-inline LayoutItem last() { return {LastTok}; }
+inline LIPtr last()
+	{ return std::make_shared<LayoutItem>(LastTok); }
 
 // Layout argument by index: resolved by BuildLayout into
 // Formatting(Arg(n)) as a literal.
-inline LayoutItem arg(unsigned arg_index) { return {ArgIdx, arg_index}; }
+inline LIPtr arg(unsigned arg_index)
+	{ return std::make_shared<LayoutItem>(ArgIdx, arg_index); }
+
+// Computed layout item: resolved by BuildLayout via dispatch.
+inline LIPtr computed(LIKind k)
+	{ return std::make_shared<LayoutItem>(k); }
 
 // Bracketed argument list: child at child_index is expected to have
 // open/close brackets as first/last children.  Resolved by BuildLayout
 // and handled in the beam via flat_or_fill.  Optional suffix is
 // appended after the close bracket (e.g. return type).
-inline LayoutItem arglist(unsigned child_index)
-	{ return {ArgList, child_index}; }
-inline LayoutItem arglist(unsigned child_index, Formatting suffix)
-	{ return {ArgList, child_index, std::move(suffix)}; }
-inline LayoutItem arglist(unsigned child_index, LIKind suffix)
-	{ return {ArgList, child_index, suffix}; }
-inline LayoutItem arglist(unsigned child_index, int flags)
-	{ return {ArgList, child_index, flags}; }
+inline LIPtr arglist(unsigned child_index)
+	{ return std::make_shared<LayoutItem>(ArgList, child_index); }
+inline LIPtr arglist(unsigned child_index, Formatting suffix)
+	{ return std::make_shared<LayoutItem>(ArgList, child_index,
+		std::move(suffix)); }
+inline LIPtr arglist(unsigned child_index, LIKind suffix)
+	{ return std::make_shared<LayoutItem>(ArgList, child_index, suffix); }
+inline LIPtr arglist(unsigned child_index, int flags)
+	{ return std::make_shared<LayoutItem>(ArgList, child_index, flags); }
 
 // Bracketed argument list with a computed prefix, passed to
 // flat_or_fill as the prefix argument (e.g. "function" before
 // the param list in a lambda).
-inline LayoutItem arglist_prefix(unsigned child_index,
-                                 LIKind prefix, LIKind suffix = Lit)
-	{ return {ArgList, child_index, prefix, suffix}; }
+inline LIPtr arglist_prefix(unsigned child_index,
+                            LIKind prefix, LIKind suffix = Lit)
+	{
+	return std::make_shared<LayoutItem>(ArgList, child_index,
+						prefix, suffix);
+	}
 
 // Bare fill list: flat_or_fill on collected args with the first
 // child (keyword) as prefix.  No open/close brackets.
-inline LayoutItem fill_list() { return {FillList}; }
+inline LIPtr fill_list() { return std::make_shared<LayoutItem>(FillList); }
 
 // Statement body: formats children as a statement list at the
 // current indent level, prepending "\n".  Default selects non-token
 // children; SB_AllChildren selects all.  Use SBFlag for options.
-inline LayoutItem stmt_body(int flags = 0) { return {StmtBody, flags}; }
-inline LayoutItem stmt_body(unsigned child_index, int flags = 0)
-	{ return {StmtBody, child_index, flags}; }
+inline LIPtr stmt_body(int flags = 0)
+	{ return std::make_shared<LayoutItem>(StmtBody, flags); }
+inline LIPtr stmt_body(unsigned child_index, int flags = 0)
+	{ return std::make_shared<LayoutItem>(StmtBody, child_index, flags); }
 
 // Body text: formats a BODY child via FormatBodyText (Whitesmith
 // block if braced, indented single statement otherwise).
-inline LayoutItem body_text(unsigned child_index)
-	{ return {BodyText, child_index}; }
+inline LIPtr body_text(unsigned child_index)
+	{ return std::make_shared<LayoutItem>(BodyText, child_index); }
 
 // Soft continuation: content is placed inline (space + content)
 // or on a continuation line (break + indent + content).  Both
 // options enter the beam; the best is selected by pruning.
 // Empty content is a no-op.
-inline LayoutItem soft_cont(LIKind op)
-	{ return {SoftCont, 0U, op}; }
+inline LIPtr soft_cont(LIKind op)
+	{ return std::make_shared<LayoutItem>(SoftCont, 0U, op); }
 
 // Operator fill: format content children separated by arg(0),
 // try flat, then greedy-fill with wrap at operator.
-inline LayoutItem op_fill() { return {OpFill}; }
+inline LIPtr op_fill() { return std::make_shared<LayoutItem>(OpFill); }
 
 // Flat-or-split with deferred child references: FmtStep::EI(n)
 // and FmtStep::TI(n) are resolved during BuildLayout.
-inline LayoutItem flat_split(FmtSteps s, std::vector<SplitAt> sp,
-                             bool ff = false)
-	{ return {std::move(s), std::move(sp), ff}; }
+inline LIPtr flat_split(FmtSteps s, std::vector<SplitAt> sp,
+                        bool ff = false)
+	{
+	return std::make_shared<LayoutItem>(std::move(s), std::move(sp), ff);
+	}
 
 // Build layout candidates from a sequence of components using
 // beam search.  At each Fmt node, all of its candidates are tried;
 // at each soft_sp, both "space" and "break + indent" are tried.
 // The beam is pruned to the best candidates at each step.
-using LayoutItems = std::vector<LayoutItem>;
 Candidates build_layout(LayoutItems items, const FmtContext& ctx);
 
 // A node in the representation tree.  Each node has:
@@ -405,8 +569,8 @@ public:
 
 	Candidates Format(const FmtContext& ctx) const;
 
-	// Layout combinator: resolves integer LayoutItems as tok(Child(i))
-	// before delegating to the beam-search layout engine.
+	// Layout combinator: resolves LayoutItems (tokens, computed
+	// kinds, etc.) before delegating to the beam-search engine.
 	Candidates BuildLayout(LayoutItems items,
 	                       const FmtContext& ctx) const;
 
@@ -489,20 +653,20 @@ public:
 	const LayoutPtr& FindTypeChild() const;
 
 	// Compute functions for declarative BuildLayout resolution.
-	LayoutItem ComputeRetType(const FmtContext& ctx) const;
-	LayoutItem ComputeParamType(const FmtContext& ctx) const;
-	LayoutItem ComputeOfType(const FmtContext& ctx) const;
-	LayoutItem ComputeEnumBody(const FmtContext& ctx) const;
-	LayoutItem ComputeRecordBody(const FmtContext& ctx) const;
-	LayoutItem ComputeElseFollowOn(const FmtContext& ctx) const;
-	LayoutItem ComputeFuncRet(const FmtContext& ctx) const;
-	LayoutItem ComputeFuncAttrs(const FmtContext& ctx) const;
-	LayoutItem ComputeFuncBody(const FmtContext& ctx) const;
-	LayoutItem ComputeLambdaPrefix(const FmtContext& ctx) const;
-	LayoutItem ComputeLambdaRet(const FmtContext& ctx) const;
-	LayoutItem ComputeLambdaBody(const FmtContext& ctx) const;
-	LayoutItem ComputeSwitchExpr(const FmtContext& ctx) const;
-	LayoutItem ComputeSwitchCases(const FmtContext& ctx) const;
+	LIPtr ComputeRetType(const FmtContext& ctx) const;
+	LIPtr ComputeParamType(const FmtContext& ctx) const;
+	LIPtr ComputeOfType(const FmtContext& ctx) const;
+	LIPtr ComputeEnumBody(const FmtContext& ctx) const;
+	LIPtr ComputeRecordBody(const FmtContext& ctx) const;
+	LIPtr ComputeElseFollowOn(const FmtContext& ctx) const;
+	LIPtr ComputeFuncRet(const FmtContext& ctx) const;
+	LIPtr ComputeFuncAttrs(const FmtContext& ctx) const;
+	LIPtr ComputeFuncBody(const FmtContext& ctx) const;
+	LIPtr ComputeLambdaPrefix(const FmtContext& ctx) const;
+	LIPtr ComputeLambdaRet(const FmtContext& ctx) const;
+	LIPtr ComputeLambdaBody(const FmtContext& ctx) const;
+	LIPtr ComputeSwitchExpr(const FmtContext& ctx) const;
+	LIPtr ComputeSwitchCases(const FmtContext& ctx) const;
 	Candidates ComputeDecl(const FmtContext& ctx) const;
 
 	// Format an ATTR-LIST node as a single string.

@@ -221,505 +221,531 @@ void Layout::Dump(int indent) const
 
 // ---- Beam search engine --------------------------------------------------
 
-// Layout combinator
-
-const LayoutItem soft_sp{Sp};
-const LayoutItem hard_break{HardBreak};
-const LayoutItem indent_up{IndentUp};
-const LayoutItem indent_down{IndentDown};
-
-LayoutItem tok(const LayoutPtr& n)
+LIPtr tok(const LayoutPtr& n)
 	{
-	LayoutItem item{Formatting(n)};
-	item.SetMustBreak(n->MustBreakAfter());
+	auto item = std::make_shared<LILit>(Formatting(n));
+	item->SetMustBreak(n->MustBreakAfter());
 	return item;
 	}
 
 static constexpr int BEAM_WIDTH = 4;
 
-struct Partial {
-	Formatting fmt;
-	int col;      // current column (end of last line)
-	int indent;   // current indent level
-	int lines;
-	int overflow;
-	bool must_break;  // preceding token forces next Sp to break
-	int align_col;    // alignment column set by ArgList for SoftCont
-};
+// Default LayoutStep: asserts - resolution items must be resolved
+// before the beam runs.
+Partials LayoutItem::LayoutStep(Partials&, const FmtContext&, int) const
+	{
+	assert(false);
+	return {};
+	}
 
-using Partials = std::vector<Partial>;
+// ---- LayoutStep implementations -----------------------------------------
 
-static Partials layout_one_item(const LayoutItem& item, Partials& beam,
-				const FmtContext& ctx, int trail)
+Partials LILit::LayoutStep(Partials& beam, const FmtContext& ctx,
+                           int) const
 	{
 	Partials next;
+	for ( auto& p : beam )
+		{
+		Partial np = p;
+		const auto& f = Fmt();
+		np.fmt += f;
+		int nl = f.CountLines() - 1;
+		if ( nl > 0 )
+			{
+			np.lines += nl;
+			np.col = f.LastLineLen();
+			np.overflow += f.MaxLineOverflow(p.col, ctx.MaxCol());
+			}
+		else
+			{
+			np.col += f.Size();
+			np.overflow += std::max(0, np.col - ctx.MaxCol());
+			}
+		np.must_break = MustBreak();
+		next.push_back(std::move(np));
+		}
+	return next;
+	}
 
-	auto ovf_at = [&](int c)
-		{ return std::max(0, c - ctx.MaxCol()); };
+Partials LIExpr::LayoutStep(Partials& beam, const FmtContext& ctx,
+                             int trail) const
+	{
+	Partials next;
+	for ( auto& p : beam )
+		{
+		int avail = ctx.MaxCol() - p.col;
+		FmtContext sub(ctx.Indent(), p.col, avail, trail);
+		auto cs = format_expr(*LI_Node(), sub);
+		for ( const auto& c : cs )
+			{
+			Partial np = p;
+			np.fmt += c.Fmt();
+			np.overflow += c.Ovf();
+			np.must_break = false;
+			if ( c.Lines() > 1 )
+				{
+				np.lines += c.Lines() - 1;
+				np.col = c.Width();
+				}
+			else
+				np.col += c.Width();
+			next.push_back(std::move(np));
+			}
+		}
+	return next;
+	}
+
+Partials LISp::LayoutStep(Partials& beam, const FmtContext&, int) const
+	{
+	Partials next;
+	for ( auto& p : beam )
+		{
+		// Option 1: space (skip if preceding token forces a break).
+		if ( ! p.must_break )
+			{
+			Partial s = p;
+			s.fmt += " ";
+			++s.col;
+			s.must_break = false;
+			next.push_back(std::move(s));
+			}
+
+		// Option 2: break + indent.
+		int brk_indent = p.indent + 1;
+		int brk_col = brk_indent * INDENT_WIDTH;
+		auto pad = "\n" + line_prefix(brk_indent, brk_col);
+		Partial bp = p;
+		bp.fmt += pad;
+		bp.col = brk_col;
+		++bp.lines;
+		bp.must_break = false;
+		next.push_back(std::move(bp));
+		}
+	return next;
+	}
+
+Partials LIHardBreak::LayoutStep(Partials& beam, const FmtContext&,
+                                 int) const
+	{
+	Partials next;
+	for ( auto& p : beam )
+		{
+		int brk_col = p.indent * INDENT_WIDTH;
+		auto pad = "\n" + line_prefix(p.indent, brk_col);
+		Partial np = p;
+		np.fmt += pad;
+		np.col = brk_col;
+		++np.lines;
+		np.must_break = false;
+		next.push_back(std::move(np));
+		}
+	return next;
+	}
+
+Partials LIIndentUp::LayoutStep(Partials& beam, const FmtContext&,
+                                int) const
+	{
+	Partials next;
+	for ( auto& p : beam )
+		{
+		Partial np = p;
+		++np.indent;
+		next.push_back(std::move(np));
+		}
+	return next;
+	}
+
+Partials LIIndentDown::LayoutStep(Partials& beam, const FmtContext&,
+                                  int) const
+	{
+	Partials next;
+	for ( auto& p : beam )
+		{
+		Partial np = p;
+
+		// Emit pre-comments for the following token at the
+		// current (inner) indent.
+		if ( LI_Node() )
+			{
+			int inner_col = np.indent * INDENT_WIDTH;
+			auto inner_pad = line_prefix(np.indent, inner_col);
+			np.fmt += LI_Node()->EmitPreComments(inner_pad);
+			}
+
+		--np.indent;
+		int new_col = np.indent * INDENT_WIDTH;
+		auto pad = line_prefix(np.indent, new_col);
+		np.fmt += pad;
+		np.col = new_col;
+		next.push_back(std::move(np));
+		}
+	return next;
+	}
+
+Partials LIArgListR::LayoutStep(Partials& beam, const FmtContext& ctx,
+                                int trail) const
+	{
+	Partials next;
+	auto child = LI_Node();
+	auto open = Formatting(child->Children().front());
+	auto close = Formatting(child->Children().back());
+	auto items = collect_args(child->Children());
+	auto& suffix = Fmt();
+	auto& prefix = Prefix();
+
+	if ( items.empty() )
+		{
+		auto empty_list = prefix + open + close + suffix;
+		for ( auto& p : beam )
+			{
+			Partial np = p;
+			np.fmt += empty_list;
+			np.col += empty_list.Size();
+			np.overflow += std::max(0, np.col - ctx.MaxCol());
+			np.must_break = false;
+			next.push_back(std::move(np));
+			}
+		return next;
+		}
+
+	int fl = Flags();
+	bool has_tc = (fl & AL_TrailingCommaVertical) &&
+		child->FindOptChild(Tag::TrailingComma);
 
 	for ( auto& p : beam )
 		{
-		switch ( item.kind ) {
-		case Lit:
+		int avail = ctx.MaxCol() - p.col;
+		FmtContext sub(ctx.Indent(), p.col, avail, trail);
+
+		// All-comments or trailing comma: force vertical.
+		bool force_vert = has_tc;
+		if ( ! force_vert &&
+		     (fl & AL_AllCommentsVertical) &&
+		     has_breaks(items) )
+			{
+			force_vert = true;
+			for ( size_t j = 0; j < items.size(); ++j )
+				{
+				auto& it = items[j];
+				auto nc = (j + 1 < items.size()) ?
+					items[j + 1].comma : nullptr;
+				if ( it.comment.empty() &&
+				     ! (nc && nc->MustBreakAfter()) )
+					{
+					force_vert = false;
+					break;
+					}
+				}
+			}
+
+		if ( force_vert )
+			{
+			auto c = format_args_vertical(
+				open, close, items, sub, has_tc);
+			Partial np = p;
+			np.fmt += c.Fmt();
+			np.overflow += c.Ovf();
+			np.must_break = false;
+			np.lines += c.Lines() - 1;
+			np.col = c.Width();
+			next.push_back(std::move(np));
+			continue;
+			}
+
+		Candidates cs;
+		if ( fl & AL_FlatOrVertical )
+			{
+			if ( ! has_breaks(items) )
+				{
+				int pfx_w = prefix.Size();
+				int open_w = open.Size();
+				int close_w = close.Size();
+				FmtContext ac(sub.Indent(),
+					p.col + pfx_w + open_w,
+					sub.Width() - pfx_w - open_w
+						- close_w);
+				auto flat = prefix + open +
+					format_args_flat(items, ac).Fmt()
+					+ close + suffix;
+				Candidate fc(std::move(flat), sub);
+				cs.push_back(fc);
+				}
+			if ( cs.empty() || cs.back().Ovf() > 0 )
+				cs.push_back(format_args_vertical(
+					open, close, items, sub));
+			}
+		else
+			{
+			std::string close_pfx;
+			if ( (fl & AL_TrailingCommaFill) &&
+			     child->FindOptChild(Tag::TrailingComma) )
+				close_pfx = ", ";
+
+			cs = flat_or_fill(prefix, open, close,
+				suffix, items, sub,
+				child->TrailingComment(), close_pfx);
+
+			if ( (fl & AL_VerticalUpgrade) &&
+			     items.size() >= 3 && cs.size() > 1 &&
+			     cs.back().Lines() ==
+			       static_cast<int>(items.size()) )
+				{
+				cs.pop_back();
+				cs.push_back(format_args_vertical(
+					open, close, items, sub));
+				}
+			}
+
+		int al_col = p.col + prefix.Size() + open.Size();
+		for ( const auto& c : cs )
 			{
 			Partial np = p;
-			const auto& f = item.Fmt();
-			np.fmt += f;
-			int nl = f.CountLines() - 1;
-			if ( nl > 0 )
+			np.fmt += c.Fmt();
+			np.overflow += c.Ovf();
+			np.must_break = false;
+			np.align_col = al_col;
+			if ( c.Lines() > 1 )
 				{
-				np.lines += nl;
-				np.col = f.LastLineLen();
-				np.overflow += f.MaxLineOverflow(
-					p.col, ctx.MaxCol());
-				}
-			else
-				{
-				np.col += f.Size();
-				np.overflow += ovf_at(np.col);
-				}
-			np.must_break = item.MustBreak();
-			next.push_back(std::move(np));
-			break;
-			}
-
-		case FmtExpr:
-			{
-			int avail = ctx.MaxCol() - p.col;
-			FmtContext sub(ctx.Indent(), p.col, avail, trail);
-			auto cs = format_expr(*item.LI_Node(), sub);
-			for ( const auto& c : cs )
-				{
-				Partial np = p;
-				np.fmt += c.Fmt();
-				np.overflow += c.Ovf();
-				np.must_break = false;
-				if ( c.Lines() > 1 )
-					{
-					np.lines += c.Lines() - 1;
-					np.col = c.Width();
-					}
-				else
-					np.col += c.Width();
-				next.push_back(std::move(np));
-				}
-			break;
-			}
-
-		case ArgList:
-			{
-			auto child = item.LI_Node();
-			auto open = Formatting(child->Children().front());
-			auto close = Formatting(child->Children().back());
-			auto items = collect_args(child->Children());
-			auto& suffix = item.Fmt();
-			auto& prefix = item.Prefix();
-
-			if ( items.empty() )
-				{
-				auto empty_list = prefix + open + close + suffix;
-				Partial np = p;
-				np.fmt += empty_list;
-				np.col += empty_list.Size();
-				np.overflow += ovf_at(np.col);
-				np.must_break = false;
-				next.push_back(std::move(np));
-				break;
-				}
-
-			int fl = item.Flags();
-			bool has_tc = (fl & AL_TrailingCommaVertical) &&
-				child->FindOptChild(Tag::TrailingComma);
-
-			int avail = ctx.MaxCol() - p.col;
-			FmtContext sub(ctx.Indent(), p.col, avail, trail);
-
-			// All-comments or trailing comma: force vertical.
-			bool force_vert = has_tc;
-			if ( ! force_vert &&
-			     (fl & AL_AllCommentsVertical) &&
-			     has_breaks(items) )
-				{
-				force_vert = true;
-				for ( size_t j = 0; j < items.size(); ++j )
-					{
-					auto& it = items[j];
-					auto nc = (j + 1 < items.size()) ?
-						items[j + 1].comma : nullptr;
-					if ( it.comment.empty() &&
-					     ! (nc && nc->MustBreakAfter()) )
-						{
-						force_vert = false;
-						break;
-						}
-					}
-				}
-
-			if ( force_vert )
-				{
-				auto c = format_args_vertical(
-					open, close, items, sub, has_tc);
-				Partial np = p;
-				np.fmt += c.Fmt();
-				np.overflow += c.Ovf();
-				np.must_break = false;
 				np.lines += c.Lines() - 1;
 				np.col = c.Width();
-				next.push_back(std::move(np));
-				break;
 				}
+			else
+				np.col += c.Width();
+			next.push_back(std::move(np));
+			}
+		}
+	return next;
+	}
 
-			Candidates cs;
-			if ( fl & AL_FlatOrVertical )
+Partials LIOpFillR::LayoutStep(Partials& beam, const FmtContext& ctx,
+                               int trail) const
+	{
+	Partials next;
+	auto& operands = Operands();
+	auto& op = Fmt();
+	auto sep = " " + op + " ";
+	int sep_w = static_cast<int>(sep.Size());
+	int max_col = ctx.MaxCol() - trail;
+
+	for ( auto& p : beam )
+		{
+		// Try flat.
+		Formatting flat;
+		int flat_w = 0;
+		bool any_multiline = false;
+		for ( size_t j = 0; j < operands.size(); ++j )
+			{
+			auto cs = format_expr(*operands[j],
+				ctx.After(p.col + flat_w));
+			auto bc = best(cs);
+			if ( bc.Lines() > 1 )
+				any_multiline = true;
+			if ( j > 0 )
 				{
-				if ( ! has_breaks(items) )
-					{
-					int pfx_w = prefix.Size();
-					int open_w = open.Size();
-					int close_w = close.Size();
-					FmtContext ac(sub.Indent(),
-						p.col + pfx_w + open_w,
-						sub.Width() - pfx_w - open_w
-							- close_w);
-					auto flat = prefix + open +
-						format_args_flat(items, ac).Fmt()
-						+ close + suffix;
-					Candidate fc(std::move(flat), sub);
-					cs.push_back(fc);
-					}
-				if ( cs.empty() || cs.back().Ovf() > 0 )
-					cs.push_back(format_args_vertical(
-						open, close, items, sub));
+				flat += sep;
+				flat_w += sep_w;
+				}
+			flat += bc.Fmt();
+			flat_w += bc.Width();
+			}
+
+		int flat_ovf = std::max(0,
+			p.col + flat_w + trail - ctx.MaxCol());
+		if ( flat_ovf == 0 && ! any_multiline )
+			{
+			Partial np = p;
+			np.fmt += flat;
+			np.col += flat_w;
+			np.must_break = false;
+			next.push_back(std::move(np));
+			continue;
+			}
+
+		// Fill: greedy pack with wrap at operator.
+		FmtContext cont_ctx = p.col == ctx.IndentCol() ?
+			ctx.Indented() : ctx.AtCol(p.col);
+		auto pad = line_prefix(cont_ctx.Indent(),
+					cont_ctx.Col());
+
+		Formatting text;
+		int cur_col = p.col;
+		int fill_lines = 0;
+		int fill_ovf = 0;
+
+		for ( size_t j = 0; j < operands.size(); ++j )
+			{
+			FmtContext sub(cont_ctx.Indent(), cur_col,
+				max_col - cur_col);
+			auto bc = best(format_expr(*operands[j], sub));
+			int w = bc.Width();
+
+			if ( j == 0 )
+				{
+				text += bc.Fmt();
+				cur_col += w;
 				}
 			else
 				{
-				std::string close_pfx;
-				if ( (fl & AL_TrailingCommaFill) &&
-				     child->FindOptChild(Tag::TrailingComma) )
-					close_pfx = ", ";
+				int need = bc.Lines() > 1 ?
+					max_col + 1 : sep_w + w;
 
-				cs = flat_or_fill(prefix, open, close,
-					suffix, items, sub,
-					child->TrailingComment(), close_pfx);
-
-				if ( (fl & AL_VerticalUpgrade) &&
-				     items.size() >= 3 && cs.size() > 1 &&
-				     cs.back().Lines() ==
-				       static_cast<int>(items.size()) )
+				if ( cur_col + need <= max_col )
 					{
-					cs.pop_back();
-					cs.push_back(format_args_vertical(
-						open, close, items, sub));
-					}
-				}
-
-			int al_col = p.col + prefix.Size() + open.Size();
-			for ( const auto& c : cs )
-				{
-				Partial np = p;
-				np.fmt += c.Fmt();
-				np.overflow += c.Ovf();
-				np.must_break = false;
-				np.align_col = al_col;
-				if ( c.Lines() > 1 )
-					{
-					np.lines += c.Lines() - 1;
-					np.col = c.Width();
-					}
-				else
-					np.col += c.Width();
-				next.push_back(std::move(np));
-				}
-			break;
-			}
-
-		case OpFill:
-			{
-			auto& operands = item.Operands();
-			auto& op = item.Fmt();
-			auto sep = " " + op + " ";
-			int sep_w = static_cast<int>(sep.Size());
-			int max_col = ctx.MaxCol() - trail;
-
-			// Try flat.
-			Formatting flat;
-			int flat_w = 0;
-			bool any_multiline = false;
-			for ( size_t j = 0; j < operands.size(); ++j )
-				{
-				auto cs = format_expr(*operands[j],
-					ctx.After(p.col + flat_w));
-				auto bc = best(cs);
-				if ( bc.Lines() > 1 )
-					any_multiline = true;
-				if ( j > 0 )
-					{
-					flat += sep;
-					flat_w += sep_w;
-					}
-				flat += bc.Fmt();
-				flat_w += bc.Width();
-				}
-
-			int flat_ovf = std::max(0, p.col + flat_w + trail - ctx.MaxCol());
-			if ( flat_ovf == 0 && ! any_multiline )
-				{
-				Partial np = p;
-				np.fmt += flat;
-				np.col += flat_w;
-				np.must_break = false;
-				next.push_back(std::move(np));
-				break;
-				}
-
-			// Fill: greedy pack with wrap at operator.
-			FmtContext cont_ctx = p.col == ctx.IndentCol() ?
-				ctx.Indented() : ctx.AtCol(p.col);
-			auto pad = line_prefix(cont_ctx.Indent(),
-						cont_ctx.Col());
-
-			Formatting text;
-			int cur_col = p.col;
-			int fill_lines = 0;
-			int fill_ovf = 0;
-
-			for ( size_t j = 0; j < operands.size(); ++j )
-				{
-				FmtContext sub(cont_ctx.Indent(), cur_col,
-					max_col - cur_col);
-				auto bc = best(format_expr(*operands[j], sub));
-				int w = bc.Width();
-
-				if ( j == 0 )
-					{
-					text += bc.Fmt();
-					cur_col += w;
+					text += sep + bc.Fmt();
+					cur_col += need;
 					}
 				else
 					{
-					int need = bc.Lines() > 1 ?
-						max_col + 1 : sep_w + w;
+					text += " " + op + "\n" + pad;
+					cur_col = cont_ctx.Col();
+					++fill_lines;
 
-					if ( cur_col + need <= max_col )
-						{
-						text += sep + bc.Fmt();
-						cur_col += need;
-						}
-					else
-						{
-						text += " " + op + "\n" + pad;
-						cur_col = cont_ctx.Col();
-						++fill_lines;
-
-						FmtContext ws(cont_ctx.Indent(),
-							cur_col,
-							max_col - cur_col);
-						auto wb = best(
-							format_expr(*operands[j], ws));
-						text += wb.Fmt();
-						cur_col += wb.Width();
-						fill_ovf += wb.Ovf();
-						}
+					FmtContext ws(cont_ctx.Indent(),
+						cur_col,
+						max_col - cur_col);
+					auto wb = best(
+						format_expr(*operands[j], ws));
+					text += wb.Fmt();
+					cur_col += wb.Width();
+					fill_ovf += wb.Ovf();
 					}
-
-				if ( bc.Lines() > 1 )
-					{
-					fill_lines += bc.Lines() - 1;
-					cur_col = text.LastLineLen();
-					}
-
-				fill_ovf += bc.Ovf();
 				}
 
-			fill_ovf += std::max(0, cur_col - max_col);
-
-			Partial np = p;
-			np.fmt += text;
-			np.col = cur_col;
-			np.lines += fill_lines;
-			np.overflow += fill_ovf;
-			np.must_break = false;
-			next.push_back(std::move(np));
-			break;
-			}
-
-		case FlatSplit:
-			{
-			int avail = ctx.MaxCol() - p.col;
-			FmtContext sub(ctx.Indent(), p.col, avail, trail);
-			auto cs = flat_or_split(item.Steps(), item.Splits(),
-						sub, item.ForceFlatSubs());
-			for ( const auto& c : cs )
+			if ( bc.Lines() > 1 )
 				{
-				Partial np = p;
-				np.fmt += c.Fmt();
-				np.overflow += c.Ovf();
-				np.must_break = false;
-				if ( c.Lines() > 1 )
-					{
-					np.lines += c.Lines() - 1;
-					np.col = c.Width();
-					}
-				else
-					np.col += c.Width();
-				next.push_back(std::move(np));
-				}
-			break;
-			}
-
-		case DeclCands:
-			{
-			for ( const auto& c : item.Cands() )
-				{
-				Partial np = p;
-				np.fmt += c.Fmt();
-				np.overflow += c.Ovf();
-				np.must_break = false;
-				if ( c.Lines() > 1 )
-					{
-					np.lines += c.Lines() - 1;
-					np.col = c.Width();
-					}
-				else
-					np.col += c.Width();
-				next.push_back(std::move(np));
-				}
-			break;
-			}
-
-		case SoftCont:
-			{
-			auto& f = item.Fmt();
-			if ( f.Empty() )
-				{
-				next.push_back(p);
-				break;
+				fill_lines += bc.Lines() - 1;
+				cur_col = text.LastLineLen();
 				}
 
-			// Option 1: inline (space + content).
-			if ( ! p.must_break )
-				{
-				Partial np = p;
-				np.fmt += " " + f;
-				np.col += 1 + f.Size();
-				np.overflow += ovf_at(np.col);
-				np.must_break = false;
-				next.push_back(std::move(np));
-				}
-
-			// Option 2: continuation at arglist alignment column
-			// (or indented if no preceding arglist).
-			{
-			int brk_col = (p.align_col >= 0) ? p.align_col
-				: (p.indent + 1) * INDENT_WIDTH;
-			auto pad = "\n" + line_prefix(p.indent, brk_col);
-			Partial bp = p;
-			bp.fmt += pad + f;
-			bp.col = brk_col + f.Size();
-			++bp.lines;
-			bp.overflow += std::max(0, bp.col - ctx.MaxCol());
-			bp.must_break = false;
-			next.push_back(std::move(bp));
-			}
-			break;
+			fill_ovf += bc.Ovf();
 			}
 
-		case Tok: case ExprIdx: case LastTok: case ArgIdx:
-		case StmtBody: case BodyText: case FillList:
-		case ParamType: case OfType: case RetType:
-		case EnumBody: case RecordBody:
-		case LambdaPrefix: case LambdaRet: case LambdaBody:
-		case FuncRet: case FuncAttrs: case FuncBody:
-		case SwitchExpr: case SwitchCases: case ElseFollowOn:
-			assert(false);  // resolved before reaching here
-			break;
+		fill_ovf += std::max(0, cur_col - max_col);
 
-		case Sp:
-			{
-			// Option 1: space (skip if preceding
-			// token forces a break).
-			if ( ! p.must_break )
-				{
-				Partial sp = p;
-				sp.fmt += " ";
-				++sp.col;
-				sp.must_break = false;
-				next.push_back(std::move(sp));
-				}
-
-			// Option 2: break + indent.
-			int brk_indent = p.indent + 1;
-			int brk_col = brk_indent * INDENT_WIDTH;
-			auto pad = "\n" + line_prefix(brk_indent, brk_col);
-			Partial bp = p;
-			bp.fmt += pad;
-			bp.col = brk_col;
-			++bp.lines;
-			bp.must_break = false;
-			next.push_back(std::move(bp));
-			break;
-			}
-
-		case HardBreak:
-			{
-			int brk_col = p.indent * INDENT_WIDTH;
-			auto pad = "\n" + line_prefix(p.indent, brk_col);
-			Partial np = p;
-			np.fmt += pad;
-			np.col = brk_col;
-			++np.lines;
-			np.must_break = false;
-			next.push_back(std::move(np));
-			break;
-			}
-
-		case IndentUp:
-			{
-			Partial np = p;
-			++np.indent;
-			next.push_back(std::move(np));
-			break;
-			}
-
-		case IndentDown:
-			{
-			Partial np = p;
-
-			// Emit pre-comments for the following token at the
-			// current (inner) indent.
-			if ( item.LI_Node() )
-				{
-				int inner_col = np.indent * INDENT_WIDTH;
-				auto inner_pad = line_prefix(np.indent, inner_col);
-				np.fmt += item.LI_Node()->EmitPreComments(inner_pad);
-				}
-
-			--np.indent;
-			int new_col = np.indent * INDENT_WIDTH;
-			auto pad = line_prefix(np.indent, new_col);
-			np.fmt += pad;
-			np.col = new_col;
-			next.push_back(std::move(np));
-			break;
-			}
+		Partial np = p;
+		np.fmt += text;
+		np.col = cur_col;
+		np.lines += fill_lines;
+		np.overflow += fill_ovf;
+		np.must_break = false;
+		next.push_back(std::move(np));
 		}
-		}
-
-	// Prune to best BEAM_WIDTH using same priority as
-	// Candidate::BetterThan: overflow > lines > spread.
-	if ( static_cast<int>(next.size()) > BEAM_WIDTH )
-		{
-		std::sort(next.begin(), next.end(),
-			[](const Partial& a, const Partial& b)
-				{
-				if ( a.overflow != b.overflow )
-					return a.overflow < b.overflow;
-				return a.lines < b.lines;
-				});
-		next.resize(BEAM_WIDTH);
-		}
-
 	return next;
+	}
+
+Partials LIFlatSplitR::LayoutStep(Partials& beam, const FmtContext& ctx,
+                                   int trail) const
+	{
+	Partials next;
+	for ( auto& p : beam )
+		{
+		int avail = ctx.MaxCol() - p.col;
+		FmtContext sub(ctx.Indent(), p.col, avail, trail);
+		auto cs = flat_or_split(Steps(), Splits(),
+					sub, ForceFlatSubs());
+		for ( const auto& c : cs )
+			{
+			Partial np = p;
+			np.fmt += c.Fmt();
+			np.overflow += c.Ovf();
+			np.must_break = false;
+			if ( c.Lines() > 1 )
+				{
+				np.lines += c.Lines() - 1;
+				np.col = c.Width();
+				}
+			else
+				np.col += c.Width();
+			next.push_back(std::move(np));
+			}
+		}
+	return next;
+	}
+
+Partials LIDeclCandsR::LayoutStep(Partials& beam, const FmtContext&,
+                                   int) const
+	{
+	Partials next;
+	for ( auto& p : beam )
+		{
+		for ( const auto& c : Cands() )
+			{
+			Partial np = p;
+			np.fmt += c.Fmt();
+			np.overflow += c.Ovf();
+			np.must_break = false;
+			if ( c.Lines() > 1 )
+				{
+				np.lines += c.Lines() - 1;
+				np.col = c.Width();
+				}
+			else
+				np.col += c.Width();
+			next.push_back(std::move(np));
+			}
+		}
+	return next;
+	}
+
+Partials LISoftContR::LayoutStep(Partials& beam, const FmtContext& ctx,
+                                  int) const
+	{
+	Partials next;
+	auto& f = Fmt();
+	if ( f.Empty() )
+		{
+		next = beam;
+		return next;
+		}
+
+	for ( auto& p : beam )
+		{
+		// Option 1: inline (space + content).
+		if ( ! p.must_break )
+			{
+			Partial np = p;
+			np.fmt += " " + f;
+			np.col += 1 + f.Size();
+			np.overflow += std::max(0, np.col - ctx.MaxCol());
+			np.must_break = false;
+			next.push_back(std::move(np));
+			}
+
+		// Option 2: continuation at arglist alignment column
+		// (or indented if no preceding arglist).
+		{
+		int brk_col = (p.align_col >= 0) ? p.align_col
+			: (p.indent + 1) * INDENT_WIDTH;
+		auto pad = "\n" + line_prefix(p.indent, brk_col);
+		Partial bp = p;
+		bp.fmt += pad + f;
+		bp.col = brk_col + f.Size();
+		++bp.lines;
+		bp.overflow += std::max(0, bp.col - ctx.MaxCol());
+		bp.must_break = false;
+		next.push_back(std::move(bp));
+		}
+		}
+	return next;
+	}
+
+// ---- Beam search driver --------------------------------------------------
+
+// Prune beam to best BEAM_WIDTH using same priority as
+// Candidate::BetterThan: overflow > lines > spread.
+static void prune_beam(Partials& beam)
+	{
+	if ( static_cast<int>(beam.size()) <= BEAM_WIDTH )
+		return;
+
+	std::sort(beam.begin(), beam.end(),
+		[](const Partial& a, const Partial& b)
+			{
+			if ( a.overflow != b.overflow )
+				return a.overflow < b.overflow;
+			return a.lines < b.lines;
+			});
+	beam.resize(BEAM_WIDTH);
 	}
 
 // Trailing literal width after a Fmt node is automatically reserved
@@ -736,19 +762,19 @@ Candidates build_layout(LayoutItems items, const FmtContext& ctx)
 		int w = 0;
 		for ( size_t j = i + 1; j < items.size(); ++j )
 			{
-			auto k = items[j].kind;
+			auto k = items[j]->kind;
 			if ( k == Lit )
 				{
-				if ( items[j].Fmt().Contains('\n') )
+				if ( items[j]->Fmt().Contains('\n') )
 					break;
-				w += items[j].Fmt().Size();
+				w += items[j]->Fmt().Size();
 				}
 			else if ( k == Sp )
 				++w;  // space in the flat case
 			else if ( k == SoftCont )
 				{
 				// Conservative: assume inline placement.
-				auto& f = items[j].Fmt();
+				auto& f = items[j]->Fmt();
 				if ( f.Contains('\n') )
 					break;
 				w += 1 + f.Size();
@@ -763,10 +789,14 @@ Candidates build_layout(LayoutItems items, const FmtContext& ctx)
 		return w;
 		};
 
-	Partials beam = {{Formatting(), ctx.Col(), ctx.Indent(), 1, 0, false, -1}};
+	Partials beam = {{Formatting(), ctx.Col(), ctx.Indent(),
+	                   1, 0, false, -1}};
 
 	for ( size_t i = 0; i < items.size(); ++i )
-		beam = layout_one_item(items[i], beam, ctx, trail_after(i));
+		{
+		beam = items[i]->LayoutStep(beam, ctx, trail_after(i));
+		prune_beam(beam);
+		}
 
 	// Convert partials to Candidates.  Width is relative to the
 	// start column so callers can combine it with other text.
@@ -780,6 +810,8 @@ Candidates build_layout(LayoutItems items, const FmtContext& ctx)
 
 	return result;
 	}
+
+// ---- BuildLayout resolution ----------------------------------------------
 
 static bool is_computed(LIKind k)
 	{
@@ -796,8 +828,8 @@ static bool is_computed(LIKind k)
 	}
 	}
 
-static LayoutItem dispatch_compute(const Layout& node, LIKind op,
-                                   const FmtContext& ctx)
+static LIPtr dispatch_compute(const Layout& node, LIKind op,
+                               const FmtContext& ctx)
 	{
 	switch ( op ) {
 	case ParamType: return node.ComputeParamType(ctx);
@@ -815,11 +847,11 @@ static LayoutItem dispatch_compute(const Layout& node, LIKind op,
 	case SwitchCases: return node.ComputeSwitchCases(ctx);
 	case ElseFollowOn: return node.ComputeElseFollowOn(ctx);
 	case DeclCands:
-		assert(false);  // DeclCands returns Candidates, not LayoutItem
-		return Formatting();
+		assert(false);  // DeclCands returns Candidates, not LIPtr
+		return lit(Formatting());
 	default:
 		assert(false);
-		return Formatting();
+		return lit(Formatting());
 	}
 	}
 
@@ -829,60 +861,67 @@ Candidates Layout::BuildLayout(LayoutItems items, const FmtContext& ctx) const
 		{
 		auto& item = items[i];
 
-		if ( item.kind == DeclCands )
+		if ( item->kind == DeclCands )
 			{
 			auto cs = ComputeDecl(ctx);
-			item = LayoutItem(DeclCands, std::move(cs));
+			item = std::make_shared<LIDeclCandsR>(std::move(cs));
 			continue;
 			}
 
-		if ( is_computed(item.kind) )
+		if ( is_computed(item->kind) )
 			{
-			item = dispatch_compute(*this, item.kind, ctx);
+			item = dispatch_compute(*this, item->kind, ctx);
 			continue;
 			}
 
-		if ( item.kind == SoftCont )
+		if ( item->kind == SoftCont )
 			{
-			auto result = dispatch_compute(*this, item.SuffixOp(), ctx);
-			item = LayoutItem(SoftCont, result.Fmt());
+			auto result = dispatch_compute(*this,
+				item->SuffixOp(), ctx);
+			item = std::make_shared<LISoftContR>(result->Fmt());
 			continue;
 			}
 
-		if ( item.kind == Tok )
+		if ( item->kind == Tok )
 			{
-			auto c = Child(item.ChildIdx());
-			if ( item.SubChildIdx() >= 0 )
-				c = c->Child(item.SubChildIdx());
+			auto c = Child(item->ChildIdx());
+			if ( item->SubChildIdx() >= 0 )
+				c = c->Child(item->SubChildIdx());
 			item = tok(c);
 			}
-		else if ( item.kind == ExprIdx )
-			item = LayoutItem(Child(item.ChildIdx()));
-		else if ( item.kind == LastTok )
+		else if ( item->kind == ExprIdx )
+			item = std::make_shared<LIExpr>(
+				Child(item->ChildIdx()));
+		else if ( item->kind == LastTok )
 			item = tok(Children().back());
-		else if ( item.kind == ArgIdx )
-			item = LayoutItem(Arg(item.ChildIdx()));
-		else if ( item.kind == ArgList )
+		else if ( item->kind == ArgIdx )
+			item = lit(Formatting(Arg(item->ChildIdx())));
+		else if ( item->kind == ArgList )
 			{
-			Formatting suffix = item.Fmt();
+			Formatting suffix = item->Fmt();
 			Formatting prefix;
-			int flags = item.Flags();
-			if ( item.SuffixOp() != Lit )
-				suffix = dispatch_compute(*this, item.SuffixOp(), ctx).Fmt();
-			if ( item.PrefixOp() != Lit )
-				prefix = dispatch_compute(*this, item.PrefixOp(), ctx).Fmt();
+			int flags = item->Flags();
+			if ( item->SuffixOp() != Lit )
+				suffix = dispatch_compute(*this,
+					item->SuffixOp(), ctx)->Fmt();
+			if ( item->PrefixOp() != Lit )
+				prefix = dispatch_compute(*this,
+					item->PrefixOp(), ctx)->Fmt();
 			if ( flags )
-				item = LayoutItem(ArgList, Child(item.ChildIdx()),
-					std::move(prefix), std::move(suffix),
-					flags);
+				item = std::make_shared<LIArgListR>(
+					Child(item->ChildIdx()),
+					std::move(prefix),
+					std::move(suffix), flags);
 			else
-				item = LayoutItem(ArgList, Child(item.ChildIdx()),
-					std::move(prefix), std::move(suffix));
+				item = std::make_shared<LIArgListR>(
+					Child(item->ChildIdx()),
+					std::move(prefix),
+					std::move(suffix));
 			}
-		else if ( item.kind == FlatSplit )
+		else if ( item->kind == FlatSplit )
 			{
 			// Resolve deferred child references in steps.
-			auto steps = item.Steps();
+			auto steps = item->Steps();
 			for ( auto& s : steps )
 				{
 				if ( s.kind == FmtStep::SExprIdx )
@@ -890,22 +929,23 @@ Candidates Layout::BuildLayout(LayoutItems items, const FmtContext& ctx) const
 				else if ( s.kind == FmtStep::STokIdx )
 					s = FmtStep::L(Child(s.child_idx));
 				}
-			item = LayoutItem(std::move(steps),
-				item.Splits(), item.ForceFlatSubs());
+			item = std::make_shared<LIFlatSplitR>(
+				std::move(steps), item->Splits(),
+				item->ForceFlatSubs());
 			}
-		else if ( item.kind == FillList )
+		else if ( item->kind == FillList )
 			{
 			auto prefix = Formatting(Children().front()) + " ";
 			auto args = collect_args(Children());
 			auto cs = flat_or_fill(prefix, "", "", "", args, ctx);
-			item = LayoutItem(best(cs).Fmt());
+			item = lit(best(cs).Fmt());
 			}
-		else if ( item.kind == StmtBody )
+		else if ( item->kind == StmtBody )
 			{
 			// Collect children and format as stmt list.
-			const Layout& src = (item.ChildIdx() >= 0)
-				? *Child(item.ChildIdx()) : *this;
-			int fl = item.Flags();
+			const Layout& src = (item->ChildIdx() >= 0)
+				? *Child(item->ChildIdx()) : *this;
+			int fl = item->Flags();
 
 			LayoutVec body;
 			if ( fl & SB_AllChildren )
@@ -923,41 +963,47 @@ Candidates Layout::BuildLayout(LayoutItems items, const FmtContext& ctx) const
 			     ! text.Empty() && text.Back() == '\n' )
 				text.PopBack();
 
-			item = LayoutItem(Formatting("\n" + text));
+			item = lit(Formatting("\n" + text));
 			}
-		else if ( item.kind == BodyText )
-			item = LayoutItem(*Child(item.ChildIdx())->FormatBodyText(ctx));
-		else if ( item.kind == OpFill )
+		else if ( item->kind == BodyText )
+			item = lit(*Child(item->ChildIdx())->FormatBodyText(ctx));
+		else if ( item->kind == OpFill )
 			{
-			auto op = Arg();
+			auto op_str = Arg();
 			auto ops = ContentChildren();
-			item = LayoutItem(OpFill, std::move(op), std::move(ops));
+			item = std::make_shared<LIOpFillR>(
+				std::move(op_str), std::move(ops));
 			}
-		else if ( item.kind == IndentDown )
+		else if ( item->kind == IndentDown )
 			{
 			// Peek ahead to find the next token and
 			// attach its node for pre-comment emission.
 			for ( size_t j = i + 1; j < items.size(); ++j )
 				{
-				auto k = items[j].kind;
+				auto k = items[j]->kind;
 				if ( k == Tok )
 					{
 					auto& i_j = items[j];
-					auto c = Child(i_j.ChildIdx());
-					if ( i_j.SubChildIdx() >= 0 )
-						c = c->Child(i_j.SubChildIdx());
-					item = LayoutItem(IndentDown, c,
-						Formatting());
+					auto c = Child(i_j->ChildIdx());
+					if ( i_j->SubChildIdx() >= 0 )
+						c = c->Child(
+							i_j->SubChildIdx());
+					item = std::make_shared<LIIndentDown>(
+						c);
 					break;
 					}
 				if ( k == LastTok )
 					{
-					item = LayoutItem(IndentDown,
-						Children().back(),
-						Formatting());
+					item = std::make_shared<LIIndentDown>(
+						Children().back());
 					break;
 					}
 				}
+
+			// If no following token found, create without node.
+			if ( item->kind == IndentDown &&
+			     ! dynamic_cast<LIIndentDown*>(item.get()) )
+				item = std::make_shared<LIIndentDown>();
 			}
 		}
 
@@ -966,60 +1012,69 @@ Candidates Layout::BuildLayout(LayoutItems items, const FmtContext& ctx) const
 
 // ---- Layout table + factory ----------------------------------------------
 
-// Tag-to-layout table for purely declarative nodes.  Uses LIKind
-// enum values directly instead of the soft_sp/indent_up/indent_down
-// globals to avoid cross-TU static initialization order issues.
+// Tag-to-layout table for purely declarative nodes.
 static const std::unordered_map<Tag, LayoutItems> layout_table = {
 	{Tag::Identifier, {arg(0)}},
 	{Tag::Constant, {arg(0)}},
 	{Tag::TypeAtom, {arg(0)}},
-	{Tag::Interval, {arg(0), " ", arg(1)}},
-	{Tag::Cardinality, {0U, expr(1), 2}},
-	{Tag::Negation, {0U, " ", expr(1)}},
-	{Tag::UnaryOp, {0U, expr(1)}},
-	{Tag::FieldAccess, {expr(0), 1, 2}},
-	{Tag::FieldAssign, {0U, arg(0), 1, expr(2)}},
-	{Tag::HasField, {expr(0), 1, 2}},
-	{Tag::Paren, {0U, expr(1), 2}},
-	{Tag::Schedule, {0U, {Sp}, expr(2), {Sp}, 3, {Sp}, expr(4), {Sp}, 5}},
-	{Tag::Param, {arg(0), {ParamType}}},
+	{Tag::Interval, {arg(0), lit(" "), arg(1)}},
+	{Tag::Cardinality, {tok(0), expr(1), tok(2)}},
+	{Tag::Negation, {tok(0), lit(" "), expr(1)}},
+	{Tag::UnaryOp, {tok(0), expr(1)}},
+	{Tag::FieldAccess, {expr(0), tok(1), tok(2)}},
+	{Tag::FieldAssign, {tok(0), arg(0), tok(1), expr(2)}},
+	{Tag::HasField, {expr(0), tok(1), tok(2)}},
+	{Tag::Paren, {tok(0), expr(1), tok(2)}},
+	{Tag::Schedule, {tok(0), sp(), expr(2), sp(), tok(3), sp(),
+		expr(4), sp(), tok(5)}},
+	{Tag::Param, {arg(0), computed(ParamType)}},
 	{Tag::Call, {expr(0), arglist(1,
 		AL_TrailingCommaVertical | AL_VerticalUpgrade)}},
-	{Tag::Constructor, {0U, arglist(1,
+	{Tag::Constructor, {tok(0), arglist(1,
 		AL_TrailingCommaVertical | AL_FlatOrVertical)}},
 	{Tag::IndexLiteral, {arglist(0,
 		AL_AllCommentsVertical | AL_TrailingCommaFill)}},
 	{Tag::Index, {expr(0), arglist(1)}},
 	{Tag::TypeParameterized, {arg(0), arglist(0, OfType)}},
-	{Tag::TypeOf, {arg(0), " ", 0U, " ", expr(2)}},
+	{Tag::TypeOf, {arg(0), lit(" "), tok(0), lit(" "), expr(2)}},
 	{Tag::TypeFunc, {arg(0), arglist(0)}},
 	{Tag::TypeFuncRet, {arg(0), arglist(0, RetType)}},
 	{Tag::CommentLeading, {arg(0)}},
 	{Tag::ExprStmt, {expr(0), last()}},
-	{Tag::ReturnVoid, {0U, last()}},
-	{Tag::Return, {0U, {Sp}, expr(2), last()}},
-	{Tag::Add, {0U, {Sp}, expr(2), last()}},
-	{Tag::Delete, {0U, {Sp}, expr(2), last()}},
-	{Tag::Assert, {0U, {Sp}, expr(2), last()}},
+	{Tag::ReturnVoid, {tok(0), last()}},
+	{Tag::Return, {tok(0), sp(), expr(2), last()}},
+	{Tag::Add, {tok(0), sp(), expr(2), last()}},
+	{Tag::Delete, {tok(0), sp(), expr(2), last()}},
+	{Tag::Assert, {tok(0), sp(), expr(2), last()}},
 	{Tag::Print, {fill_list(), last()}},
-	{Tag::EventStmt, {0U, " ", arg(0), arglist(2), 3}},
-	{Tag::ExportDecl, {0U, {Sp}, 2, {IndentUp},
-		stmt_body(), {IndentDown}, last()}},
-	{Tag::ModuleDecl, {0U, {Sp}, 2, 3}},
-	{Tag::TypeDeclAlias, {0U, {Sp}, 2, 3, {Sp}, expr(5), 6}},
-	{Tag::TypeDeclEnum, {0U, {Sp}, 2, 3, {Sp}, {5, 0U}, {Sp}, {5, 2},
-		{EnumBody}, last()}},
-	{Tag::TypeDeclRecord, {0U, {Sp}, 2, 3, {Sp}, {5, 0U}, {Sp}, {5, 2},
-		{RecordBody}, last()}},
-	{Tag::IfNoElse, {0U, " ", 2, " ", expr(3), " ", 4, body_text(5)}},
-	{Tag::IfElse, {0U, " ", 2, " ", expr(3), " ", 4, body_text(5),
-		{ElseFollowOn}}},
-	{Tag::While, {0U, " ", 2, " ", expr(3), " ", 4, body_text(5)}},
-	{Tag::ForCond, {expr(0), " ", 1, " ", expr(2)}},
-	{Tag::ForCondVal, {expr(0), 1, " ", expr(2), " ", 3, " ", expr(4)}},
-	{Tag::ForCondBracket, {arglist(0), " ", 1, " ", expr(2)}},
-	{Tag::ForCondBracketVal, {arglist(0), 1, " ", expr(2), " ", 3, " ", expr(4)}},
-	{Tag::For, {0U, " ", 2, " ", expr(3), " ", 4, body_text(5)}},
+	{Tag::EventStmt, {tok(0), lit(" "), arg(0), arglist(2), tok(3)}},
+	{Tag::ExportDecl, {tok(0), sp(), tok(2), indent_up(),
+		stmt_body(), indent_down(), last()}},
+	{Tag::ModuleDecl, {tok(0), sp(), tok(2), tok(3)}},
+	{Tag::TypeDeclAlias, {tok(0), sp(), tok(2), tok(3), sp(),
+		expr(5), tok(6)}},
+	{Tag::TypeDeclEnum, {tok(0), sp(), tok(2), tok(3), sp(),
+		tok(5, 0), sp(), tok(5, 2),
+		computed(EnumBody), last()}},
+	{Tag::TypeDeclRecord, {tok(0), sp(), tok(2), tok(3), sp(),
+		tok(5, 0), sp(), tok(5, 2),
+		computed(RecordBody), last()}},
+	{Tag::IfNoElse, {tok(0), lit(" "), tok(2), lit(" "), expr(3),
+		lit(" "), tok(4), body_text(5)}},
+	{Tag::IfElse, {tok(0), lit(" "), tok(2), lit(" "), expr(3),
+		lit(" "), tok(4), body_text(5),
+		computed(ElseFollowOn)}},
+	{Tag::While, {tok(0), lit(" "), tok(2), lit(" "), expr(3),
+		lit(" "), tok(4), body_text(5)}},
+	{Tag::ForCond, {expr(0), lit(" "), tok(1), lit(" "), expr(2)}},
+	{Tag::ForCondVal, {expr(0), tok(1), lit(" "), expr(2), lit(" "),
+		tok(3), lit(" "), expr(4)}},
+	{Tag::ForCondBracket, {arglist(0), lit(" "), tok(1), lit(" "),
+		expr(2)}},
+	{Tag::ForCondBracketVal, {arglist(0), tok(1), lit(" "), expr(2),
+		lit(" "), tok(3), lit(" "), expr(4)}},
+	{Tag::For, {tok(0), lit(" "), tok(2), lit(" "), expr(3),
+		lit(" "), tok(4), body_text(5)}},
 	{Tag::Slice, {flat_split(
 		{FmtStep::EI(0), FmtStep::TI(1),
 		 FmtStep::EI(2),
@@ -1027,7 +1082,8 @@ static const std::unordered_map<Tag, LayoutItems> layout_table = {
 		 FmtStep::EI(4),
 		 FmtStep::TI(5)},
 		{{4, SplitAt::AlignWith, 2}}, true)}},
-	{Tag::SlicePartial, {expr(0), 1, expr(2), 3, expr(4), 5}},
+	{Tag::SlicePartial, {expr(0), tok(1), expr(2), tok(3),
+		expr(4), tok(5)}},
 	{Tag::Div, {flat_split(
 		{FmtStep::EI(0), FmtStep::TI(1),
 		 FmtStep::S(""), FmtStep::EI(2)},
@@ -1038,17 +1094,18 @@ static const std::unordered_map<Tag, LayoutItems> layout_table = {
 		 FmtStep::EI(2)},
 		{{2, SplitAt::IndentedOrSame}})}},
 	{Tag::Lambda, {arglist_prefix(2, LambdaPrefix, LambdaRet),
-		{LambdaBody}}},
+		computed(LambdaBody)}},
 	{Tag::LambdaCaptures, {arglist_prefix(3, LambdaPrefix, LambdaRet),
-		{LambdaBody}}},
-	{Tag::FuncDecl, {0U, " ", 2U, arglist(3, FuncRet),
-		soft_cont(FuncAttrs), {FuncBody}}},
-	{Tag::FuncDeclRet, {0U, " ", 2U, arglist(3, FuncRet),
-		soft_cont(FuncAttrs), {FuncBody}}},
-	{Tag::Switch, {0U, " ", {SwitchExpr}, " ", 3U,
-		{SwitchCases}, {HardBreak}, last()}},
-	{Tag::GlobalDecl, {{DeclCands}}},
-	{Tag::LocalDecl, {{DeclCands}}},
+		computed(LambdaBody)}},
+	{Tag::FuncDecl, {tok(0), lit(" "), tok(2), arglist(3, FuncRet),
+		soft_cont(FuncAttrs), computed(FuncBody)}},
+	{Tag::FuncDeclRet, {tok(0), lit(" "), tok(2),
+		arglist(3, FuncRet), soft_cont(FuncAttrs),
+		computed(FuncBody)}},
+	{Tag::Switch, {tok(0), lit(" "), computed(SwitchExpr), lit(" "),
+		tok(3), computed(SwitchCases), hard_brk(), last()}},
+	{Tag::GlobalDecl, {computed(DeclCands)}},
+	{Tag::LocalDecl, {computed(DeclCands)}},
 	{Tag::BoolChain, {op_fill()}},
 	{Tag::Ternary, {flat_split(
 		{FmtStep::EI(0),
