@@ -48,7 +48,6 @@ const LayoutPtr& Layout::FindTypeChild() const
 	for ( const auto& c : Children() )
 		if ( c->IsType() )
 			return c;
-
 	return null_node;
 	}
 
@@ -114,12 +113,14 @@ std::vector<Formatting> Layout::FormatAttrStrings(const FmtContext& ctx) const
 Formatting Layout::FormatAttrList(const FmtContext& ctx) const
 	{
 	Formatting fmt;
+
 	for ( const auto& a : FormatAttrStrings(ctx) )
 		{
 		if ( ! fmt.Empty() )
 			fmt += " ";
 		fmt += a;
 		}
+
 	return fmt;
 	}
 
@@ -129,6 +130,7 @@ LIPtr Layout::ComputeOfType(const FmtContext& ctx) const
 	auto kw = FindOptChild(Tag::Keyword);
 	if ( ! kw )
 		return lit(Formatting());
+
 	return lit(" " + Formatting(kw) + " " +
 		best(format_expr(*FindTypeChild(), ctx)).Fmt());
 	}
@@ -195,8 +197,7 @@ LIPtr Layout::ComputeLambdaRet(const FmtContext& ctx) const
 LIPtr Layout::ComputeLambdaBody(const FmtContext& ctx) const
 	{
 	int lambda_indent = ctx.Col() / INDENT_WIDTH;
-	FmtContext body_ctx(lambda_indent, ctx.Col(),
-			ctx.MaxCol() - ctx.Col());
+	FmtContext body_ctx(lambda_indent, ctx.Col(), ctx.MaxCol() - ctx.Col());
 	return lit(Children().back()->FormatWhitesmithBlock(body_ctx));
 	}
 
@@ -236,7 +237,7 @@ LIPtr Layout::ComputeFuncBody(const FmtContext& ctx) const
 	{
 	const auto& body = Children().back();
 	return lit(Formatting(body->TrailingComment()) +
-		body->FormatWhitesmithBlock(ctx));
+			body->FormatWhitesmithBlock(ctx));
 	}
 
 // ---- Declaration formatting ----------------------------------------------
@@ -379,13 +380,13 @@ static void decl_no_init(const DeclParts& d, Candidates& result,
 		}
 
 	int last_w = split.LastLineLen();
-	result.push_back({split, last_w, split.CountLines(), ovf(last_w, ctx),
-				ctx.Col()});
+	result.push_back({split, last_w, split.CountLines(),
+				ovf(last_w, ctx), ctx.Col()});
 	}
 
 // Attrs on continuation lines, type stays on first line.
 static void decl_wrapped_attrs(const DeclParts& d, Candidates& result,
-                             const FmtContext& ctx)
+				     const FmtContext& ctx)
 	{
 	if ( ! d.attrs_node || d.type_str.Empty() )
 		return;
@@ -431,7 +432,6 @@ static void decl_wrapped_attrs(const DeclParts& d, Candidates& result,
 			ovf += aw - max_col;
 		}
 	else
-		{
 		for ( size_t i = 0; i < attr_strs.size(); ++i )
 			{
 			wrapped += "\n" + attr_pad + attr_strs[i];
@@ -441,7 +441,6 @@ static void decl_wrapped_attrs(const DeclParts& d, Candidates& result,
 			if ( aw > max_col )
 				ovf += aw - max_col;
 			}
-		}
 
 	wrapped += d.semi_node;
 
@@ -453,7 +452,7 @@ static void decl_wrapped_attrs(const DeclParts& d, Candidates& result,
 
 // Split after colon: type (and optional init) on indented continuation.
 static void decl_type_split(const DeclParts& d, Candidates& result,
-                          const FmtContext& ctx)
+				  const FmtContext& ctx)
 	{
 	if ( d.type_str.Empty() )
 		return;
@@ -479,6 +478,7 @@ static void decl_type_split(const DeclParts& d, Candidates& result,
 	int last_w = split.LastLineLen();
 	int lines = split.CountLines();
 	int overflow = ovf_no_trail(line1.Size(), ctx) + ovf(last_w, ctx);
+
 	result.push_back({split, last_w, lines, overflow, ctx.Col()});
 	}
 
@@ -543,8 +543,8 @@ Candidates Layout::ComputeDecl(const FmtContext& ctx) const
 static Formatting format_field(const Layout& node, const Formatting& suffix,
                               const FmtContext& ctx)
 	{
-	Formatting head = node.Arg() + Formatting(node.Child(0, Tag::Colon)) +
-				" ";
+	Formatting head = node.Arg() + Formatting(node.Child(0, Tag::Colon));
+	head += " ";
 
 	Formatting type_str;
 	if ( auto tc = node.FindTypeChild() )
@@ -605,8 +605,10 @@ LIPtr Layout::ComputeEnumBody(const FmtContext& ctx) const
 			commas.push_back(pending_comma);
 			pending_comma = nullptr;
 			}
+
 		else if ( c->GetTag() == Tag::Comma )
 			pending_comma = c;
+
 		else if ( c->GetTag() == Tag::TrailingComma )
 			has_trailing_comma = true;
 		}
@@ -629,7 +631,8 @@ LIPtr Layout::ComputeEnumBody(const FmtContext& ctx) const
 		}
 
 	auto close_pad = line_prefix(ctx.Indent(), ctx.Col());
-	return lit(Formatting("\n") + body + close_pad + inner->Children().back());
+	auto& icb = inner->Children().back();
+	return lit(Formatting("\n") + body + close_pad + icb);
 	}
 
 // Record body + close brace.  Inner = Child(5) = TYPE-RECORD node.
@@ -656,9 +659,8 @@ LIPtr Layout::ComputeRecordBody(const FmtContext& ctx) const
 			{
 			body += ki->EmitPreComments(field_pad);
 
-			auto suffix = Formatting(
-				ki->Children().back()) +
-				ki->TrailingComment();
+			auto suffix = Formatting(ki->Children().back()) +
+						ki->TrailingComment();
 			auto field_text = format_field(*ki, suffix, field_ctx);
 
 			body += field_pad + field_text + "\n";
@@ -666,7 +668,8 @@ LIPtr Layout::ComputeRecordBody(const FmtContext& ctx) const
 		}
 
 	auto close_pad = line_prefix(ctx.Indent(), ctx.Col());
-	return lit(Formatting("\n") + body + close_pad + inner->Children().back());
+	auto& icb = inner->Children().back();
+	return lit(Formatting("\n") + body + close_pad + icb);
 	}
 
 // ---- Switch formatting ---------------------------------------------------
@@ -715,17 +718,17 @@ LIPtr Layout::ComputeSwitchCases(const FmtContext& ctx) const
 			continue;
 
 		// DEFAULT: [0]=KEYWORD [1]=COLON [optional BODY]
+		auto& kw = c->Child(0, Tag::Keyword);
 		if ( c->GetTag() == Tag::Default )
 			{
-			result += "\n" + pad + c->Child(0, Tag::Keyword) +
-					c->Child(1, Tag::Colon);
+			result += "\n" + pad + kw + c->Child(1, Tag::Colon);
 			append_case_body(c->FindOptChild(Tag::Body), result, ctx);
 			continue;
 			}
 
 		// CASE: [0]=KEYWORD [1]=SP [2]=VALUES [3]=COLON [4]=BODY
 		auto values = c->Child(2, Tag::Values);
-		auto case_text = Formatting(c->Child(0, Tag::Keyword)) + " ";
+		auto case_text = Formatting(kw) + " ";
 
 		// Collect formatted values and commas.
 		std::vector<Formatting> vals;
@@ -765,7 +768,8 @@ LIPtr Layout::ComputeSwitchCases(const FmtContext& ctx) const
 
 			if ( i > 0 && cur_col + need > max_col )
 				{
-				case_text += Formatting(vcommas[i]) + "\n" + vpad;
+				case_text += Formatting(vcommas[i]) +
+						"\n" + vpad;
 				cur_col = case_col;
 				}
 
@@ -820,6 +824,7 @@ bool Layout::ClosesDepth() const
 	{
 	if ( GetTag() == Tag::PreprocCond )
 		return false;
+
 	const auto& d = Arg(0);
 	return d == "@else" || d == "@endif";
 	}
@@ -828,6 +833,7 @@ bool Layout::AtColumnZero() const
 	{
 	if ( GetTag() == Tag::PreprocCond )
 		return true;
+
 	const auto& d = Arg(0);
 	return d == "@else" || d == "@endif";
 	}
@@ -877,8 +883,8 @@ Formatting Layout::FormatWhitesmithBlock(const FmtContext& ctx) const
 		body_text = body_text.Substr(0, body_text.Size() - 1) +
 				close_trail + "\n";
 		// Already relocated - use bare brace.
-		rb_fmt = rb_fmt.Substr(0,
-			rb_fmt.Size() - static_cast<int>(close_trail.size()));
+		int ct_size = static_cast<int>(close_trail.size());
+		rb_fmt = rb_fmt.Substr(0, rb_fmt.Size() - ct_size);
 		}
 
 	auto rb_comments = rb->EmitPreComments(brace_pad);
@@ -887,9 +893,9 @@ Formatting Layout::FormatWhitesmithBlock(const FmtContext& ctx) const
 	}
 
 // Format a single-statement body (no braces, indented one level).
-static Formatting format_single_stmt_body(const Layout& body, const FmtContext& ctx)
+static Formatting format_single_stmt_body(const Layout& body,
+						const FmtContext& ctx)
 	{
-
 	auto text = format_stmt_list(body.Children(), ctx.Indented());
 
 	// Strip trailing newline - the parent loop adds its own.
@@ -952,22 +958,23 @@ LIPtr Layout::ComputeElseFollowOn(const FmtContext& ctx) const
 	auto else_child = else_node->Child(2);
 	auto else_kw = else_node->Child(0, Tag::Keyword);
 
+	result += "\n" + stmt_pad + Formatting(else_kw);
+
 	if ( else_node->GetTag() == Tag::ElseIf )
 		{
 		auto inner_cs = format_expr(*else_child, ctx);
-		result += "\n" + stmt_pad + Formatting(else_kw) + " " +
-				best(inner_cs).Fmt();
+		result += " " + best(inner_cs).Fmt();
 		}
+
 	else if ( else_child->GetTag() == Tag::Block )
-		result += "\n" + stmt_pad + Formatting(else_kw) +
-				else_child->FormatWhitesmithBlock(ctx);
+		result += else_child->FormatWhitesmithBlock(ctx);
+
 	else
 		{
 		auto else_ctx = ctx.Indented();
 		auto cs = format_expr(*else_child, else_ctx);
 		auto epad = line_prefix(else_ctx.Indent(), else_ctx.Col());
-		result += "\n" + stmt_pad + Formatting(else_kw) + "\n" +
-				epad + best(cs).Fmt();
+		result += "\n" + epad + best(cs).Fmt();
 		}
 
 	return lit(std::move(result));
