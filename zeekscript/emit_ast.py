@@ -25,7 +25,7 @@ Special markers:
     COMMENT-LEADING "text"    Own-line comment before following content.
     RAW "text"                Verbatim text (NO-FORMAT region).
     SEMI                      Statement-ending semicolon.
-    TRAILING-COMMA            Preserve trailing comma in INDEX-LITERAL.
+    TRAILING-COMMA            Author's trailing comma (preserve in output).
 
 If tree-sitter reports parse errors, the program exits with status 1.
 """
@@ -65,7 +65,6 @@ class Emitter:
         self.out: list[str] = []
         self._indent = 0
         self._prev_content_end = 0  # for blank-line detection
-        self._prev_content_line = -1  # for comment attachment
 
     # ------------------------------------------------------------------
     # Output helpers
@@ -194,7 +193,6 @@ class Emitter:
 
     def _mark_content(self, node: tree_sitter.Node) -> None:
         self._prev_content_end = node.end_byte
-        self._prev_content_line = node.end_point[0]
 
     # ------------------------------------------------------------------
     # Main dispatch
@@ -264,7 +262,7 @@ class Emitter:
         kids = self._children(node)
 
         if not kids:
-            self._w(f'UNKNOWN-EXPR')
+            self._w('UNKNOWN-EXPR')
             self._mark_content(node)
             return
 
@@ -1395,7 +1393,7 @@ class Emitter:
 
     def _emit_if_extras(self, node, after_node, before_node,
                          ref_node=None,
-                         skip_trailing=False) -> None:
+                         skip_trailing=False) -> bool:
         """Emit extra children of `node` between `after_node` and
         `before_node`.  `ref_node` is used for same-line detection.
         If `skip_trailing`, same-line comments are skipped (already
@@ -1619,7 +1617,7 @@ class Emitter:
         self._mark_content(node)
 
     def _emit_return(self, node: tree_sitter.Node) -> None:
-        has_expr = any(child.type == "expr" for child in self._iter_children(node))
+        has_expr = any(k.type == "expr" for k in self._children(node))
         self._open('RETURN' if has_expr else 'RETURN-VOID')
         self._kw("return")
         for child in self._iter_children(node):
