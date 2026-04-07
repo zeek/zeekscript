@@ -124,7 +124,7 @@ Formatting Layout::FormatAttrList(const FmtContext& ctx) const
 	}
 
 // Compute "of type" suffix for TYPE-PARAMETERIZED: " of type".
-LayoutItem Layout::ComputeOfType(ComputeCtx& /*cctx*/, const FmtContext& ctx) const
+LayoutItem Layout::ComputeOfType(const FmtContext& ctx) const
 	{
 	auto kw = FindOptChild(Tag::Keyword);
 	if ( ! kw )
@@ -134,14 +134,14 @@ LayoutItem Layout::ComputeOfType(ComputeCtx& /*cctx*/, const FmtContext& ctx) co
 	}
 
 // Compute the type suffix for a PARAM node: ": type".
-LayoutItem Layout::ComputeParamType(ComputeCtx& /*cctx*/, const FmtContext& ctx) const
+LayoutItem Layout::ComputeParamType(const FmtContext& ctx) const
 	{
 	return Formatting(Child(0, Tag::Colon)) + " " +
 		best(format_expr(*FindTypeChild(), ctx)).Fmt();
 	}
 
 // Compute the return type suffix for a TYPE-FUNC-RET node: ": rettype".
-LayoutItem Layout::ComputeRetType(ComputeCtx& /*cctx*/, const FmtContext& ctx) const
+LayoutItem Layout::ComputeRetType(const FmtContext& ctx) const
 	{
 	auto& returns = FindChild(Tag::Returns);
 	return Formatting(FindChild(Tag::Colon)) + " " +
@@ -155,8 +155,7 @@ LayoutItem Layout::ComputeRetType(ComputeCtx& /*cctx*/, const FmtContext& ctx) c
 
 // Prefix for arglist: keyword for plain lambda, keyword[captures]
 // for lambda-with-captures.
-LayoutItem Layout::ComputeLambdaPrefix(ComputeCtx& /*cctx*/,
-                                     const FmtContext& ctx) const
+LayoutItem Layout::ComputeLambdaPrefix(const FmtContext& ctx) const
 	{
 	if ( GetTag() != Tag::LambdaCaptures )
 		return Formatting(Child(0, Tag::Keyword));
@@ -175,8 +174,7 @@ LayoutItem Layout::ComputeLambdaPrefix(ComputeCtx& /*cctx*/,
 	}
 
 // Return type suffix for lambda: ": type" or empty.
-LayoutItem Layout::ComputeLambdaRet(ComputeCtx& /*cctx*/,
-                                  const FmtContext& ctx) const
+LayoutItem Layout::ComputeLambdaRet(const FmtContext& ctx) const
 	{
 	int pp = (GetTag() == Tag::LambdaCaptures) ? 3 : 2;
 	auto after_params = Child(pp + 1);
@@ -194,8 +192,7 @@ LayoutItem Layout::ComputeLambdaRet(ComputeCtx& /*cctx*/,
 
 // Body block for lambda: uses column-based indent so the
 // Whitesmith block aligns to the next tab stop.
-LayoutItem Layout::ComputeLambdaBody(ComputeCtx& /*cctx*/,
-                                   const FmtContext& ctx) const
+LayoutItem Layout::ComputeLambdaBody(const FmtContext& ctx) const
 	{
 	int lambda_indent = ctx.Col() / INDENT_WIDTH;
 	FmtContext body_ctx(lambda_indent, ctx.Col(),
@@ -206,8 +203,7 @@ LayoutItem Layout::ComputeLambdaBody(ComputeCtx& /*cctx*/,
 // ---- Function declaration compute ----------------------------------------
 
 // Optional return type suffix for FUNC-DECL: ": rettype" or empty.
-LayoutItem Layout::ComputeFuncRet(ComputeCtx& /*cctx*/,
-                                const FmtContext& ctx) const
+LayoutItem Layout::ComputeFuncRet(const FmtContext& ctx) const
 	{
 	auto returns = FindOptChild(Tag::Returns);
 	if ( ! returns )
@@ -222,8 +218,7 @@ LayoutItem Layout::ComputeFuncRet(ComputeCtx& /*cctx*/,
 	}
 
 // Attribute list for FUNC-DECL: bare attrs or empty.
-LayoutItem Layout::ComputeFuncAttrs(ComputeCtx& /*cctx*/,
-                                  const FmtContext& ctx) const
+LayoutItem Layout::ComputeFuncAttrs(const FmtContext& ctx) const
 	{
 	auto attrs = FindOptChild(Tag::AttrList);
 	if ( ! attrs )
@@ -237,8 +232,7 @@ LayoutItem Layout::ComputeFuncAttrs(ComputeCtx& /*cctx*/,
 	}
 
 // Trailing comment + Whitesmith body block for FUNC-DECL.
-LayoutItem Layout::ComputeFuncBody(ComputeCtx& /*cctx*/,
-                                 const FmtContext& ctx) const
+LayoutItem Layout::ComputeFuncBody(const FmtContext& ctx) const
 	{
 	const auto& body = Children().back();
 	return Formatting(body->TrailingComment()) +
@@ -490,8 +484,7 @@ static void decl_type_split(const DeclParts& d, Candidates& result,
 
 // GLOBAL-DECL/LOCAL-DECL: [0]=KEYWORD [1]=SP [2]=IDENTIFIER
 //   [optional DECL-TYPE, DECL-INIT, ATTR-LIST] SEMI
-Candidates Layout::ComputeDecl(ComputeCtx& /*cctx*/,
-                              const FmtContext& ctx) const
+Candidates Layout::ComputeDecl(const FmtContext& ctx) const
 	{
 	auto kw_node = Child(0, Tag::Keyword);
 	auto id_node = Child(2, Tag::Identifier);
@@ -591,8 +584,7 @@ static Formatting format_field(const Layout& node, const Formatting& suffix,
 	}
 
 // Enum body + close brace.  Inner = Child(5) = TYPE-ENUM node.
-LayoutItem Layout::ComputeEnumBody(ComputeCtx& /*cctx*/,
-                                 const FmtContext& ctx) const
+LayoutItem Layout::ComputeEnumBody(const FmtContext& ctx) const
 	{
 	auto inner = Child(5);
 
@@ -641,8 +633,7 @@ LayoutItem Layout::ComputeEnumBody(ComputeCtx& /*cctx*/,
 	}
 
 // Record body + close brace.  Inner = Child(5) = TYPE-RECORD node.
-LayoutItem Layout::ComputeRecordBody(ComputeCtx& /*cctx*/,
-                                   const FmtContext& ctx) const
+LayoutItem Layout::ComputeRecordBody(const FmtContext& ctx) const
 	{
 	auto inner = Child(5);
 	int field_indent = ctx.Indent() + 1;
@@ -695,8 +686,7 @@ static void append_case_body(const LayoutPtr& body, Formatting& result,
 	}
 
 // Switch expression: unwrap parens for Zeek-style ( expr ) spacing.
-LayoutItem Layout::ComputeSwitchExpr(ComputeCtx& /*cctx*/,
-                                   const FmtContext& ctx) const
+LayoutItem Layout::ComputeSwitchExpr(const FmtContext& ctx) const
 	{
 	auto switch_expr = Child(2);
 
@@ -714,8 +704,7 @@ LayoutItem Layout::ComputeSwitchExpr(ComputeCtx& /*cctx*/,
 
 // Switch cases: format each CASE/DEFAULT with fill-packed values
 // and indented bodies.
-LayoutItem Layout::ComputeSwitchCases(ComputeCtx& /*cctx*/,
-                                    const FmtContext& ctx) const
+LayoutItem Layout::ComputeSwitchCases(const FmtContext& ctx) const
 	{
 	auto pad = line_prefix(ctx.Indent(), ctx.Col());
 	Formatting result;
@@ -926,8 +915,7 @@ FmtPtr Layout::FormatBodyText(const FmtContext& ctx) const
 // ---- Else follow-on ------------------------------------------------------
 
 // Else follow-on for if-else.
-LayoutItem Layout::ComputeElseFollowOn(ComputeCtx& /*cctx*/,
-                                      const FmtContext& ctx) const
+LayoutItem Layout::ComputeElseFollowOn(const FmtContext& ctx) const
 	{
 	// Find ElseIf or ElseBody child.
 	LayoutPtr else_node;

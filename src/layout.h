@@ -36,16 +36,9 @@ enum LIKind { Lit, FmtExpr, Sp, Tok, ExprIdx, LastTok, ArgIdx,
               IndentUp, IndentDown, HardBreak, SoftCont, StmtBody,
               BodyText, OpFill };
 
-// Shared context for Computed layout items within a single
-// BuildLayout call.  Earlier compute functions can populate
-// fields that later ones read.
-struct ComputeCtx {
-	Formatting fmt;
-};
-
 class LayoutItem;
-using ComputeFn = LayoutItem (Layout::*)(ComputeCtx&, const FmtContext&) const;
-using ComputeCandsFn = Candidates (Layout::*)(ComputeCtx&, const FmtContext&) const;
+using ComputeFn = LayoutItem (Layout::*)(const FmtContext&) const;
+using ComputeCandsFn = Candidates (Layout::*)(const FmtContext&) const;
 
 // A piece in a flat-or-split sequence.
 class FmtStep {
@@ -472,21 +465,21 @@ public:
 	const LayoutPtr& FindTypeChild() const;
 
 	// Compute functions for declarative BuildLayout resolution.
-	LayoutItem ComputeRetType(ComputeCtx& cctx, const FmtContext& ctx) const;
-	LayoutItem ComputeParamType(ComputeCtx& cctx, const FmtContext& ctx) const;
-	LayoutItem ComputeOfType(ComputeCtx& cctx, const FmtContext& ctx) const;
-	LayoutItem ComputeEnumBody(ComputeCtx& cctx, const FmtContext& ctx) const;
-	LayoutItem ComputeRecordBody(ComputeCtx& cctx, const FmtContext& ctx) const;
-	LayoutItem ComputeElseFollowOn(ComputeCtx& cctx, const FmtContext& ctx) const;
-	LayoutItem ComputeFuncRet(ComputeCtx& cctx, const FmtContext& ctx) const;
-	LayoutItem ComputeFuncAttrs(ComputeCtx& cctx, const FmtContext& ctx) const;
-	LayoutItem ComputeFuncBody(ComputeCtx& cctx, const FmtContext& ctx) const;
-	LayoutItem ComputeLambdaPrefix(ComputeCtx& cctx, const FmtContext& ctx) const;
-	LayoutItem ComputeLambdaRet(ComputeCtx& cctx, const FmtContext& ctx) const;
-	LayoutItem ComputeLambdaBody(ComputeCtx& cctx, const FmtContext& ctx) const;
-	LayoutItem ComputeSwitchExpr(ComputeCtx& cctx, const FmtContext& ctx) const;
-	LayoutItem ComputeSwitchCases(ComputeCtx& cctx, const FmtContext& ctx) const;
-	Candidates ComputeDecl(ComputeCtx& cctx, const FmtContext& ctx) const;
+	LayoutItem ComputeRetType(const FmtContext& ctx) const;
+	LayoutItem ComputeParamType(const FmtContext& ctx) const;
+	LayoutItem ComputeOfType(const FmtContext& ctx) const;
+	LayoutItem ComputeEnumBody(const FmtContext& ctx) const;
+	LayoutItem ComputeRecordBody(const FmtContext& ctx) const;
+	LayoutItem ComputeElseFollowOn(const FmtContext& ctx) const;
+	LayoutItem ComputeFuncRet(const FmtContext& ctx) const;
+	LayoutItem ComputeFuncAttrs(const FmtContext& ctx) const;
+	LayoutItem ComputeFuncBody(const FmtContext& ctx) const;
+	LayoutItem ComputeLambdaPrefix(const FmtContext& ctx) const;
+	LayoutItem ComputeLambdaRet(const FmtContext& ctx) const;
+	LayoutItem ComputeLambdaBody(const FmtContext& ctx) const;
+	LayoutItem ComputeSwitchExpr(const FmtContext& ctx) const;
+	LayoutItem ComputeSwitchCases(const FmtContext& ctx) const;
+	Candidates ComputeDecl(const FmtContext& ctx) const;
 
 	// Format an ATTR-LIST node as a single string.
 	Formatting FormatAttrList(const FmtContext& ctx) const;

@@ -778,29 +778,26 @@ Candidates build_layout(LayoutItems items, const FmtContext& ctx)
 
 Candidates Layout::BuildLayout(LayoutItems items, const FmtContext& ctx) const
 	{
-	ComputeCtx cctx;
-
 	for ( size_t i = 0; i < items.size(); ++i )
 		{
 		auto& item = items[i];
 
 		if ( item.kind == Computed )
 			{
-			item = (this->*item.CompFn())(cctx, ctx);
+			item = (this->*item.CompFn())(ctx);
 			continue;
 			}
 
 		if ( item.kind == ComputedCands )
 			{
-			auto fn = item.CompCandsFn();
-			auto cs = (this->*fn)(cctx, ctx);
+			auto cs = (this->*item.CompCandsFn())(ctx);
 			item = LayoutItem(ComputedCands, std::move(cs));
 			continue;
 			}
 
 		if ( item.kind == SoftCont )
 			{
-			auto result = (this->*item.CompFn())(cctx, ctx);
+			auto result = (this->*item.CompFn())(ctx);
 			item = LayoutItem(SoftCont, result.Fmt());
 			continue;
 			}
@@ -824,9 +821,9 @@ Candidates Layout::BuildLayout(LayoutItems items, const FmtContext& ctx) const
 			Formatting prefix;
 			int flags = item.Flags();
 			if ( item.CompFn() )
-				suffix = (this->*item.CompFn())(cctx, ctx).Fmt();
+				suffix = (this->*item.CompFn())(ctx).Fmt();
 			if ( item.PrefixFn() )
-				prefix = (this->*item.PrefixFn())(cctx, ctx).Fmt();
+				prefix = (this->*item.PrefixFn())(ctx).Fmt();
 			if ( flags )
 				item = LayoutItem(ArgList, Child(item.ChildIdx()),
 					std::move(prefix), std::move(suffix),
