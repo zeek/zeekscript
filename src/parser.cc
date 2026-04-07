@@ -37,6 +37,64 @@ static void AttachPreComments(std::vector<std::string>& pending,
 	pending.clear();
 	}
 
+// Process a single parsed node, handling comment attachment and
+// marker accumulation.  Returns true if the node was consumed
+// internally (not added to 'out').
+static bool process_comment(LayoutPtr& node, LayoutVec& out,
+                            std::vector<std::string>& pending_pre,
+                            LayoutVec& pending_markers)
+	{
+	Tag t = node->GetTag();
+
+	if ( t == Tag::CommentTrailing && ! out.empty() )
+		{
+		out.back()->SetTrailingComment(node->Arg());
+		return true;
+		}
+
+	if ( t == Tag::CommentLeading )
+		{
+		std::string text = node->Arg();
+		if ( ! out.empty() &&
+		     out.back()->GetTag() == Tag::Blank )
+			{
+			out.pop_back();
+			text = "\n" + text;
+			}
+		pending_pre.push_back(std::move(text));
+		return true;
+		}
+
+	if ( ! pending_pre.empty() && node->IsMarker() )
+		{
+		if ( t == Tag::Blank )
+			pending_pre.back() += "\n";
+		else
+			pending_markers.push_back(std::move(node));
+		return true;
+		}
+
+	AttachPreComments(pending_pre, pending_markers, *node);
+	return false;
+	}
+
+// Flush any held markers and trailing comments that had no
+// following node.
+static void flush_comments(LayoutVec& out,
+                           std::vector<std::string>& pending_pre,
+                           LayoutVec& pending_markers)
+	{
+	for ( auto& m : pending_markers )
+		out.push_back(std::move(m));
+
+	for ( auto& c : pending_pre )
+		{
+		auto cn = MakeNode(Tag::CommentLeading);
+		cn->AddArg(std::move(c));
+		out.push_back(std::move(cn));
+		}
+	}
+
 LayoutVec Parser::Parse(const std::string& input)
 	{
 	Parser p(input);
@@ -57,56 +115,14 @@ LayoutVec Parser::ParseFile()
 		if ( ! node )
 			return {};  // error already reported
 
-		Tag t = node->GetTag();
-
-		if ( t == Tag::CommentTrailing && ! nodes.empty() )
-			// Attach COMMENT-TRAILING to the preceding node.
-			nodes.back()->SetTrailingComment(node->Arg());
-
-		else if ( t == Tag::CommentLeading )
-			{
-			// Merge a preceding standalone BLANK into
-			// the comment as a leading '\n'.
-			std::string text = node->Arg();
-			if ( ! nodes.empty() &&
-			     nodes.back()->GetTag() == Tag::Blank )
-				{
-				nodes.pop_back();
-				text = "\n" + text;
-				}
-			pending_pre.push_back(std::move(text));
-			}
-
-		else if ( ! pending_pre.empty() && node->IsMarker() )
-			{
-			// Merge a BLANK between comments and their
-			// target into the last comment as a trailing '\n'.
-			if ( t == Tag::Blank )
-				pending_pre.back() += "\n";
-			else
-				pending_nodes.push_back(std::move(node));
-			}
-
-		else
-			{
-			AttachPreComments(pending_pre, pending_nodes, *node);
+		if ( ! process_comment(node, nodes, pending_pre,
+		                       pending_nodes) )
 			nodes.push_back(std::move(node));
-			}
 
 		SkipWhitespace();
 		}
 
-	// Flush any held markers and trailing comments that
-	// had no following node.
-	for ( auto& pn : pending_nodes )
-		nodes.push_back(std::move(pn));
-
-	for ( auto& c : pending_pre )
-		{
-		auto cn = MakeNode(Tag::CommentLeading);
-		cn->AddArg(std::move(c));
-		nodes.push_back(std::move(cn));
-		}
+	flush_comments(nodes, pending_pre, pending_nodes);
 
 	return nodes;
 	}
@@ -156,54 +172,15 @@ LayoutPtr Parser::ParseNode()
 		if ( ! child )
 			return nullptr;
 
-		Tag ct = child->GetTag();
-
-		// Attach COMMENT-TRAILING to preceding child.
-		if ( ct == Tag::CommentTrailing && node->HasChildren() )
-			node->Children().back()->SetTrailingComment(child->Arg());
-
-		// Save COMMENT-LEADING for the next child.
-		else if ( ct == Tag::CommentLeading )
-			{
-			std::string text = child->Arg();
-			if ( node->HasChildren() &&
-			     node->Children().back()->GetTag() == Tag::Blank )
-				{
-				node->Children().pop_back();
-				text = "\n" + text;
-				}
-			pending_pre.push_back(std::move(text));
-			}
-
-		// When pre-comments are pending, hold markers so they don't
-		// separate comments from their target node.
-		else if ( ! pending_pre.empty() && child->IsMarker() )
-			{
-			if ( ct == Tag::Blank )
-				pending_pre.back() += "\n";
-			else
-				pending_children.push_back(std::move(child));
-			}
-
-		else
-			{
-			AttachPreComments(pending_pre, pending_children, *child);
+		if ( ! process_comment(child, node->Children(),
+		                       pending_pre, pending_children) )
 			node->AddChild(std::move(child));
-			}
 
 		SkipWhitespace();
 		}
 
-	// Flush any held markers and trailing comments.
-	for ( auto& pc : pending_children )
-		node->AddChild(std::move(pc));
-
-	for ( auto& c : pending_pre )
-		{
-		auto cn = MakeNode(Tag::CommentLeading);
-		cn->AddArg(std::move(c));
-		node->AddChild(std::move(cn));
-		}
+	flush_comments(node->Children(), pending_pre,
+	               pending_children);
 
 	if ( AtEnd() )
 		{

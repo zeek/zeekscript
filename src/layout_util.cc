@@ -98,6 +98,19 @@ static Formatting format_one_attr(const Layout& attr, bool spaced,
 	return fmt;
 	}
 
+// Join a vector of formatted attr strings with spaces.
+static Formatting join_attrs(const std::vector<Formatting>& strs)
+	{
+	Formatting result;
+	for ( const auto& a : strs )
+		{
+		if ( ! result.Empty() )
+			result += " ";
+		result += a;
+		}
+	return result;
+	}
+
 std::vector<Formatting> Layout::FormatAttrStrings(const FmtContext& ctx) const
 	{
 	bool spaced = attr_list_needs_spaces(*this, ctx);
@@ -112,19 +125,11 @@ std::vector<Formatting> Layout::FormatAttrStrings(const FmtContext& ctx) const
 
 Formatting Layout::FormatAttrList(const FmtContext& ctx) const
 	{
-	Formatting fmt;
-
-	for ( const auto& a : FormatAttrStrings(ctx) )
-		{
-		if ( ! fmt.Empty() )
-			fmt += " ";
-		fmt += a;
-		}
-
-	return fmt;
+	return join_attrs(FormatAttrStrings(ctx));
 	}
 
 // Compute "of type" suffix for TYPE-PARAMETERIZED: " of type".
+// Empty when there's no "of" clause (e.g. "set[count]").
 LIPtr Layout::ComputeOfType(const FmtContext& ctx) const
 	{
 	auto kw = FindOptChild(Tag::Keyword);
@@ -328,6 +333,23 @@ static void decl_with_init(const DeclParts& d, Candidates& result,
 		}
 	}
 
+// Shared setup for declarations that split type to a continuation line.
+struct DeclContState {
+	FmtContext cont;
+	Formatting type_fmt;
+	Formatting split_prefix;	// "head:" + newline + indent pad
+};
+
+static DeclContState decl_cont_setup(const DeclParts& d,
+                                     const FmtContext& ctx)
+	{
+	auto cont = ctx.Indented();
+	auto type_fmt = best(format_expr(*d.type_node, cont)).Fmt();
+	auto pad = line_prefix(cont.Indent(), cont.Col());
+	auto prefix = d.head + d.colon_node + "\n" + pad;
+	return {cont, std::move(type_fmt), std::move(prefix)};
+	}
+
 // Flat candidate + type-on-continuation for declarations without initializers.
 static void decl_no_init(const DeclParts& d, Candidates& result,
                        const FmtContext& ctx)
@@ -347,10 +369,7 @@ static void decl_no_init(const DeclParts& d, Candidates& result,
 	if ( d.type_str.Empty() )
 		return;
 
-	FmtContext cont = ctx.Indented();
-	auto tv = best(format_expr(*d.type_node, cont)).Fmt();
-	auto line1 = d.head + d.colon_node;
-	auto pad = line_prefix(cont.Indent(), cont.Col());
+	auto [cont, tv, prefix] = decl_cont_setup(d, ctx);
 
 	// Try type + suffix on one continuation line.
 	auto oneline = tv + d.suffix;
@@ -359,7 +378,7 @@ static void decl_no_init(const DeclParts& d, Candidates& result,
 
 	if ( oneline_w <= ctx.MaxCol() )
 		{
-		auto split = line1 + "\n" + pad + oneline;
+		auto split = prefix + oneline;
 		int last_w = split.LastLineLen();
 		result.push_back({split, last_w, split.CountLines(),
 					ovf(last_w, ctx), ctx.Col()});
@@ -368,7 +387,7 @@ static void decl_no_init(const DeclParts& d, Candidates& result,
 
 	// Type alone, attrs on separate lines.
 	Formatting type_suffix = d.attrs_node ? Formatting() : d.suffix;
-	auto split = line1 + "\n" + pad + tv + type_suffix;
+	auto split = prefix + tv + type_suffix;
 
 	if ( d.attrs_node )
 		{
@@ -413,13 +432,7 @@ static void decl_wrapped_attrs(const DeclParts& d, Candidates& result,
 	int semi_w = d.semi_node->Width();
 
 	// Check if all attrs fit on one continuation line.
-	Formatting all_attrs;
-	for ( size_t i = 0; i < attr_strs.size(); ++i )
-		{
-		if ( i > 0 )
-			all_attrs += " ";
-		all_attrs += attr_strs[i];
-		}
+	auto all_attrs = join_attrs(attr_strs);
 
 	Formatting wrapped = line1;
 	int ovf = ovf_no_trail(line1.Size(), ctx);
@@ -457,12 +470,8 @@ static void decl_type_split(const DeclParts& d, Candidates& result,
 	if ( d.type_str.Empty() )
 		return;
 
-	FmtContext cont = ctx.Indented();
-	auto bare_type = best(format_expr(*d.type_node, cont)).Fmt();
-
-	auto line1 = d.head + d.colon_node;
-	auto pad = line_prefix(cont.Indent(), cont.Col());
-	auto split = line1 + "\n" + pad + bare_type;
+	auto [cont, bare_type, prefix] = decl_cont_setup(d, ctx);
+	auto split = prefix + bare_type;
 
 	if ( d.init_val )
 		{
@@ -477,7 +486,8 @@ static void decl_type_split(const DeclParts& d, Candidates& result,
 
 	int last_w = split.LastLineLen();
 	int lines = split.CountLines();
-	int overflow = ovf_no_trail(line1.Size(), ctx) + ovf(last_w, ctx);
+	int line1_w = d.head.Size() + d.colon_node->Width();
+	int overflow = ovf_no_trail(line1_w, ctx) + ovf(last_w, ctx);
 
 	result.push_back({split, last_w, lines, overflow, ctx.Col()});
 	}
@@ -572,15 +582,7 @@ static Formatting format_field(const Layout& node, const Formatting& suffix,
 	auto pad = line_prefix(ctx.Indent(), ctx.Col() + attr_col);
 	auto attr_strs = attrs->FormatAttrStrings(ctx);
 
-	Formatting all_attrs;
-	for ( size_t i = 0; i < attr_strs.size(); ++i )
-		{
-		if ( i > 0 )
-			all_attrs += " ";
-		all_attrs += attr_strs[i];
-		}
-
-	return head + type_str + "\n" + pad + all_attrs + suffix;
+	return head + type_str + "\n" + pad + join_attrs(attr_strs) + suffix;
 	}
 
 // Enum body + close brace.  Inner = Child(5) = TYPE-ENUM node.

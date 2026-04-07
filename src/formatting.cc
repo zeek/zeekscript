@@ -122,7 +122,7 @@ void FmtPiece::AccumOverflow(int& col, int max_col, int& ovf) const
 			col = 0;
 			}
 		else if ( c == '\t' )
-			col = (col / INDENT_WIDTH + 1) * INDENT_WIDTH;
+			col = next_tab(col);
 		else
 			++col;
 	}
@@ -145,7 +145,7 @@ void FmtPiece::AccumMaxOverflow(int& col, int max_col, int& max_ovf) const
 			col = 0;
 			}
 		else if ( c == '\t' )
-			col = (col / INDENT_WIDTH + 1) * INDENT_WIDTH;
+			col = next_tab(col);
 		else
 			++col;
 		}

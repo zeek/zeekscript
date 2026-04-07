@@ -750,9 +750,8 @@ static void prune_beam(Partials& beam)
 	std::sort(beam.begin(), beam.end(),
 		[](const Partial& a, const Partial& b)
 			{
-			if ( a.overflow != b.overflow )
-				return a.overflow < b.overflow;
-			return a.lines < b.lines;
+			return std::tie(a.overflow, a.lines) <
+			       std::tie(b.overflow, b.lines);
 			});
 
 	beam.resize(BEAM_WIDTH);

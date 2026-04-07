@@ -23,7 +23,9 @@ static void collect_trailing(const Layout& node,
 	}
 
 // Check that every trailing comment appears on a line that has
-// preceding content - never as a standalone line.
+// preceding content - never as a standalone line.  Uses a simple
+// string search, so a duplicate comment could match the wrong
+// occurrence.
 static void warn_standalone_trailing(const std::string& output,
                                    const LayoutVec& nodes)
 	{

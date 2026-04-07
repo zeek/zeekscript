@@ -11,6 +11,10 @@ public:
 
 static constexpr int INDENT_WIDTH = 8;  // columns per indent level
 
+// Column after the next tab stop at or past 'col'.
+inline int next_tab(int col)
+	{ return (col / INDENT_WIDTH + 1) * INDENT_WIDTH; }
+
 // The context passed down during formatting.  Everything is in absolute
 // columns - tabs don't exist at this level.
 //

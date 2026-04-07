@@ -39,7 +39,7 @@ int Candidate::ComputeSpread(const std::string& t, int first_col)
 			}
 
 		else if ( c == '\t' )
-			line_w = (line_w / INDENT_WIDTH + 1) * INDENT_WIDTH;
+			line_w = next_tab(line_w);
 		else
 			++line_w;
 		}
