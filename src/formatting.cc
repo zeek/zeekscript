@@ -1,6 +1,6 @@
 #include "formatting.h"
 #include "fmt_context.h"
-#include "node.h"
+#include "layout.h"
 
 #include <cassert>
 

@@ -7,7 +7,6 @@
 #include <vector>
 
 #include "layout.h"
-#include "node.h"
 #include "tag.h"
 
 // Helpers.

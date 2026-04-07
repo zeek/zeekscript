@@ -1,8 +1,1202 @@
 #include <algorithm>
 #include <cassert>
+#include <cstdio>
+#include <stdexcept>
+#include <unordered_map>
 
 #include "flat_split.h"
 #include "fmt_util.h"
+
+// Line prefix: tabs for indent, spaces for remaining offset
+std::string line_prefix(int indent, int col)
+	{
+	std::string s(indent, '\t');
+	int space_col = indent * INDENT_WIDTH;
+
+	if ( col > space_col )
+		s.append(col - space_col, ' ');
+
+	return s;
+	}
+
+// ---- Core Layout methods ------------------------------------------------
+
+Candidates Layout::Format(const FmtContext& ctx) const
+	{
+	if ( ! layout.empty() )
+		return BuildLayout(layout, ctx);
+
+	auto fallback = std::string("/* ") + TagToString(tag) + " */";
+	return {Candidate(fallback, ctx)};
+	}
+
+const std::string& Layout::Arg(size_t i) const
+	{
+	static const std::string empty;
+	return i < args.size() ? args[i] : empty;
+	}
+
+const LayoutPtr null_node;
+
+const LayoutPtr& Layout::Child(size_t i, Tag t) const
+	{
+	const auto& c = children[i];
+	if ( c->GetTag() != t )
+		throw std::runtime_error(std::string("internal error: ") +
+					TagToString(tag) + " child " +
+					std::to_string(i) + " is " +
+					TagToString(c->GetTag()) + ", expected " +
+					TagToString(t));
+	return c;
+	}
+
+const LayoutPtr& Layout::FindOptChild(Tag t) const
+	{
+	for ( const auto& c : children )
+		if ( c->GetTag() == t )
+			return c;
+	return null_node;
+	}
+
+const LayoutPtr& Layout::FindChild(Tag t) const
+	{
+	const auto& n = FindOptChild(t);
+	if ( ! n )
+		throw std::runtime_error(std::string("internal error: ") +
+					TagToString(tag) + " has no " +
+					TagToString(t) + " child");
+	return n;
+	}
+
+const LayoutPtr& Layout::FindChild(Tag t, const LayoutPtr& after) const
+	{
+	bool past = false;
+	for ( const auto& c : children )
+		{
+		if ( c == after )
+			past = true;
+		else if ( past && c->GetTag() == t )
+			return c;
+		}
+
+	return null_node;
+	}
+
+LayoutVec Layout::ContentChildren() const
+	{
+	LayoutVec result;
+	for ( const auto& c : children )
+		if ( ! c->IsToken() && ! c->IsMarker() )
+			result.push_back(c);
+
+	return result;
+	}
+
+LayoutVec Layout::ContentChildren(const char* name, int n) const
+	{
+	auto result = ContentChildren();
+	if ( static_cast<int>(result.size()) < n )
+		throw FormatError(name + std::string(" node needs ") +
+					std::to_string(n) + " children");
+
+	return result;
+	}
+
+static const std::unordered_map<Tag, const char*> token_syntax = {
+	{Tag::Comma, ","}, {Tag::LParen, "("}, {Tag::RParen, ")"},
+	{Tag::LBrace, "{"}, {Tag::RBrace, "}"}, {Tag::LBracket, "["},
+	{Tag::RBracket, "]"}, {Tag::Colon, ":"}, {Tag::Dollar, "$"},
+	{Tag::Question, "?"}, {Tag::Semi, ";"},
+};
+
+std::string Layout::Text() const
+	{
+	auto it = token_syntax.find(tag);
+	if ( it != token_syntax.end() )
+		return std::string(it->second) + trailing_comment;
+
+	if ( ! args.empty() )
+		return args.back() + trailing_comment;
+
+	return trailing_comment;
+	}
+
+static void print_quoted(const std::string& s)
+	{
+	putchar('"');
+
+	for ( char c : s )
+		{
+		switch ( c ) {
+		case '"': printf("\\\""); break;
+		case '\\': printf("\\\\"); break;
+		case '\n': printf("\\n"); break;
+		case '\t': printf("\\t"); break;
+		case '\r': printf("\\r"); break;
+		default: putchar(c); break;
+		}
+		}
+
+	putchar('"');
+	}
+
+static void do_indent(int n)
+	{
+	for ( int i = 0; i < n; ++i )
+		printf("  ");
+	}
+
+void Layout::Dump(int indent) const
+	{
+	// Emit pre-comments as COMMENT-LEADING siblings, then any
+	// interleaved markers (BLANK etc.), before this node.
+	for ( const auto& pc : pre_comments )
+		{
+		do_indent(indent);
+		printf("COMMENT-LEADING ");
+		print_quoted(pc);
+		printf("\n");
+		}
+
+	for ( const auto& pm : pre_markers )
+		pm->Dump(indent);
+
+	do_indent(indent);
+
+	printf("%s", TagToString(tag));
+
+	for ( const auto& a : args )
+		{
+		putchar(' ');
+		print_quoted(a);
+		}
+
+	if ( ! has_block )
+		{
+		printf("\n");
+
+		// Emit trailing comment as a sibling COMMENT-TRAILING line.
+		// Strip leading space added by SetTrailingComment.
+		if ( ! trailing_comment.empty() )
+			{
+			do_indent(indent);
+			printf("COMMENT-TRAILING ");
+			print_quoted(trailing_comment.substr(1));
+			printf("\n");
+			}
+
+		return;
+		}
+
+	if ( children.empty() && trailing_comment.empty() )
+		{
+		printf(" {\n");
+		do_indent(indent);
+		printf("}\n");
+		return;
+		}
+
+	printf(" {\n");
+
+	for ( const auto& child : children )
+		child->Dump(indent + 1);
+
+	do_indent(indent);
+	printf("}\n");
+
+	// Emit trailing comment as a sibling after the block.
+	// Strip leading space added by SetTrailingComment.
+	if ( ! trailing_comment.empty() )
+		{
+		do_indent(indent);
+		printf("COMMENT-TRAILING ");
+		print_quoted(trailing_comment.substr(1));
+		printf("\n");
+		}
+	}
+
+// ---- Pre-comment emission -----------------------------------------------
+
+// Pre-comment / pre-marker emission
+FmtPtr Layout::EmitPreComments(const std::string& pad) const
+	{
+	auto result = std::make_shared<Formatting>();
+
+	for ( const auto& pc : PreComments() )
+		{
+		// Leading '\n' = blank line before this comment.
+		size_t start = 0;
+		while ( start < pc.size() && pc[start] == '\n' )
+			{
+			*result += "\n";
+			++start;
+			}
+
+		// The comment text itself.
+		size_t end = pc.size();
+		while ( end > start && pc[end - 1] == '\n' )
+			--end;
+
+		*result += pad + pc.substr(start, end - start) + "\n";
+
+		// Trailing '\n' = blank line after this comment.
+		for ( size_t j = end; j < pc.size(); ++j )
+			*result += "\n";
+		}
+
+	for ( const auto& pm : PreMarkers() )
+		if ( pm->GetTag() == Tag::Blank )
+			*result += "\n";
+
+	return result;
+	}
+
+// ---- Type helpers --------------------------------------------------------
+
+// Find the first type child (TypeAtom, TypeParameterized, TypeFunc).
+const LayoutPtr& Layout::FindTypeChild() const
+	{
+	for ( const auto& c : Children() )
+		if ( c->IsType() )
+			return c;
+
+	return null_node;
+	}
+
+static const LayoutPtr& get_non_token_child(const Layout& parent)
+	{
+	for ( const auto& c : parent.Children() )
+		if ( ! c->IsToken() )
+			return c;
+	return null_node;
+	}
+
+// Check whether any attr value in an ATTR-LIST contains blanks.
+// If so, all attrs use " = " spacing; otherwise "=".
+static bool attr_list_needs_spaces(const Layout& node, const FmtContext& ctx)
+	{
+	for ( const auto& attr : node.Children() )
+		{
+		if ( attr->GetTag() != Tag::Attr )
+			continue;
+
+		// Find the value expression (first non-token child).
+		auto val = get_non_token_child(*attr);
+		if ( ! val )
+			continue;
+
+		if ( best(format_expr(*val, ctx)).Fmt().Contains(' ') )
+			return true;
+		}
+
+	return false;
+	}
+
+// Format a single attr: "&name" or "&name=value" / "&name = value".
+static Formatting format_one_attr(const Layout& attr, bool spaced,
+                                  const FmtContext& ctx)
+	{
+	Formatting fmt(attr.Arg());
+
+	if ( auto eq = attr.FindOptChild(Tag::Assign) )
+		{
+		auto sep = spaced ? " " : "";
+		fmt += sep + Formatting(eq) + sep;
+
+		if ( auto val = get_non_token_child(attr) )
+			fmt += best(format_expr(*val, ctx)).Fmt();
+		}
+
+	return fmt;
+	}
+
+std::vector<Formatting> Layout::FormatAttrStrings(const FmtContext& ctx) const
+	{
+	bool spaced = attr_list_needs_spaces(*this, ctx);
+	std::vector<Formatting> result;
+
+	for ( const auto& attr : Children() )
+		if ( attr->GetTag() == Tag::Attr )
+			result.push_back(format_one_attr(*attr, spaced, ctx));
+
+	return result;
+	}
+
+Formatting Layout::FormatAttrList(const FmtContext& ctx) const
+	{
+	Formatting fmt;
+	for ( const auto& a : FormatAttrStrings(ctx) )
+		{
+		if ( ! fmt.Empty() )
+			fmt += " ";
+		fmt += a;
+		}
+	return fmt;
+	}
+
+// Compute "of type" suffix for TYPE-PARAMETERIZED: " of type".
+LayoutItem Layout::ComputeOfType(ComputeCtx& /*cctx*/, const FmtContext& ctx) const
+	{
+	auto kw = FindOptChild(Tag::Keyword);
+	if ( ! kw )
+		return Formatting();
+	return " " + Formatting(kw) + " " +
+		best(format_expr(*FindTypeChild(), ctx)).Fmt();
+	}
+
+// Compute the type suffix for a PARAM node: ": type".
+LayoutItem Layout::ComputeParamType(ComputeCtx& /*cctx*/, const FmtContext& ctx) const
+	{
+	return Formatting(Child(0, Tag::Colon)) + " " +
+		best(format_expr(*FindTypeChild(), ctx)).Fmt();
+	}
+
+// Compute the return type suffix for a TYPE-FUNC-RET node: ": rettype".
+LayoutItem Layout::ComputeRetType(ComputeCtx& /*cctx*/, const FmtContext& ctx) const
+	{
+	auto& returns = FindChild(Tag::Returns);
+	return Formatting(FindChild(Tag::Colon)) + " " +
+		best(format_expr(*returns->FindTypeChild(), ctx)).Fmt();
+	}
+
+// ---- Lambda compute ------------------------------------------------------
+
+// LAMBDA:          [0]=KW [1]=SP [2]=PARAMS [opt COLON RETURNS] BODY(last)
+// LAMBDA-CAPTURES: [0]=KW [1]=SP [2]=CAPTURES [3]=PARAMS [opt ...] BODY(last)
+
+// Prefix for arglist: keyword for plain lambda, keyword[captures]
+// for lambda-with-captures.
+LayoutItem Layout::ComputeLambdaPrefix(ComputeCtx& /*cctx*/,
+                                     const FmtContext& ctx) const
+	{
+	if ( GetTag() != Tag::LambdaCaptures )
+		return Formatting(Child(0, Tag::Keyword));
+
+	auto kw = Child(0, Tag::Keyword);
+	auto captures = Child(2, Tag::Captures);
+	auto clb = captures->Child(0, Tag::LBracket);
+	const auto& crb = captures->Children().back();
+	auto cap_items = collect_args(captures->Children());
+
+	if ( cap_items.empty() )
+		return Formatting(kw) + clb + crb;
+
+	auto cs = flat_or_fill(kw, clb, crb, "", cap_items, ctx);
+	return best(cs).Fmt();
+	}
+
+// Return type suffix for lambda: ": type" or empty.
+LayoutItem Layout::ComputeLambdaRet(ComputeCtx& /*cctx*/,
+                                  const FmtContext& ctx) const
+	{
+	int pp = (GetTag() == Tag::LambdaCaptures) ? 3 : 2;
+	auto after_params = Child(pp + 1);
+
+	if ( after_params->GetTag() != Tag::Colon )
+		return Formatting();
+
+	auto returns = Child(pp + 2, Tag::Returns);
+	if ( auto rt = returns->FindTypeChild() )
+		return Formatting(after_params) + " " +
+			best(format_expr(*rt, ctx)).Fmt();
+
+	return Formatting();
+	}
+
+// Body block for lambda: uses column-based indent so the
+// Whitesmith block aligns to the next tab stop.
+LayoutItem Layout::ComputeLambdaBody(ComputeCtx& /*cctx*/,
+                                   const FmtContext& ctx) const
+	{
+	int lambda_indent = ctx.Col() / INDENT_WIDTH;
+	FmtContext body_ctx(lambda_indent, ctx.Col(),
+			ctx.MaxCol() - ctx.Col());
+	return Children().back()->FormatWhitesmithBlock(body_ctx);
+	}
+
+// ---- Function declaration compute ----------------------------------------
+
+// Optional return type suffix for FUNC-DECL: ": rettype" or empty.
+LayoutItem Layout::ComputeFuncRet(ComputeCtx& /*cctx*/,
+                                const FmtContext& ctx) const
+	{
+	auto returns = FindOptChild(Tag::Returns);
+	if ( ! returns )
+		return Formatting();
+
+	auto rt = returns->FindTypeChild();
+	if ( ! rt )
+		return Formatting();
+
+	return Formatting(FindChild(Tag::Colon)) + " " +
+		best(format_expr(*rt, ctx)).Fmt();
+	}
+
+// Attribute list for FUNC-DECL: bare attrs or empty.
+LayoutItem Layout::ComputeFuncAttrs(ComputeCtx& /*cctx*/,
+                                  const FmtContext& ctx) const
+	{
+	auto attrs = FindOptChild(Tag::AttrList);
+	if ( ! attrs )
+		return Formatting();
+
+	auto as = attrs->FormatAttrList(ctx);
+	if ( as.Empty() )
+		return Formatting();
+
+	return as;
+	}
+
+// Trailing comment + Whitesmith body block for FUNC-DECL.
+LayoutItem Layout::ComputeFuncBody(ComputeCtx& /*cctx*/,
+                                 const FmtContext& ctx) const
+	{
+	const auto& body = Children().back();
+	return Formatting(body->TrailingComment()) +
+		body->FormatWhitesmithBlock(ctx);
+	}
+
+// ---- Declaration formatting ----------------------------------------------
+
+// Declarations: global/local/const/redef name [: type] [= init] [attrs] ;
+
+// Shared state for declaration candidate generation.
+struct DeclParts {
+	Formatting head;	// "global foo", "local bar", etc.
+	Formatting type_str;	// ": type" or ""
+	Formatting suffix;	// " &attr1 &attr2;" or ";" or ""
+	Formatting assign_op;	// "=", "+=", or ""
+	LayoutPtr type_node;	// direct type child (after COLON)
+	LayoutPtr colon_node;	// COLON before type
+	LayoutPtr init_val;		// direct init value (after ASSIGN)
+	LayoutPtr attrs_node;	// ATTR-LIST child
+	LayoutPtr semi_node;	// SEMI child
+};
+
+// Build the suffix: attrs + optional semicolon.
+static Formatting decl_suffix(const LayoutPtr& attrs_node,
+                              const LayoutPtr& semi_node,
+                              const FmtContext& ctx)
+	{
+	Formatting suffix;
+
+	if ( attrs_node )
+		{
+		auto as = attrs_node->FormatAttrList(ctx);
+		if ( ! as.Empty() )
+			suffix += " " + as;
+		}
+
+	if ( semi_node )
+		suffix += semi_node;
+
+	return suffix;
+	}
+
+// Flat candidate + split-after-init for declarations with initializers.
+static void decl_with_init(const DeclParts& d, Candidates& result,
+                         const FmtContext& ctx)
+	{
+	auto before_val = d.head + d.type_str + " " + d.assign_op + " ";
+	int before_w = before_val.Size();
+	int suffix_w = d.suffix.Size();
+
+	FmtContext val_ctx = ctx.After(before_w).Reserve(suffix_w);
+	auto val = best(format_expr(*d.init_val, val_ctx));
+
+	auto flat = before_val + val.Fmt() + d.suffix;
+
+	if ( val.Lines() > 1 )
+		{
+		int last_w = flat.LastLineLen();
+		int lines = flat.CountLines();
+		int ovf = flat.TextOverflow(ctx.Col(), ctx.MaxCol());
+		result.push_back({flat, last_w, lines, ovf, ctx.Col()});
+		}
+	else
+		result.push_back(Candidate(flat, ctx));
+
+	// Split after init operator when the flat candidate overflows.
+	// Use per-line overflow of the assembled text, which catches
+	// cases where the Candidate overflow is 0 but continuation
+	// lines extend past max_col.
+	int flat_mlo = flat.MaxLineOverflow(ctx.Col(), ctx.MaxCol());
+
+	if ( flat_mlo > 0 )
+		{
+		// Skip when the column savings from splitting are
+		// too small to justify the extra line break.
+		int savings = before_w - ctx.Indented().Col();
+		if ( savings > 0 && savings < INDENT_WIDTH )
+			return;
+
+		FmtContext cont = ctx.Indented().Reserve(suffix_w);
+		auto val2 = best(format_expr(*d.init_val, cont));
+
+		auto line1 = d.head + d.type_str + " " + d.assign_op;
+		auto pad = line_prefix(cont.Indent(), cont.Col());
+		auto split = line1 + "\n" + pad + val2.Fmt() + d.suffix;
+		int last_w = split.LastLineLen();
+		int lines = split.CountLines();
+		int ovf = split.TextOverflow(ctx.Col(), ctx.MaxCol());
+
+		result.push_back({split, last_w, lines, ovf, ctx.Col()});
+		}
+	}
+
+// Flat candidate + type-on-continuation for declarations without initializers.
+static void decl_no_init(const DeclParts& d, Candidates& result,
+                       const FmtContext& ctx)
+	{
+	auto flat = d.head + d.type_str + d.suffix;
+	Candidate flat_c(flat, ctx);
+
+	if ( flat_c.Fits() )
+		{
+		result.push_back(flat_c);
+		return;
+		}
+
+	if ( flat_c.Lines() == 1 )
+		result.push_back(flat_c);
+
+	if ( d.type_str.Empty() )
+		return;
+
+	FmtContext cont = ctx.Indented();
+	auto tv = best(format_expr(*d.type_node, cont)).Fmt();
+	auto line1 = d.head + d.colon_node;
+	auto pad = line_prefix(cont.Indent(), cont.Col());
+
+	// Try type + suffix on one continuation line.
+	auto oneline = tv + d.suffix;
+	int oneline_w = oneline.CountLines() > 1 ?
+			oneline.LastLineLen() : cont.Col() + oneline.Size();
+
+	if ( oneline_w <= ctx.MaxCol() )
+		{
+		auto split = line1 + "\n" + pad + oneline;
+		int last_w = split.LastLineLen();
+		result.push_back({split, last_w, split.CountLines(),
+					ovf(last_w, ctx), ctx.Col()});
+		return;
+		}
+
+	// Type alone, attrs on separate lines.
+	Formatting type_suffix = d.attrs_node ? Formatting() : d.suffix;
+	auto split = line1 + "\n" + pad + tv + type_suffix;
+
+	if ( d.attrs_node )
+		{
+		auto apad = line_prefix(cont.Indent(), cont.Col() + 1);
+		auto astrs = d.attrs_node->FormatAttrStrings(ctx);
+		for ( const auto& a : astrs )
+			split += "\n" + apad + a;
+		split += d.semi_node;
+		}
+
+	int last_w = split.LastLineLen();
+	result.push_back({split, last_w, split.CountLines(), ovf(last_w, ctx),
+				ctx.Col()});
+	}
+
+// Attrs on continuation lines, type stays on first line.
+static void decl_wrapped_attrs(const DeclParts& d, Candidates& result,
+                             const FmtContext& ctx)
+	{
+	if ( ! d.attrs_node || d.type_str.Empty() )
+		return;
+
+	auto attr_strs = d.attrs_node->FormatAttrStrings(ctx);
+	if ( attr_strs.empty() )
+		return;
+
+	// First line: everything except attrs and semi.
+	Formatting line1 = d.head + d.type_str;
+
+	if ( d.init_val )
+		{
+		int after = line1.Size() + d.assign_op.Size() + 2;
+		FmtContext val_ctx = ctx.After(after);
+		auto vcs = format_expr(*d.init_val, val_ctx);
+		line1 += " " + d.assign_op + " " + best(vcs).Fmt();
+		}
+
+	// Attrs aligned one column past where the type starts.
+	int attr_col = d.head.Size() + 3;
+	auto attr_pad = line_prefix(ctx.Indent(), attr_col);
+	int max_col = ctx.MaxCol();
+	int semi_w = d.semi_node->Width();
+
+	// Check if all attrs fit on one continuation line.
+	Formatting all_attrs;
+	for ( size_t i = 0; i < attr_strs.size(); ++i )
+		{
+		if ( i > 0 )
+			all_attrs += " ";
+		all_attrs += attr_strs[i];
+		}
+
+	Formatting wrapped = line1;
+	int ovf = ovf_no_trail(line1.Size(), ctx);
+
+	if ( attr_col + all_attrs.Size() + semi_w <= max_col )
+		{
+		wrapped += "\n" + attr_pad + all_attrs;
+		int aw = attr_col + all_attrs.Size() + semi_w;
+		if ( aw > max_col )
+			ovf += aw - max_col;
+		}
+	else
+		{
+		for ( size_t i = 0; i < attr_strs.size(); ++i )
+			{
+			wrapped += "\n" + attr_pad + attr_strs[i];
+			int aw = attr_col + attr_strs[i].Size();
+			if ( i + 1 == attr_strs.size() )
+				aw += semi_w;
+			if ( aw > max_col )
+				ovf += aw - max_col;
+			}
+		}
+
+	wrapped += d.semi_node;
+
+	int last_w = wrapped.LastLineLen();
+	int lines = wrapped.CountLines();
+
+	result.push_back({wrapped, last_w, lines, ovf, ctx.Col()});
+	}
+
+// Split after colon: type (and optional init) on indented continuation.
+static void decl_type_split(const DeclParts& d, Candidates& result,
+                          const FmtContext& ctx)
+	{
+	if ( d.type_str.Empty() )
+		return;
+
+	FmtContext cont = ctx.Indented();
+	auto bare_type = best(format_expr(*d.type_node, cont)).Fmt();
+
+	auto line1 = d.head + d.colon_node;
+	auto pad = line_prefix(cont.Indent(), cont.Col());
+	auto split = line1 + "\n" + pad + bare_type;
+
+	if ( d.init_val )
+		{
+		int suffix_w = d.suffix.Size();
+		int after = bare_type.Size() + d.assign_op.Size() + 2;
+		FmtContext val_ctx = cont.After(after).Reserve(suffix_w);
+		auto val_cs = format_expr(*d.init_val, val_ctx);
+		split += " " + d.assign_op + " " + best(val_cs).Fmt();
+		}
+
+	split += d.suffix;
+
+	int last_w = split.LastLineLen();
+	int lines = split.CountLines();
+	int overflow = ovf_no_trail(line1.Size(), ctx) + ovf(last_w, ctx);
+	result.push_back({split, last_w, lines, overflow, ctx.Col()});
+	}
+
+// GLOBAL-DECL/LOCAL-DECL: [0]=KEYWORD [1]=SP [2]=IDENTIFIER
+//   [optional DECL-TYPE, DECL-INIT, ATTR-LIST] SEMI
+Candidates Layout::ComputeDecl(ComputeCtx& /*cctx*/,
+                              const FmtContext& ctx) const
+	{
+	auto kw_node = Child(0, Tag::Keyword);
+	auto id_node = Child(2, Tag::Identifier);
+
+	DeclParts d;
+	d.head = Formatting(kw_node) + " " + id_node;
+	d.attrs_node = FindOptChild(Tag::AttrList);
+	d.semi_node = FindChild(Tag::Semi);
+
+	if ( auto dt = FindOptChild(Tag::DeclType) )
+		{
+		d.colon_node = dt->FindChild(Tag::Colon);
+		if ( auto tc = dt->FindTypeChild() )
+			d.type_node = tc;
+		}
+
+	if ( auto di = FindOptChild(Tag::DeclInit) )
+		{
+		auto assign = di->FindChild(Tag::Assign);
+		d.assign_op = assign->Arg();
+		auto cc = di->ContentChildren();
+		if ( ! cc.empty() )
+			d.init_val = cc[0];
+		}
+
+	if ( d.type_node )
+		{
+		auto ts = best(format_expr(*d.type_node, ctx));
+		if ( ! ts.Fmt().Empty() )
+			d.type_str = Formatting(d.colon_node) + " " + ts.Fmt();
+		}
+
+	d.suffix = decl_suffix(d.attrs_node, d.semi_node, ctx);
+
+	Candidates result;
+
+	if ( d.init_val )
+		decl_with_init(d, result, ctx);
+	else
+		decl_no_init(d, result, ctx);
+
+	if ( result[0].Ovf() > 0 )
+		{
+		decl_wrapped_attrs(d, result, ctx);
+		decl_type_split(d, result, ctx);
+		}
+
+	return result;
+	}
+
+// ---- Type declaration formatting -----------------------------------------
+
+// Format a record field.  suffix includes ";" and any trailing
+// comment so we can measure overflow and wrap attrs if needed.
+// FIELD: [0]=COLON [1]=type_expr [optional ATTR-LIST] [last]=SEMI
+static Formatting format_field(const Layout& node, const Formatting& suffix,
+                              const FmtContext& ctx)
+	{
+	Formatting head = node.Arg() + Formatting(node.Child(0, Tag::Colon)) +
+				" ";
+
+	Formatting type_str;
+	if ( auto tc = node.FindTypeChild() )
+		type_str = best(format_expr(*tc, ctx)).Fmt();
+
+	auto attrs = node.FindOptChild(Tag::AttrList);
+	Formatting attr_str;
+	if ( attrs )
+		{
+		auto as = attrs->FormatAttrList(ctx);
+		if ( ! as.Empty() )
+			attr_str = " " + as;
+		}
+
+	// Try flat.
+	auto flat = head + type_str + attr_str + suffix;
+	if ( ctx.Col() + flat.Size() <= ctx.MaxCol() )
+		return flat;
+
+	if ( attr_str.Empty() )
+		return flat;
+
+	// Wrap attrs to continuation line aligned one past type start.
+	int attr_col = head.Size() + 1;
+	auto pad = line_prefix(ctx.Indent(), ctx.Col() + attr_col);
+	auto attr_strs = attrs->FormatAttrStrings(ctx);
+
+	Formatting all_attrs;
+	for ( size_t i = 0; i < attr_strs.size(); ++i )
+		{
+		if ( i > 0 )
+			all_attrs += " ";
+		all_attrs += attr_strs[i];
+		}
+
+	return head + type_str + "\n" + pad + all_attrs + suffix;
+	}
+
+// Enum body + close brace.  Inner = Child(5) = TYPE-ENUM node.
+LayoutItem Layout::ComputeEnumBody(ComputeCtx& /*cctx*/,
+                                 const FmtContext& ctx) const
+	{
+	auto inner = Child(5);
+
+	std::vector<std::string> values;
+	LayoutVec commas;
+	bool has_trailing_comma = false;
+	LayoutPtr pending_comma;
+
+	for ( const auto& c : inner->Children() )
+		{
+		if ( c->GetTag() == Tag::EnumValue )
+			{
+			auto v = c->Arg();
+			if ( ! c->Arg(1).empty() )
+				v += " " + c->Arg(1);
+
+			values.push_back(v);
+			commas.push_back(pending_comma);
+			pending_comma = nullptr;
+			}
+		else if ( c->GetTag() == Tag::Comma )
+			pending_comma = c;
+		else if ( c->GetTag() == Tag::TrailingComma )
+			has_trailing_comma = true;
+		}
+
+	auto pad = line_prefix(ctx.Indent() + 1,
+				(ctx.Indent() + 1) * INDENT_WIDTH);
+	Formatting body;
+	for ( size_t i = 0; i < values.size(); ++i )
+		{
+		body += pad + values[i];
+		auto nc = (i + 1 < commas.size()) ? commas[i + 1] : nullptr;
+		if ( nc || has_trailing_comma )
+			{
+			if ( nc )
+				body += nc;
+			else
+				body += ",";
+			}
+		body += "\n";
+		}
+
+	auto close_pad = line_prefix(ctx.Indent(), ctx.Col());
+	return Formatting("\n") + body + close_pad + inner->Children().back();
+	}
+
+// Record body + close brace.  Inner = Child(5) = TYPE-RECORD node.
+LayoutItem Layout::ComputeRecordBody(ComputeCtx& /*cctx*/,
+                                   const FmtContext& ctx) const
+	{
+	auto inner = Child(5);
+	int field_indent = ctx.Indent() + 1;
+	int field_col = field_indent * INDENT_WIDTH;
+	FmtContext field_ctx(field_indent, field_col, ctx.MaxCol() - field_col);
+	auto field_pad = line_prefix(field_indent, field_col);
+
+	Formatting body;
+	for ( const auto& ki : inner->Children() )
+		{
+		Tag t = ki->GetTag();
+
+		if ( t == Tag::Blank )
+			{
+			body += "\n";
+			continue;
+			}
+
+		if ( t == Tag::Field )
+			{
+			body += ki->EmitPreComments(field_pad);
+
+			auto suffix = Formatting(
+				ki->Children().back()) +
+				ki->TrailingComment();
+			auto field_text = format_field(*ki, suffix, field_ctx);
+
+			body += field_pad + field_text + "\n";
+			}
+		}
+
+	auto close_pad = line_prefix(ctx.Indent(), ctx.Col());
+	return Formatting("\n") + body + close_pad + inner->Children().back();
+	}
+
+// ---- Switch formatting ---------------------------------------------------
+
+// Switch statement: switch expr { case val: body ... }
+static void append_case_body(const LayoutPtr& body, Formatting& result,
+                           const FmtContext& ctx)
+	{
+	if ( ! body )
+		return;
+
+	auto text = format_stmt_list(body->Children(), ctx.Indented());
+	if ( ! text.Empty() && text.Back() == '\n' )
+		text.PopBack();
+
+	result += "\n" + text;
+	}
+
+// Switch expression: unwrap parens for Zeek-style ( expr ) spacing.
+LayoutItem Layout::ComputeSwitchExpr(ComputeCtx& /*cctx*/,
+                                   const FmtContext& ctx) const
+	{
+	auto switch_expr = Child(2);
+
+	if ( switch_expr->GetTag() == Tag::Paren )
+		{
+		auto pc = switch_expr->ContentChildren();
+		if ( ! pc.empty() )
+			return Formatting(switch_expr->Child(0, Tag::LParen)) +
+				" " + best(format_expr(*pc[0], ctx)).Fmt() +
+				" " + switch_expr->Child(2, Tag::RParen);
+		}
+
+	return best(format_expr(*switch_expr, ctx)).Fmt();
+	}
+
+// Switch cases: format each CASE/DEFAULT with fill-packed values
+// and indented bodies.
+LayoutItem Layout::ComputeSwitchCases(ComputeCtx& /*cctx*/,
+                                    const FmtContext& ctx) const
+	{
+	auto pad = line_prefix(ctx.Indent(), ctx.Col());
+	Formatting result;
+
+	for ( const auto& c : Children() )
+		{
+		if ( c->GetTag() != Tag::Case && c->GetTag() != Tag::Default )
+			continue;
+
+		// DEFAULT: [0]=KEYWORD [1]=COLON [optional BODY]
+		if ( c->GetTag() == Tag::Default )
+			{
+			result += "\n" + pad + c->Child(0, Tag::Keyword) +
+					c->Child(1, Tag::Colon);
+			append_case_body(c->FindOptChild(Tag::Body), result, ctx);
+			continue;
+			}
+
+		// CASE: [0]=KEYWORD [1]=SP [2]=VALUES [3]=COLON [4]=BODY
+		auto values = c->Child(2, Tag::Values);
+		auto case_text = Formatting(c->Child(0, Tag::Keyword)) + " ";
+
+		// Collect formatted values and commas.
+		std::vector<Formatting> vals;
+		LayoutVec vcommas;
+		LayoutPtr vpending;
+
+		for ( const auto& vc : values->Children() )
+			{
+			Tag vt = vc->GetTag();
+
+			if ( vt == Tag::Comma )
+				{
+				vpending = vc;
+				continue;
+				}
+
+			if ( vc->IsToken() || vc->IsMarker() )
+				continue;
+
+			vals.push_back(best(format_expr(*vc, ctx)).Fmt());
+			vcommas.push_back(vpending);
+			vpending = nullptr;
+			}
+
+		// Fill-pack values, wrapping at comma.
+		int case_col = ctx.Col() + case_text.Size();
+		auto vpad = line_prefix(ctx.Indent(), case_col);
+		int max_col = ctx.MaxCol();
+		int cur_col = case_col;
+
+		for ( size_t i = 0; i < vals.size(); ++i )
+			{
+			auto& vi = vals[i];
+			int need = vi.Size();
+			if ( i > 0 )
+				need += 2;
+
+			if ( i > 0 && cur_col + need > max_col )
+				{
+				case_text += Formatting(vcommas[i]) + "\n" + vpad;
+				cur_col = case_col;
+				}
+
+			else if ( i > 0 )
+				{
+				case_text += Formatting(vcommas[i]) + " ";
+				cur_col += 2;
+				}
+
+			case_text += vi;
+			cur_col += vi.Size();
+			}
+
+		case_text += c->Child(3, Tag::Colon);
+
+		result += "\n" + pad + case_text;
+		append_case_body(c->FindOptChild(Tag::Body), result, ctx);
+		}
+
+	return result;
+	}
+
+// ---- Preproc formatting --------------------------------------------------
+
+// Preprocessor directive formatting.  PREPROC-COND has children
+// [0]=LPAREN [1]=RPAREN; plain PREPROC has only args.
+FmtPtr Layout::FormatText() const
+	{
+	const auto& directive = Arg(0);
+	const auto& a = Arg(1);
+
+	if ( GetTag() == Tag::PreprocCond )
+		{
+		auto result = Formatting(directive + " ") +
+				Child(0, Tag::LParen) + " " + a + " " +
+				Child(1, Tag::RParen);
+		return std::make_shared<Formatting>(std::move(result));
+		}
+
+	if ( a.empty() )
+		return std::make_shared<Formatting>(directive);
+
+	return std::make_shared<Formatting>(directive + " " + a);
+	}
+
+bool Layout::OpensDepth() const
+	{
+	return GetTag() == Tag::PreprocCond || Arg(0) == "@else";
+	}
+
+bool Layout::ClosesDepth() const
+	{
+	if ( GetTag() == Tag::PreprocCond )
+		return false;
+	const auto& d = Arg(0);
+	return d == "@else" || d == "@endif";
+	}
+
+bool Layout::AtColumnZero() const
+	{
+	if ( GetTag() == Tag::PreprocCond )
+		return true;
+	const auto& d = Arg(0);
+	return d == "@else" || d == "@endif";
+	}
+
+// ---- Body/block formatting -----------------------------------------------
+
+// Format a BODY or BLOCK node as a Whitesmith-style braced block.
+Formatting Layout::FormatWhitesmithBlock(const FmtContext& ctx) const
+	{
+	auto block_ctx = ctx.Indented();
+	auto brace_pad = line_prefix(block_ctx.Indent(), block_ctx.Col());
+
+	// Extract the children between LBRACE and RBRACE, reading
+	// trailing comments from the brace tokens themselves.
+	auto lb = FindChild(Tag::LBrace);
+	auto rb = FindChild(Tag::RBrace);
+	auto close_trail = rb->TrailingComment();
+	LayoutVec inner;
+
+	bool past_open = false;
+	for ( const auto& c : Children() )
+		{
+		Tag t = c->GetTag();
+
+		if ( t == Tag::LBrace )
+			{
+			past_open = true;
+			continue;
+			}
+
+		if ( t != Tag::RBrace && past_open )
+			inner.push_back(c);
+		}
+
+	if ( inner.empty() && ! lb->MustBreakAfter() &&
+	     ! rb->MustBreakBefore() )
+		return "\n" + brace_pad + lb + " " + rb;
+
+	auto body_text = format_stmt_list(inner, block_ctx, true);
+
+	// If the closing brace has a trailing comment, move it
+	// to the last statement line, not the '}' itself.
+	Formatting rb_fmt(rb);
+	if ( ! close_trail.empty() && ! body_text.Empty() &&
+	     body_text.Back() == '\n' )
+		{
+		body_text = body_text.Substr(0, body_text.Size() - 1) +
+				close_trail + "\n";
+		// Already relocated - use bare brace.
+		rb_fmt = rb_fmt.Substr(0,
+			rb_fmt.Size() - static_cast<int>(close_trail.size()));
+		}
+
+	auto rb_comments = rb->EmitPreComments(brace_pad);
+	return "\n" + brace_pad + lb + "\n" +
+		body_text + rb_comments + brace_pad + rb_fmt;
+	}
+
+// Format a single-statement body (no braces, indented one level).
+static Formatting format_single_stmt_body(const Layout& body, const FmtContext& ctx)
+	{
+
+	auto text = format_stmt_list(body.Children(), ctx.Indented());
+
+	// Strip trailing newline - the parent loop adds its own.
+	if ( ! text.Empty() && text.Back() == '\n' )
+		text.PopBack();
+
+	return text;
+	}
+
+// Format a BODY node: Whitesmith block if first child is BLOCK,
+// otherwise indented single-statement body.
+FmtPtr Layout::FormatBodyText(const FmtContext& ctx) const
+	{
+	auto content = ContentChildren();
+	if ( content.empty() || content[0]->GetTag() != Tag::Block )
+		return std::make_shared<Formatting>("\n" +
+					format_single_stmt_body(*this, ctx));
+
+	return std::make_shared<Formatting>(
+			content[0]->FormatWhitesmithBlock(ctx));
+	}
+
+// ---- Else follow-on ------------------------------------------------------
+
+// Else follow-on for if-else.
+LayoutItem Layout::ComputeElseFollowOn(ComputeCtx& /*cctx*/,
+                                      const FmtContext& ctx) const
+	{
+	// Find ElseIf or ElseBody child.
+	LayoutPtr else_node;
+	for ( const auto& c : Children() )
+		{
+		Tag t = c->GetTag();
+		if ( t == Tag::ElseIf || t == Tag::ElseBody )
+			{
+			else_node = c;
+			break;
+			}
+		}
+
+	// Check for standalone blank lines before the else.
+	bool has_blank = false;
+	for ( const auto& c : Children() )
+		if ( c->GetTag() == Tag::Blank )
+			has_blank = true;
+
+	auto stmt_pad = line_prefix(ctx.Indent(), ctx.Col());
+	auto comments = else_node->EmitPreComments(stmt_pad);
+
+	if ( ! comments->Empty() && comments->Back() == '\n' )
+		comments->PopBack();
+
+	Formatting result;
+
+	if ( has_blank || ! comments->Empty() )
+		result += "\n";
+
+	result += *comments;
+
+	// ELSE-IF/ELSE-BODY: [0]=KEYWORD [1]=SP [2]=content
+	auto else_child = else_node->Child(2);
+	auto else_kw = else_node->Child(0, Tag::Keyword);
+
+	if ( else_node->GetTag() == Tag::ElseIf )
+		{
+		auto inner_cs = format_expr(*else_child, ctx);
+		result += "\n" + stmt_pad + Formatting(else_kw) + " " +
+				best(inner_cs).Fmt();
+		}
+	else if ( else_child->GetTag() == Tag::Block )
+		result += "\n" + stmt_pad + Formatting(else_kw) +
+				else_child->FormatWhitesmithBlock(ctx);
+	else
+		{
+		auto else_ctx = ctx.Indented();
+		auto cs = format_expr(*else_child, else_ctx);
+		auto epad = line_prefix(else_ctx.Indent(), else_ctx.Col());
+		result += "\n" + stmt_pad + Formatting(else_kw) + "\n" +
+				epad + best(cs).Fmt();
+		}
+
+	return result;
+	}
+
+// ---- Beam search engine --------------------------------------------------
 
 // Layout combinator
 
@@ -701,4 +1895,113 @@ Candidates Layout::BuildLayout(LayoutItems items, const FmtContext& ctx) const
 		}
 
 	return build_layout(items, ctx);
+	}
+
+// ---- Layout table + factory ----------------------------------------------
+
+// Tag-to-layout table for purely declarative nodes.  Uses LIKind
+// enum values directly instead of the soft_sp/indent_up/indent_down
+// globals to avoid cross-TU static initialization order issues.
+static const std::unordered_map<Tag, LayoutItems> layout_table = {
+	{Tag::Identifier, {arg(0)}},
+	{Tag::Constant, {arg(0)}},
+	{Tag::TypeAtom, {arg(0)}},
+	{Tag::Interval, {arg(0), " ", arg(1)}},
+	{Tag::Cardinality, {0U, expr(1), 2}},
+	{Tag::Negation, {0U, " ", expr(1)}},
+	{Tag::UnaryOp, {0U, expr(1)}},
+	{Tag::FieldAccess, {expr(0), 1, 2}},
+	{Tag::FieldAssign, {0U, arg(0), 1, expr(2)}},
+	{Tag::HasField, {expr(0), 1, 2}},
+	{Tag::Paren, {0U, expr(1), 2}},
+	{Tag::Schedule, {0U, {Sp}, expr(2), {Sp}, 3, {Sp}, expr(4), {Sp}, 5}},
+	{Tag::Param, {arg(0), compute(&Layout::ComputeParamType)}},
+	{Tag::Call, {expr(0), arglist(1,
+		AL_TrailingCommaVertical | AL_VerticalUpgrade)}},
+	{Tag::Constructor, {0U, arglist(1,
+		AL_TrailingCommaVertical | AL_FlatOrVertical)}},
+	{Tag::IndexLiteral, {arglist(0,
+		AL_AllCommentsVertical | AL_TrailingCommaFill)}},
+	{Tag::Index, {expr(0), arglist(1)}},
+	{Tag::TypeParameterized, {arg(0), arglist(0, &Layout::ComputeOfType)}},
+	{Tag::TypeOf, {arg(0), " ", 0U, " ", expr(2)}},
+	{Tag::TypeFunc, {arg(0), arglist(0)}},
+	{Tag::TypeFuncRet, {arg(0), arglist(0, &Layout::ComputeRetType)}},
+	{Tag::CommentLeading, {arg(0)}},
+	{Tag::ExprStmt, {expr(0), last()}},
+	{Tag::ReturnVoid, {0U, last()}},
+	{Tag::Return, {0U, {Sp}, expr(2), last()}},
+	{Tag::Add, {0U, {Sp}, expr(2), last()}},
+	{Tag::Delete, {0U, {Sp}, expr(2), last()}},
+	{Tag::Assert, {0U, {Sp}, expr(2), last()}},
+	{Tag::Print, {fill_list(), last()}},
+	{Tag::EventStmt, {0U, " ", arg(0), arglist(2), 3}},
+	{Tag::ExportDecl, {0U, {Sp}, 2, {IndentUp},
+		stmt_body(), {IndentDown}, last()}},
+	{Tag::ModuleDecl, {0U, {Sp}, 2, 3}},
+	{Tag::TypeDeclAlias, {0U, {Sp}, 2, 3, {Sp}, expr(5), 6}},
+	{Tag::TypeDeclEnum, {0U, {Sp}, 2, 3, {Sp}, {5, 0U}, {Sp}, {5, 2},
+		compute(&Layout::ComputeEnumBody), last()}},
+	{Tag::TypeDeclRecord, {0U, {Sp}, 2, 3, {Sp}, {5, 0U}, {Sp}, {5, 2},
+		compute(&Layout::ComputeRecordBody), last()}},
+	{Tag::IfNoElse, {0U, " ", 2, " ", expr(3), " ", 4, body_text(5)}},
+	{Tag::IfElse, {0U, " ", 2, " ", expr(3), " ", 4, body_text(5),
+		compute(&Layout::ComputeElseFollowOn)}},
+	{Tag::While, {0U, " ", 2, " ", expr(3), " ", 4, body_text(5)}},
+	{Tag::ForCond, {expr(0), " ", 1, " ", expr(2)}},
+	{Tag::ForCondVal, {expr(0), 1, " ", expr(2), " ", 3, " ", expr(4)}},
+	{Tag::ForCondBracket, {arglist(0), " ", 1, " ", expr(2)}},
+	{Tag::ForCondBracketVal, {arglist(0), 1, " ", expr(2), " ", 3, " ", expr(4)}},
+	{Tag::For, {0U, " ", 2, " ", expr(3), " ", 4, body_text(5)}},
+	{Tag::Slice, {flat_split(
+		{FmtStep::EI(0), FmtStep::TI(1),
+		 FmtStep::EI(2),
+		 FmtStep::L(" "), FmtStep::TI(3), FmtStep::S(),
+		 FmtStep::EI(4),
+		 FmtStep::TI(5)},
+		{{4, SplitAt::AlignWith, 2}}, true)}},
+	{Tag::SlicePartial, {expr(0), 1, expr(2), 3, expr(4), 5}},
+	{Tag::Div, {flat_split(
+		{FmtStep::EI(0), FmtStep::TI(1),
+		 FmtStep::S(""), FmtStep::EI(2)},
+		{{2, SplitAt::IndentedOrSame, true}})}},
+	{Tag::BinaryOp, {flat_split(
+		{FmtStep::EI(0), FmtStep::L(" "),
+		 FmtStep::TI(1), FmtStep::S(),
+		 FmtStep::EI(2)},
+		{{2, SplitAt::IndentedOrSame}})}},
+	{Tag::Lambda, {arglist_prefix(2, &Layout::ComputeLambdaPrefix,
+		&Layout::ComputeLambdaRet), compute(&Layout::ComputeLambdaBody)}},
+	{Tag::LambdaCaptures, {arglist_prefix(3, &Layout::ComputeLambdaPrefix,
+		&Layout::ComputeLambdaRet), compute(&Layout::ComputeLambdaBody)}},
+	{Tag::FuncDecl, {0U, " ", 2U, arglist(3, &Layout::ComputeFuncRet),
+		soft_cont(&Layout::ComputeFuncAttrs),
+		compute(&Layout::ComputeFuncBody)}},
+	{Tag::FuncDeclRet, {0U, " ", 2U, arglist(3, &Layout::ComputeFuncRet),
+		soft_cont(&Layout::ComputeFuncAttrs),
+		compute(&Layout::ComputeFuncBody)}},
+	{Tag::Switch, {0U, " ", compute(&Layout::ComputeSwitchExpr), " ", 3U,
+		compute(&Layout::ComputeSwitchCases), {HardBreak}, last()}},
+	{Tag::GlobalDecl, {compute_cands(&Layout::ComputeDecl)}},
+	{Tag::LocalDecl, {compute_cands(&Layout::ComputeDecl)}},
+	{Tag::BoolChain, {op_fill()}},
+	{Tag::Ternary, {flat_split(
+		{FmtStep::EI(0),
+		 FmtStep::L(" "), FmtStep::TI(1),
+		 FmtStep::S(),
+		 FmtStep::EI(2),
+		 FmtStep::L(" "), FmtStep::TI(3),
+		 FmtStep::S(),
+		 FmtStep::EI(4)},
+		{{6, SplitAt::AlignWith, 4},
+		 {2, SplitAt::SameCol}})}},
+};
+
+LayoutPtr MakeNode(Tag tag)
+	{
+	auto it = layout_table.find(tag);
+	if ( it != layout_table.end() )
+		return std::make_shared<Layout>(tag, it->second);
+
+	return std::make_shared<Layout>(tag);
 	}
