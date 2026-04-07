@@ -47,8 +47,23 @@ enum LIKind {
 	ArgList,	// parenthesized arg list: flat/fill/vertical
 	FillList,	// keyword + args as fill (e.g. "print a, b, c")
 	FlatSplit,	// flat-or-split binary/ternary expression
-	Computed,	// calls a ComputeFn to produce a single LayoutItem
-	ComputedCands,	// calls a ComputeCandsFn to produce Candidates
+
+	// Computed layout items - resolved by BuildLayout via dispatch.
+	ParamType,	// ": type" suffix for PARAM
+	OfType,		// " of type" suffix for TYPE-PARAMETERIZED
+	RetType,	// ": rettype" suffix for TYPE-FUNC-RET
+	EnumBody,	// enum body + close brace
+	RecordBody,	// record body + close brace
+	LambdaPrefix,	// keyword (+ captures) before lambda param list
+	LambdaRet,	// ": type" return type for lambda
+	LambdaBody,	// Whitesmith body block for lambda
+	FuncRet,	// ": rettype" for function declaration
+	FuncAttrs,	// attribute list for function declaration
+	FuncBody,	// trailing comment + Whitesmith body for function
+	SwitchExpr,	// switch expression (unwraps parens)
+	SwitchCases,	// switch cases with fill-packed values
+	ElseFollowOn,	// else/else-if follow-on block
+	DeclCands,	// declaration candidates (multi-candidate)
 
 	// Indent/break control.
 	IndentUp,	// increment indent level
@@ -67,8 +82,6 @@ enum LIKind {
 };
 
 class LayoutItem;
-using ComputeFn = LayoutItem (Layout::*)(const FmtContext&) const;
-using ComputeCandsFn = Candidates (Layout::*)(const FmtContext&) const;
 
 // A piece in a flat-or-split sequence.
 class FmtStep {
@@ -220,28 +233,20 @@ public:
 		  splits(std::move(sp)), force_flat(ff),
 		  must_break(false) {}
 
-	// Computed: calls a member function during BuildLayout resolution.
-	LayoutItem(LIKind k, ComputeFn fn)
-		: kind(k), compute_fn(fn), must_break(false) {}
-
-	// ComputedCands: calls a member function that returns Candidates.
-	LayoutItem(LIKind k, ComputeCandsFn fn)
-		: kind(k), compute_cands_fn(fn), must_break(false) {}
-
-	// Resolved ComputedCands: holds pre-computed Candidates.
+	// Resolved DeclCands: holds pre-computed Candidates.
 	LayoutItem(LIKind k, Candidates cs)
 		: kind(k), cands(std::move(cs)), must_break(false) {}
 
 	// ArgList with computed suffix.
-	LayoutItem(LIKind k, unsigned child_index, ComputeFn fn)
+	LayoutItem(LIKind k, unsigned child_index, LIKind suffix)
 		: kind(k), child_idx(static_cast<int>(child_index)),
-		  compute_fn(fn), must_break(false) {}
+		  suffix_op(suffix), must_break(false) {}
 
 	// ArgList with computed prefix and suffix.
 	LayoutItem(LIKind k, unsigned child_index,
-	           ComputeFn prefix_fn, ComputeFn suffix_fn)
+	           LIKind prefix, LIKind suffix)
 		: kind(k), child_idx(static_cast<int>(child_index)),
-		  compute_fn(suffix_fn), prefix_compute_fn(prefix_fn),
+		  suffix_op(suffix), prefix_op(prefix),
 		  must_break(false) {}
 
 	// Resolved arglist with prefix, suffix, and optional flags.
@@ -254,7 +259,7 @@ public:
 		: kind(k), fmt(std::move(suffix)), li_prefix(std::move(prefix)),
 		  node(n), sb_flags(fl), must_break(false) {}
 
-	// Resolved SoftCont: kind + content.
+	// Resolved SoftCont/DeclCands: kind + content.
 	LayoutItem(LIKind k, Formatting f)
 		: kind(k), fmt(std::move(f)), must_break(false) {}
 
@@ -272,9 +277,8 @@ public:
 	const FmtSteps& Steps() const { return steps; }
 	const std::vector<SplitAt>& Splits() const { return splits; }
 	bool ForceFlatSubs() const { return force_flat; }
-	ComputeFn CompFn() const { return compute_fn; }
-	ComputeFn PrefixFn() const { return prefix_compute_fn; }
-	ComputeCandsFn CompCandsFn() const { return compute_cands_fn; }
+	LIKind SuffixOp() const { return suffix_op; }
+	LIKind PrefixOp() const { return prefix_op; }
 	const LayoutVec& Operands() const { return operands; }
 	const Candidates& Cands() const { return cands; }
 	const Formatting& Prefix() const { return li_prefix; }
@@ -293,9 +297,8 @@ private:
 	int sub_child_idx = -1;
 	int sb_flags = 0;
 	bool force_flat = false;
-	ComputeFn compute_fn = nullptr;
-	ComputeFn prefix_compute_fn = nullptr;
-	ComputeCandsFn compute_cands_fn = nullptr;
+	LIKind suffix_op = Lit;
+	LIKind prefix_op = Lit;
 	bool must_break;	// force next Sp to break (trailing comment)
 	};
 
@@ -329,8 +332,8 @@ inline LayoutItem arglist(unsigned child_index)
 	{ return {ArgList, child_index}; }
 inline LayoutItem arglist(unsigned child_index, Formatting suffix)
 	{ return {ArgList, child_index, std::move(suffix)}; }
-inline LayoutItem arglist(unsigned child_index, ComputeFn suffix_fn)
-	{ return {ArgList, child_index, suffix_fn}; }
+inline LayoutItem arglist(unsigned child_index, LIKind suffix)
+	{ return {ArgList, child_index, suffix}; }
 inline LayoutItem arglist(unsigned child_index, int flags)
 	{ return {ArgList, child_index, flags}; }
 
@@ -338,9 +341,8 @@ inline LayoutItem arglist(unsigned child_index, int flags)
 // flat_or_fill as the prefix argument (e.g. "function" before
 // the param list in a lambda).
 inline LayoutItem arglist_prefix(unsigned child_index,
-                                 ComputeFn prefix_fn,
-                                 ComputeFn suffix_fn = nullptr)
-	{ return {ArgList, child_index, prefix_fn, suffix_fn}; }
+                                 LIKind prefix, LIKind suffix = Lit)
+	{ return {ArgList, child_index, prefix, suffix}; }
 
 // Bare fill list: flat_or_fill on collected args with the first
 // child (keyword) as prefix.  No open/close brackets.
@@ -358,20 +360,12 @@ inline LayoutItem stmt_body(unsigned child_index, int flags = 0)
 inline LayoutItem body_text(unsigned child_index)
 	{ return {BodyText, child_index}; }
 
-// Computed value: calls a member function on the node during
-// BuildLayout resolution, replacing itself with the result.
-inline LayoutItem compute(ComputeFn fn) { return {Computed, fn}; }
-
-// Computed candidates: calls a member function returning Candidates,
-// handled in the beam like FmtExpr (each candidate fans out).
-inline LayoutItem compute_cands(ComputeCandsFn fn)
-	{ return {ComputedCands, fn}; }
-
 // Soft continuation: content is placed inline (space + content)
 // or on a continuation line (break + indent + content).  Both
 // options enter the beam; the best is selected by pruning.
 // Empty content is a no-op.
-inline LayoutItem soft_cont(ComputeFn fn) { return {SoftCont, fn}; }
+inline LayoutItem soft_cont(LIKind op)
+	{ return {SoftCont, 0U, op}; }
 
 // Operator fill: format content children separated by arg(0),
 // try flat, then greedy-fill with wrap at operator.

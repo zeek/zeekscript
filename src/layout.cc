@@ -567,7 +567,7 @@ static Partials layout_one_item(const LayoutItem& item, Partials& beam,
 			break;
 			}
 
-		case ComputedCands:
+		case DeclCands:
 			{
 			for ( const auto& c : item.Cands() )
 				{
@@ -625,7 +625,12 @@ static Partials layout_one_item(const LayoutItem& item, Partials& beam,
 			}
 
 		case Tok: case ExprIdx: case LastTok: case ArgIdx:
-		case StmtBody: case BodyText: case FillList: case Computed:
+		case StmtBody: case BodyText: case FillList:
+		case ParamType: case OfType: case RetType:
+		case EnumBody: case RecordBody:
+		case LambdaPrefix: case LambdaRet: case LambdaBody:
+		case FuncRet: case FuncAttrs: case FuncBody:
+		case SwitchExpr: case SwitchCases: case ElseFollowOn:
 			assert(false);  // resolved before reaching here
 			break;
 
@@ -776,28 +781,70 @@ Candidates build_layout(LayoutItems items, const FmtContext& ctx)
 	return result;
 	}
 
+static bool is_computed(LIKind k)
+	{
+	switch ( k ) {
+	case ParamType: case OfType: case RetType:
+	case EnumBody: case RecordBody:
+	case LambdaPrefix: case LambdaRet: case LambdaBody:
+	case FuncRet: case FuncAttrs: case FuncBody:
+	case SwitchExpr: case SwitchCases:
+	case ElseFollowOn: case DeclCands:
+		return true;
+	default:
+		return false;
+	}
+	}
+
+static LayoutItem dispatch_compute(const Layout& node, LIKind op,
+                                   const FmtContext& ctx)
+	{
+	switch ( op ) {
+	case ParamType: return node.ComputeParamType(ctx);
+	case OfType: return node.ComputeOfType(ctx);
+	case RetType: return node.ComputeRetType(ctx);
+	case EnumBody: return node.ComputeEnumBody(ctx);
+	case RecordBody: return node.ComputeRecordBody(ctx);
+	case LambdaPrefix: return node.ComputeLambdaPrefix(ctx);
+	case LambdaRet: return node.ComputeLambdaRet(ctx);
+	case LambdaBody: return node.ComputeLambdaBody(ctx);
+	case FuncRet: return node.ComputeFuncRet(ctx);
+	case FuncAttrs: return node.ComputeFuncAttrs(ctx);
+	case FuncBody: return node.ComputeFuncBody(ctx);
+	case SwitchExpr: return node.ComputeSwitchExpr(ctx);
+	case SwitchCases: return node.ComputeSwitchCases(ctx);
+	case ElseFollowOn: return node.ComputeElseFollowOn(ctx);
+	case DeclCands:
+		assert(false);  // DeclCands returns Candidates, not LayoutItem
+		return Formatting();
+	default:
+		assert(false);
+		return Formatting();
+	}
+	}
+
 Candidates Layout::BuildLayout(LayoutItems items, const FmtContext& ctx) const
 	{
 	for ( size_t i = 0; i < items.size(); ++i )
 		{
 		auto& item = items[i];
 
-		if ( item.kind == Computed )
+		if ( item.kind == DeclCands )
 			{
-			item = (this->*item.CompFn())(ctx);
+			auto cs = ComputeDecl(ctx);
+			item = LayoutItem(DeclCands, std::move(cs));
 			continue;
 			}
 
-		if ( item.kind == ComputedCands )
+		if ( is_computed(item.kind) )
 			{
-			auto cs = (this->*item.CompCandsFn())(ctx);
-			item = LayoutItem(ComputedCands, std::move(cs));
+			item = dispatch_compute(*this, item.kind, ctx);
 			continue;
 			}
 
 		if ( item.kind == SoftCont )
 			{
-			auto result = (this->*item.CompFn())(ctx);
+			auto result = dispatch_compute(*this, item.SuffixOp(), ctx);
 			item = LayoutItem(SoftCont, result.Fmt());
 			continue;
 			}
@@ -820,10 +867,10 @@ Candidates Layout::BuildLayout(LayoutItems items, const FmtContext& ctx) const
 			Formatting suffix = item.Fmt();
 			Formatting prefix;
 			int flags = item.Flags();
-			if ( item.CompFn() )
-				suffix = (this->*item.CompFn())(ctx).Fmt();
-			if ( item.PrefixFn() )
-				prefix = (this->*item.PrefixFn())(ctx).Fmt();
+			if ( item.SuffixOp() != Lit )
+				suffix = dispatch_compute(*this, item.SuffixOp(), ctx).Fmt();
+			if ( item.PrefixOp() != Lit )
+				prefix = dispatch_compute(*this, item.PrefixOp(), ctx).Fmt();
 			if ( flags )
 				item = LayoutItem(ArgList, Child(item.ChildIdx()),
 					std::move(prefix), std::move(suffix),
@@ -935,7 +982,7 @@ static const std::unordered_map<Tag, LayoutItems> layout_table = {
 	{Tag::HasField, {expr(0), 1, 2}},
 	{Tag::Paren, {0U, expr(1), 2}},
 	{Tag::Schedule, {0U, {Sp}, expr(2), {Sp}, 3, {Sp}, expr(4), {Sp}, 5}},
-	{Tag::Param, {arg(0), compute(&Layout::ComputeParamType)}},
+	{Tag::Param, {arg(0), {ParamType}}},
 	{Tag::Call, {expr(0), arglist(1,
 		AL_TrailingCommaVertical | AL_VerticalUpgrade)}},
 	{Tag::Constructor, {0U, arglist(1,
@@ -943,10 +990,10 @@ static const std::unordered_map<Tag, LayoutItems> layout_table = {
 	{Tag::IndexLiteral, {arglist(0,
 		AL_AllCommentsVertical | AL_TrailingCommaFill)}},
 	{Tag::Index, {expr(0), arglist(1)}},
-	{Tag::TypeParameterized, {arg(0), arglist(0, &Layout::ComputeOfType)}},
+	{Tag::TypeParameterized, {arg(0), arglist(0, OfType)}},
 	{Tag::TypeOf, {arg(0), " ", 0U, " ", expr(2)}},
 	{Tag::TypeFunc, {arg(0), arglist(0)}},
-	{Tag::TypeFuncRet, {arg(0), arglist(0, &Layout::ComputeRetType)}},
+	{Tag::TypeFuncRet, {arg(0), arglist(0, RetType)}},
 	{Tag::CommentLeading, {arg(0)}},
 	{Tag::ExprStmt, {expr(0), last()}},
 	{Tag::ReturnVoid, {0U, last()}},
@@ -961,12 +1008,12 @@ static const std::unordered_map<Tag, LayoutItems> layout_table = {
 	{Tag::ModuleDecl, {0U, {Sp}, 2, 3}},
 	{Tag::TypeDeclAlias, {0U, {Sp}, 2, 3, {Sp}, expr(5), 6}},
 	{Tag::TypeDeclEnum, {0U, {Sp}, 2, 3, {Sp}, {5, 0U}, {Sp}, {5, 2},
-		compute(&Layout::ComputeEnumBody), last()}},
+		{EnumBody}, last()}},
 	{Tag::TypeDeclRecord, {0U, {Sp}, 2, 3, {Sp}, {5, 0U}, {Sp}, {5, 2},
-		compute(&Layout::ComputeRecordBody), last()}},
+		{RecordBody}, last()}},
 	{Tag::IfNoElse, {0U, " ", 2, " ", expr(3), " ", 4, body_text(5)}},
 	{Tag::IfElse, {0U, " ", 2, " ", expr(3), " ", 4, body_text(5),
-		compute(&Layout::ComputeElseFollowOn)}},
+		{ElseFollowOn}}},
 	{Tag::While, {0U, " ", 2, " ", expr(3), " ", 4, body_text(5)}},
 	{Tag::ForCond, {expr(0), " ", 1, " ", expr(2)}},
 	{Tag::ForCondVal, {expr(0), 1, " ", expr(2), " ", 3, " ", expr(4)}},
@@ -990,20 +1037,18 @@ static const std::unordered_map<Tag, LayoutItems> layout_table = {
 		 FmtStep::TI(1), FmtStep::S(),
 		 FmtStep::EI(2)},
 		{{2, SplitAt::IndentedOrSame}})}},
-	{Tag::Lambda, {arglist_prefix(2, &Layout::ComputeLambdaPrefix,
-		&Layout::ComputeLambdaRet), compute(&Layout::ComputeLambdaBody)}},
-	{Tag::LambdaCaptures, {arglist_prefix(3, &Layout::ComputeLambdaPrefix,
-		&Layout::ComputeLambdaRet), compute(&Layout::ComputeLambdaBody)}},
-	{Tag::FuncDecl, {0U, " ", 2U, arglist(3, &Layout::ComputeFuncRet),
-		soft_cont(&Layout::ComputeFuncAttrs),
-		compute(&Layout::ComputeFuncBody)}},
-	{Tag::FuncDeclRet, {0U, " ", 2U, arglist(3, &Layout::ComputeFuncRet),
-		soft_cont(&Layout::ComputeFuncAttrs),
-		compute(&Layout::ComputeFuncBody)}},
-	{Tag::Switch, {0U, " ", compute(&Layout::ComputeSwitchExpr), " ", 3U,
-		compute(&Layout::ComputeSwitchCases), {HardBreak}, last()}},
-	{Tag::GlobalDecl, {compute_cands(&Layout::ComputeDecl)}},
-	{Tag::LocalDecl, {compute_cands(&Layout::ComputeDecl)}},
+	{Tag::Lambda, {arglist_prefix(2, LambdaPrefix, LambdaRet),
+		{LambdaBody}}},
+	{Tag::LambdaCaptures, {arglist_prefix(3, LambdaPrefix, LambdaRet),
+		{LambdaBody}}},
+	{Tag::FuncDecl, {0U, " ", 2U, arglist(3, FuncRet),
+		soft_cont(FuncAttrs), {FuncBody}}},
+	{Tag::FuncDeclRet, {0U, " ", 2U, arglist(3, FuncRet),
+		soft_cont(FuncAttrs), {FuncBody}}},
+	{Tag::Switch, {0U, " ", {SwitchExpr}, " ", 3U,
+		{SwitchCases}, {HardBreak}, last()}},
+	{Tag::GlobalDecl, {{DeclCands}}},
+	{Tag::LocalDecl, {{DeclCands}}},
 	{Tag::BoolChain, {op_fill()}},
 	{Tag::Ternary, {flat_split(
 		{FmtStep::EI(0),
