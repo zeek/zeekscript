@@ -31,10 +31,40 @@ std::string line_prefix(int indent, int col);
 // Layout combinator
 
 // Layout item kinds.
-enum LIKind { Lit, FmtExpr, Sp, Tok, ExprIdx, LastTok, ArgIdx,
-              ArgList, FillList, FlatSplit, Computed, ComputedCands,
-              IndentUp, IndentDown, HardBreak, SoftCont, StmtBody,
-              BodyText, OpFill };
+enum LIKind {
+	Lit,	// literal Formatting text, emitted as-is
+	FmtExpr,	// format a child as an expression (multi-candidate)
+	Sp,	// soft space: beam explores both " " and newline+indent
+
+	// Pre-beam resolution kinds - resolved to Lit/FmtExpr before
+	// the beam search runs.
+	Tok,	// child token by index, resolved to Lit
+	ExprIdx,	// child expression by index, resolved to FmtExpr
+	LastTok,	// last child token, resolved to Lit
+	ArgIdx,	// numbered Arg() string, resolved to Lit
+
+	// Composite kinds - resolved or handled specially by the beam.
+	ArgList,	// parenthesized arg list: flat/fill/vertical
+	FillList,	// keyword + args as fill (e.g. "print a, b, c")
+	FlatSplit,	// flat-or-split binary/ternary expression
+	Computed,	// calls a ComputeFn to produce a single LayoutItem
+	ComputedCands,	// calls a ComputeCandsFn to produce Candidates
+
+	// Indent/break control.
+	IndentUp,	// increment indent level
+	IndentDown,	// decrement indent level (pre-comments at inner indent)
+	HardBreak,	// unconditional newline + indent
+
+	// Continuation: space-or-break for trailing suffixes like
+	// return types or attributes after an arg list.
+	SoftCont,
+
+	StmtBody,	// format children as an indented statement list
+	BodyText,	// Whitesmith-style brace block body
+
+	// Boolean chain fill: "a || b || c" with greedy line packing.
+	OpFill,
+};
 
 class LayoutItem;
 using ComputeFn = LayoutItem (Layout::*)(const FmtContext&) const;
