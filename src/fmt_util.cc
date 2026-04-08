@@ -598,7 +598,18 @@ static int format_vert_item(const ArgComment& it, const LayoutPtr& next_comma,
                             bool trailing_comma, int body_col,
                             const FmtContext& body_ctx, Formatting& fmt)
 	{
-	auto bc = best(format_expr(*it.arg, body_ctx));
+	// Reserve trailing comma + comment width so the expression
+	// can split if the assembled line would overflow.
+	int suffix_w = 0;
+	if ( next_comma )
+		suffix_w += next_comma->Width();
+	else if ( trailing_comma )
+		suffix_w += 1;
+	suffix_w += static_cast<int>(it.comment.size());
+
+	FmtContext item_ctx = suffix_w > 0 ?
+		body_ctx.Reserve(suffix_w) : body_ctx;
+	auto bc = best(format_expr(*it.arg, item_ctx));
 	fmt += bc.Fmt();
 	int line_w = body_col + bc.Width();
 
@@ -637,12 +648,20 @@ Candidate format_args_vertical(const Formatting& open, const Formatting& close,
 
 	for ( size_t i = 0; i < items.size(); ++i )
 		{
+		auto& it = items[i];
+
+		for ( const auto& lc : it.leading )
+			{
+			fmt += "\n" + body_pad + lc;
+			++lines;
+			}
+
 		fmt += "\n" + body_pad;
 		++lines;
 
 		auto nc = (i + 1 < items.size()) ?
 					items[i + 1].comma : nullptr;
-		int line_w = format_vert_item(items[i], nc, trailing_comma,
+		int line_w = format_vert_item(it, nc, trailing_comma,
 		                              body_col, body_ctx, fmt);
 		if ( line_w > ctx.MaxCol() )
 			ovf += line_w - ctx.MaxCol();
