@@ -190,7 +190,8 @@ static void emit_fill_leading(const std::vector<std::string>& leading,
 // Try placing a multi-line bracketed arg (call, index-literal) on
 // the current line instead of wrapping.  Only suitable when the arg
 // is genuinely multi-line at the alignment column (not just squeezed
-// at the tight current position) and the first line fits.
+// at the tight current position), the first line fits, and the
+// tighter position doesn't cost extra inner lines.
 static Candidates try_same_line_arg(const Layout& arg, int cur_col,
                                     int align_col, int indent,
                                     int max_col, int trail)
@@ -205,12 +206,14 @@ static Candidates try_same_line_arg(const Layout& arg, int cur_col,
 		return {};
 
 	int same_col = cur_col + 2;
-	FmtContext sc(indent, same_col, max_col - same_col);
+	int effective_max = max_col - trail;
+	FmtContext sc(indent, same_col, effective_max - same_col, trail);
 	auto sb = best(format_expr(arg, sc));
 	int nl = sb.Fmt().Find('\n');
 	int first_w = nl < 0 ? sb.Width() : nl;
 
-	if ( same_col + first_w <= max_col && sb.Ovf() == 0 )
+	int sb_ovf = sb.Fmt().MaxLineOverflow(same_col, effective_max);
+	if ( same_col + first_w <= effective_max && sb_ovf == 0 )
 		return {std::move(sb)};
 
 	return {};

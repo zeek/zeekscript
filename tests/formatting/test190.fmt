@@ -1,0 +1,7 @@
+function foo()
+	{
+	Log::write(EW_LOG, EW_ServersService($date=date, $orig_subnet=o_s,
+	                                     $resp_subnet=r_s,
+	                                     $service=conn$service,
+	                                     $uid=c$uid));
+	}

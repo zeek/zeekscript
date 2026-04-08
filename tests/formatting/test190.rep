@@ -1,0 +1,69 @@
+FUNC-DECL {
+  KEYWORD "function"
+  SP
+  IDENTIFIER "foo"
+  PARAMS {
+    LPAREN
+    RPAREN
+  }
+  BODY {
+    LBRACE
+    EXPR-STMT {
+      CALL {
+        IDENTIFIER "Log::write"
+        ARGS {
+          LPAREN
+          IDENTIFIER "EW_LOG"
+          COMMA
+          CALL {
+            IDENTIFIER "EW_ServersService"
+            ARGS {
+              LPAREN
+              FIELD-ASSIGN "date" {
+                DOLLAR
+                ASSIGN "="
+                IDENTIFIER "date"
+              }
+              COMMA
+              FIELD-ASSIGN "orig_subnet" {
+                DOLLAR
+                ASSIGN "="
+                IDENTIFIER "o_s"
+              }
+              COMMA
+              FIELD-ASSIGN "resp_subnet" {
+                DOLLAR
+                ASSIGN "="
+                IDENTIFIER "r_s"
+              }
+              COMMA
+              FIELD-ASSIGN "service" {
+                DOLLAR
+                ASSIGN "="
+                FIELD-ACCESS {
+                  IDENTIFIER "conn"
+                  DOLLAR
+                  IDENTIFIER "service"
+                }
+              }
+              COMMA
+              FIELD-ASSIGN "uid" {
+                DOLLAR
+                ASSIGN "="
+                FIELD-ACCESS {
+                  IDENTIFIER "c"
+                  DOLLAR
+                  IDENTIFIER "uid"
+                }
+              }
+              RPAREN
+            }
+          }
+          RPAREN
+        }
+      }
+      SEMI
+    }
+    RBRACE
+  }
+}
