@@ -269,7 +269,8 @@ static void try_flat_alternates(const FmtSteps& steps, Candidates& result,
 
 			int lines = flat.CountLines();
 			int last_w = flat.LastLineLen();
-			int fovf = flat.TextOverflow(ctx.Col(), ctx.MaxCol());
+			int fovf = flat.TextOverflow(ctx.Col(),
+						ctx.MaxCol() - ctx.Trail());
 
 			Candidate alt = lines > 1 ?
 					Candidate(std::move(flat), last_w,
@@ -296,7 +297,8 @@ Candidates flat_or_split(FmtSteps steps, const std::vector<SplitAt>& splits,
 	if ( lines > 1 )
 		{
 		int last_w = flat.LastLineLen();
-		int fovf = flat.TextOverflow(ctx.Col(), ctx.MaxCol());
+		int fovf = flat.TextOverflow(ctx.Col(),
+					ctx.MaxCol() - ctx.Trail());
 		result.push_back({std::move(flat), last_w, lines, fovf,
 					ctx.Col()});
 		}
