@@ -1,0 +1,4 @@
+redef enum Notice::Type += {
+	## Anomalous behavior detected.
+	Found
+};

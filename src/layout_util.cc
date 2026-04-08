@@ -614,9 +614,12 @@ static Formatting format_field(const Layout& node, const Formatting& suffix,
 // Collect enum values and their associated commas from a TYPE-ENUM node.
 struct EnumValues {
 	std::vector<std::string> values;
+	LayoutVec nodes;
 	LayoutVec commas;
+	std::vector<bool> blank_before;
 	bool has_trailing_comma;
 	bool has_init_values;
+	bool has_comments;
 };
 
 static EnumValues collect_enum_values(const Layout& inner)
@@ -624,7 +627,9 @@ static EnumValues collect_enum_values(const Layout& inner)
 	EnumValues ev;
 	ev.has_trailing_comma = false;
 	ev.has_init_values = false;
+	ev.has_comments = false;
 	LayoutPtr pending_comma;
+	bool pending_blank = false;
 
 	for ( const auto& c : inner.Children() )
 		{
@@ -637,9 +642,15 @@ static EnumValues collect_enum_values(const Layout& inner)
 				ev.has_init_values = true;
 				}
 
+			if ( ! c->PreComments().empty() )
+				ev.has_comments = true;
+
 			ev.values.push_back(v);
+			ev.nodes.push_back(c);
 			ev.commas.push_back(pending_comma);
+			ev.blank_before.push_back(pending_blank);
 			pending_comma = nullptr;
+			pending_blank = false;
 			}
 
 		else if ( c->GetTag() == Tag::Comma )
@@ -647,6 +658,9 @@ static EnumValues collect_enum_values(const Layout& inner)
 
 		else if ( c->GetTag() == Tag::TrailingComma )
 			ev.has_trailing_comma = true;
+
+		else if ( c->GetTag() == Tag::Blank )
+			pending_blank = true;
 		}
 
 	return ev;
@@ -660,8 +674,8 @@ static LIPtr format_enum_body(const Layout& source,
 	auto ev = collect_enum_values(source);
 
 	// Try flat: " VALUE1, VALUE2 }" on the same line as "{".
-	// Enums with init values (= N) always use vertical layout.
-	if ( ! ev.has_init_values )
+	// Enums with init values or comments always use vertical layout.
+	if ( ! ev.has_init_values && ! ev.has_comments )
 		{
 		Formatting flat_body(" ");
 		for ( size_t i = 0; i < ev.values.size(); ++i )
@@ -688,6 +702,9 @@ static LIPtr format_enum_body(const Layout& source,
 	Formatting body;
 	for ( size_t i = 0; i < ev.values.size(); ++i )
 		{
+		if ( ev.blank_before[i] )
+			body += "\n";
+		body += ev.nodes[i]->EmitPreComments(pad);
 		body += pad + ev.values[i];
 		auto nc = (i + 1 < ev.commas.size()) ?
 					ev.commas[i + 1] : nullptr;

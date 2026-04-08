@@ -1,0 +1,13 @@
+REDEF-ENUM "Notice::Type" {
+  KEYWORD "redef"
+  SP
+  KEYWORD "enum"
+  SP
+  IDENTIFIER "Notice::Type"
+  ASSIGN "+="
+  LBRACE
+  COMMENT-LEADING "## Anomalous behavior detected."
+  ENUM-VALUE "Found"
+  RBRACE
+  SEMI
+}
