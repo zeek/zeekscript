@@ -1,0 +1,32 @@
+LOCAL-DECL {
+  KEYWORD "local"
+  SP
+  IDENTIFIER "recs"
+  DECL-INIT {
+    ASSIGN "="
+    BINARY-OP "as" {
+      FIELD-ACCESS {
+        IDENTIFIER "aaa"
+        DOLLAR
+        IDENTIFIER "bbb"
+      }
+      OP "as"
+      TYPE-ATOM "SomeType"
+    }
+  }
+  SEMI
+}
+LOCAL-DECL {
+  KEYWORD "local"
+  SP
+  IDENTIFIER "x"
+  DECL-INIT {
+    ASSIGN "="
+    BINARY-OP "is" {
+      IDENTIFIER "yyy"
+      OP "is"
+      TYPE-ATOM "count"
+    }
+  }
+  SEMI
+}
