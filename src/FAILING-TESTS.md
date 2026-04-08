@@ -1,4 +1,4 @@
-# C++ Formatter Failing Tests (177 pass, 0 fail as of 2026-04-07)
+# C++ Formatter Failing Tests (187 pass, 0 fail as of 2026-04-08)
 
 ## By category (sorted by count)
 

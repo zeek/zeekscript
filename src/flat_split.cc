@@ -101,6 +101,65 @@ static Candidate assemble_split(const Formatting& first, const Formatting& rest,
 	return {std::move(split), last_w, lines, ovf, ctx.Col()};
 	}
 
+// Re-format expr piece i with reduced width to account for trailing
+// first-line pieces (e.g. " in" after an INDEX-LITERAL).  For each
+// candidate, try both a split form and a flat form (all pieces with
+// the wrapped expr, no split).
+static void try_narrowed_expr(const FmtSteps& steps, int i, int used,
+                              const SplitAt& sp, const FmtContext& ctx,
+                              const Formatting& rest, const std::string& pad,
+                              Candidate& result)
+	{
+	int first_trail = 0;
+	for ( int j = i + 1; j <= sp.after; ++j )
+		first_trail += steps[j].text.Size();
+
+	auto& s_i = steps[i];
+	int first_line_end = ctx.Col() + used + s_i.text.Size() + first_trail;
+	if ( first_line_end <= ctx.MaxCol() )
+		return;
+
+	int sub_col = ctx.Col() + used;
+	int sub_w = ctx.MaxCol() - sub_col - first_trail;
+	if ( sub_w <= 0 )
+		return;
+
+	FmtContext sub(ctx.Indent(), sub_col, sub_w);
+
+	auto cs = format_expr(*s_i.node, sub);
+	for ( const auto& c : cs )
+		{
+		Formatting alt_first;
+		for ( int j = 0; j < i; ++j )
+			alt_first += steps[j].text;
+		alt_first += c.Fmt();
+		for ( int j = i + 1; j <= sp.after; ++j )
+			alt_first += steps[j].text;
+
+		auto alt = assemble_split(alt_first, rest, pad, ctx);
+		if ( alt.BetterThan(result) )
+			result = std::move(alt);
+
+		// Also try a flat form with the wrapped expr.
+		// Avoids a split when the remaining pieces fit
+		// on the last line of the wrapped expr.
+		Formatting flat;
+		for ( size_t j = 0; j < steps.size(); ++j )
+			{
+			auto k = static_cast<int>(j);
+			flat += (k == i) ? c.Fmt() : steps[j].text;
+			}
+
+		int fl = flat.CountLines();
+		int fw = flat.LastLineLen();
+		int fo = flat.TextOverflow(ctx.Col(),
+						ctx.MaxCol() - ctx.Trail());
+		Candidate fc(std::move(flat), fw, fl, fo, ctx.Col());
+		if ( fc.BetterThan(result) )
+			result = std::move(fc);
+		}
+	}
+
 // Build split candidate(s): pieces 0..after on the first line(s),
 // then a line break, then pieces (after+1).. re-formatted with
 // the continuation context.
@@ -158,6 +217,22 @@ static Candidate build_split(const FmtSteps& steps, const SplitAt& sp,
 			}
 
 		used += s.text.Size();
+		}
+
+	// If the split still overflows significantly, try re-formatting
+	// expr pieces with reduced width.  Small overflows (1-2 columns)
+	// are tolerated to avoid ugly sub-expression splits.
+	if ( result.Ovf() > 2 )
+		{
+		used = 0;
+		for ( int i = 0; i <= sp.after; ++i )
+			{
+			auto& s = steps[i];
+			if ( s.kind == FmtStep::SExpr && s.node )
+				try_narrowed_expr(steps, i, used, sp, ctx,
+							rest, pad, result);
+			used += s.text.Size();
+			}
 		}
 
 	return result;
