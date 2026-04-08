@@ -34,8 +34,6 @@ from __future__ import annotations
 
 import json
 import sys
-from typing import Sequence
-
 import tree_sitter
 import tree_sitter_zeek
 
@@ -309,8 +307,7 @@ class Emitter:
             return
 
         # Classify by token patterns in children
-        tokens = {self._text(k): k for k in kids if not k.is_named}
-        token_texts = set(tokens.keys())
+        token_texts = {self._text(k) for k in kids if not k.is_named}
 
         # Ternary: expr ? expr : expr
         if "?" in token_texts and ":" in token_texts:
@@ -597,16 +594,12 @@ class Emitter:
             self._w('LBRACE')
             if event_hdrs:
                 eh = event_hdrs[0]
-                eh_kids = self._children(eh)
-                name = ""
                 args = None
-                for c in eh_kids:
-                    if c.type == "id":
-                        name = self._text(c)
-                    elif c.type == "expr_list":
+                for c in self._children(eh):
+                    if c.type == "expr_list":
                         args = c
-                self._open(f'CALL')
-                self._w(f'IDENTIFIER {_quote(name)}')
+                self._open('CALL')
+                self._w(f'IDENTIFIER {_quote(self._find_name(eh))}')
                 self._open('ARGS')
                 self._w('LPAREN')
                 if args:
@@ -1314,18 +1307,12 @@ class Emitter:
                 continue
             if child.type == "nl":
                 continue
-            self._maybe_blank(child)
-            text = self._text(child)
-            same_line = (ref_node is not None
+            if (skip_trailing
+                    and ref_node is not None
                     and child.start_point[0]
-                        == ref_node.end_point[0])
-            if same_line and skip_trailing:
+                        == ref_node.end_point[0]):
                 continue
-            if same_line:
-                self._w(f'COMMENT-TRAILING {_quote(text)}')
-            else:
-                self._w(f'COMMENT-LEADING {_quote(text)}')
-            self._mark_content(child)
+            self._emit_comment(child, ref_node)
             had_extras = True
 
         return had_extras
@@ -1408,9 +1395,9 @@ class Emitter:
         self._mark_content(node)
 
     def _emit_for(self, node: tree_sitter.Node) -> None:
-        # Pre-scan raw children (not _iter_children, which emits
+        # Pre-scan non-extra children (not _iter_children, which emits
         # extras as a side effect) to detect the for-loop variant.
-        raw = [c for c in node.children if not c.is_extra]
+        raw = self._children(node)
         texts = [self._text(c) if not c.is_named else c.type
                  for c in raw]
         has_bracket = "[" in texts
