@@ -462,6 +462,32 @@ static void decl_wrapped_attrs(const DeclParts& d, Candidates& result,
 	result.push_back({wrapped, last_w, lines, ovf, ctx.Col()});
 	}
 
+// Re-format the type at its actual column, letting it fill-pack,
+// with suffix on the last line.  Produces a 2-line candidate when
+// the type wraps but suffix fits on the last line.
+static void decl_type_fill(const DeclParts& d, Candidates& result,
+                           const FmtContext& ctx)
+	{
+	if ( ! d.type_node || d.init_val )
+		return;
+
+	int head_w = d.head.Size() + 2;  // "name: "
+	int suffix_w = d.suffix.Size();
+	FmtContext type_ctx = ctx.After(head_w).Reserve(suffix_w);
+	auto tc = best(format_expr(*d.type_node, type_ctx));
+
+	if ( tc.Lines() < 2 )
+		return;  // flat already handled elsewhere
+
+	auto filled = d.head + Formatting(d.colon_node) + " " +
+			tc.Fmt() + d.suffix;
+	int last_w = filled.LastLineLen();
+	int lines = filled.CountLines();
+	int ovf = filled.TextOverflow(ctx.Col(), ctx.MaxCol());
+
+	result.push_back({filled, last_w, lines, ovf, ctx.Col()});
+	}
+
 // Split after colon: type (and optional init) on indented continuation.
 static void decl_type_split(const DeclParts& d, Candidates& result,
 				  const FmtContext& ctx)
@@ -537,6 +563,7 @@ Candidates Layout::ComputeDecl(const FmtContext& ctx) const
 
 	if ( result[0].Ovf() > 0 )
 		{
+		decl_type_fill(d, result, ctx);
 		decl_wrapped_attrs(d, result, ctx);
 		decl_type_split(d, result, ctx);
 		}
