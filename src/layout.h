@@ -658,6 +658,7 @@ public:
 	LIPtr ComputeParamType(const FmtContext& ctx) const;
 	LIPtr ComputeOfType(const FmtContext& ctx) const;
 	LIPtr ComputeEnumBody(const FmtContext& ctx) const;
+	LIPtr ComputeRedefEnumBody(const FmtContext& ctx) const;
 	LIPtr ComputeRecordBody(const FmtContext& ctx) const;
 	LIPtr ComputeElseFollowOn(const FmtContext& ctx) const;
 	LIPtr ComputeFuncRet(const FmtContext& ctx) const;

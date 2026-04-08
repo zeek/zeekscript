@@ -1,0 +1,20 @@
+EXPORT {
+  KEYWORD "export"
+  SP
+  LBRACE
+  REDEF-ENUM "Notice::Type" {
+    KEYWORD "redef"
+    SP
+    KEYWORD "enum"
+    SP
+    IDENTIFIER "Notice::Type"
+    ASSIGN "+="
+    LBRACE
+    ENUM-VALUE "POTENTIAL_CVE_2022_24497"
+    COMMA
+    TRAILING-COMMA
+    RBRACE
+    SEMI
+  }
+  RBRACE
+}

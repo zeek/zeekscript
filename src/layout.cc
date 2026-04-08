@@ -1019,6 +1019,7 @@ static constexpr ComputeFn CParamType = &Layout::ComputeParamType;
 static constexpr ComputeFn COfType = &Layout::ComputeOfType;
 static constexpr ComputeFn CRetType = &Layout::ComputeRetType;
 static constexpr ComputeFn CEnumBody = &Layout::ComputeEnumBody;
+static constexpr ComputeFn CRedefEnumBody = &Layout::ComputeRedefEnumBody;
 static constexpr ComputeFn CRecordBody = &Layout::ComputeRecordBody;
 static constexpr ComputeFn CLambdaPrefix = &Layout::ComputeLambdaPrefix;
 static constexpr ComputeFn CLambdaRet = &Layout::ComputeLambdaRet;
@@ -1074,6 +1075,9 @@ static const std::unordered_map<Tag, LayoutItems> layout_table = {
 	{Tag::TypeDeclEnum, {tok(0), sp(), tok(2), tok(3), sp(),
 		tok(5, 0), sp(), tok(5, 2),
 		computed(CEnumBody), last()}},
+	{Tag::RedefEnum, {tok(0), sp(), tok(2), sp(), tok(4), sp(),
+		tok(5), sp(), tok(6),
+		computed(CRedefEnumBody), last()}},
 	{Tag::TypeDeclRecord, {tok(0), sp(), tok(2), tok(3), sp(),
 		tok(5, 0), sp(), tok(5, 2),
 		computed(CRecordBody), last()}},

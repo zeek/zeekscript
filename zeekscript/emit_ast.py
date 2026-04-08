@@ -1192,11 +1192,22 @@ class Emitter:
     def _emit_redef_enum_decl(self, node: tree_sitter.Node) -> None:
         self._open(f'REDEF-ENUM {_quote(self._find_name(node))}')
         for child in self._iter_children(node):
-            if child.type == "id":
-                pass  # already extracted for tag
+            if not child.is_named:
+                text = self._text(child)
+                if text in ("redef", "enum"):
+                    self._kw(text)
+                elif text == "+=":
+                    self._w('ASSIGN "+="')
+                elif text == "{":
+                    self._w('LBRACE')
+                elif text == "}":
+                    self._w('RBRACE')
+                elif text == ";":
+                    self._w('SEMI')
+            elif child.type == "id":
+                self._w(f'IDENTIFIER {_quote(self._text(child))}')
             elif child.type == "enum_body":
                 self._emit_enum_body(child)
-        self._w('SEMI')
         self._close()
         self._mark_content(node)
 

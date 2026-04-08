@@ -4,6 +4,8 @@
 
 #include "fmt_util.h"
 
+#include <cassert>
+
 // ---- Pre-comment emission -----------------------------------------------
 
 // Pre-comment / pre-marker emission
@@ -621,11 +623,12 @@ static EnumValues collect_enum_values(const Layout& inner)
 	return ev;
 	}
 
-// Enum body + close brace.  Inner = Child(5) = TYPE-ENUM node.
-LIPtr Layout::ComputeEnumBody(const FmtContext& ctx) const
+// Format enum values + close brace from a node whose children
+// contain EnumValue, Comma, TrailingComma, and a closing RBrace.
+static LIPtr format_enum_body(const Layout& source,
+	const LayoutPtr& close_brace, const FmtContext& ctx)
 	{
-	auto inner = Child(5);
-	auto ev = collect_enum_values(*inner);
+	auto ev = collect_enum_values(source);
 
 	auto pad = line_prefix(ctx.Indent() + 1,
 				(ctx.Indent() + 1) * INDENT_WIDTH);
@@ -646,8 +649,25 @@ LIPtr Layout::ComputeEnumBody(const FmtContext& ctx) const
 		}
 
 	auto close_pad = line_prefix(ctx.Indent(), ctx.Col());
-	auto& icb = inner->Children().back();
-	return lit(Formatting("\n") + body + close_pad + icb);
+	return lit(Formatting("\n") + body + close_pad + close_brace);
+	}
+
+// Enum body + close brace.  Inner = Child(5) = TYPE-ENUM node.
+LIPtr Layout::ComputeEnumBody(const FmtContext& ctx) const
+	{
+	auto inner = Child(5);
+	return format_enum_body(*inner, inner->Children().back(), ctx);
+	}
+
+// Enum body + close brace for redef enum (values are direct children).
+LIPtr Layout::ComputeRedefEnumBody(const FmtContext& ctx) const
+	{
+	for ( auto it = Children().rbegin(); it != Children().rend(); ++it )
+		if ( (*it)->GetTag() == Tag::RBrace )
+			return format_enum_body(*this, *it, ctx);
+
+	assert(false && "REDEF-ENUM missing RBRACE");
+	return nullptr;
 	}
 
 // Record body + close brace.  Inner = Child(5) = TYPE-RECORD node.
