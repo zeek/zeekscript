@@ -4,8 +4,6 @@
 
 #include "fmt_util.h"
 
-#include <cassert>
-
 // ---- Pre-comment emission -----------------------------------------------
 
 // Pre-comment / pre-marker emission
@@ -662,25 +660,21 @@ LIPtr Layout::ComputeEnumBody(const FmtContext& ctx) const
 // Enum body + close brace for redef enum (values are direct children).
 LIPtr Layout::ComputeRedefEnumBody(const FmtContext& ctx) const
 	{
-	for ( auto it = Children().rbegin(); it != Children().rend(); ++it )
-		if ( (*it)->GetTag() == Tag::RBrace )
-			return format_enum_body(*this, *it, ctx);
-
-	assert(false && "REDEF-ENUM missing RBRACE");
-	return nullptr;
+	return format_enum_body(*this, ChildFromEnd(1, Tag::RBrace), ctx);
 	}
 
-// Record body + close brace.  Inner = Child(5) = TYPE-RECORD node.
-LIPtr Layout::ComputeRecordBody(const FmtContext& ctx) const
+// Format record fields + close brace from a node whose children
+// contain Field, Blank, and a closing RBrace.
+static LIPtr format_record_body(const Layout& source,
+	const LayoutPtr& close_brace, const FmtContext& ctx)
 	{
-	auto inner = Child(5);
 	int field_indent = ctx.Indent() + 1;
 	int field_col = field_indent * INDENT_WIDTH;
 	FmtContext field_ctx(field_indent, field_col, ctx.MaxCol() - field_col);
 	auto field_pad = line_prefix(field_indent, field_col);
 
 	Formatting body;
-	for ( const auto& ki : inner->Children() )
+	for ( const auto& ki : source.Children() )
 		{
 		Tag t = ki->GetTag();
 
@@ -703,8 +697,20 @@ LIPtr Layout::ComputeRecordBody(const FmtContext& ctx) const
 		}
 
 	auto close_pad = line_prefix(ctx.Indent(), ctx.Col());
-	auto& icb = inner->Children().back();
-	return lit(Formatting("\n") + body + close_pad + icb);
+	return lit(Formatting("\n") + body + close_pad + close_brace);
+	}
+
+// Record body + close brace.  Inner = Child(5) = TYPE-RECORD node.
+LIPtr Layout::ComputeRecordBody(const FmtContext& ctx) const
+	{
+	auto inner = Child(5);
+	return format_record_body(*inner, inner->Children().back(), ctx);
+	}
+
+// Record body + close brace for redef record (fields are direct children).
+LIPtr Layout::ComputeRedefRecordBody(const FmtContext& ctx) const
+	{
+	return format_record_body(*this, ChildFromEnd(1, Tag::RBrace), ctx);
 	}
 
 // ---- Switch formatting ---------------------------------------------------

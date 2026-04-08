@@ -1181,11 +1181,24 @@ class Emitter:
 
     def _emit_redef_record_decl(self, node: tree_sitter.Node) -> None:
         self._open(f'REDEF-RECORD {_quote(self._find_name(node))}')
-        for k in self._iter_children(node):
-            if k.type == "type_spec":
-                self._maybe_blank(k)
-                self._emit_type_spec(k)
-        self._w('SEMI')
+        for child in self._iter_children(node):
+            if not child.is_named:
+                text = self._text(child)
+                if text in ("redef", "record"):
+                    self._kw(text)
+                elif text == "+=":
+                    self._w('ASSIGN "+="')
+                elif text == "{":
+                    self._w('LBRACE')
+                elif text == "}":
+                    self._w('RBRACE')
+                elif text == ";":
+                    self._w('SEMI')
+            elif child.type == "id":
+                self._w(f'IDENTIFIER {_quote(self._text(child))}')
+            elif child.type == "type_spec":
+                self._maybe_blank(child)
+                self._emit_type_spec(child)
         self._close()
         self._mark_content(node)
 

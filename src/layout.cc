@@ -85,6 +85,14 @@ const LayoutPtr& Layout::FindChild(Tag t, const LayoutPtr& after) const
 	return null_node;
 	}
 
+const LayoutPtr& Layout::ChildFromEnd(size_t offset, Tag expected) const
+	{
+	assert(offset < children.size());
+	auto& c = children[children.size() - 1 - offset];
+	assert(c->GetTag() == expected);
+	return c;
+	}
+
 LayoutVec Layout::ContentChildren() const
 	{
 	LayoutVec result;
@@ -1021,6 +1029,7 @@ static constexpr ComputeFn CRetType = &Layout::ComputeRetType;
 static constexpr ComputeFn CEnumBody = &Layout::ComputeEnumBody;
 static constexpr ComputeFn CRedefEnumBody = &Layout::ComputeRedefEnumBody;
 static constexpr ComputeFn CRecordBody = &Layout::ComputeRecordBody;
+static constexpr ComputeFn CRedefRecordBody = &Layout::ComputeRedefRecordBody;
 static constexpr ComputeFn CLambdaPrefix = &Layout::ComputeLambdaPrefix;
 static constexpr ComputeFn CLambdaRet = &Layout::ComputeLambdaRet;
 static constexpr ComputeFn CLambdaBody = &Layout::ComputeLambdaBody;
@@ -1081,6 +1090,9 @@ static const std::unordered_map<Tag, LayoutItems> layout_table = {
 	{Tag::TypeDeclRecord, {tok(0), sp(), tok(2), tok(3), sp(),
 		tok(5, 0), sp(), tok(5, 2),
 		computed(CRecordBody), last()}},
+	{Tag::RedefRecord, {tok(0), sp(), tok(2), sp(), tok(4), sp(),
+		tok(5), sp(), tok(6),
+		computed(CRedefRecordBody), last()}},
 	{Tag::IfNoElse, {tok(0), lit(" "), tok(2), lit(" "), expr(3),
 		lit(" "), tok(4), body_text(5)}},
 	{Tag::IfElse, {tok(0), lit(" "), tok(2), lit(" "), expr(3),

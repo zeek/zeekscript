@@ -601,6 +601,9 @@ public:
 	// Find a child by tag, starting after the given child.
 	const LayoutPtr& FindChild(Tag tag, const LayoutPtr& after) const;
 
+	// Index a child from the end (0 = last), asserting its tag.
+	const LayoutPtr& ChildFromEnd(size_t offset, Tag expected) const;
+
 	// Collect non-token, non-comment children.
 	LayoutVec ContentChildren() const;
 
@@ -660,6 +663,7 @@ public:
 	LIPtr ComputeEnumBody(const FmtContext& ctx) const;
 	LIPtr ComputeRedefEnumBody(const FmtContext& ctx) const;
 	LIPtr ComputeRecordBody(const FmtContext& ctx) const;
+	LIPtr ComputeRedefRecordBody(const FmtContext& ctx) const;
 	LIPtr ComputeElseFollowOn(const FmtContext& ctx) const;
 	LIPtr ComputeFuncRet(const FmtContext& ctx) const;
 	LIPtr ComputeFuncAttrs(const FmtContext& ctx) const;
