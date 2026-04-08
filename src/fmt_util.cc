@@ -187,6 +187,35 @@ static void emit_fill_leading(const std::vector<std::string>& leading,
 		}
 	}
 
+// Try placing a multi-line bracketed arg (call, index-literal) on
+// the current line instead of wrapping.  Only suitable when the arg
+// is genuinely multi-line at the alignment column (not just squeezed
+// at the tight current position) and the first line fits.
+static Candidates try_same_line_arg(const Layout& arg, int cur_col,
+                                    int align_col, int indent,
+                                    int max_col, int trail)
+	{
+	auto tag = arg.GetTag();
+	if ( tag != Tag::Call && tag != Tag::IndexLiteral )
+		return {};
+
+	FmtContext ac(indent, align_col, max_col - align_col, trail);
+	auto wc = best(format_expr(arg, ac));
+	if ( wc.Lines() <= 1 )
+		return {};
+
+	int same_col = cur_col + 2;
+	FmtContext sc(indent, same_col, max_col - same_col);
+	auto sb = best(format_expr(arg, sc));
+	int nl = sb.Fmt().Find('\n');
+	int first_w = nl < 0 ? sb.Width() : nl;
+
+	if ( same_col + first_w <= max_col && sb.Ovf() == 0 )
+		return {std::move(sb)};
+
+	return {};
+	}
+
 Candidate format_args_fill(const ArgComments& items, int align_col, int indent,
                          const FmtContext& first_line_ctx, int trail)
 	{
@@ -240,6 +269,7 @@ Candidate format_args_fill(const ArgComments& items, int align_col, int indent,
 			{
 			fmt += bc.Fmt();
 			cur_col += aw;
+			// Fall through to multi-line / trailing handling.
 			}
 
 		else if ( force_wrap )
@@ -259,49 +289,51 @@ Candidate format_args_fill(const ArgComments& items, int align_col, int indent,
 			continue;
 			}
 
+		// Try keeping a multi-line bracketed arg on the
+		// current line (re-formatted at the inline position).
+		else if ( bc.Lines() > 1 && bc.Ovf() == 0 )
+			{
+			auto scs = try_same_line_arg(*it.arg, cur_col,
+				align_col, indent, max_col, t);
+			if ( ! scs.empty() )
+				{
+				auto& sb = scs[0];
+				fmt += Formatting(it.comma) + " " + sb.Fmt();
+				if ( sb.Lines() > 1 )
+					{
+					lines += sb.Lines() - 1;
+					cur_col = fmt.LastLineLen();
+					}
+				else
+					cur_col = cur_col + 2 + sb.Width();
+				total_overflow += sb.Ovf();
+				append_trailing(it, nc, fmt, cur_col,
+					force_wrap, comma_consumed);
+				continue;
+				}
+
+			// Same-line didn't work; force wrap.
+			fmt += Formatting(it.comma) + "\n" + pad;
+			cur_col = align_col;
+
+			int prev_lines = lines;
+			format_fill_arg(*it.arg, indent, max_col, fmt,
+					cur_col, lines, total_overflow, t);
+			++lines;
+
+			if ( lines - prev_lines > 1 &&
+			     it.arg->GetTag() == Tag::FieldAssign )
+				force_wrap = true;
+
+			append_trailing(it, nc, fmt, cur_col, force_wrap,
+					comma_consumed);
+			continue;
+			}
+
+		// Inline if it fits, otherwise wrap.
 		else
 			{
 			int need = 2 + aw;
-			if ( bc.Lines() > 1 )
-				{
-				// Bracketed list args (INDEX-LITERAL) can
-				// start on the current line when the first
-				// line fits and there's no overflow.  We
-				// must re-format at the actual position
-				// (after ", ") so internal alignment is
-				// correct.
-				need = max_col + 1;
-				if ( it.arg->GetTag() == Tag::IndexLiteral &&
-				     bc.Ovf() == 0 )
-					{
-					int same_col = cur_col + 2;
-					FmtContext sc(indent, same_col,
-						max_col - same_col);
-					auto sb = best(format_expr(*it.arg, sc));
-					int nl = sb.Fmt().Find('\n');
-					int first_w = (nl < 0)
-						? sb.Width() : nl;
-					if ( same_col + first_w <= max_col &&
-					     sb.Ovf() == 0 )
-						{
-						fmt += Formatting(it.comma) +
-							" " + sb.Fmt();
-						if ( sb.Lines() > 1 )
-							{
-							lines += sb.Lines() - 1;
-							cur_col = fmt.LastLineLen();
-							}
-						else
-							cur_col = same_col
-								+ sb.Width();
-						total_overflow += sb.Ovf();
-						append_trailing(it, nc, fmt,
-							cur_col, force_wrap,
-							comma_consumed);
-						continue;
-						}
-					}
-				}
 			int limit = is_last ? max_col - trail : max_col;
 			if ( cur_col + need <= limit )
 				{
@@ -318,8 +350,6 @@ Candidate format_args_fill(const ArgComments& items, int align_col, int indent,
 						cur_col, lines, total_overflow, t);
 				++lines;
 
-				// Multi-line field-assign: next item
-				// starts on a fresh line.
 				if ( lines - prev_lines > 1 &&
 				     it.arg->GetTag() == Tag::FieldAssign )
 					force_wrap = true;
