@@ -138,9 +138,10 @@ static void append_trailing(const ArgComment& it, const LayoutPtr& next_comma,
 // updating position/lines/overflow.
 static void format_fill_arg(const Layout& arg, int indent, int max_col,
                            Formatting& fmt, int& cur_col,
-                           int& lines, int& total_overflow)
+                           int& lines, int& total_overflow,
+                           int trail = 0)
 	{
-	FmtContext sub(indent, cur_col, max_col - cur_col);
+	FmtContext sub(indent, cur_col, max_col - cur_col, trail);
 	auto bc = best(format_expr(arg, sub));
 	fmt += bc.Fmt();
 
@@ -187,7 +188,7 @@ static void emit_fill_leading(const std::vector<std::string>& leading,
 	}
 
 Candidate format_args_fill(const ArgComments& items, int align_col, int indent,
-                         const FmtContext& first_line_ctx)
+                         const FmtContext& first_line_ctx, int trail)
 	{
 	auto pad = line_prefix(indent, align_col);
 	Formatting fmt;
@@ -222,14 +223,16 @@ Candidate format_args_fill(const ArgComments& items, int align_col, int indent,
 			cur_col = align_col;
 			force_wrap = false;
 
+			int t = is_last ? trail : 0;
 			format_fill_arg(*it.arg, indent, max_col,
-			              fmt, cur_col, lines, total_overflow);
+			              fmt, cur_col, lines, total_overflow, t);
 			append_trailing(it, nc, fmt, cur_col, force_wrap,
 			              comma_consumed);
 			continue;
 			}
 
-		FmtContext sub(indent, cur_col, max_col - cur_col);
+		int t = is_last ? trail : 0;
+		FmtContext sub(indent, cur_col, max_col - cur_col, t);
 		auto bc = best(format_expr(*it.arg, sub));
 		int aw = bc.Width();
 
@@ -249,7 +252,7 @@ Candidate format_args_fill(const ArgComments& items, int align_col, int indent,
 			comma_consumed = false;
 
 			format_fill_arg(*it.arg, indent, max_col,
-			              fmt, cur_col, lines, total_overflow);
+			              fmt, cur_col, lines, total_overflow, t);
 			++lines;
 			append_trailing(it, nc, fmt, cur_col, force_wrap,
 			              comma_consumed);
@@ -299,7 +302,8 @@ Candidate format_args_fill(const ArgComments& items, int align_col, int indent,
 						}
 					}
 				}
-			if ( cur_col + need <= max_col )
+			int limit = is_last ? max_col - trail : max_col;
+			if ( cur_col + need <= limit )
 				{
 				fmt += Formatting(it.comma) + " " + bc.Fmt();
 				cur_col += need;
@@ -311,7 +315,7 @@ Candidate format_args_fill(const ArgComments& items, int align_col, int indent,
 
 				int prev_lines = lines;
 				format_fill_arg(*it.arg, indent, max_col, fmt,
-						cur_col, lines, total_overflow);
+						cur_col, lines, total_overflow, t);
 				++lines;
 
 				// Multi-line field-assign: next item
@@ -339,7 +343,7 @@ Candidate format_args_fill(const ArgComments& items, int align_col, int indent,
 				comma_consumed);
 		}
 
-	int end_ovf = std::max(0, cur_col - max_col);
+	int end_ovf = std::max(0, cur_col + trail - max_col);
 	total_overflow += end_ovf;
 
 	return {fmt, cur_col, lines, total_overflow};
@@ -470,6 +474,21 @@ Candidates flat_or_fill(const Formatting& prefix, const Formatting& open,
 		}
 
 	auto fill = format_args_fill(items, open_col, ctx.Indent(), inner_ctx);
+
+	// If multi-line and the last line + trail overflows, re-fill
+	// with trail so nested calls wrap correctly.
+	// If multi-line and the assembled last line + trail overflows,
+	// re-fill with trail so nested calls wrap correctly.
+	if ( fill.Lines() > 1 && ctx.Trail() > 0 )
+		{
+		auto assembled = prefix + open + fill_prefix +
+					fill.Fmt() + cb + suffix;
+		int ovf = assembled.MaxLineOverflow(ctx.Col(),
+					ctx.MaxCol() - ctx.Trail());
+		if ( ovf > 0 )
+			fill = format_args_fill(items, open_col, ctx.Indent(),
+						inner_ctx, ctx.Trail());
+		}
 
 	// When the last arg is a lambda, put the close bracket on
 	// its own line at the alignment column.
