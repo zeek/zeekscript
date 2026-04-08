@@ -804,6 +804,7 @@ class Emitter:
                         self._kw("record")
                     elif text == "{":
                         self._w('LBRACE')
+                        self._mark_content(k)
                     elif text == "}":
                         self._w('RBRACE')
                 elif k.type == "type_spec":
@@ -856,6 +857,7 @@ class Emitter:
             elif child.type == "attr_list":
                 self._emit_attr_list(child)
         self._close()
+        self._mark_content(node)
 
     def _emit_enum_body(self, node: tree_sitter.Node) -> None:
         """Emit enum body elements."""
