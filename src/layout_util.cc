@@ -892,12 +892,18 @@ LIPtr Layout::ComputeSwitchCases(const FmtContext& ctx) const
 
 	for ( const auto& c : Children() )
 		{
-		if ( c->GetTag() != Tag::Case && c->GetTag() != Tag::Default )
+		auto tag = c->GetTag();
+
+		if ( tag != Tag::Case && tag != Tag::Default )
 			continue;
+
+		// Emit pre-comments attached to this case.
+		for ( const auto& pc : c->PreComments() )
+			result += "\n" + pad + pc;
 
 		auto& kw = c->Child(0, Tag::Keyword);
 
-		if ( c->GetTag() == Tag::Default )
+		if ( tag == Tag::Default )
 			{
 			result += "\n" + pad + kw + c->Child(1, Tag::Colon);
 			append_case_body(c->FindOptChild(Tag::Body), result, ctx);
@@ -907,6 +913,12 @@ LIPtr Layout::ComputeSwitchCases(const FmtContext& ctx) const
 		result += "\n" + pad + format_case(*c, ctx);
 		append_case_body(c->FindOptChild(Tag::Body), result, ctx);
 		}
+
+	// Emit pre-comments on the closing brace (they sit after
+	// the last case but before the RBRACE).
+	auto& last = Children().back();
+	for ( const auto& pc : last->PreComments() )
+		result += "\n" + pad + pc;
 
 	return lit(std::move(result));
 	}
