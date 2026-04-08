@@ -212,6 +212,27 @@ static Candidates try_same_line_arg(const Layout& arg, int cur_col,
 	int nl = sb.Fmt().Find('\n');
 	int first_w = nl < 0 ? sb.Width() : nl;
 
+	// Reject vertical layout (close bracket on its own line) -
+	// same-line placement only helps for fill-packed args.
+	if ( nl >= 0 )
+		{
+		auto& s = sb.Fmt().Str();
+		auto last_nl = s.rfind('\n');
+		if ( last_nl != std::string::npos )
+			{
+			bool only_close = true;
+			for ( size_t k = last_nl + 1; k < s.size(); ++k )
+				if ( s[k] != ' ' && s[k] != '\t' &&
+				     s[k] != ')' && s[k] != ']' )
+					{
+					only_close = false;
+					break;
+					}
+			if ( only_close )
+				return {};
+			}
+		}
+
 	int sb_ovf = sb.Fmt().MaxLineOverflow(same_col, effective_max);
 	if ( same_col + first_w <= effective_max && sb_ovf == 0 )
 		return {std::move(sb)};
