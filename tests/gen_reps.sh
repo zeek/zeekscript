@@ -4,7 +4,7 @@
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 EMITTER="$SCRIPT_DIR/../zeekscript/emit_ast.py"
-FORMATTER="$SCRIPT_DIR/../src/zeek-format"
+FORMATTER="$SCRIPT_DIR/../src/clz-format"
 FMT_DIR="$SCRIPT_DIR/formatting"
 
 count=0

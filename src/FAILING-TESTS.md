@@ -18,7 +18,7 @@ the current pass/fail counts.
 ### How categories are determined
 
 Diff each failing test's output against its `.fmt.zeek` baseline
-(`diff <(./zeek-format ../tests/formatting/testNNN.rep) ../tests/formatting/testNNN.fmt.zeek`).
+(`diff <(./clz-format ../tests/formatting/testNNN.rep) ../tests/formatting/testNNN.fmt.zeek`).
 The *primary* failure mode determines the category:
 
 - **Line-breaking / layout quality**: output is correct tokens but
