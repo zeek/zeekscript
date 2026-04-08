@@ -170,6 +170,8 @@ class Emitter:
         This is the primary mechanism for capturing interstitial comments.
         Extras (comments) are classified and emitted as a side effect
         during iteration, so callers just dispatch by child type.
+        Marks each yielded child's content range after the caller
+        processes it, so _maybe_blank sees the right gap.
         """
         last_non_extra = None
         for child in node.children:
@@ -180,6 +182,7 @@ class Emitter:
                 continue
             last_non_extra = child
             yield child
+            self._mark_content(child)
 
     def _emit_children(self, node: tree_sitter.Node) -> None:
         """Emit all children of node, handling extras and blank lines."""
@@ -221,44 +224,39 @@ class Emitter:
             if len(kids) == 1:
                 self._emit(kids[0])
                 return
+
         if typ == "stmt":
             self._emit_stmt(node)
-            return
-
-        # Expression-level types
-        if typ == "expr":
+        elif typ == "expr":
             self._emit_expr(node)
-            return
-        if typ == "id":
+        elif typ == "id":
             self._w(f'IDENTIFIER {_quote(self._text(node))}')
-            self._mark_content(node)
-            return
-        if typ == "constant":
+        elif typ == "constant":
             self._emit_expr_child(node)
-            return
-        if typ == "type":
+        elif typ == "type":
             self._emit_type(node)
-            return
-
-        dispatch = {
-            "source_file": self._emit_source_file,
-            "global_decl": self._emit_global_decl,
-            "const_decl": self._emit_global_decl,
-            "option_decl": self._emit_global_decl,
-            "redef_decl": self._emit_global_decl,
-            "type_decl": self._emit_type_decl,
-            "func_decl": self._emit_func_decl,
-            "export_decl": self._emit_export_decl,
-            "module_decl": self._emit_module_decl,
-            "redef_record_decl": self._emit_redef_record_decl,
-            "redef_enum_decl": self._emit_redef_enum_decl,
-            "preproc_directive": self._emit_preproc,
-        }
-        handler = dispatch.get(typ)
-        if handler:
-            handler(node)
         else:
-            self._emit_unknown(node)
+            dispatch = {
+                "source_file": self._emit_source_file,
+                "global_decl": self._emit_global_decl,
+                "const_decl": self._emit_global_decl,
+                "option_decl": self._emit_global_decl,
+                "redef_decl": self._emit_global_decl,
+                "type_decl": self._emit_type_decl,
+                "func_decl": self._emit_func_decl,
+                "export_decl": self._emit_export_decl,
+                "module_decl": self._emit_module_decl,
+                "redef_record_decl": self._emit_redef_record_decl,
+                "redef_enum_decl": self._emit_redef_enum_decl,
+                "preproc_directive": self._emit_preproc,
+            }
+            handler = dispatch.get(typ)
+            if handler:
+                handler(node)
+            else:
+                self._emit_unknown(node)
+
+        self._mark_content(node)
 
     # ------------------------------------------------------------------
     # Expressions
@@ -266,11 +264,14 @@ class Emitter:
 
     def _emit_expr(self, node: tree_sitter.Node) -> None:
         """Classify and emit an expression node."""
+        self._emit_expr_inner(node)
+        self._mark_content(node)
+
+    def _emit_expr_inner(self, node: tree_sitter.Node) -> None:
         kids = self._children(node)
 
         if not kids:
             self._w('UNKNOWN-EXPR')
-            self._mark_content(node)
             return
 
         # Single-child expr: unwrap
@@ -287,7 +288,6 @@ class Emitter:
             self._kw(keyword)
             self._emit_expr_child(kids[1])
             self._close()
-            self._mark_content(node)
             return
 
         # when-local: local id = expr (inside when condition)
@@ -303,7 +303,6 @@ class Emitter:
             if init_expr:
                 self._emit_expr(init_expr)
             self._close()
-            self._mark_content(node)
             return
 
         # Classify by token patterns in children
@@ -331,7 +330,6 @@ class Emitter:
             self._emit_expr_child(kids[1])
             self._w('OP "|"')
             self._close()
-            self._mark_content(node)
             return
 
         # Binary operator
@@ -347,7 +345,6 @@ class Emitter:
                 self._emit_expr_child(kids[2])
                 self._emit_extras_in(node)
                 self._close()
-                self._mark_content(node)
                 return
 
             # &&/|| chains -> BOOL-CHAIN with flat operands
@@ -361,7 +358,6 @@ class Emitter:
                     self._emit_expr_child(operand)
                 self._emit_extras_in(node)
                 self._close()
-                self._mark_content(node)
                 return
 
             # / with atomic RHS -> DIV (tight spacing)
@@ -372,7 +368,6 @@ class Emitter:
                 self._emit_expr_child(kids[2])
                 self._emit_extras_in(node)
                 self._close()
-                self._mark_content(node)
                 return
 
             self._open(f'BINARY-OP {_quote(op)}')
@@ -381,7 +376,6 @@ class Emitter:
             self._emit_expr_child(kids[2])
             self._emit_extras_in(node)
             self._close()
-            self._mark_content(node)
             return
 
         # Multi-token binary operator: !in (two tokens: "!" and "in")
@@ -394,7 +388,6 @@ class Emitter:
             self._emit_expr_child(kids[3])
             self._emit_extras_in(node)
             self._close()
-            self._mark_content(node)
             return
 
         # Unary operator
@@ -405,14 +398,12 @@ class Emitter:
                 self._w('OP "!"')
                 self._emit_expr_child(kids[1])
                 self._close()
-                self._mark_content(node)
                 return
             if op_text in _UNARY_OPS:
                 self._open(f'UNARY-OP {_quote(op_text)}')
                 self._w(f'OP {_quote(op_text)}')
                 self._emit_expr_child(kids[1])
                 self._close()
-                self._mark_content(node)
                 return
 
         # Function/event call: expr ( expr_list )
@@ -436,7 +427,6 @@ class Emitter:
                         and nargs >= 7):
                     self._emit_constructor(
                         first_text, args[0] if args else None)
-                    self._mark_content(node)
                     return
 
                 self._open('CALL')
@@ -453,7 +443,6 @@ class Emitter:
                 self._close()
                 self._emit_extras_in(node)
                 self._close()
-                self._mark_content(node)
                 return
 
         # Parenthesized expression: ( expr )
@@ -465,7 +454,6 @@ class Emitter:
             self._emit_expr_child(kids[1])
             self._w('RPAREN')
             self._close()
-            self._mark_content(node)
             return
 
         # Slice: expr [ expr : expr ]
@@ -502,7 +490,6 @@ class Emitter:
             self._w('RBRACKET')
             self._emit_extras_in(node)
             self._close()
-            self._mark_content(node)
             return
 
         # Index literal (composite key): [ expr_list ]
@@ -520,7 +507,6 @@ class Emitter:
                 elif child.type == "expr_list":
                     self._emit_expr_list(child)
                     self._maybe_trailing_comma(child)
-                self._mark_content(child)
             self._close()
             self._close()
             return
@@ -539,7 +525,6 @@ class Emitter:
             self._close()
             self._emit_extras_in(node)
             self._close()
-            self._mark_content(node)
             return
 
         # Field assignment in record constructor: $field = expr
@@ -561,7 +546,6 @@ class Emitter:
                 self._open(f'FIELD-ASSIGN {_quote(field_name)}')
                 self._w('DOLLAR')
                 self._close()
-            self._mark_content(node)
             return
 
         # Field access: expr $ id
@@ -573,7 +557,6 @@ class Emitter:
             self._w('DOLLAR')
             self._w(f'IDENTIFIER {_quote(self._text(field))}')
             self._close()
-            self._mark_content(node)
             return
 
         # Lambda: function begin_lambda func_body
@@ -609,7 +592,6 @@ class Emitter:
                 self._close()
             self._w('RBRACE')
             self._close()
-            self._mark_content(node)
             return
 
         # Brace initializer: { expr_list }
@@ -627,7 +609,6 @@ class Emitter:
                         if keyword == "table":
                             break
             self._emit_constructor(keyword, args[0] if args else None)
-            self._mark_content(node)
             return
 
         # Fallback
@@ -641,7 +622,6 @@ class Emitter:
             self._emit_type(node)
         elif node.type == "id":
             self._w(f'IDENTIFIER {_quote(self._text(node))}')
-            self._mark_content(node)
         elif node.type == "constant":
             kids = self._children(node)
             if kids and kids[0].type == "interval":
@@ -651,10 +631,8 @@ class Emitter:
                 self._w(f'INTERVAL {_quote(num)} {_quote(unit)}')
             else:
                 self._w(f'CONSTANT {_quote(self._text(node))}')
-            self._mark_content(node)
         elif node.type == "pattern":
             self._w(f'CONSTANT {_quote(self._text(node))}')
-            self._mark_content(node)
         elif node.type == "begin_lambda":
             # Part of lambda — handled by parent
             pass
@@ -720,7 +698,6 @@ class Emitter:
             elif child.type == "func_body":
                 self._emit_func_body(child)
         self._close()
-        self._mark_content(node)
 
     # ------------------------------------------------------------------
     # Types
@@ -728,6 +705,10 @@ class Emitter:
 
     def _emit_type(self, node: tree_sitter.Node) -> None:
         """Classify and emit a type node."""
+        self._emit_type_inner(node)
+        self._mark_content(node)
+
+    def _emit_type_inner(self, node: tree_sitter.Node) -> None:
         kids = self._children(node)
         if not kids:
             self._w('TYPE-ATOM "?"')
@@ -804,7 +785,6 @@ class Emitter:
                         self._kw("record")
                     elif text == "{":
                         self._w('LBRACE')
-                        self._mark_content(k)
                     elif text == "}":
                         self._w('RBRACE')
                 elif k.type == "type_spec":
@@ -857,7 +837,6 @@ class Emitter:
             elif child.type == "attr_list":
                 self._emit_attr_list(child)
         self._close()
-        self._mark_content(node)
 
     def _emit_enum_body(self, node: tree_sitter.Node) -> None:
         """Emit enum body elements."""
@@ -875,10 +854,8 @@ class Emitter:
                 if init:
                     tag += f' {_quote("= " + init)}'
                 self._w(tag)
-                self._mark_content(child)
             elif child.type == "id":
                 self._w(f'ENUM-VALUE {_quote(self._text(child))}')
-                self._mark_content(child)
             elif not child.is_named and self._text(child) == ",":
                 self._w('COMMA')
 
@@ -1037,7 +1014,6 @@ class Emitter:
         self._emit_extras_in(node)
         self._w('SEMI')
         self._close()
-        self._mark_content(node)
 
     def _emit_global_decl(self, node: tree_sitter.Node) -> None:
         self._emit_var_decl(node, 'GLOBAL-DECL')
@@ -1100,7 +1076,6 @@ class Emitter:
             self._emit_func_body(func_body)
         self._emit_extras_in(node)
         self._close()
-        self._mark_content(node)
 
     def _emit_func_body(self, node: tree_sitter.Node) -> None:
         self._open('BODY')
@@ -1113,7 +1088,6 @@ class Emitter:
                     self._w('LBRACE')
                 elif text == "}":
                     self._w('RBRACE')
-                self._mark_content(child)
         self._close()
 
     def _emit_export_decl(self, node: tree_sitter.Node) -> None:
@@ -1133,7 +1107,6 @@ class Emitter:
                     self._maybe_blank(inner[0])
                     self._emit(inner[0])
         self._close()
-        self._mark_content(node)
 
     def _emit_module_decl(self, node: tree_sitter.Node) -> None:
         name = ""
@@ -1145,7 +1118,6 @@ class Emitter:
         self._w(f'IDENTIFIER {_quote(name)}')
         self._w('SEMI')
         self._close()
-        self._mark_content(node)
 
     def _emit_type_decl(self, node: tree_sitter.Node) -> None:
         name = ""
@@ -1179,7 +1151,6 @@ class Emitter:
                 self._emit_type(child)
         self._w('SEMI')
         self._close()
-        self._mark_content(node)
 
     def _emit_redef_record_decl(self, node: tree_sitter.Node) -> None:
         self._open(f'REDEF-RECORD {_quote(self._find_name(node))}')
@@ -1202,7 +1173,6 @@ class Emitter:
                 self._maybe_blank(child)
                 self._emit_type_spec(child)
         self._close()
-        self._mark_content(node)
 
     def _emit_redef_enum_decl(self, node: tree_sitter.Node) -> None:
         self._open(f'REDEF-ENUM {_quote(self._find_name(node))}')
@@ -1224,7 +1194,6 @@ class Emitter:
             elif child.type == "enum_body":
                 self._emit_enum_body(child)
         self._close()
-        self._mark_content(node)
 
     # ------------------------------------------------------------------
     # Statements
@@ -1235,6 +1204,10 @@ class Emitter:
 
     def _emit_stmt(self, node: tree_sitter.Node) -> None:
         """Classify and emit a statement node."""
+        self._emit_stmt_inner(node)
+        self._mark_content(node)
+
+    def _emit_stmt_inner(self, node: tree_sitter.Node) -> None:
         kids = self._children(node)
         if not kids:
             self._emit_unknown(node)
@@ -1285,7 +1258,6 @@ class Emitter:
         if first_text in ("next", "break", "fallthrough"):
             self._w(f'KEYWORD {_quote(first_text)}')
             self._w('SEMI')
-            self._mark_content(node)
             return
 
         # Brace block (standalone { stmt_list })
@@ -1297,7 +1269,6 @@ class Emitter:
                     self._emit_stmt_list(k)
             self._w('RBRACE')
             self._close()
-            self._mark_content(node)
             return
 
         # Expression statement
@@ -1308,7 +1279,6 @@ class Emitter:
             self._emit_extras_in(node)
             self._w('SEMI')
             self._close()
-            self._mark_content(node)
             return
 
         self._emit_unknown(node)
@@ -1418,7 +1388,6 @@ class Emitter:
             self._emit_stmt(else_body)
             self._close()
         self._close()
-        self._mark_content(node)
 
     def _emit_for(self, node: tree_sitter.Node) -> None:
         # Pre-scan non-extra children (not _iter_children, which emits
@@ -1510,7 +1479,6 @@ class Emitter:
         if in_cond:
             self._close()
         self._close()
-        self._mark_content(node)
 
     def _emit_while(self, node: tree_sitter.Node) -> None:
         self._open('WHILE')
@@ -1530,7 +1498,6 @@ class Emitter:
                 self._emit_stmt(child)
                 self._close()
         self._close()
-        self._mark_content(node)
 
     def _emit_return(self, node: tree_sitter.Node) -> None:
         has_expr = any(k.type == "expr" for k in self._children(node))
@@ -1541,7 +1508,6 @@ class Emitter:
                 self._emit_expr(child)
         self._w('SEMI')
         self._close()
-        self._mark_content(node)
 
     def _emit_print(self, node: tree_sitter.Node) -> None:
         self._open('PRINT')
@@ -1551,7 +1517,6 @@ class Emitter:
                 self._emit_expr_list(child)
         self._w('SEMI')
         self._close()
-        self._mark_content(node)
 
     def _emit_event_stmt(self, node: tree_sitter.Node) -> None:
         """Event statement: event name(args);"""
@@ -1577,7 +1542,6 @@ class Emitter:
         self._emit_extras_in(node)
         self._w('SEMI')
         self._close()
-        self._mark_content(node)
 
     def _emit_switch(self, node: tree_sitter.Node) -> None:
         self._open('SWITCH')
@@ -1598,7 +1562,6 @@ class Emitter:
             elif child.type == "case_list":
                 self._emit_case_list(child)
         self._close()
-        self._mark_content(node)
 
     def _emit_case_list(self, node: tree_sitter.Node) -> None:
         kids = self._children(node)
@@ -1684,7 +1647,6 @@ class Emitter:
         if in_timeout:
             self._close()
         self._close()
-        self._mark_content(node)
 
     def _emit_add_delete(self, node: tree_sitter.Node, keyword: str) -> None:
         self._open(keyword.upper())
@@ -1694,7 +1656,6 @@ class Emitter:
                 self._emit_expr(child)
         self._w('SEMI')
         self._close()
-        self._mark_content(node)
 
     def _emit_assert(self, node: tree_sitter.Node) -> None:
         self._open('ASSERT')
@@ -1704,7 +1665,6 @@ class Emitter:
                 self._emit_expr(child)
         self._w('SEMI')
         self._close()
-        self._mark_content(node)
 
     # ------------------------------------------------------------------
     # Preprocessor
@@ -1726,7 +1686,6 @@ class Emitter:
                 self._w(f'PREPROC {_quote(directive)} {arg_strs}')
         else:
             self._w(f'PREPROC {_quote(directive)}')
-        self._mark_content(node)
 
     # ------------------------------------------------------------------
     # Fallback
@@ -1744,7 +1703,6 @@ class Emitter:
             self._close()
         else:
             self._w(f'UNKNOWN {_quote(node.type)} {_quote(self._text(node))}')
-        self._mark_content(node)
 
 
 # ------------------------------------------------------------------

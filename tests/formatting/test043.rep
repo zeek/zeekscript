@@ -21,7 +21,6 @@ FUNC-DECL {
       BODY {
         BLOCK {
           LBRACE
-          BLANK
           IF-NO-ELSE {
             KEYWORD "if"
             SP
@@ -31,7 +30,6 @@ FUNC-DECL {
             BODY {
               BLOCK {
                 LBRACE
-                BLANK
                 IF-NO-ELSE {
                   KEYWORD "if"
                   SP

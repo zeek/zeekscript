@@ -23,7 +23,6 @@ FUNC-DECL {
       BODY {
         BLOCK {
           LBRACE
-          BLANK
           LOCAL-DECL {
             KEYWORD "local"
             SP

@@ -7,7 +7,7 @@ IF-NO-ELSE {
   BODY {
     BLOCK {
       LBRACE
-      COMMENT-LEADING "\n# Fill this in sometime"
+      COMMENT-LEADING "# Fill this in sometime"
       RBRACE
     }
   }

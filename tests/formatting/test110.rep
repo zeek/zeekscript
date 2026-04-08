@@ -36,7 +36,6 @@ FUNC-DECL {
       BODY {
         BLOCK {
           LBRACE
-          BLANK
           PRINT {
             KEYWORD "print"
             SP
