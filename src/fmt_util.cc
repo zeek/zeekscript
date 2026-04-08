@@ -345,6 +345,77 @@ Candidate format_args_fill(const ArgComments& items, int align_col, int indent,
 	return {fmt, cur_col, lines, total_overflow};
 	}
 
+// For a 2-line greedy fill, try breaking one item earlier to balance
+// line lengths.  Returns the balanced candidate, or empty if no
+// improvement.  Only works for simple items (no comments, single-line).
+static Candidates try_balanced_fill(const ArgComments& items, int align_col,
+                                    int indent, const FmtContext& first_ctx)
+	{
+	int n = static_cast<int>(items.size());
+	std::vector<int> widths(n);
+
+	for ( int i = 0; i < n; ++i )
+		{
+		auto& it = items[i];
+		if ( ! it.comment.empty() || ! it.leading.empty() )
+			return {};
+
+		auto bc = best(format_expr(*it.arg, first_ctx));
+		if ( bc.Lines() > 1 )
+			return {};
+
+		widths[i] = bc.Width();
+		if ( it.comma )
+			widths[i] += it.comma->Width() + 1;
+		}
+
+	// Find greedy break: first item that doesn't fit on line 1.
+	int avail = first_ctx.Width();
+	int line1_w = 0;
+	int greedy_break = n;
+
+	for ( int i = 0; i < n; ++i )
+		{
+		if ( line1_w + widths[i] > avail )
+			{
+			greedy_break = i;
+			break;
+			}
+
+		line1_w += widths[i];
+		}
+
+	if ( greedy_break <= 1 || greedy_break >= n )
+		return {};
+
+	// Try breaking one item earlier.
+	int total = 0;
+	for ( int i = 0; i < n; ++i )
+		total += widths[i];
+
+	int w1 = 0;
+	for ( int i = 0; i < greedy_break - 1; ++i )
+		w1 += widths[i];
+
+	int greedy_w2 = align_col + (total - line1_w);
+	int greedy_spread = std::abs((first_ctx.Col() + line1_w) - greedy_w2);
+
+	int try_w2 = align_col + (total - w1);
+	int try_spread = std::abs((first_ctx.Col() + w1) - try_w2);
+
+	if ( try_spread >= greedy_spread )
+		return {};
+
+	// Re-fill with a narrower first line to force the earlier break.
+	auto bal = format_args_fill(items, align_col, indent,
+				FmtContext(indent, first_ctx.Col(), w1));
+
+	if ( bal.Lines() != 2 )
+		return {};
+
+	return {std::move(bal)};
+	}
+
 // Try flat, then greedy-fill for a bracketed list of items.
 Candidates flat_or_fill(const Formatting& prefix, const Formatting& open,
                       const Formatting& close, const Formatting& suffix,
@@ -402,8 +473,7 @@ Candidates flat_or_fill(const Formatting& prefix, const Formatting& open,
 
 	// When the last arg is a lambda, put the close bracket on
 	// its own line at the alignment column.
-	bool close_break = ! items.empty() &&
-		items.back().arg->IsLambda();
+	bool close_break = ! items.empty() && items.back().arg->IsLambda();
 
 	int flast_w;
 	int fill_lines = fill.Lines() + (open_comment.empty() ? 0 : 1);
@@ -413,19 +483,37 @@ Candidates flat_or_fill(const Formatting& prefix, const Formatting& open,
 		{
 		auto close_pad = line_prefix(ctx.Indent(), open_col);
 		fill_fmt = prefix + open + fill_prefix +
-			fill.Fmt() + "\n" + close_pad + cb + suffix;
+				fill.Fmt() + "\n" + close_pad + cb + suffix;
 		flast_w = open_col + close_extra + close_w + suffix_w;
 		++fill_lines;
 		}
 	else
 		{
 		fill_fmt = prefix + open + fill_prefix +
-			fill.Fmt() + cb + suffix;
+				fill.Fmt() + cb + suffix;
 		flast_w = fill.Width() + close_extra + close_w + suffix_w;
 		}
 
 	result.push_back({std::move(fill_fmt), flast_w, fill_lines,
 	                  fill.Ovf(), ctx.Col()});
+
+	// For 2-line fills, try a balanced break (one item earlier)
+	// to reduce spread between the two lines.
+	if ( fill.Lines() == 2 && ! close_break &&
+	     open_comment.empty() )
+		{
+		auto bcs = try_balanced_fill(items, open_col,
+						ctx.Indent(), inner_ctx);
+		if ( ! bcs.empty() )
+			{
+			auto& bal = bcs[0];
+			int bw = bal.Width() + close_extra + close_w + suffix_w;
+
+			auto bal_fmt = prefix + open + bal.Fmt() + cb + suffix;
+			result.push_back({std::move(bal_fmt), bw, 2,
+			                  bal.Ovf(), ctx.Col()});
+			}
+		}
 
 	return result;
 	}
