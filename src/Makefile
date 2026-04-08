@@ -37,6 +37,7 @@ test: $(TARGET)
 		    >/dev/null 2>&1; then \
 			pass=$$((pass + 1)); \
 		else \
+			echo "FAIL: $$name"; \
 			fail=$$((fail + 1)); \
 		fi; \
 	done; \
