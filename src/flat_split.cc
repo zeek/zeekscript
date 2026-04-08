@@ -55,26 +55,17 @@ static FmtContext split_ctx(const SplitAt& sp, const FmtSteps& steps,
 	return ctx.Indented();	// unreachable
 	}
 
-// Build a split candidate: pieces 0..after on the first line(s),
-// then a line break, then pieces (after+1).. re-formatted with
-// the continuation context.
-static Candidate build_split(const FmtSteps& steps, const SplitAt& sp,
-                             const FmtContext& ctx)
+// Format continuation pieces (after the split point) with the given
+// context.  Expr pieces are re-formatted; Sp pieces at the start
+// are dropped (newline+indent replaces them).
+static Formatting format_rest(const FmtSteps& steps, int after,
+                              const FmtContext& cont)
 	{
-	FmtContext cont = split_ctx(sp, steps, ctx);
-	auto pad = line_prefix(cont.Indent(), cont.Col());
-
-	// First line: pieces up through the split point.
-	Formatting first;
-	for ( int i = 0; i <= sp.after; ++i )
-		first += steps[i].text;
-
-	// Continuation: re-format Expr pieces with new context.
-	// Skip leading Sp pieces - the newline+indent replaces them.
 	Formatting rest;
 	int used = 0;
 	bool at_start = true;
-	for ( size_t i = sp.after + 1; i < steps.size(); ++i )
+
+	for ( size_t i = after + 1; i < steps.size(); ++i )
 		{
 		auto& s = steps[i];
 
@@ -96,14 +87,124 @@ static Candidate build_split(const FmtSteps& steps, const SplitAt& sp,
 			}
 		}
 
+	return rest;
+	}
+
+// Assemble a split candidate from first-line text and continuation.
+static Candidate assemble_split(const Formatting& first, const Formatting& rest,
+                                const std::string& pad, const FmtContext& ctx)
+	{
 	auto split = first + "\n" + pad + rest;
 	int last_w = split.LastLineLen();
 	int lines = split.CountLines();
+	int ovf = split.TextOverflow(ctx.Col(), ctx.MaxCol() - ctx.Trail());
+	return {std::move(split), last_w, lines, ovf, ctx.Col()};
+	}
 
-	int split_ovf = split.TextOverflow(ctx.Col(),
-					ctx.MaxCol() - ctx.Trail());
+// Build split candidate(s): pieces 0..after on the first line(s),
+// then a line break, then pieces (after+1).. re-formatted with
+// the continuation context.
+//
+// When a first-line expr piece has multiple candidates (e.g. a
+// balanced vs greedy fill), try each variant and return the best
+// overall split so that local formatting choices don't prevent
+// good global layout.
+static Candidate build_split(const FmtSteps& steps, const SplitAt& sp,
+                             const FmtContext& ctx)
+	{
+	FmtContext cont = split_ctx(sp, steps, ctx);
+	auto pad = line_prefix(cont.Indent(), cont.Col());
+	auto rest = format_rest(steps, sp.after, cont);
 
-	return {std::move(split), last_w, lines, split_ovf, ctx.Col()};
+	// Default: use the pre-formatted (best()) text for line 1.
+	Formatting first;
+	for ( int i = 0; i <= sp.after; ++i )
+		first += steps[i].text;
+
+	Candidate result = assemble_split(first, rest, pad, ctx);
+
+	// Try alternate candidates for first-line expr pieces.
+	// Re-format each expr piece and try each candidate,
+	// keeping the split with the best overall metrics.
+	int used = 0;
+	for ( int i = 0; i <= sp.after; ++i )
+		{
+		auto& s = steps[i];
+		if ( s.kind != FmtStep::SExpr || ! s.node )
+			{
+			used += s.text.Size();
+			continue;
+			}
+
+		auto cs = format_expr(*s.node, ctx.After(used));
+		if ( cs.size() <= 1 )
+			{
+			used += s.text.Size();
+			continue;
+			}
+
+		for ( const auto& c : cs )
+			{
+			Formatting alt_first;
+			for ( int j = 0; j < i; ++j )
+				alt_first += steps[j].text;
+			alt_first += c.Fmt();
+			for ( int j = i + 1; j <= sp.after; ++j )
+				alt_first += steps[j].text;
+
+			auto alt = assemble_split(alt_first, rest, pad, ctx);
+			if ( alt.BetterThan(result) )
+				result = std::move(alt);
+			}
+
+		used += s.text.Size();
+		}
+
+	return result;
+	}
+
+// Try alternate candidates for each expr piece to see if a different
+// choice produces a better overall flat form.
+static void try_flat_alternates(const FmtSteps& steps, Candidates& result,
+                                const FmtContext& ctx, bool force_flat)
+	{
+	for ( size_t i = 0; i < steps.size(); ++i )
+		{
+		auto& s = steps[i];
+		if ( s.kind != FmtStep::SExpr || ! s.node )
+			continue;
+
+		int used = 0;
+		for ( size_t j = 0; j < i; ++j )
+			used += steps[j].text.Size();
+
+		auto sub_ctx = force_flat ? ctx : ctx.After(used);
+		auto cs = format_expr(*s.node, sub_ctx);
+		if ( cs.size() <= 1 )
+			continue;
+
+		for ( const auto& c : cs )
+			{
+			if ( c.Fmt().Str() == s.text.Str() )
+				continue;
+
+			Formatting flat;
+			for ( size_t j = 0; j < steps.size(); ++j )
+				flat += (j == i) ? c.Fmt() : steps[j].text;
+
+			int lines = flat.CountLines();
+			int last_w = flat.LastLineLen();
+			int fovf = flat.TextOverflow(ctx.Col(), ctx.MaxCol());
+
+			Candidate alt = lines > 1 ?
+					Candidate(std::move(flat), last_w,
+						lines, fovf, ctx.Col()) :
+					Candidate(std::move(flat), ctx);
+
+			if ( alt.BetterThan(result[0]) )
+				result[0] = std::move(alt);
+			}
+		}
 	}
 
 Candidates flat_or_split(FmtSteps steps, const std::vector<SplitAt>& splits,
@@ -128,6 +229,12 @@ Candidates flat_or_split(FmtSteps steps, const std::vector<SplitAt>& splits,
 		result.push_back(Candidate(std::move(flat), ctx));
 
 	// If flat fits, no need for splits.
+	if ( result[0].Ovf() <= 0 )
+		return result;
+
+	// A different sub-expression candidate might produce a
+	// flat form that fits or has less overflow.
+	try_flat_alternates(steps, result, ctx, force_flat);
 	if ( result[0].Ovf() <= 0 )
 		return result;
 
