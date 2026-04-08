@@ -173,7 +173,8 @@ public:
 	// Default asserts - resolution items must be resolved before
 	// the beam runs.
 	virtual Partials LayoutStep(Partials& beam,
-		const FmtContext& ctx, int trail) const;
+		const FmtContext& ctx, int trail,
+		int soft_trail = 0) const;
 
 	// Literal text.
 	LayoutItem(const std::string& s)
@@ -325,35 +326,35 @@ public:
 	LILit(const Formatting& f) : LayoutItem(f) {}
 	LILit(Formatting&& f) : LayoutItem(std::move(f)) {}
 	Partials LayoutStep(Partials& beam, const FmtContext& ctx,
-		int trail) const override;
+		int trail, int soft_trail) const override;
 };
 
 class LIExpr : public LayoutItem {
 public:
 	LIExpr(const LayoutPtr& n) : LayoutItem(n) {}
 	Partials LayoutStep(Partials& beam, const FmtContext& ctx,
-		int trail) const override;
+		int trail, int soft_trail) const override;
 };
 
 class LISp : public LayoutItem {
 public:
 	LISp() : LayoutItem(Sp) {}
 	Partials LayoutStep(Partials& beam, const FmtContext& ctx,
-		int trail) const override;
+		int trail, int soft_trail) const override;
 };
 
 class LIHardBreak : public LayoutItem {
 public:
 	LIHardBreak() : LayoutItem(HardBreak) {}
 	Partials LayoutStep(Partials& beam, const FmtContext& ctx,
-		int trail) const override;
+		int trail, int soft_trail) const override;
 };
 
 class LIIndentUp : public LayoutItem {
 public:
 	LIIndentUp() : LayoutItem(IndentUp) {}
 	Partials LayoutStep(Partials& beam, const FmtContext& ctx,
-		int trail) const override;
+		int trail, int soft_trail) const override;
 };
 
 class LIIndentDown : public LayoutItem {
@@ -362,7 +363,7 @@ public:
 	LIIndentDown(const LayoutPtr& n)
 		: LayoutItem(IndentDown, n, Formatting()) {}
 	Partials LayoutStep(Partials& beam, const FmtContext& ctx,
-		int trail) const override;
+		int trail, int soft_trail) const override;
 };
 
 // "R" = Resolved: these items hold fully resolved data (child nodes,
@@ -384,7 +385,7 @@ public:
 		: LayoutItem(ArgList, n, std::move(prefix),
 			std::move(suffix), fl) {}
 	Partials LayoutStep(Partials& beam, const FmtContext& ctx,
-		int trail) const override;
+		int trail, int soft_trail) const override;
 };
 
 class LIOpFillR : public LayoutItem {
@@ -392,7 +393,7 @@ public:
 	LIOpFillR(std::string op, LayoutVec ops)
 		: LayoutItem(OpFill, std::move(op), std::move(ops)) {}
 	Partials LayoutStep(Partials& beam, const FmtContext& ctx,
-		int trail) const override;
+		int trail, int soft_trail) const override;
 };
 
 class LIFlatSplitR : public LayoutItem {
@@ -401,7 +402,7 @@ public:
 	             bool ff = false)
 		: LayoutItem(std::move(s), std::move(sp), ff) {}
 	Partials LayoutStep(Partials& beam, const FmtContext& ctx,
-		int trail) const override;
+		int trail, int soft_trail) const override;
 };
 
 class LIDeclCandsR : public LayoutItem {
@@ -409,14 +410,14 @@ public:
 	LIDeclCandsR(Candidates cs)
 		: LayoutItem(DeclCands, std::move(cs)) {}
 	Partials LayoutStep(Partials& beam, const FmtContext& ctx,
-		int trail) const override;
+		int trail, int soft_trail) const override;
 };
 
 class LISoftContR : public LayoutItem {
 public:
 	LISoftContR(Formatting f) : LayoutItem(SoftCont, std::move(f)) {}
 	Partials LayoutStep(Partials& beam, const FmtContext& ctx,
-		int trail) const override;
+		int trail, int soft_trail) const override;
 };
 
 // ---- Factory functions ---------------------------------------------------

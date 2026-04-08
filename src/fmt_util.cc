@@ -475,19 +475,20 @@ Candidates flat_or_fill(const Formatting& prefix, const Formatting& open,
 
 	auto fill = format_args_fill(items, open_col, ctx.Indent(), inner_ctx);
 
-	// If multi-line and the last line + trail overflows, re-fill
-	// with trail so nested calls wrap correctly.
-	// If multi-line and the assembled last line + trail overflows,
-	// re-fill with trail so nested calls wrap correctly.
-	if ( fill.Lines() > 1 && ctx.Trail() > 0 )
+	// If multi-line and the assembled last line + hard trail
+	// overflows, re-fill with hard trail so nested calls wrap
+	// correctly.  Soft trail (e.g. &group=...) can break to its
+	// own line, so it should not force tighter wrapping.
+	int hard = ctx.HardTrail();
+	if ( fill.Lines() > 1 && hard > 0 )
 		{
 		auto assembled = prefix + open + fill_prefix +
 					fill.Fmt() + cb + suffix;
 		int ovf = assembled.MaxLineOverflow(ctx.Col(),
-					ctx.MaxCol() - ctx.Trail());
+					ctx.MaxCol() - hard);
 		if ( ovf > 0 )
 			fill = format_args_fill(items, open_col, ctx.Indent(),
-						inner_ctx, ctx.Trail());
+						inner_ctx, hard);
 		}
 
 	// When the last arg is a lambda, put the close bracket on

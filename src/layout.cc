@@ -269,13 +269,14 @@ static bool all_items_commented(const ArgComments& items)
 
 // Default LayoutStep: asserts - resolution items must be resolved
 // before the beam runs.
-Partials LayoutItem::LayoutStep(Partials&, const FmtContext&, int) const
+Partials LayoutItem::LayoutStep(Partials&, const FmtContext&, int, int) const
 	{
 	assert(false);
 	return {};
 	}
 
-Partials LILit::LayoutStep(Partials& beam, const FmtContext& ctx, int) const
+Partials LILit::LayoutStep(Partials& beam, const FmtContext& ctx,
+				int, int) const
 	{
 	Partials next;
 	for ( auto& p : beam )
@@ -304,13 +305,13 @@ Partials LILit::LayoutStep(Partials& beam, const FmtContext& ctx, int) const
 	}
 
 Partials LIExpr::LayoutStep(Partials& beam, const FmtContext& ctx,
-                             int trail) const
+                             int trail, int soft_trail) const
 	{
 	Partials next;
 	for ( auto& p : beam )
 		{
 		int avail = ctx.MaxCol() - p.col;
-		FmtContext sub(ctx.Indent(), p.col, avail, trail);
+		FmtContext sub(ctx.Indent(), p.col, avail, trail, soft_trail);
 		auto cs = format_expr(*LI_Node(), sub);
 		for ( const auto& c : cs )
 			{
@@ -323,7 +324,7 @@ Partials LIExpr::LayoutStep(Partials& beam, const FmtContext& ctx,
 	return next;
 	}
 
-Partials LISp::LayoutStep(Partials& beam, const FmtContext&, int) const
+Partials LISp::LayoutStep(Partials& beam, const FmtContext&, int, int) const
 	{
 	Partials next;
 	for ( auto& p : beam )
@@ -355,7 +356,7 @@ Partials LISp::LayoutStep(Partials& beam, const FmtContext&, int) const
 	return next;
 	}
 
-Partials LIHardBreak::LayoutStep(Partials& beam, const FmtContext&, int) const
+Partials LIHardBreak::LayoutStep(Partials& beam, const FmtContext&, int, int) const
 	{
 	Partials next;
 	for ( auto& p : beam )
@@ -375,7 +376,7 @@ Partials LIHardBreak::LayoutStep(Partials& beam, const FmtContext&, int) const
 	return next;
 	}
 
-Partials LIIndentUp::LayoutStep(Partials& beam, const FmtContext&, int) const
+Partials LIIndentUp::LayoutStep(Partials& beam, const FmtContext&, int, int) const
 	{
 	Partials next;
 	for ( auto& p : beam )
@@ -388,7 +389,7 @@ Partials LIIndentUp::LayoutStep(Partials& beam, const FmtContext&, int) const
 	return next;
 	}
 
-Partials LIIndentDown::LayoutStep(Partials& beam, const FmtContext&, int) const
+Partials LIIndentDown::LayoutStep(Partials& beam, const FmtContext&, int, int) const
 	{
 	Partials next;
 	for ( auto& p : beam )
@@ -417,7 +418,7 @@ Partials LIIndentDown::LayoutStep(Partials& beam, const FmtContext&, int) const
 	}
 
 Partials LIArgListR::LayoutStep(Partials& beam, const FmtContext& ctx,
-                                int trail) const
+                                int trail, int soft_trail) const
 	{
 	Partials next;
 	auto child = LI_Node();
@@ -456,7 +457,7 @@ Partials LIArgListR::LayoutStep(Partials& beam, const FmtContext& ctx,
 	for ( auto& p : beam )
 		{
 		int avail = ctx.MaxCol() - p.col;
-		FmtContext sub(ctx.Indent(), p.col, avail, trail);
+		FmtContext sub(ctx.Indent(), p.col, avail, trail, soft_trail);
 
 		// All-comments or trailing comma: force vertical.
 		bool force_vert = has_tc;
@@ -635,7 +636,7 @@ static OpFillResult fill_pack_ops(const LayoutVec& operands,
 	}
 
 Partials LIOpFillR::LayoutStep(Partials& beam, const FmtContext& ctx,
-                               int trail) const
+                               int trail, int) const
 	{
 	Partials next;
 	auto& operands = Operands();
@@ -677,7 +678,7 @@ Partials LIOpFillR::LayoutStep(Partials& beam, const FmtContext& ctx,
 	}
 
 Partials LIFlatSplitR::LayoutStep(Partials& beam, const FmtContext& ctx,
-                                   int trail) const
+                                   int trail, int) const
 	{
 	Partials next;
 
@@ -697,7 +698,7 @@ Partials LIFlatSplitR::LayoutStep(Partials& beam, const FmtContext& ctx,
 	return next;
 	}
 
-Partials LIDeclCandsR::LayoutStep(Partials& beam, const FmtContext&, int) const
+Partials LIDeclCandsR::LayoutStep(Partials& beam, const FmtContext&, int, int) const
 	{
 	Partials next;
 
@@ -713,7 +714,7 @@ Partials LIDeclCandsR::LayoutStep(Partials& beam, const FmtContext&, int) const
 	}
 
 Partials LISoftContR::LayoutStep(Partials& beam,
-					const FmtContext& ctx, int) const
+					const FmtContext& ctx, int, int) const
 	{
 	Partials next;
 	auto& f = Fmt();
@@ -783,9 +784,12 @@ Candidates build_layout(LayoutItems items, const FmtContext& ctx)
 	// items extend to the end of the layout, include the outer
 	// context's trail reservation (e.g. a ";" appended by the
 	// caller after the whole layout).
-	auto trail_after = [&](size_t i) -> int
+	// Returns {total_trail, soft_trail} where soft_trail is the
+	// portion from SoftCont items that can break to their own line.
+	auto trail_after = [&](size_t i) -> std::pair<int, int>
 		{
 		int w = 0;
+		int soft = 0;
 		size_t j;
 		for ( j = i + 1; j < items.size(); ++j )
 			{
@@ -808,7 +812,9 @@ Candidates build_layout(LayoutItems items, const FmtContext& ctx)
 				auto& f = i_j->Fmt();
 				if ( f.Contains('\n') )
 					break;
-				w += 1 + f.Size();
+				int sc = 1 + f.Size();
+				w += sc;
+				soft += sc;
 				}
 
 			else if ( k == IndentUp || k == IndentDown ||
@@ -823,8 +829,11 @@ Candidates build_layout(LayoutItems items, const FmtContext& ctx)
 		// are inline - a newline-producing item means the
 		// outer trail applies to a later line, not this one.
 		if ( j == items.size() )
+			{
 			w += ctx.Trail();
-		return w;
+			soft += ctx.SoftTrail();
+			}
+		return {w, soft};
 		};
 
 	Partials beam = {{Formatting(), ctx.Col(), ctx.Indent(),
@@ -832,7 +841,8 @@ Candidates build_layout(LayoutItems items, const FmtContext& ctx)
 
 	for ( size_t i = 0; i < items.size(); ++i )
 		{
-		beam = items[i]->LayoutStep(beam, ctx, trail_after(i));
+		auto [total, soft] = trail_after(i);
+		beam = items[i]->LayoutStep(beam, ctx, total, soft);
 		prune_beam(beam);
 		}
 

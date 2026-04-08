@@ -26,13 +26,17 @@ inline int next_tab(int col)
 
 class FmtContext {
 public:
-	FmtContext(int indent, int col, int width, int trail = 0)
-		: indent(indent), col(col), width(width), trail(trail) {}
+	FmtContext(int indent, int col, int width, int trail = 0,
+	           int soft_trail = 0)
+		: indent(indent), col(col), width(width), trail(trail),
+		  soft_trail(soft_trail) {}
 
 	int Indent() const { return indent; }
 	int Col() const { return col; }
 	int Width() const { return width; }
 	int Trail() const { return trail; }
+	int SoftTrail() const { return soft_trail; }
+	int HardTrail() const { return trail - soft_trail; }
 
 	// Column where a fresh line starts at current indent.
 	int IndentCol() const { return indent * INDENT_WIDTH; }
@@ -40,7 +44,7 @@ public:
 	// Derive a sub-context after emitting 'used' columns
 	// on the current line.  Trail carries forward (same line).
 	FmtContext After(int used) const
-		{ return {indent, col + used, width - used, trail}; }
+		{ return {indent, col + used, width - used, trail, soft_trail}; }
 
 	// Maximum column (right edge) for this context.
 	int MaxCol() const { return col + width; }
@@ -52,21 +56,23 @@ public:
 		{
 		int new_indent = indent + 1;
 		int new_col = new_indent * INDENT_WIDTH;
-		return {new_indent, new_col, MaxCol() - new_col, trail};
+		return {new_indent, new_col, MaxCol() - new_col, trail,
+		        soft_trail};
 		}
 
 	// Derive a sub-context for a new line at the same
 	// indent level but a specific absolute column.
 	FmtContext AtCol(int c) const
-		{ return {indent, c, MaxCol() - c, trail}; }
+		{ return {indent, c, MaxCol() - c, trail, soft_trail}; }
 
 	// Derive a context with additional trailing reservation.
 	FmtContext Reserve(int n) const
-		{ return {indent, col, width, trail + n}; }
+		{ return {indent, col, width, trail + n, soft_trail}; }
 
 private:
 	int indent;
 	int col;
 	int width;
 	int trail;	// columns reserved after last line (comment, etc.)
+	int soft_trail;	// portion of trail that can break to its own line
 };
