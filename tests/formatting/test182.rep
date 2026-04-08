@@ -1,0 +1,7 @@
+PREPROC-COND "@ifndef" "Some::validated_items" {
+  LPAREN
+  RPAREN
+}
+COMMENT-TRAILING "#@ FALSE-NOT-TESTED"
+PREPROC "@load" "policy/protocols/some/validate-items"
+PREPROC "@endif"

@@ -605,10 +605,12 @@ static void format_preproc(const Layout& node, int& preproc_depth,
 		update_preproc_indent(preproc_depth, max_col, ctx, pad);
 		}
 
+	auto text = node.FormatText();
 	if ( node.AtColumnZero() )
-		result += node.FormatText() + "\n";
+		result += text;
 	else
-		result += pad + node.FormatText() + "\n";
+		result += pad + text;
+	result += node.TrailingComment() + "\n";
 
 	if ( node.OpensDepth() )
 		{
