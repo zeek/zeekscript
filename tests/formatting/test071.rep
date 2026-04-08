@@ -1,64 +1,11 @@
-FUNC-DECL {
-  KEYWORD "event"
-  SP
-  IDENTIFIER "some_handler"
-  PARAMS {
-    LPAREN
-    PARAM "rec" {
-      COLON
-      TYPE-ATOM "SomeModule::Info"
-    }
-    RPAREN
+EXPR-STMT {
+  SLICE-PARTIAL {
+    IDENTIFIER "xs"
+    LBRACKET
+    CONSTANT "0"
+    COLON
+    CONSTANT ""
+    RBRACKET
   }
-  BODY {
-    LBRACE
-    ADD {
-      KEYWORD "add"
-      SP
-      INDEX {
-        IDENTIFIER "some_long_cache"
-        SUBSCRIPTS {
-          LBRACKET
-          IDENTIFIER "aaa"
-          COMMA
-          IDENTIFIER "bbb"
-          COMMA
-          IDENTIFIER "ccc"
-          COMMA
-          FIELD-ACCESS {
-            IDENTIFIER "rec"
-            DOLLAR
-            IDENTIFIER "source_field"
-          }
-          COMMA
-          FIELD-ACCESS {
-            IDENTIFIER "rec"
-            DOLLAR
-            IDENTIFIER "type_field"
-          }
-          COMMA
-          FIELD-ACCESS {
-            IDENTIFIER "rec"
-            DOLLAR
-            IDENTIFIER "name_field"
-          }
-          COMMA
-          FIELD-ACCESS {
-            IDENTIFIER "rec"
-            DOLLAR
-            IDENTIFIER "orig_flag"
-          }
-          COMMA
-          FIELD-ACCESS {
-            IDENTIFIER "rec"
-            DOLLAR
-            IDENTIFIER "byte_count"
-          }
-          RBRACKET
-        }
-      }
-      SEMI
-    }
-    RBRACE
-  }
+  SEMI
 }

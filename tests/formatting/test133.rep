@@ -1,88 +1,41 @@
-FUNC-DECL {
-  KEYWORD "event"
+TYPEDECL-RECORD "SomeInfo" {
+  KEYWORD "type"
   SP
-  IDENTIFIER "some_evt"
-  PARAMS {
-    LPAREN
-    RPAREN
-  }
-  BODY {
+  IDENTIFIER "SomeInfo"
+  COLON
+  SP
+  TYPE-RECORD {
+    KEYWORD "record"
+    SP
     LBRACE
-    EXPR-STMT {
-      CALL {
-        IDENTIFIER "some_func"
-        ARGS {
-          LPAREN
-          INDEX-LITERAL {
-            ARGS {
-              LBRACKET
-              FIELD-ASSIGN "aa" {
-                DOLLAR
-                ASSIGN "="
-                IDENTIFIER "BB"
-              }
-              COMMA
-              FIELD-ASSIGN "cc" {
-                DOLLAR
-                ASSIGN "="
-                CALL {
-                  IDENTIFIER "fmt"
-                  ARGS {
-                    LPAREN
-                    CONSTANT "\"Host uses a weak certificate with %d bits\""
-                    COMMA
-                    IDENTIFIER "key_len"
-                    RPAREN
-                  }
-                }
-              }
-              COMMA
-              FIELD-ASSIGN "dd" {
-                DOLLAR
-                ASSIGN "="
-                IDENTIFIER "e"
-              }
-              COMMA
-              FIELD-ASSIGN "ff" {
-                DOLLAR
-                ASSIGN "="
-                IDENTIFIER "SSL::some_suppression_interval"
-              }
-              COMMA
-              FIELD-ASSIGN "gg" {
-                DOLLAR
-                ASSIGN "="
-                CALL {
-                  IDENTIFIER "cat"
-                  ARGS {
-                    LPAREN
-                    IDENTIFIER "resp_h"
-                    COMMA
-                    FIELD-ACCESS {
-                      FIELD-ACCESS {
-                        IDENTIFIER "c"
-                        DOLLAR
-                        IDENTIFIER "id"
-                      }
-                      DOLLAR
-                      IDENTIFIER "resp_p"
-                    }
-                    COMMA
-                    IDENTIFIER "hash"
-                    COMMA
-                    IDENTIFIER "key_len"
-                    RPAREN
-                  }
-                }
-              }
-              RBRACKET
-            }
-          }
-          RPAREN
-        }
+    COMMENT-LEADING "## A timestamp field."
+    FIELD "ts" {
+      COLON
+      TYPE-ATOM "time"
+      ATTR-LIST {
+        ATTR "&log"
+      }
+      SEMI
+    }
+    COMMENT-LEADING "\n## A unique identifier."
+    FIELD "uid" {
+      COLON
+      TYPE-ATOM "string"
+      ATTR-LIST {
+        ATTR "&log"
+      }
+      SEMI
+    }
+    COMMENT-LEADING "\n## A network address."
+    FIELD "addr_field" {
+      COLON
+      TYPE-ATOM "addr"
+      ATTR-LIST {
+        ATTR "&log"
       }
       SEMI
     }
     RBRACE
   }
+  SEMI
 }

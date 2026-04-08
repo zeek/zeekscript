@@ -1,89 +1,44 @@
 FUNC-DECL {
-  KEYWORD "function"
+  KEYWORD "event"
   SP
-  IDENTIFIER "some_fn"
+  IDENTIFIER "zeek_init"
   PARAMS {
     LPAREN
     RPAREN
   }
   BODY {
     LBRACE
-    LOCAL-DECL {
-      KEYWORD "local"
-      SP
-      IDENTIFIER "info"
-      DECL-INIT {
-        ASSIGN "="
-        CALL {
-          IDENTIFIER "SomeModule::SomeFn"
-          ARGS {
-            LPAREN
-            FIELD-ASSIGN "note" {
-              DOLLAR
-              ASSIGN "="
-              IDENTIFIER "Found"
-            }
-            COMMA
-            FIELD-ASSIGN "uid" {
-              DOLLAR
-              ASSIGN "="
-              IDENTIFIER "uid"
-            }
-            COMMA
-            FIELD-ASSIGN "msg" {
-              DOLLAR
-              ASSIGN "="
-              CALL {
-                IDENTIFIER "fmt"
-                ARGS {
-                  LPAREN
-                  CONSTANT "\"%s found on %s entity using %s item.\""
-                  COMMA
-                  IDENTIFIER "usecase_desc"
-                  COMMA
-                  IDENTIFIER "orig_entity"
-                  COMMA
-                  IDENTIFIER "item"
-                  RPAREN
-                }
+    EXPR-STMT {
+      CALL {
+        IDENTIFIER "Some::create_stream"
+        ARGS {
+          LPAREN
+          IDENTIFIER "SOME::LOG"
+          COMMA
+          INDEX-LITERAL {
+            ARGS {
+              LBRACKET
+              FIELD-ASSIGN "columns" {
+                DOLLAR
+                ASSIGN "="
+                IDENTIFIER "Info"
               }
-            }
-            COMMA
-            FIELD-ASSIGN "sub" {
-              DOLLAR
-              ASSIGN "="
-              CALL {
-                IDENTIFIER "fmt"
-                ARGS {
-                  LPAREN
-                  CONSTANT "\"Score: %s. Days: %s\""
-                  COMMA
-                  IDENTIFIER "item_score"
-                  COMMA
-                  IDENTIFIER "history_days"
-                  RPAREN
-                }
+              COMMA
+              FIELD-ASSIGN "path" {
+                DOLLAR
+                ASSIGN "="
+                CONSTANT "\"some_path\""
               }
-            }
-            COMMA
-            FIELD-ASSIGN "identifier" {
-              DOLLAR
-              ASSIGN "="
-              CALL {
-                IDENTIFIER "cat"
-                ARGS {
-                  LPAREN
-                  IDENTIFIER "orig_entity"
-                  COMMA
-                  IDENTIFIER "usecase"
-                  COMMA
-                  IDENTIFIER "item"
-                  RPAREN
-                }
+              COMMA
+              FIELD-ASSIGN "policy" {
+                DOLLAR
+                ASSIGN "="
+                IDENTIFIER "log_policy"
               }
+              RBRACKET
             }
-            RPAREN
           }
+          RPAREN
         }
       }
       SEMI

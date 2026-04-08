@@ -1,43 +1,48 @@
-PREPROC-COND "@ifdef" "SomeFeature" {
-  LPAREN
-  RPAREN
-}
-BLANK
-MODULE "SomeMod" {
-  KEYWORD "module"
-  SP
-  IDENTIFIER "SomeMod"
-  SEMI
-}
-BLANK
-GLOBAL-DECL {
-  KEYWORD "const"
-  SP
-  IDENTIFIER "some_var"
-  DECL-INIT {
-    ASSIGN "="
-    CONSTANT "\"some-value\""
-  }
-  SEMI
-}
-BLANK
 FUNC-DECL {
   KEYWORD "event"
   SP
-  IDENTIFIER "zeek_init"
+  IDENTIFIER "some_evt"
   PARAMS {
     LPAREN
     RPAREN
   }
   BODY {
     LBRACE
-    PRINT {
-      KEYWORD "print"
-      SP
-      IDENTIFIER "some_var"
+    EXPR-STMT {
+      CALL {
+        IDENTIFIER "SomeModule::setup_stream"
+        ARGS {
+          LPAREN
+          IDENTIFIER "SOME_STREAM_LOG"
+          COMMA
+          INDEX-LITERAL {
+            ARGS {
+              LBRACKET
+              FIELD-ASSIGN "columns" {
+                DOLLAR
+                ASSIGN "="
+                IDENTIFIER "SomeStreamInfo"
+              }
+              COMMA
+              FIELD-ASSIGN "path" {
+                DOLLAR
+                ASSIGN "="
+                CONSTANT "\"some_long_module_stream_path\""
+              }
+              COMMA
+              FIELD-ASSIGN "policy" {
+                DOLLAR
+                ASSIGN "="
+                IDENTIFIER "some_stream_log_policy"
+              }
+              RBRACKET
+            }
+          }
+          RPAREN
+        }
+      }
       SEMI
     }
     RBRACE
   }
 }
-PREPROC "@endif"

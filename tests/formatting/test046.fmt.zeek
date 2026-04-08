@@ -1,10 +1,6 @@
-export {
-	type AnomalyTypes: enum {
-		ANOMALY,
-		NEW_ENTITY,
-		NEW_ITEM,
-		NEW_ENTITY_NEW_ITEM,
-		NEW_ENTITY_ITEM_PAIR,
-		UNKNOWN
-	};
-}
+type score: enum {
+	NOT = 0,
+	LOW = 1,
+	MED = 2,
+	HIGH = 3
+};

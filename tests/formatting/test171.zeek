@@ -1,5 +1,5 @@
-event some_evt()
-	{
-	while ( some_flag ) # keep going
-		print 1;
-	}
+const xs: vector of double = {
+	0.01,
+	0.02, # note
+	0.03
+};

@@ -1,7 +1,29 @@
-PRINT {
-  KEYWORD "print"
+GLOBAL-DECL {
+  KEYWORD "global"
   SP
-  CONSTANT "\"hello\""
+  IDENTIFIER "some_state"
+  DECL-TYPE {
+    COLON
+    TYPE-PARAMETERIZED "table" {
+      SUBSCRIPTS {
+        LBRACKET
+        TYPE-ATOM "SomeModule::CertInfo"
+        COMMA
+        TYPE-ATOM "SomeModule::AltNameInfo"
+        COMMA
+        TYPE-ATOM "SomeModule::ConstraintInfo"
+        RBRACKET
+      }
+      KEYWORD "of"
+      SP
+      TYPE-ATOM "count"
+    }
+  }
+  ATTR-LIST {
+    ATTR "&default" {
+      ASSIGN "="
+      CONSTANT "0"
+    }
+  }
   SEMI
 }
-COMMENT-TRAILING "# a note"

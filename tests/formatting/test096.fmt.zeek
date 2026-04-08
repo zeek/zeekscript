@@ -1,9 +1,9 @@
-function foo()
-	{
-	some_handler(opt_id,
-	             function[evt_grp](id: string, val: bool): bool
-			{
-			return val;
-			}
-	             );
-	}
+local x = set(
+	1.0.0.2/31,
+	1.1.1.2/31,
+	3.7.176.123/32,
+	5.1.66.255/32,
+	5.2.75.75/32,
+	5.45.107.88/32,
+	8.8.4.4/32
+);

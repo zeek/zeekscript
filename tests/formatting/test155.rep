@@ -1,27 +1,46 @@
-GLOBAL-DECL {
-  KEYWORD "const"
+FUNC-DECL {
+  KEYWORD "function"
   SP
-  IDENTIFIER "tbl"
-  DECL-INIT {
-    ASSIGN "="
-    CONSTRUCTOR {
-      KEYWORD "table"
-      ARGS {
-        LPAREN
-        BINARY-OP "=" {
-          CONSTANT "[1]"
-          OP "="
-          CONSTANT "\"a\""
+  IDENTIFIER "some_func"
+  PARAMS {
+    LPAREN
+    PARAM "a" {
+      COLON
+      TYPE-ATOM "count"
+    }
+    COMMA
+    PARAM "b" {
+      COLON
+      TYPE-ATOM "string"
+    }
+    COMMA
+    PARAM "rec" {
+      COLON
+      TYPE-ATOM "SomeRec"
+    }
+    RPAREN
+  }
+  BODY {
+    LBRACE
+    IF-NO-ELSE {
+      KEYWORD "if"
+      SP
+      LPAREN
+      BINARY-OP "in" {
+        IDENTIFIER "rec"
+        OP "in"
+        IDENTIFIER "did_check"
+      }
+      RPAREN
+      COMMENT-TRAILING "#@ BEGIN-SKIP-TESTING"
+      BODY {
+        RETURN-VOID {
+          KEYWORD "return"
+          SP
+          SEMI
         }
-        COMMA
-        BINARY-OP "=" {
-          CONSTANT "[2]"
-          OP "="
-          CONSTANT "\"b\""
-        }
-        RPAREN
       }
     }
+    RBRACE
   }
-  SEMI
 }

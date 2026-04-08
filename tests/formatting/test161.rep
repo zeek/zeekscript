@@ -1,24 +1,24 @@
-FUNC-DECL {
-  KEYWORD "event"
+FUNC-DECL-RET {
+  KEYWORD "function"
   SP
-  IDENTIFIER "some_evt"
+  IDENTIFIER "some_func"
   PARAMS {
     LPAREN
     RPAREN
   }
+  COLON
+  RETURNS {
+    TYPE-ATOM "count"
+  }
   BODY {
     LBRACE
-    ASSERT {
-      KEYWORD "assert"
+    RETURN {
+      KEYWORD "return"
       SP
-      BINARY-OP "==" {
-        CONSTANT "1"
-        OP "=="
-        CONSTANT "1"
-      }
+      CONSTANT "42"
       SEMI
     }
-    COMMENT-TRAILING "# sanity"
+    COMMENT-TRAILING "# the answer"
     RBRACE
   }
 }

@@ -1,42 +1,25 @@
 FUNC-DECL {
-  KEYWORD "function"
+  KEYWORD "event"
   SP
-  IDENTIFIER "some_func"
+  IDENTIFIER "some_evt"
   PARAMS {
     LPAREN
-    PARAM "a" {
-      COLON
-      TYPE-ATOM "count"
-    }
-    COMMA
-    PARAM "b" {
-      COLON
-      TYPE-ATOM "string"
-    }
-    COMMA
-    PARAM "rec" {
-      COLON
-      TYPE-ATOM "SomeRec"
-    }
     RPAREN
   }
   BODY {
     LBRACE
-    IF-NO-ELSE {
-      KEYWORD "if"
+    WHILE {
+      KEYWORD "while"
       SP
       LPAREN
-      BINARY-OP "in" {
-        IDENTIFIER "rec"
-        OP "in"
-        IDENTIFIER "did_check"
-      }
+      IDENTIFIER "some_flag"
       RPAREN
-      COMMENT-TRAILING "#@ BEGIN-SKIP-TESTING"
+      COMMENT-TRAILING "# keep going"
       BODY {
-        RETURN-VOID {
-          KEYWORD "return"
+        PRINT {
+          KEYWORD "print"
           SP
+          CONSTANT "1"
           SEMI
         }
       }

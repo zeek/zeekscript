@@ -1,7 +1,7 @@
 FUNC-DECL {
-  KEYWORD "event"
+  KEYWORD "function"
   SP
-  IDENTIFIER "zeek_init"
+  IDENTIFIER "foo"
   PARAMS {
     LPAREN
     RPAREN
@@ -11,50 +11,32 @@ FUNC-DECL {
     LOCAL-DECL {
       KEYWORD "local"
       SP
-      IDENTIFIER "filter"
+      IDENTIFIER "next_orig_multiplier"
       DECL-INIT {
         ASSIGN "="
         CALL {
-          IDENTIFIER "Log::Filter"
+          IDENTIFIER "double_to_count"
           ARGS {
             LPAREN
-            FIELD-ASSIGN "name" {
-              DOLLAR
-              ASSIGN "="
-              CONSTANT "\"log-name\""
-            }
-            COMMA
-            FIELD-ASSIGN "path" {
-              DOLLAR
-              ASSIGN "="
-              CONSTANT "\"log_path\""
-            }
-            COMMA
-            FIELD-ASSIGN "include" {
-              DOLLAR
-              ASSIGN "="
-              CALL {
-                IDENTIFIER "set"
-                ARGS {
-                  LPAREN
-                  CONSTANT "\"id.orig_h\""
-                  COMMA
-                  CONSTANT "\"id.orig_p\""
-                  COMMA
-                  CONSTANT "\"id.resp_h\""
-                  COMMA
-                  CONSTANT "\"id.resp_p\""
-                  COMMA
-                  CONSTANT "\"app\""
-                  RPAREN
+            CALL {
+              IDENTIFIER "floor"
+              ARGS {
+                LPAREN
+                DIV {
+                  FIELD-ACCESS {
+                    FIELD-ACCESS {
+                      IDENTIFIER "c"
+                      DOLLAR
+                      IDENTIFIER "orig"
+                    }
+                    DOLLAR
+                    IDENTIFIER "size"
+                  }
+                  OP "/"
+                  IDENTIFIER "size_threshold_in_bytes"
                 }
+                RPAREN
               }
-            }
-            COMMA
-            FIELD-ASSIGN "policy" {
-              DOLLAR
-              ASSIGN "="
-              IDENTIFIER "some_policy_fn"
             }
             RPAREN
           }

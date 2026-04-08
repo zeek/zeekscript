@@ -1,31 +1,21 @@
-EXPORT {
-  KEYWORD "export"
+TYPEDECL-ENUM "score" {
+  KEYWORD "type"
   SP
-  LBRACE
-  TYPEDECL-ENUM "AnomalyTypes" {
-    KEYWORD "type"
+  IDENTIFIER "score"
+  COLON
+  SP
+  TYPE-ENUM {
+    KEYWORD "enum"
     SP
-    IDENTIFIER "AnomalyTypes"
-    COLON
-    SP
-    TYPE-ENUM {
-      KEYWORD "enum"
-      SP
-      LBRACE
-      ENUM-VALUE "ANOMALY"
-      COMMA
-      ENUM-VALUE "NEW_ENTITY"
-      COMMA
-      ENUM-VALUE "NEW_ITEM"
-      COMMA
-      ENUM-VALUE "NEW_ENTITY_NEW_ITEM"
-      COMMA
-      ENUM-VALUE "NEW_ENTITY_ITEM_PAIR"
-      COMMA
-      ENUM-VALUE "UNKNOWN"
-      RBRACE
-    }
-    SEMI
+    LBRACE
+    ENUM-VALUE "NOT" "= 0"
+    COMMA
+    ENUM-VALUE "LOW" "= 1"
+    COMMA
+    ENUM-VALUE "MED" "= 2"
+    COMMA
+    ENUM-VALUE "HIGH" "= 3"
+    RBRACE
   }
-  RBRACE
+  SEMI
 }

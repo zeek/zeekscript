@@ -1,41 +1,7 @@
-FUNC-DECL {
-  KEYWORD "event"
+PRINT {
+  KEYWORD "print"
   SP
-  IDENTIFIER "some_evt"
-  PARAMS {
-    LPAREN
-    RPAREN
-  }
-  BODY {
-    LBRACE
-    ADD {
-      KEYWORD "add"
-      SP
-      INDEX {
-        IDENTIFIER "some_set"
-        SUBSCRIPTS {
-          LBRACKET
-          IDENTIFIER "val"
-          RBRACKET
-        }
-      }
-      SEMI
-    }
-    COMMENT-TRAILING "# track it"
-    DELETE {
-      KEYWORD "delete"
-      SP
-      INDEX {
-        IDENTIFIER "some_set"
-        SUBSCRIPTS {
-          LBRACKET
-          IDENTIFIER "val"
-          RBRACKET
-        }
-      }
-      SEMI
-    }
-    COMMENT-TRAILING "# remove it"
-    RBRACE
-  }
+  CONSTANT "\"hello\""
+  SEMI
 }
+COMMENT-TRAILING "# a note"

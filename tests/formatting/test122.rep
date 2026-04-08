@@ -1,24 +1,48 @@
 FUNC-DECL {
-  KEYWORD "function"
+  KEYWORD "event"
   SP
-  IDENTIFIER "foo"
+  IDENTIFIER "zeek_init"
   PARAMS {
     LPAREN
     RPAREN
   }
   BODY {
     LBRACE
-    PREPROC-COND "@if" "FOO" {
-      LPAREN
-      RPAREN
-    }
-    PRINT {
-      KEYWORD "print"
-      SP
-      CONSTANT "1"
+    EXPR-STMT {
+      CALL {
+        IDENTIFIER "Log::create_stream"
+        ARGS {
+          LPAREN
+          IDENTIFIER "SOME_LOG"
+          COMMA
+          INDEX-LITERAL {
+            ARGS {
+              LBRACKET
+              FIELD-ASSIGN "columns" {
+                DOLLAR
+                ASSIGN "="
+                IDENTIFIER "SomeInfo"
+              }
+              COMMA
+              FIELD-ASSIGN "path" {
+                DOLLAR
+                ASSIGN "="
+                CONSTANT "\"some_log_path\""
+              }
+              COMMA
+              FIELD-ASSIGN "policy" {
+                DOLLAR
+                ASSIGN "="
+                IDENTIFIER "some_log_policy"
+              }
+              RBRACKET
+            }
+          }
+          RPAREN
+        }
+      }
       SEMI
     }
-    PREPROC "@endif"
     RBRACE
   }
 }

@@ -1,5 +1,9 @@
-@if ( FOO )
-@load foo
-@else
-@load bar
-@endif
+function some_fn()
+    {
+    local info = SomeModule::SomeFn($note=Found, $uid=uid,
+            $msg=fmt("%s found on %s entity using %s item.",
+                usecase_desc, orig_entity, item),
+            $sub=fmt("Score: %s. Days: %s",
+                item_score, history_days),
+            $identifier=cat(orig_entity, usecase, item));
+    }

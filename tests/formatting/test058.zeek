@@ -1,6 +1,5 @@
-function some_func()
+event some_handler(aa: connection, bb: bool, cc: count, dd: string,
+                   ee: string, ff: string, gg: string,
+                   hh: string, ii: string, jj: bool)
 	{
-	if ( some_long_var_aa && some_var$some_field == "ok" &&
-	     other?$some_chain && |other$some_chain| > 2 )
-		{ }
 	}

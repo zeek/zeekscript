@@ -22,27 +22,6 @@ FUNC-DECL {
     RBRACE
   }
 }
-COMMENT-LEADING "\n# Fallback path below."
-PREPROC "@else"
-BLANK
-FUNC-DECL {
-  KEYWORD "event"
-  SP
-  IDENTIFIER "zeek_init"
-  PARAMS {
-    LPAREN
-    RPAREN
-  }
-  BODY {
-    LBRACE
-    PRINT {
-      KEYWORD "print"
-      SP
-      CONSTANT "\"other\""
-      SEMI
-    }
-    RBRACE
-  }
-}
-BLANK
+COMMENT-LEADING "\n# Note: This comment belongs inside the ifdef block."
+COMMENT-LEADING "# It should be tab-indented."
 PREPROC "@endif"

@@ -1,1 +1,3 @@
-event some_encrypted_data(c: connection, is_orig: bool, some_record_vers: count, some_content_t: count, length: count) &group="some-group" { }
+export {
+	global SomeModule::some_long_handler: event(anomaly_data: SomePredictions);
+}

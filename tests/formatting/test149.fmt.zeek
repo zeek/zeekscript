@@ -1,6 +1,2 @@
-function foo()
-	{
-	print "Lovely patio around the fountain. " +
-	      "Spent a lovely lunch on the patio. " +
-	      "The menu was inviting and lots of things I wanted to order.";
-	}
+local x = cond ? some_very_very_very_long_true_value_expression_here :
+                 some_very_very_very_long_false_value_expression_here;

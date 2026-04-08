@@ -1,7 +1,7 @@
 FUNC-DECL {
-  KEYWORD "event"
+  KEYWORD "function"
   SP
-  IDENTIFIER "zeek_init"
+  IDENTIFIER "foo"
   PARAMS {
     LPAREN
     RPAREN
@@ -10,40 +10,47 @@ FUNC-DECL {
     LBRACE
     EXPR-STMT {
       CALL {
-        IDENTIFIER "register_handler"
+        IDENTIFIER "some_handler"
         ARGS {
           LPAREN
-          IDENTIFIER "some_usecase"
+          IDENTIFIER "opt_id"
           COMMA
-          LAMBDA {
+          LAMBDA-CAPTURES {
             KEYWORD "function"
             SP
+            CAPTURES {
+              LBRACKET
+              IDENTIFIER "evt_grp"
+              RBRACKET
+            }
             PARAMS {
               LPAREN
-              PARAM "h" {
+              PARAM "id" {
                 COLON
-                TYPE-ATOM "addr"
+                TYPE-ATOM "string"
               }
               COMMA
-              PARAM "si" {
+              PARAM "val" {
                 COLON
-                TYPE-ATOM "SomeInfo"
+                TYPE-ATOM "bool"
               }
               RPAREN
             }
+            COLON
+            RETURNS {
+              TYPE-ATOM "bool"
+            }
             BODY {
               LBRACE
-              PRINT {
-                KEYWORD "print"
+              RETURN {
+                KEYWORD "return"
                 SP
-                IDENTIFIER "h"
+                IDENTIFIER "val"
                 SEMI
               }
               RBRACE
             }
           }
-          COMMA
-          CONSTANT "6.0"
           RPAREN
         }
       }

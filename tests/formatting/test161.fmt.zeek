@@ -1,4 +1,4 @@
-event some_evt()
+function some_func(): count
 	{
-	assert 1 == 1; # sanity
+	return 42; # the answer
 	}

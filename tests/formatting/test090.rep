@@ -1,4 +1,4 @@
 EXPR-STMT {
-  INTERVAL "1" "sec"
+  INTERVAL "3.5" "hrs"
   SEMI
 }

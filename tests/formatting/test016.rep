@@ -1,0 +1,102 @@
+FUNC-DECL {
+  KEYWORD "function"
+  SP
+  IDENTIFIER "some_func"
+  PARAMS {
+    LPAREN
+    PARAM "c" {
+      COLON
+      TYPE-ATOM "connection"
+    }
+    COMMA
+    PARAM "name" {
+      COLON
+      TYPE-ATOM "string"
+    }
+    COMMA
+    PARAM "value" {
+      COLON
+      TYPE-ATOM "string"
+    }
+    COMMA
+    PARAM "prefix" {
+      COLON
+      TYPE-ATOM "string"
+    }
+    RPAREN
+  }
+  BODY {
+    LBRACE
+    IF-WITH-ELSE {
+      KEYWORD "if"
+      SP
+      LPAREN
+      BINARY-OP "==" {
+        IDENTIFIER "name"
+        OP "=="
+        CONSTANT "\"some-type\""
+      }
+      RPAREN
+      BODY {
+        EXPR-STMT {
+          CALL {
+            IDENTIFIER "some_handler"
+            ARGS {
+              LPAREN
+              IDENTIFIER "c"
+              COMMA
+              IDENTIFIER "value"
+              COMMA
+              BINARY-OP "+" {
+                IDENTIFIER "prefix"
+                OP "+"
+                CONSTANT "\"-sfx\""
+              }
+              RPAREN
+            }
+          }
+          SEMI
+        }
+        COMMENT-TRAILING "#@ NOT-TESTED"
+      }
+      BLANK
+      ELSE-IF {
+        KEYWORD "else"
+        SP
+        IF-NO-ELSE {
+          KEYWORD "if"
+          SP
+          LPAREN
+          BINARY-OP "==" {
+            IDENTIFIER "name"
+            OP "=="
+            CONSTANT "\"other-type\""
+          }
+          RPAREN
+          BODY {
+            EXPR-STMT {
+              CALL {
+                IDENTIFIER "other_handler"
+                ARGS {
+                  LPAREN
+                  IDENTIFIER "c"
+                  COMMA
+                  IDENTIFIER "value"
+                  COMMA
+                  BINARY-OP "+" {
+                    IDENTIFIER "prefix"
+                    OP "+"
+                    CONSTANT "\"-sfx\""
+                  }
+                  RPAREN
+                }
+              }
+              SEMI
+            }
+          }
+        }
+      }
+    }
+    RBRACE
+  }
+}

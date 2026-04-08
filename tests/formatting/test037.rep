@@ -1,19 +1,21 @@
-EXPORT {
-  KEYWORD "export"
+GLOBAL-DECL {
+  KEYWORD "redef"
   SP
-  LBRACE
-  GLOBAL-DECL {
-    KEYWORD "const"
-    SP
-    IDENTIFIER "cert_hygiene_server_wl_source"
-    DECL-INIT {
-      ASSIGN "="
-      CONSTANT "\"cert-hygiene-server-wl.txt\""
+  IDENTIFIER "foo"
+  DECL-INIT {
+    ASSIGN "+="
+    CALL {
+      IDENTIFIER "set"
+      ARGS {
+        LPAREN
+        CONSTANT "\"a\""
+        COMMA
+        CONSTANT "\"b\""
+        COMMA
+        CONSTANT "\"c\""
+        RPAREN
+      }
     }
-    ATTR-LIST {
-      ATTR "&redef"
-    }
-    SEMI
   }
-  RBRACE
+  SEMI
 }

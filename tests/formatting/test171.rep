@@ -1,29 +1,30 @@
-FUNC-DECL {
-  KEYWORD "event"
+GLOBAL-DECL {
+  KEYWORD "const"
   SP
-  IDENTIFIER "some_evt"
-  PARAMS {
-    LPAREN
-    RPAREN
-  }
-  BODY {
-    LBRACE
-    WHILE {
-      KEYWORD "while"
+  IDENTIFIER "xs"
+  DECL-TYPE {
+    COLON
+    TYPE-OF "vector" {
+      KEYWORD "of"
       SP
-      LPAREN
-      IDENTIFIER "some_flag"
-      RPAREN
-      COMMENT-TRAILING "# keep going"
-      BODY {
-        PRINT {
-          KEYWORD "print"
-          SP
-          CONSTANT "1"
-          SEMI
-        }
+      TYPE-ATOM "double"
+    }
+  }
+  DECL-INIT {
+    ASSIGN "="
+    CONSTRUCTOR {
+      KEYWORD "vector"
+      ARGS {
+        LPAREN
+        CONSTANT "0.01"
+        COMMA
+        CONSTANT "0.02"
+        COMMA
+        COMMENT-TRAILING "# note"
+        CONSTANT "0.03"
+        RPAREN
       }
     }
-    RBRACE
   }
+  SEMI
 }

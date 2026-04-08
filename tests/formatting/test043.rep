@@ -1,25 +1,66 @@
-LOCAL-DECL {
-  KEYWORD "local"
+FUNC-DECL {
+  KEYWORD "function"
   SP
-  IDENTIFIER "x"
-  DECL-INIT {
-    ASSIGN "="
-    CALL {
-      IDENTIFIER "set"
-      ARGS {
-        LPAREN
-        CONSTANT "\"a\""
-        COMMA
-        CONSTANT "\"b\""
-        COMMA
-        CONSTANT "\"c\""
-        COMMA
-        CONSTANT "\"d\""
-        COMMA
-        CONSTANT "\"e\""
-        RPAREN
+  IDENTIFIER "some_handler"
+  PARAMS {
+    LPAREN
+    PARAM "c" {
+      COLON
+      TYPE-ATOM "connection"
+    }
+    RPAREN
+  }
+  BODY {
+    LBRACE
+    IF-NO-ELSE {
+      KEYWORD "if"
+      SP
+      LPAREN
+      IDENTIFIER "foo"
+      RPAREN
+      BODY {
+        BLOCK {
+          LBRACE
+          BLANK
+          IF-NO-ELSE {
+            KEYWORD "if"
+            SP
+            LPAREN
+            IDENTIFIER "bar"
+            RPAREN
+            BODY {
+              BLOCK {
+                LBRACE
+                BLANK
+                IF-NO-ELSE {
+                  KEYWORD "if"
+                  SP
+                  LPAREN
+                  IDENTIFIER "bletch"
+                  RPAREN
+                  BODY {
+                    EXPR-STMT {
+                      CALL {
+                        IDENTIFIER "other_function_abc"
+                        ARGS {
+                          LPAREN
+                          CONSTANT "\"Some kind of status message\""
+                          RPAREN
+                        }
+                      }
+                      SEMI
+                    }
+                  }
+                }
+                COMMENT-TRAILING "#@ NOT-TESTED"
+                RBRACE
+              }
+            }
+          }
+          RBRACE
+        }
       }
     }
+    RBRACE
   }
-  SEMI
 }

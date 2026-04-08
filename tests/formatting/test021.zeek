@@ -1,5 +1,6 @@
-event zeek_init()
-	{
-	if ( alpha_val > threshold && beta_val > threshold && gamma_val > threshold && delta_val > threshold && epsilon_val > threshold && zeta_val > threshold )
-		print "yes";
-	}
+function some_function_name_aa(c: connection): string
+    {
+    if ( c?$tunnel && |c$tunnel| >= 2 &&
+         c$tunnel[|c$tunnel| - 1]$tunnel_type == Tunnel::VXLAN )
+        print "yep";
+    }

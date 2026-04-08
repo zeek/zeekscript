@@ -1,20 +1,22 @@
-GLOBAL-DECL {
-  KEYWORD "redef"
+LOCAL-DECL {
+  KEYWORD "local"
   SP
-  IDENTIFIER "some_hosts"
+  IDENTIFIER "x"
   DECL-INIT {
-    ASSIGN "+="
+    ASSIGN "="
     CALL {
       IDENTIFIER "set"
       ARGS {
         LPAREN
-        CONSTANT "\"some.host.example.com\""
+        CONSTANT "\"a\""
         COMMA
-        CONSTANT "\"another.longer.hostname.example.org\""
+        CONSTANT "\"b\""
         COMMA
-        CONSTANT "\"yet.another.host.example.net\""
+        CONSTANT "\"c\""
         COMMA
-        TRAILING-COMMA
+        CONSTANT "\"d\""
+        COMMA
+        CONSTANT "\"e\""
         RPAREN
       }
     }

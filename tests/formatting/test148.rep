@@ -1,25 +1,94 @@
-COMMENT-LEADING "#@ BEGIN"
 FUNC-DECL {
   KEYWORD "function"
   SP
-  IDENTIFIER "foo"
+  IDENTIFIER "f"
   PARAMS {
     LPAREN
     RPAREN
   }
   BODY {
     LBRACE
-    EXPR-STMT {
-      CALL {
-        IDENTIFIER "bar"
-        ARGS {
-          LPAREN
-          RPAREN
+    IF-NO-ELSE {
+      KEYWORD "if"
+      SP
+      LPAREN
+      NEGATION {
+        OP "!"
+        CALL {
+          IDENTIFIER "some_function_name"
+          ARGS {
+            LPAREN
+            IDENTIFIER "some_argument"
+            COMMA
+            IDENTIFIER "new_file"
+            COMMA
+            IDENTIFIER "extra_vals"
+            COMMA
+            IDENTIFIER "some_uids"
+            COMMA
+            IDENTIFIER "some_ids"
+            COMMA
+            TERNARY {
+              FIELD-ACCESS {
+                IDENTIFIER "info"
+                DOLLAR
+                IDENTIFIER "source"
+              }
+              QUESTION
+              FIELD-ACCESS {
+                IDENTIFIER "info"
+                DOLLAR
+                IDENTIFIER "source"
+              }
+              COLON
+              CONSTANT "\"\""
+            }
+            COMMA
+            TERNARY {
+              FIELD-ACCESS {
+                IDENTIFIER "info"
+                DOLLAR
+                IDENTIFIER "mime"
+              }
+              QUESTION
+              FIELD-ACCESS {
+                IDENTIFIER "info"
+                DOLLAR
+                IDENTIFIER "mime"
+              }
+              COLON
+              CONSTANT "\"\""
+            }
+            COMMA
+            TERNARY {
+              FIELD-ACCESS {
+                IDENTIFIER "info"
+                DOLLAR
+                IDENTIFIER "md5"
+              }
+              QUESTION
+              FIELD-ACCESS {
+                IDENTIFIER "info"
+                DOLLAR
+                IDENTIFIER "md5"
+              }
+              COLON
+              CONSTANT "\"\""
+            }
+            RPAREN
+          }
         }
       }
-      SEMI
+      RPAREN
+      BODY {
+        PRINT {
+          KEYWORD "print"
+          SP
+          CONSTANT "\"failed\""
+          SEMI
+        }
+      }
     }
     RBRACE
   }
 }
-COMMENT-LEADING "#@ END"

@@ -1,6 +1,1 @@
-export {
-	type SomeAttrs: record {
-		some_strings: set[string]
-		               &log &optional; # A set of associated strings
-	};
-}
+print fmt("This is a really long string argument that cannot be broken up into smaller pieces");

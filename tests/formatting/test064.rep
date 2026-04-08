@@ -1,14 +1,30 @@
-FUNC-DECL {
-  KEYWORD "event"
+GLOBAL-DECL {
+  KEYWORD "global"
   SP
-  IDENTIFIER "zeek_init"
-  PARAMS {
-    LPAREN
-    RPAREN
+  IDENTIFIER "some_long_cache_name"
+  DECL-TYPE {
+    COLON
+    TYPE-PARAMETERIZED "set" {
+      SUBSCRIPTS {
+        LBRACKET
+        TYPE-ATOM "string"
+        COMMA
+        TYPE-ATOM "subnet"
+        COMMA
+        TYPE-ATOM "subnet"
+        COMMA
+        TYPE-ATOM "transport_proto"
+        COMMA
+        TYPE-ATOM "SomeModule::SomeType"
+        RBRACKET
+      }
+    }
   }
-  BODY {
-    LBRACE
-    RBRACE
+  ATTR-LIST {
+    ATTR "&read_expire" {
+      ASSIGN "="
+      IDENTIFIER "cache_interval"
+    }
   }
+  SEMI
 }
-COMMENT-LEADING "# Comment on next line."

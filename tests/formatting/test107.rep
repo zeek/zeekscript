@@ -1,48 +1,49 @@
 FUNC-DECL {
   KEYWORD "function"
   SP
-  IDENTIFIER "foo"
+  IDENTIFIER "some_func"
   PARAMS {
     LPAREN
+    PARAM "val" {
+      COLON
+      TYPE-ATOM "string"
+    }
     RPAREN
   }
   BODY {
     LBRACE
-    LOCAL-DECL {
-      KEYWORD "local"
+    IF-WITH-ELSE {
+      KEYWORD "if"
       SP
-      IDENTIFIER "next_orig_multiplier"
-      DECL-INIT {
-        ASSIGN "="
-        CALL {
-          IDENTIFIER "double_to_count"
-          ARGS {
-            LPAREN
-            CALL {
-              IDENTIFIER "floor"
-              ARGS {
-                LPAREN
-                DIV {
-                  FIELD-ACCESS {
-                    FIELD-ACCESS {
-                      IDENTIFIER "c"
-                      DOLLAR
-                      IDENTIFIER "orig"
-                    }
-                    DOLLAR
-                    IDENTIFIER "size"
-                  }
-                  OP "/"
-                  IDENTIFIER "size_threshold_in_bytes"
-                }
-                RPAREN
-              }
-            }
-            RPAREN
+      LPAREN
+      BINARY-OP "==" {
+        IDENTIFIER "some_pattern"
+        OP "=="
+        IDENTIFIER "val"
+      }
+      RPAREN
+      BODY {
+        EXPR-STMT {
+          BINARY-OP "=" {
+            IDENTIFIER "result"
+            OP "="
+            CONSTANT "\"found\""
           }
+          SEMI
         }
       }
-      SEMI
+      ELSE-BODY {
+        KEYWORD "else"
+        SP
+        EXPR-STMT {
+          BINARY-OP "=" {
+            IDENTIFIER "result"
+            OP "="
+            CONSTANT "\"default\""
+          }
+          SEMI
+        }
+      }
     }
     RBRACE
   }

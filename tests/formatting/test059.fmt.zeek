@@ -1,5 +1,7 @@
-function some_func()
+event some_event()
 	{
-	if ( ! aa?$bb_chain || |aa$bb_chain| == 0 || ! aa$bb_chain[0]?$cc )
-		return dd;
+	if ( some_condition )
+		SomeModule::some_long_call(some_first_arg,
+		                           some_func(aa$xx, aa$yy),
+		                           some_other_arg, bb, cc);
 	}

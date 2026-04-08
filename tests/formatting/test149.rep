@@ -1,27 +1,16 @@
-FUNC-DECL {
-  KEYWORD "function"
+LOCAL-DECL {
+  KEYWORD "local"
   SP
-  IDENTIFIER "foo"
-  PARAMS {
-    LPAREN
-    RPAREN
-  }
-  BODY {
-    LBRACE
-    PRINT {
-      KEYWORD "print"
-      SP
-      BINARY-OP "+" {
-        BINARY-OP "+" {
-          CONSTANT "\"Lovely patio around the fountain. \""
-          OP "+"
-          CONSTANT "\"Spent a lovely lunch on the patio. \""
-        }
-        OP "+"
-        CONSTANT "\"The menu was inviting and lots of things I wanted to order.\""
-      }
-      SEMI
+  IDENTIFIER "x"
+  DECL-INIT {
+    ASSIGN "="
+    TERNARY {
+      IDENTIFIER "cond"
+      QUESTION
+      IDENTIFIER "some_very_very_very_long_true_value_expression_here"
+      COLON
+      IDENTIFIER "some_very_very_very_long_false_value_expression_here"
     }
-    RBRACE
   }
+  SEMI
 }

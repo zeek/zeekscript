@@ -1,21 +1,29 @@
-TYPEDECL-ENUM "score" {
-  KEYWORD "type"
+FUNC-DECL {
+  KEYWORD "event"
   SP
-  IDENTIFIER "score"
-  COLON
-  SP
-  TYPE-ENUM {
-    KEYWORD "enum"
-    SP
+  IDENTIFIER "foo"
+  PARAMS {
+    LPAREN
+    PARAM "c" {
+      COLON
+      TYPE-ATOM "connection"
+    }
+    RPAREN
+  }
+  ATTR-LIST {
+    ATTR "&group" {
+      ASSIGN "="
+      IDENTIFIER "bar"
+    }
+  }
+  BODY {
     LBRACE
-    ENUM-VALUE "NOT" "= 0"
-    COMMA
-    ENUM-VALUE "LOW" "= 1"
-    COMMA
-    ENUM-VALUE "MED" "= 2"
-    COMMA
-    ENUM-VALUE "HIGH" "= 3"
+    PRINT {
+      KEYWORD "print"
+      SP
+      IDENTIFIER "c"
+      SEMI
+    }
     RBRACE
   }
-  SEMI
 }

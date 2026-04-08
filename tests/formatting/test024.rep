@@ -1,74 +1,26 @@
 FUNC-DECL {
-  KEYWORD "event"
+  KEYWORD "function"
   SP
-  IDENTIFIER "some_handler"
+  IDENTIFIER "foo"
   PARAMS {
     LPAREN
-    PARAM "rec" {
-      COLON
-      TYPE-ATOM "SomeModule::Info"
-    }
     RPAREN
   }
   BODY {
     LBRACE
-    IF-NO-ELSE {
-      KEYWORD "if"
-      SP
-      LPAREN
-      BINARY-OP "in" {
-        INDEX-LITERAL {
-          ARGS {
-            LBRACKET
-            IDENTIFIER "aaa"
-            COMMA
-            IDENTIFIER "bbb"
-            COMMA
-            IDENTIFIER "ccc"
-            COMMA
-            FIELD-ACCESS {
-              IDENTIFIER "rec"
-              DOLLAR
-              IDENTIFIER "source_field"
-            }
-            COMMA
-            FIELD-ACCESS {
-              IDENTIFIER "rec"
-              DOLLAR
-              IDENTIFIER "type_field"
-            }
-            COMMA
-            FIELD-ACCESS {
-              IDENTIFIER "rec"
-              DOLLAR
-              IDENTIFIER "name_field"
-            }
-            COMMA
-            FIELD-ACCESS {
-              IDENTIFIER "rec"
-              DOLLAR
-              IDENTIFIER "orig_flag"
-            }
-            COMMA
-            FIELD-ACCESS {
-              IDENTIFIER "rec"
-              DOLLAR
-              IDENTIFIER "byte_count"
-            }
-            RBRACKET
-          }
+    EXPR-STMT {
+      CALL {
+        IDENTIFIER "call"
+        ARGS {
+          LPAREN
+          IDENTIFIER "arg1"
+          COMMA
+          IDENTIFIER "arg2"
+          RPAREN
         }
-        OP "in"
-        IDENTIFIER "some_long_cache_name"
+        COMMENT-TRAILING "# with a comment"
       }
-      RPAREN
-      BODY {
-        RETURN-VOID {
-          KEYWORD "return"
-          SP
-          SEMI
-        }
-      }
+      SEMI
     }
     RBRACE
   }

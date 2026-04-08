@@ -1,57 +1,14 @@
 FUNC-DECL {
-  KEYWORD "function"
+  KEYWORD "event"
   SP
-  IDENTIFIER "f"
+  IDENTIFIER "zeek_init"
   PARAMS {
     LPAREN
     RPAREN
   }
   BODY {
     LBRACE
-    FOR {
-      KEYWORD "for"
-      SP
-      LPAREN
-      FOR-COND {
-        IDENTIFIER "idx"
-        KEYWORD "in"
-        FIELD-ACCESS {
-          IDENTIFIER "result"
-          DOLLAR
-          IDENTIFIER "matches"
-        }
-      }
-      RPAREN
-      BODY {
-        FOR {
-          KEYWORD "for"
-          SP
-          LPAREN
-          FOR-COND {
-            IDENTIFIER "conn_idx"
-            KEYWORD "in"
-            FIELD-ACCESS {
-              IDENTIFIER "result"
-              DOLLAR
-              IDENTIFIER "some_uids_with_a_very_long_field_name_that_forces_wrapping"
-            }
-          }
-          RPAREN
-          BODY {
-            LOCAL-DECL {
-              KEYWORD "local"
-              SP
-              IDENTIFIER "x"
-              DECL-INIT {
-                ASSIGN "="
-                CONSTANT "1"
-              }
-              SEMI
-            }
-          }
-        }
-      }
-    }
     RBRACE
   }
 }
+COMMENT-LEADING "# Comment on next line."

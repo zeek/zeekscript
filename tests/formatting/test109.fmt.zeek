@@ -1,9 +1,3 @@
-function some_func(a: count, b: string, rec: SomeRec)
-	{
-	#@ BEGIN-SKIP-TESTING
-	if ( rec in did_check )
-		return;
-	#@ END-SKIP-TESTING
-
-	next_thing();
-	}
+if ( some_long_bool_variable_a && result$result_string == "ok" &&
+     result?$chain_certs && |result$chain_certs| > 2 )
+	print "x";

@@ -1,3 +1,2 @@
-global some_table_name_a: table[count, string] of TrackingRec
-                           &default_insert = TrackingRec()
-                           &create_expire = 10 sec;
+type some_very_long_type_name_aaaaa:
+	table[addr, port, subnet, string] of string;

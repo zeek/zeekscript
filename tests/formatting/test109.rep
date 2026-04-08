@@ -1,57 +1,49 @@
-FUNC-DECL {
-  KEYWORD "function"
+IF-NO-ELSE {
+  KEYWORD "if"
   SP
-  IDENTIFIER "some_func"
-  PARAMS {
-    LPAREN
-    PARAM "a" {
-      COLON
-      TYPE-ATOM "count"
+  LPAREN
+  BOOL-CHAIN "&&" {
+    HAS-FIELD {
+      BOOL-CHAIN "&&" {
+        IDENTIFIER "some_long_bool_variable_a"
+        OP "&&"
+        BINARY-OP "==" {
+          FIELD-ACCESS {
+            IDENTIFIER "result"
+            DOLLAR
+            IDENTIFIER "result_string"
+          }
+          OP "=="
+          CONSTANT "\"ok\""
+        }
+        OP "&&"
+        IDENTIFIER "result"
+      }
+      OP "?$"
+      IDENTIFIER "chain_certs"
     }
-    COMMA
-    PARAM "b" {
-      COLON
-      TYPE-ATOM "string"
+    OP "&&"
+    BINARY-OP ">" {
+      CARDINALITY {
+        OP "|"
+        FIELD-ACCESS {
+          IDENTIFIER "result"
+          DOLLAR
+          IDENTIFIER "chain_certs"
+        }
+        OP "|"
+      }
+      OP ">"
+      CONSTANT "2"
     }
-    COMMA
-    PARAM "rec" {
-      COLON
-      TYPE-ATOM "SomeRec"
-    }
-    RPAREN
   }
+  RPAREN
   BODY {
-    LBRACE
-    COMMENT-LEADING "#@ BEGIN-SKIP-TESTING"
-    IF-NO-ELSE {
-      KEYWORD "if"
+    PRINT {
+      KEYWORD "print"
       SP
-      LPAREN
-      BINARY-OP "in" {
-        IDENTIFIER "rec"
-        OP "in"
-        IDENTIFIER "did_check"
-      }
-      RPAREN
-      BODY {
-        RETURN-VOID {
-          KEYWORD "return"
-          SP
-          SEMI
-        }
-      }
-    }
-    COMMENT-LEADING "#@ END-SKIP-TESTING\n"
-    EXPR-STMT {
-      CALL {
-        IDENTIFIER "next_thing"
-        ARGS {
-          LPAREN
-          RPAREN
-        }
-      }
+      CONSTANT "\"x\""
       SEMI
     }
-    RBRACE
   }
 }

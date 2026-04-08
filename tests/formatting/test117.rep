@@ -1,49 +1,44 @@
 FUNC-DECL {
   KEYWORD "function"
   SP
-  IDENTIFIER "some_func"
+  IDENTIFIER "f"
   PARAMS {
     LPAREN
-    PARAM "a" {
-      COLON
-      TYPE-ATOM "int"
-    }
     RPAREN
   }
   BODY {
     LBRACE
-    IF-NO-ELSE {
-      KEYWORD "if"
+    FOR {
+      KEYWORD "for"
       SP
       LPAREN
-      BINARY-OP "!in" {
-        INDEX {
-          IDENTIFIER "some_very_long_access_to_a_member"
-          SUBSCRIPTS {
-            LBRACKET
-            IDENTIFIER "foo"
-            RBRACKET
-          }
-        }
-        OP "!in"
-        FIELD-ACCESS {
-          IDENTIFIER "SomeModule::other"
-          DOLLAR
-          IDENTIFIER "nested_field"
-        }
+      FOR-COND-VAL {
+        IDENTIFIER "a"
+        COMMA
+        IDENTIFIER "b"
+        KEYWORD "in"
+        IDENTIFIER "tbl"
       }
       RPAREN
       BODY {
-        BLOCK {
-          LBRACE
-          BLANK
-          PRINT {
-            KEYWORD "print"
-            SP
-            CONSTANT "\"hi\""
-            SEMI
+        PRINT {
+          KEYWORD "print"
+          SP
+          IDENTIFIER "file_handle"
+          COMMA
+          IDENTIFIER "some_variable"
+          COMMA
+          INDEX {
+            IDENTIFIER "another_table"
+            SUBSCRIPTS {
+              LBRACKET
+              IDENTIFIER "some_index"
+              RBRACKET
+            }
           }
-          RBRACE
+          COMMA
+          IDENTIFIER "final_value"
+          SEMI
         }
       }
     }

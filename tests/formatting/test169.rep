@@ -1,24 +1,29 @@
-FUNC-DECL-RET {
-  KEYWORD "function"
+GLOBAL-DECL {
+  KEYWORD "const"
   SP
-  IDENTIFIER "some_func"
-  PARAMS {
-    LPAREN
-    RPAREN
-  }
-  COLON
-  RETURNS {
-    TYPE-ATOM "count"
-  }
-  BODY {
-    LBRACE
-    RETURN {
-      KEYWORD "return"
+  IDENTIFIER "xs"
+  DECL-TYPE {
+    COLON
+    TYPE-OF "vector" {
+      KEYWORD "of"
       SP
-      CONSTANT "42"
-      SEMI
+      TYPE-ATOM "count"
     }
-    COMMENT-TRAILING "# the answer"
-    RBRACE
   }
+  DECL-INIT {
+    ASSIGN "="
+    CONSTRUCTOR {
+      KEYWORD "vector"
+      ARGS {
+        LPAREN
+        CONSTANT "1"
+        COMMA
+        CONSTANT "2"
+        COMMA
+        CONSTANT "3"
+        RPAREN
+      }
+    }
+  }
+  SEMI
 }

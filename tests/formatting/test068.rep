@@ -1,49 +1,18 @@
-PREPROC-COND "@ifdef" "SOME_FEATURE" {
-  LPAREN
-  RPAREN
-}
-FUNC-DECL {
-  KEYWORD "event"
+RETURN {
+  KEYWORD "return"
   SP
-  IDENTIFIER "SomeModule::some_esp_message"
-  PARAMS {
-    LPAREN
-    PARAM "c" {
-      COLON
-      TYPE-ATOM "connection"
+  BOOL-CHAIN "&&" {
+    BINARY-OP "in" {
+      IDENTIFIER "some_very_long_variable_name"
+      OP "in"
+      IDENTIFIER "some_other_very_long_variable_name"
     }
-    COMMA
-    PARAM "is_orig" {
-      COLON
-      TYPE-ATOM "bool"
-    }
-    COMMA
-    PARAM "msg" {
-      COLON
-      TYPE-ATOM "SomeModule::SomeEspMsg"
-    }
-    RPAREN
-  }
-  ATTR-LIST {
-    ATTR "&group" {
-      ASSIGN "="
-      IDENTIFIER "MyPkg_SomeEvtGroup"
+    OP "&&"
+    BINARY-OP "in" {
+      IDENTIFIER "another_thing"
+      OP "in"
+      IDENTIFIER "yet_another_thing"
     }
   }
-  BODY {
-    LBRACE
-    EXPR-STMT {
-      CALL {
-        IDENTIFIER "shuntit"
-        ARGS {
-          LPAREN
-          IDENTIFIER "c"
-          RPAREN
-        }
-      }
-      SEMI
-    }
-    RBRACE
-  }
+  SEMI
 }
-PREPROC "@endif"

@@ -1,18 +1,14 @@
-FUNC-DECL-RET {
+FUNC-DECL {
   KEYWORD "function"
   SP
-  IDENTIFIER "some_function_name_aa"
+  IDENTIFIER "some_func"
   PARAMS {
     LPAREN
-    PARAM "c" {
+    PARAM "val" {
       COLON
-      TYPE-ATOM "connection"
+      TYPE-ATOM "string"
     }
     RPAREN
-  }
-  COLON
-  RETURNS {
-    TYPE-ATOM "string"
   }
   BODY {
     LBRACE
@@ -20,66 +16,41 @@ FUNC-DECL-RET {
       KEYWORD "if"
       SP
       LPAREN
-      BOOL-CHAIN "&&" {
-        HAS-FIELD {
-          IDENTIFIER "c"
-          OP "?$"
-          IDENTIFIER "tunnel"
-        }
-        OP "&&"
-        BINARY-OP ">=" {
-          CARDINALITY {
-            OP "|"
-            FIELD-ACCESS {
-              IDENTIFIER "c"
-              DOLLAR
-              IDENTIFIER "tunnel"
-            }
-            OP "|"
-          }
-          OP ">="
-          CONSTANT "2"
-        }
-        OP "&&"
-        BINARY-OP "==" {
-          FIELD-ACCESS {
-            INDEX {
-              FIELD-ACCESS {
-                IDENTIFIER "c"
-                DOLLAR
-                IDENTIFIER "tunnel"
-              }
-              SUBSCRIPTS {
-                LBRACKET
-                BINARY-OP "-" {
-                  CARDINALITY {
-                    OP "|"
-                    FIELD-ACCESS {
-                      IDENTIFIER "c"
-                      DOLLAR
-                      IDENTIFIER "tunnel"
-                    }
-                    OP "|"
-                  }
-                  OP "-"
-                  CONSTANT "1"
-                }
-                RBRACKET
-              }
-            }
-            DOLLAR
-            IDENTIFIER "tunnel_type"
-          }
-          OP "=="
-          IDENTIFIER "Tunnel::VXLAN"
+      CALL {
+        IDENTIFIER "SomeModule::check_ready"
+        ARGS {
+          LPAREN
+          RPAREN
         }
       }
       RPAREN
       BODY {
-        PRINT {
-          KEYWORD "print"
-          SP
-          CONSTANT "\"yep\""
+        EXPR-STMT {
+          CALL {
+            IDENTIFIER "SomeModule::send_msg"
+            ARGS {
+              LPAREN
+              IDENTIFIER "pt"
+              COMMA
+              IDENTIFIER "some_long_handler"
+              COMMA
+              CALL {
+                IDENTIFIER "to_addr"
+                ARGS {
+                  LPAREN
+                  FIELD-ACCESS {
+                    IDENTIFIER "rec"
+                    DOLLAR
+                    IDENTIFIER "some_field"
+                  }
+                  RPAREN
+                }
+              }
+              COMMA
+              IDENTIFIER "p"
+              RPAREN
+            }
+          }
           SEMI
         }
       }

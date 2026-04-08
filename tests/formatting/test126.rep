@@ -1,54 +1,47 @@
-LOCAL-DECL {
-  KEYWORD "local"
+FUNC-DECL {
+  KEYWORD "event"
   SP
-  IDENTIFIER "filter"
-  DECL-INIT {
-    ASSIGN "="
-    CALL {
-      IDENTIFIER "Log::Filter"
-      ARGS {
-        LPAREN
-        FIELD-ASSIGN "name" {
-          DOLLAR
-          ASSIGN "="
-          CONSTANT "\"log-name\""
-        }
-        COMMA
-        FIELD-ASSIGN "path" {
-          DOLLAR
-          ASSIGN "="
-          CONSTANT "\"log_path\""
-        }
-        COMMA
-        FIELD-ASSIGN "include" {
-          DOLLAR
-          ASSIGN "="
-          CALL {
-            IDENTIFIER "set"
+  IDENTIFIER "some_event"
+  PARAMS {
+    LPAREN
+    RPAREN
+  }
+  BODY {
+    LBRACE
+    EXPR-STMT {
+      CALL {
+        IDENTIFIER "some_func"
+        ARGS {
+          LPAREN
+          INDEX-LITERAL {
             ARGS {
-              LPAREN
-              CONSTANT "\"id.orig_h\""
+              LBRACKET
+              FIELD-ASSIGN "aa" {
+                DOLLAR
+                ASSIGN "="
+                IDENTIFIER "BB"
+              }
               COMMA
-              CONSTANT "\"id.orig_p\""
+              FIELD-ASSIGN "cc" {
+                DOLLAR
+                ASSIGN "="
+                IDENTIFIER "dd"
+              }
               COMMA
-              CONSTANT "\"id.resp_h\""
-              COMMA
-              CONSTANT "\"id.resp_p\""
-              COMMA
-              CONSTANT "\"app\""
-              RPAREN
+              COMMENT-TRAILING "#@ SOME-TAG"
+              FIELD-ASSIGN "ee" {
+                DOLLAR
+                ASSIGN "="
+                IDENTIFIER "ff"
+              }
+              RBRACKET
             }
           }
+          RPAREN
         }
-        COMMA
-        FIELD-ASSIGN "policy" {
-          DOLLAR
-          ASSIGN "="
-          IDENTIFIER "some_policy_fn"
-        }
-        RPAREN
       }
+      SEMI
     }
+    RBRACE
   }
-  SEMI
 }

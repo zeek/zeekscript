@@ -1,8 +1,2 @@
-@ifdef ( SOME_FEATURE )
-	event SomeModule::some_esp_message(c: connection, is_orig: bool,
-	                                   msg: SomeModule::SomeEspMsg)
-	                                   &group=MyPkg_SomeEvtGroup
-		{
-		shuntit(c);
-		}
-@endif
+return some_very_long_variable_name in some_other_very_long_variable_name &&
+       another_thing in yet_another_thing;

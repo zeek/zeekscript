@@ -1,7 +1,7 @@
 FUNC-DECL {
-  KEYWORD "function"
+  KEYWORD "event"
   SP
-  IDENTIFIER "foo"
+  IDENTIFIER "zeek_init"
   PARAMS {
     LPAREN
     RPAREN
@@ -10,15 +10,30 @@ FUNC-DECL {
     LBRACE
     EXPR-STMT {
       CALL {
-        IDENTIFIER "call"
+        IDENTIFIER "SomeModule::some_register_fn"
         ARGS {
           LPAREN
-          IDENTIFIER "arg1"
+          IDENTIFIER "SomeModule::SOME_ANALYZER"
           COMMA
-          IDENTIFIER "arg2"
+          INDEX-LITERAL {
+            ARGS {
+              LBRACKET
+              FIELD-ASSIGN "get_handle" {
+                DOLLAR
+                ASSIGN "="
+                IDENTIFIER "SomeModule::get_handle"
+              }
+              COMMA
+              FIELD-ASSIGN "describe" {
+                DOLLAR
+                ASSIGN "="
+                IDENTIFIER "SomeModule::describe_it"
+              }
+              RBRACKET
+            }
+          }
           RPAREN
         }
-        COMMENT-TRAILING "# with a comment"
       }
       SEMI
     }

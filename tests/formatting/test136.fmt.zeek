@@ -1,5 +1,1 @@
-event zeek_init()
-	{
-	Some::create_stream(SOME::LOG, [$columns=Info, $path="some_path",
-	                                $policy=log_policy]);
-	}
+const ss: set[addr] = set(1.2.3.4, 5.6.7.8);

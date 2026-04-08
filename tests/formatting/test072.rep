@@ -1,8 +1,8 @@
 EXPR-STMT {
-  SLICE {
+  SLICE-PARTIAL {
     IDENTIFIER "xs"
     LBRACKET
-    CONSTANT "0"
+    CONSTANT ""
     COLON
     CONSTANT "1"
     RBRACKET

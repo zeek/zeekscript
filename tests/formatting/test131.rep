@@ -1,48 +1,36 @@
-FUNC-DECL {
-  KEYWORD "event"
+EXPORT {
+  KEYWORD "export"
   SP
-  IDENTIFIER "some_evt"
-  PARAMS {
-    LPAREN
-    RPAREN
-  }
-  BODY {
-    LBRACE
-    EXPR-STMT {
-      CALL {
-        IDENTIFIER "SomeModule::setup_stream"
-        ARGS {
-          LPAREN
-          IDENTIFIER "SOME_STREAM_LOG"
-          COMMA
-          INDEX-LITERAL {
-            ARGS {
-              LBRACKET
-              FIELD-ASSIGN "columns" {
-                DOLLAR
-                ASSIGN "="
-                IDENTIFIER "SomeStreamInfo"
-              }
-              COMMA
-              FIELD-ASSIGN "path" {
-                DOLLAR
-                ASSIGN "="
-                CONSTANT "\"some_long_module_stream_path\""
-              }
-              COMMA
-              FIELD-ASSIGN "policy" {
-                DOLLAR
-                ASSIGN "="
-                IDENTIFIER "some_stream_log_policy"
-              }
-              RBRACKET
-            }
+  LBRACE
+  TYPEDECL-RECORD "SomeAttrs" {
+    KEYWORD "type"
+    SP
+    IDENTIFIER "SomeAttrs"
+    COLON
+    SP
+    TYPE-RECORD {
+      KEYWORD "record"
+      SP
+      LBRACE
+      FIELD "some_strings" {
+        COLON
+        TYPE-PARAMETERIZED "set" {
+          SUBSCRIPTS {
+            LBRACKET
+            TYPE-ATOM "string"
+            RBRACKET
           }
-          RPAREN
         }
+        ATTR-LIST {
+          ATTR "&log"
+          ATTR "&optional"
+        }
+        SEMI
       }
-      SEMI
+      COMMENT-TRAILING "# A set of associated strings"
+      RBRACE
     }
-    RBRACE
+    SEMI
   }
+  RBRACE
 }

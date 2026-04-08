@@ -1,10 +1,32 @@
-TYPEDECL-ALIAS "val" {
-  KEYWORD "type"
+GLOBAL-DECL {
+  KEYWORD "const"
   SP
-  IDENTIFIER "val"
-  COLON
-  SP
-  TYPE-ATOM "count"
+  IDENTIFIER "xs"
+  DECL-TYPE {
+    COLON
+    TYPE-OF "vector" {
+      KEYWORD "of"
+      SP
+      TYPE-ATOM "double"
+    }
+  }
+  DECL-INIT {
+    ASSIGN "="
+    CONSTRUCTOR {
+      KEYWORD "vector"
+      ARGS {
+        LPAREN
+        CONSTANT "0.01"
+        COMMA
+        CONSTANT "0.02"
+        COMMA
+        COMMENT-TRAILING "# a note"
+        CONSTANT "0.03"
+        COMMA
+        CONSTANT "0.04"
+        RPAREN
+      }
+    }
+  }
   SEMI
 }
-COMMENT-TRAILING "# a counter"

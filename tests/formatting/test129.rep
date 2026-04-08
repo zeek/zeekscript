@@ -1,54 +1,72 @@
-TYPEDECL-RECORD "Foo" {
-  KEYWORD "type"
+FUNC-DECL {
+  KEYWORD "function"
   SP
-  IDENTIFIER "Foo"
-  COLON
-  SP
-  TYPE-RECORD {
-    KEYWORD "record"
-    SP
+  IDENTIFIER "some_func"
+  PARAMS {
+    LPAREN
+    RPAREN
+  }
+  BODY {
     LBRACE
-    FIELD "aa" {
-      COLON
-      TYPE-ATOM "string"
-      ATTR-LIST {
-        ATTR "&default" {
-          ASSIGN "="
-          CONSTANT "\"\""
-        }
-      }
-      SEMI
-    }
-    FIELD "bb" {
-      COLON
-      TYPE-ATOM "count"
-      ATTR-LIST {
-        ATTR "&default" {
-          ASSIGN "="
-          CONSTANT "0"
-        }
-      }
-      SEMI
-    }
-    COMMENT-TRAILING "# a comment"
-    BLANK
-    FIELD "cc" {
-      COLON
-      TYPE-ATOM "bool"
-      SEMI
-    }
-    FIELD "dd" {
-      COLON
-      TYPE-ATOM "bool"
-      ATTR-LIST {
-        ATTR "&default" {
-          ASSIGN "="
-          CONSTANT "F"
+    EXPR-STMT {
+      CALL {
+        IDENTIFIER "SOME_CALL"
+        ARGS {
+          LPAREN
+          INDEX-LITERAL {
+            ARGS {
+              LBRACKET
+              FIELD-ASSIGN "field_a" {
+                DOLLAR
+                ASSIGN "="
+                IDENTIFIER "Some_Enum_Val"
+              }
+              COMMA
+              FIELD-ASSIGN "field_b" {
+                DOLLAR
+                ASSIGN "="
+                CALL {
+                  IDENTIFIER "fmt"
+                  ARGS {
+                    LPAREN
+                    CONSTANT "\"total items: %d, associated ids: %s\""
+                    COMMA
+                    IDENTIFIER "total_items"
+                    COMMA
+                    IDENTIFIER "conn_ids"
+                    RPAREN
+                  }
+                }
+              }
+              COMMA
+              FIELD-ASSIGN "field_c" {
+                DOLLAR
+                ASSIGN "="
+                IDENTIFIER "src_host"
+              }
+              COMMA
+              FIELD-ASSIGN "field_d" {
+                DOLLAR
+                ASSIGN "="
+                CALL {
+                  IDENTIFIER "cat"
+                  ARGS {
+                    LPAREN
+                    IDENTIFIER "src_host"
+                    COMMA
+                    IDENTIFIER "bucket"
+                    RPAREN
+                  }
+                }
+              }
+              RBRACKET
+            }
+          }
+          RPAREN
         }
       }
       SEMI
     }
     RBRACE
   }
-  SEMI
 }

@@ -4,44 +4,46 @@ FUNC-DECL {
   IDENTIFIER "some_func"
   PARAMS {
     LPAREN
-    PARAM "val" {
+    PARAM "a" {
       COLON
-      TYPE-ATOM "string"
+      TYPE-ATOM "int"
     }
     RPAREN
   }
   BODY {
     LBRACE
-    IF-WITH-ELSE {
+    IF-NO-ELSE {
       KEYWORD "if"
       SP
       LPAREN
-      BINARY-OP "==" {
-        IDENTIFIER "some_pattern"
-        OP "=="
-        IDENTIFIER "val"
+      BINARY-OP "!in" {
+        INDEX {
+          IDENTIFIER "some_very_long_access_to_a_member"
+          SUBSCRIPTS {
+            LBRACKET
+            IDENTIFIER "foo"
+            RBRACKET
+          }
+        }
+        OP "!in"
+        FIELD-ACCESS {
+          IDENTIFIER "SomeModule::other"
+          DOLLAR
+          IDENTIFIER "nested_field"
+        }
       }
       RPAREN
       BODY {
-        EXPR-STMT {
-          BINARY-OP "=" {
-            IDENTIFIER "result"
-            OP "="
-            CONSTANT "\"found\""
+        BLOCK {
+          LBRACE
+          BLANK
+          PRINT {
+            KEYWORD "print"
+            SP
+            CONSTANT "\"hi\""
+            SEMI
           }
-          SEMI
-        }
-      }
-      ELSE-BODY {
-        KEYWORD "else"
-        SP
-        EXPR-STMT {
-          BINARY-OP "=" {
-            IDENTIFIER "result"
-            OP "="
-            CONSTANT "\"default\""
-          }
-          SEMI
+          RBRACE
         }
       }
     }

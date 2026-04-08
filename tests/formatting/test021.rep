@@ -1,10 +1,18 @@
-FUNC-DECL {
-  KEYWORD "event"
+FUNC-DECL-RET {
+  KEYWORD "function"
   SP
-  IDENTIFIER "zeek_init"
+  IDENTIFIER "some_function_name_aa"
   PARAMS {
     LPAREN
+    PARAM "c" {
+      COLON
+      TYPE-ATOM "connection"
+    }
     RPAREN
+  }
+  COLON
+  RETURNS {
+    TYPE-ATOM "string"
   }
   BODY {
     LBRACE
@@ -13,40 +21,57 @@ FUNC-DECL {
       SP
       LPAREN
       BOOL-CHAIN "&&" {
-        BINARY-OP ">" {
-          IDENTIFIER "alpha_val"
-          OP ">"
-          IDENTIFIER "threshold"
+        HAS-FIELD {
+          IDENTIFIER "c"
+          OP "?$"
+          IDENTIFIER "tunnel"
         }
         OP "&&"
-        BINARY-OP ">" {
-          IDENTIFIER "beta_val"
-          OP ">"
-          IDENTIFIER "threshold"
+        BINARY-OP ">=" {
+          CARDINALITY {
+            OP "|"
+            FIELD-ACCESS {
+              IDENTIFIER "c"
+              DOLLAR
+              IDENTIFIER "tunnel"
+            }
+            OP "|"
+          }
+          OP ">="
+          CONSTANT "2"
         }
         OP "&&"
-        BINARY-OP ">" {
-          IDENTIFIER "gamma_val"
-          OP ">"
-          IDENTIFIER "threshold"
-        }
-        OP "&&"
-        BINARY-OP ">" {
-          IDENTIFIER "delta_val"
-          OP ">"
-          IDENTIFIER "threshold"
-        }
-        OP "&&"
-        BINARY-OP ">" {
-          IDENTIFIER "epsilon_val"
-          OP ">"
-          IDENTIFIER "threshold"
-        }
-        OP "&&"
-        BINARY-OP ">" {
-          IDENTIFIER "zeta_val"
-          OP ">"
-          IDENTIFIER "threshold"
+        BINARY-OP "==" {
+          FIELD-ACCESS {
+            INDEX {
+              FIELD-ACCESS {
+                IDENTIFIER "c"
+                DOLLAR
+                IDENTIFIER "tunnel"
+              }
+              SUBSCRIPTS {
+                LBRACKET
+                BINARY-OP "-" {
+                  CARDINALITY {
+                    OP "|"
+                    FIELD-ACCESS {
+                      IDENTIFIER "c"
+                      DOLLAR
+                      IDENTIFIER "tunnel"
+                    }
+                    OP "|"
+                  }
+                  OP "-"
+                  CONSTANT "1"
+                }
+                RBRACKET
+              }
+            }
+            DOLLAR
+            IDENTIFIER "tunnel_type"
+          }
+          OP "=="
+          IDENTIFIER "Tunnel::VXLAN"
         }
       }
       RPAREN
@@ -54,7 +79,7 @@ FUNC-DECL {
         PRINT {
           KEYWORD "print"
           SP
-          CONSTANT "\"yes\""
+          CONSTANT "\"yep\""
           SEMI
         }
       }

@@ -1,1 +1,5 @@
-const tbl = table([1] = "a", [2] = "b");
+function some_func(a: count, b: string, rec: SomeRec)
+	{
+	if ( rec in did_check ) #@ BEGIN-SKIP-TESTING
+		return;
+	}

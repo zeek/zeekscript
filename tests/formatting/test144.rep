@@ -1,29 +1,36 @@
-GLOBAL-DECL {
-  KEYWORD "const"
+FUNC-DECL {
+  KEYWORD "function"
   SP
-  IDENTIFIER "ss"
-  DECL-TYPE {
-    COLON
-    TYPE-PARAMETERIZED "set" {
-      SUBSCRIPTS {
-        LBRACKET
-        TYPE-ATOM "addr"
-        RBRACKET
-      }
-    }
+  IDENTIFIER "f"
+  PARAMS {
+    LPAREN
+    RPAREN
   }
-  DECL-INIT {
-    ASSIGN "="
-    CONSTRUCTOR {
-      KEYWORD "set"
-      ARGS {
+  BODY {
+    LBRACE
+    SWITCH {
+      KEYWORD "switch"
+      SP
+      PAREN {
         LPAREN
-        CONSTANT "1.2.3.4"
-        COMMA
-        CONSTANT "5.6.7.8"
+        IDENTIFIER "val"
         RPAREN
       }
+      LBRACE
+      CASE {
+        KEYWORD "case"
+        SP
+        VALUES {
+          CONSTANT "0"
+        }
+        COLON
+        BODY {
+          KEYWORD "break"
+          SEMI
+        }
+      }
+      RBRACE
     }
+    RBRACE
   }
-  SEMI
 }

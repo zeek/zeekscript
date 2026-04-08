@@ -1,3 +1,6 @@
-event ssl_extension(c: connection, is_client: bool, code: count, val: string)
-                    &group="doh-generic"
-	{ }
+function some_func_a()
+	{
+	if ( foo )
+		event SomeModule::some_raised_evt(o, label, conf, source,
+		                                  caller);
+	}

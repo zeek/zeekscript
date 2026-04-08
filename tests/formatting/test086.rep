@@ -1,14 +1,18 @@
-LOCAL-DECL {
-  KEYWORD "local"
+GLOBAL-DECL {
+  KEYWORD "global"
   SP
   IDENTIFIER "x"
   DECL-INIT {
     ASSIGN "="
-    CONSTRUCTOR {
-      KEYWORD "set"
+    INDEX-LITERAL {
       ARGS {
-        LPAREN
-        RPAREN
+        LBRACKET
+        CONSTANT "1"
+        COMMA
+        COMMENT-TRAILING "# Comment one"
+        CONSTANT "2"
+        COMMENT-TRAILING "# Comment two"
+        RBRACKET
       }
     }
   }

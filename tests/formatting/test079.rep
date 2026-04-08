@@ -1,15 +1,9 @@
 EXPR-STMT {
-  SLICE {
-    IDENTIFIER "data"
-    LBRACKET
-    CONSTANT "1"
-    COLON
-    BINARY-OP "-" {
-      CONSTANT "1"
-      OP "-"
-      CONSTANT "1"
+  INDEX-LITERAL {
+    ARGS {
+      LBRACKET
+      RBRACKET
     }
-    RBRACKET
   }
   SEMI
 }

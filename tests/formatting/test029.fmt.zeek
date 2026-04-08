@@ -1,6 +1,16 @@
-event foo()
-	{
-	SomeModule::seen([$some_field=SomeModule::build_value(c$some_data$items[stream]),
-	                  $some_type=SomeModule::URL, $conn=c,
-	                  $where=SomeModule::IN_URL]);
-	}
+@ifdef ( SOME_FEATURE )
+
+	event zeek_init()
+		{
+		print some_var;
+		}
+
+	# Fallback path below.
+@else
+
+	event zeek_init()
+		{
+		print "other";
+		}
+
+@endif

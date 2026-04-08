@@ -1,10 +1,6 @@
-type SomeInfo: record {
-	## A timestamp field.
-	ts: time &log;
-
-	## A unique identifier.
-	uid: string &log;
-
-	## A network address.
-	addr_field: addr &log;
-};
+function foo()
+	{
+	print "Lovely patio around the fountain. " +
+	      "Spent a lovely lunch on the patio. " +
+	      "The menu was inviting and lots of things I wanted to order.";
+	}

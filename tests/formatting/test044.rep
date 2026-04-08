@@ -1,95 +1,31 @@
-FUNC-DECL {
-  KEYWORD "function"
+EXPORT {
+  KEYWORD "export"
   SP
-  IDENTIFIER "foo"
-  PARAMS {
-    LPAREN
-    RPAREN
-  }
-  BODY {
-    LBRACE
-    IF-NO-ELSE {
-      KEYWORD "if"
+  LBRACE
+  TYPEDECL-ENUM "AnomalyTypes" {
+    KEYWORD "type"
+    SP
+    IDENTIFIER "AnomalyTypes"
+    COLON
+    SP
+    TYPE-ENUM {
+      KEYWORD "enum"
       SP
-      LPAREN
-      CALL {
-        IDENTIFIER "some_condition"
-        ARGS {
-          LPAREN
-          RPAREN
-        }
-      }
-      RPAREN
-      BODY {
-        BLOCK {
-          LBRACE
-          BLANK
-          LOCAL-DECL {
-            KEYWORD "local"
-            SP
-            IDENTIFIER "published"
-            DECL-INIT {
-              ASSIGN "="
-              CALL {
-                IDENTIFIER "Some::long_func_name"
-                ARGS {
-                  LPAREN
-                  IDENTIFIER "proxy_pool"
-                  COMMA
-                  CALL {
-                    IDENTIFIER "cat"
-                    ARGS {
-                      LPAREN
-                      FIELD-ACCESS {
-                        FIELD-ACCESS {
-                          IDENTIFIER "c"
-                          DOLLAR
-                          IDENTIFIER "id"
-                        }
-                        DOLLAR
-                        IDENTIFIER "orig_h"
-                      }
-                      COMMA
-                      IDENTIFIER "fqdn"
-                      RPAREN
-                    }
-                  }
-                  COMMA
-                  IDENTIFIER "SomeModule::some_handler"
-                  COMMA
-                  FIELD-ACCESS {
-                    FIELD-ACCESS {
-                      IDENTIFIER "c"
-                      DOLLAR
-                      IDENTIFIER "id"
-                    }
-                    DOLLAR
-                    IDENTIFIER "orig_h"
-                  }
-                  COMMA
-                  FIELD-ACCESS {
-                    IDENTIFIER "c"
-                    DOLLAR
-                    IDENTIFIER "uid"
-                  }
-                  COMMA
-                  IDENTIFIER "fqdn"
-                  COMMA
-                  FIELD-ACCESS {
-                    IDENTIFIER "conn"
-                    DOLLAR
-                    IDENTIFIER "orig_bytes"
-                  }
-                  RPAREN
-                }
-              }
-            }
-            SEMI
-          }
-          RBRACE
-        }
-      }
+      LBRACE
+      ENUM-VALUE "ANOMALY"
+      COMMA
+      ENUM-VALUE "NEW_ENTITY"
+      COMMA
+      ENUM-VALUE "NEW_ITEM"
+      COMMA
+      ENUM-VALUE "NEW_ENTITY_NEW_ITEM"
+      COMMA
+      ENUM-VALUE "NEW_ENTITY_ITEM_PAIR"
+      COMMA
+      ENUM-VALUE "UNKNOWN"
+      RBRACE
     }
-    RBRACE
+    SEMI
   }
+  RBRACE
 }

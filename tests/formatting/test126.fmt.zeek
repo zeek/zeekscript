@@ -1,4 +1,5 @@
-local filter = Log::Filter($name="log-name", $path="log_path",
-                           $include=set("id.orig_h", "id.orig_p", "id.resp_h",
-                                        "id.resp_p", "app"),
-                           $policy=some_policy_fn);
+event some_event()
+	{
+	some_func([$aa=BB, $cc=dd, #@ SOME-TAG
+	           $ee=ff]);
+	}

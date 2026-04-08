@@ -1,66 +1,31 @@
-FUNC-DECL {
-  KEYWORD "function"
+TYPEDECL-ENUM "SomeEnumAA" {
+  KEYWORD "type"
   SP
-  IDENTIFIER "some_handler"
-  PARAMS {
-    LPAREN
-    PARAM "c" {
-      COLON
-      TYPE-ATOM "connection"
-    }
-    RPAREN
-  }
-  BODY {
+  IDENTIFIER "SomeEnumAA"
+  COLON
+  SP
+  TYPE-ENUM {
+    KEYWORD "enum"
+    SP
     LBRACE
-    IF-NO-ELSE {
-      KEYWORD "if"
-      SP
-      LPAREN
-      IDENTIFIER "foo"
-      RPAREN
-      BODY {
-        BLOCK {
-          LBRACE
-          BLANK
-          IF-NO-ELSE {
-            KEYWORD "if"
-            SP
-            LPAREN
-            IDENTIFIER "bar"
-            RPAREN
-            BODY {
-              BLOCK {
-                LBRACE
-                BLANK
-                IF-NO-ELSE {
-                  KEYWORD "if"
-                  SP
-                  LPAREN
-                  IDENTIFIER "bletch"
-                  RPAREN
-                  BODY {
-                    EXPR-STMT {
-                      CALL {
-                        IDENTIFIER "other_function_abc"
-                        ARGS {
-                          LPAREN
-                          CONSTANT "\"Some kind of status message\""
-                          RPAREN
-                        }
-                      }
-                      SEMI
-                    }
-                  }
-                }
-                COMMENT-TRAILING "#@ NOT-TESTED"
-                RBRACE
-              }
-            }
-          }
-          RBRACE
-        }
-      }
-    }
+    ENUM-VALUE "SE_DNS_A"
+    COMMA
+    ENUM-VALUE "SE_DNS_AAAA"
+    COMMA
+    ENUM-VALUE "SE_DNS_A6"
+    COMMA
+    ENUM-VALUE "SE_DNS_PTR"
+    COMMA
+    ENUM-VALUE "SE_HTTP_HOST"
+    COMMA
+    ENUM-VALUE "SE_TLS_SNI"
+    COMMA
+    ENUM-VALUE "SE_NTLM_AUTH"
+    COMMA
+    ENUM-VALUE "SE_UNKNOWN"
+    COMMA
+    TRAILING-COMMA
     RBRACE
   }
+  SEMI
 }

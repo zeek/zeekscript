@@ -1,41 +1,27 @@
-TYPEDECL-RECORD "SomeInfo" {
-  KEYWORD "type"
+FUNC-DECL {
+  KEYWORD "function"
   SP
-  IDENTIFIER "SomeInfo"
-  COLON
-  SP
-  TYPE-RECORD {
-    KEYWORD "record"
-    SP
+  IDENTIFIER "foo"
+  PARAMS {
+    LPAREN
+    RPAREN
+  }
+  BODY {
     LBRACE
-    COMMENT-LEADING "## A timestamp field."
-    FIELD "ts" {
-      COLON
-      TYPE-ATOM "time"
-      ATTR-LIST {
-        ATTR "&log"
-      }
-      SEMI
-    }
-    COMMENT-LEADING "\n## A unique identifier."
-    FIELD "uid" {
-      COLON
-      TYPE-ATOM "string"
-      ATTR-LIST {
-        ATTR "&log"
-      }
-      SEMI
-    }
-    COMMENT-LEADING "\n## A network address."
-    FIELD "addr_field" {
-      COLON
-      TYPE-ATOM "addr"
-      ATTR-LIST {
-        ATTR "&log"
+    PRINT {
+      KEYWORD "print"
+      SP
+      BINARY-OP "+" {
+        BINARY-OP "+" {
+          CONSTANT "\"Lovely patio around the fountain. \""
+          OP "+"
+          CONSTANT "\"Spent a lovely lunch on the patio. \""
+        }
+        OP "+"
+        CONSTANT "\"The menu was inviting and lots of things I wanted to order.\""
       }
       SEMI
     }
     RBRACE
   }
-  SEMI
 }

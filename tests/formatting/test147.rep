@@ -1,12 +1,26 @@
-PRINT {
-  KEYWORD "print"
+GLOBAL-DECL {
+  KEYWORD "const"
   SP
-  CALL {
-    IDENTIFIER "fmt"
-    ARGS {
-      LPAREN
-      CONSTANT "\"This is a really long string argument that cannot be broken up into smaller pieces\""
-      RPAREN
+  IDENTIFIER "tbl"
+  DECL-INIT {
+    ASSIGN "="
+    CONSTRUCTOR {
+      KEYWORD "table"
+      ARGS {
+        LPAREN
+        BINARY-OP "=" {
+          CONSTANT "[1]"
+          OP "="
+          CONSTANT "\"a\""
+        }
+        COMMA
+        BINARY-OP "=" {
+          CONSTANT "[2]"
+          OP "="
+          CONSTANT "\"b\""
+        }
+        RPAREN
+      }
     }
   }
   SEMI

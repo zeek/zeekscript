@@ -1,33 +1,10 @@
-FUNC-DECL {
-  KEYWORD "event"
+TYPEDECL-ALIAS "val" {
+  KEYWORD "type"
   SP
-  IDENTIFIER "some_evt"
-  PARAMS {
-    LPAREN
-    RPAREN
-  }
-  BODY {
-    LBRACE
-    FOR {
-      KEYWORD "for"
-      SP
-      LPAREN
-      FOR-COND {
-        IDENTIFIER "idx"
-        KEYWORD "in"
-        IDENTIFIER "some_list"
-      }
-      RPAREN
-      COMMENT-TRAILING "# iterate items"
-      BODY {
-        PRINT {
-          KEYWORD "print"
-          SP
-          IDENTIFIER "idx"
-          SEMI
-        }
-      }
-    }
-    RBRACE
-  }
+  IDENTIFIER "val"
+  COLON
+  SP
+  TYPE-ATOM "count"
+  SEMI
 }
+COMMENT-TRAILING "# a counter"

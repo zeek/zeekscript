@@ -1,4 +1,4 @@
-local filter = Log::Filter($name="log-name", $path="log_path",
-                           $include=set("id.orig_h", "id.orig_p", "id.resp_h",
-                                        "id.resp_p", "app"),
-                           $policy=some_policy_fn);
+global some_tracking_var: table[count, string] of TrackingRec
+                           &default_insert = TrackingRec($field=val)
+                           &create_expire = 10 sec
+                           &redef;

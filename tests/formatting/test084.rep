@@ -1,11 +1,15 @@
-EXPR-STMT {
-  INDEX-LITERAL {
-    ARGS {
-      LBRACKET
-      CONSTANT "1"
-      COMMA
-      TRAILING-COMMA
-      RBRACKET
+LOCAL-DECL {
+  KEYWORD "local"
+  SP
+  IDENTIFIER "x"
+  DECL-INIT {
+    ASSIGN "="
+    CONSTRUCTOR {
+      KEYWORD "set"
+      ARGS {
+        LPAREN
+        RPAREN
+      }
     }
   }
   SEMI

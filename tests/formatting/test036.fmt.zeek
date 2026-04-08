@@ -1,3 +1,9 @@
-if ( first_condition && second_condition && third_condition &&
-     some_object$long_field > another_object$other_field )
-	do_something();
+const some_lookup: table[string] of string = table(
+	["some-key-aa"] = "val-aa",
+	["some-key-bb"] = "val-bb",
+	["some-key-cc"] = "val-cc",
+	["some-key-dd"] = "val-dd",
+) &default = function(n: string): string
+	{
+	return fmt("fixme-%s", n);
+	};

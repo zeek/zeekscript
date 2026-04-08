@@ -1,7 +1,7 @@
 FUNC-DECL {
   KEYWORD "function"
   SP
-  IDENTIFIER "f"
+  IDENTIFIER "some_func"
   PARAMS {
     LPAREN
     RPAREN
@@ -12,14 +12,17 @@ FUNC-DECL {
       KEYWORD "if"
       SP
       LPAREN
-      IDENTIFIER "x"
+      BINARY-OP "!in" {
+        IDENTIFIER "x"
+        OP "!in"
+        IDENTIFIER "y"
+      }
       RPAREN
       BODY {
-        COMMENT-LEADING "# comment before body"
         PRINT {
           KEYWORD "print"
           SP
-          CONSTANT "\"done\""
+          CONSTANT "\"hi\""
           SEMI
         }
       }

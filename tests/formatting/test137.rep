@@ -1,72 +1,19 @@
-FUNC-DECL {
-  KEYWORD "function"
+GLOBAL-DECL {
+  KEYWORD "const"
   SP
-  IDENTIFIER "some_func"
-  PARAMS {
-    LPAREN
-    RPAREN
-  }
-  BODY {
-    LBRACE
-    EXPR-STMT {
-      CALL {
-        IDENTIFIER "SOME_CALL"
-        ARGS {
-          LPAREN
-          INDEX-LITERAL {
-            ARGS {
-              LBRACKET
-              FIELD-ASSIGN "field_a" {
-                DOLLAR
-                ASSIGN "="
-                IDENTIFIER "Some_Enum_Val"
-              }
-              COMMA
-              FIELD-ASSIGN "field_b" {
-                DOLLAR
-                ASSIGN "="
-                CALL {
-                  IDENTIFIER "fmt"
-                  ARGS {
-                    LPAREN
-                    CONSTANT "\"total items: %d, associated ids: %s\""
-                    COMMA
-                    IDENTIFIER "total_items"
-                    COMMA
-                    IDENTIFIER "conn_ids"
-                    RPAREN
-                  }
-                }
-              }
-              COMMA
-              FIELD-ASSIGN "field_c" {
-                DOLLAR
-                ASSIGN "="
-                IDENTIFIER "src_host"
-              }
-              COMMA
-              FIELD-ASSIGN "field_d" {
-                DOLLAR
-                ASSIGN "="
-                CALL {
-                  IDENTIFIER "cat"
-                  ARGS {
-                    LPAREN
-                    IDENTIFIER "src_host"
-                    COMMA
-                    IDENTIFIER "bucket"
-                    RPAREN
-                  }
-                }
-              }
-              RBRACKET
-            }
-          }
-          RPAREN
-        }
+  IDENTIFIER "ss"
+  DECL-INIT {
+    ASSIGN "="
+    CONSTRUCTOR {
+      KEYWORD "set"
+      ARGS {
+        LPAREN
+        CONSTANT "1.2.3.4"
+        COMMA
+        CONSTANT "5.6.7.8"
+        RPAREN
       }
-      SEMI
     }
-    RBRACE
   }
+  SEMI
 }

@@ -1,77 +1,51 @@
 FUNC-DECL {
-  KEYWORD "event"
+  KEYWORD "function"
   SP
-  IDENTIFIER "some_evt"
+  IDENTIFIER "foo"
   PARAMS {
     LPAREN
     RPAREN
   }
   BODY {
     LBRACE
-    EXPR-STMT {
+    IF-NO-ELSE {
+      KEYWORD "if"
+      SP
+      LPAREN
       CALL {
-        IDENTIFIER "SOME_CALL"
+        IDENTIFIER "Cluster::is_enabled"
         ARGS {
           LPAREN
-          INDEX-LITERAL {
-            ARGS {
-              LBRACKET
-              FIELD-ASSIGN "field_a" {
-                DOLLAR
-                ASSIGN "="
-                IDENTIFIER "Some_Enum_Val"
-              }
-              COMMA
-              FIELD-ASSIGN "field_b" {
-                DOLLAR
-                ASSIGN "="
-                CALL {
-                  IDENTIFIER "fmt"
-                  ARGS {
-                    LPAREN
-                    CONSTANT "\"some format string with several placeholders %d items across %d groups within %s window\""
-                    COMMA
-                    IDENTIFIER "val_one"
-                    COMMA
-                    IDENTIFIER "val_two"
-                    COMMA
-                    IDENTIFIER "val_three"
-                    RPAREN
-                  }
-                }
-              }
-              COMMA
-              FIELD-ASSIGN "field_c" {
-                DOLLAR
-                ASSIGN "="
-                IDENTIFIER "endpoints"
-              }
-              COMMA
-              FIELD-ASSIGN "field_d" {
-                DOLLAR
-                ASSIGN "="
-                IDENTIFIER "src_host"
-              }
-              COMMA
-              FIELD-ASSIGN "field_e" {
-                DOLLAR
-                ASSIGN "="
-                CALL {
-                  IDENTIFIER "cat"
-                  ARGS {
-                    LPAREN
-                    IDENTIFIER "src_host"
-                    RPAREN
-                  }
-                }
-              }
-              RBRACKET
-            }
-          }
           RPAREN
         }
       }
-      SEMI
+      RPAREN
+      BODY {
+        BLOCK {
+          LBRACE
+          BLANK
+          LOCAL-DECL {
+            KEYWORD "local"
+            SP
+            IDENTIFIER "pt"
+            DECL-INIT {
+              ASSIGN "="
+              CALL {
+                IDENTIFIER "Cluster::rr_topic"
+                ARGS {
+                  LPAREN
+                  IDENTIFIER "Cluster::proxy_pool"
+                  COMMA
+                  CONSTANT "\"application-identification\""
+                  RPAREN
+                }
+              }
+            }
+            SEMI
+          }
+          RBRACE
+        }
+      }
     }
     RBRACE
   }

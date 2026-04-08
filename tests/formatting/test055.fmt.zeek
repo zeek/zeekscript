@@ -1,4 +1,6 @@
 export {
-	global SomeModule::some_long_handler:
-		event(anomaly_data: SomePredictions);
+	global some_evt: event(rec: Info);
+
+	## Some trailing comment
+	## Another trailing comment
 }

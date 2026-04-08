@@ -1,1 +1,8 @@
-function f() { for ( a, b in tbl ) print file_handle, some_variable, another_table[some_index], final_value; }
+event some_evt(c: connection)
+	{
+	NOTICE([$note=Some_Notice,
+		$conn=c,
+		# This is a comment about the next field.
+		# Another comment line.
+		$identifier=cat(id$orig_h, id$resp_h)]);
+	}

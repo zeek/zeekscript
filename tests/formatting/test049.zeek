@@ -1,1 +1,1 @@
-event SomeModule::some_raised_evt(c: connection, is_orig: bool, version: count, some_dcid: string, some_scid: string, some_retoken: string, some_integ_tag: string) &group=SomeEvtGroup { print c; }
+event some_generic_packet_threshold_crossed(c: connection, threshold: count) &group=MyPkg_SomeUnknownprotos_EvtGroup { print c; }

@@ -1,7 +1,6 @@
-event some_evt(si: SomeInfo)
+event some_handler(rec: SomeModule::Info)
 	{
-	if ( coal_max_entries > 0 && |coalesced_state| >= coal_max_entries &&
-	     [server_name, server_subj, server_issuer, client_subj,
-	      client_issuer, ja3] !in coalesced_state )
+	if ( [aaa, bbb, ccc, rec$source_field, rec$type_field, rec$name_field,
+	      rec$orig_flag, rec$byte_count] in some_long_cache_name )
 		return;
 	}

@@ -1,29 +1,23 @@
-GLOBAL-DECL {
-  KEYWORD "const"
+REDEF-RECORD "SSL::Info" {
+  KEYWORD "redef"
   SP
-  IDENTIFIER "xs"
-  DECL-TYPE {
+  KEYWORD "record"
+  SP
+  IDENTIFIER "SSL::Info"
+  ASSIGN "+="
+  LBRACE
+  COMMENT-LEADING "# Flag indicating if \"early data\" extension was sent in Client Hello."
+  FIELD "early_data" {
     COLON
-    TYPE-OF "vector" {
-      KEYWORD "of"
-      SP
-      TYPE-ATOM "count"
-    }
-  }
-  DECL-INIT {
-    ASSIGN "="
-    CONSTRUCTOR {
-      KEYWORD "vector"
-      ARGS {
-        LPAREN
-        CONSTANT "1"
-        COMMA
-        CONSTANT "2"
-        COMMA
-        CONSTANT "3"
-        RPAREN
+    TYPE-ATOM "bool"
+    ATTR-LIST {
+      ATTR "&default" {
+        ASSIGN "="
+        CONSTANT "F"
       }
     }
+    SEMI
   }
+  RBRACE
   SEMI
 }

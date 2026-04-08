@@ -1,5 +1,7 @@
-function foo()
+function some_func(val: string)
 	{
-	local next_orig_multiplier =
-		double_to_count(floor(c$orig$size/size_threshold_in_bytes));
+	if ( some_pattern == val )
+		result = "found";
+	else
+		result = "default";
 	}

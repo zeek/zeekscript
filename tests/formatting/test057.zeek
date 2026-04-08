@@ -1,6 +1,6 @@
-export {
-	global some_evt: event(rec: Info);
-
-	## Some trailing comment
-	## Another trailing comment
-}
+function some_func()
+	{
+	if ( ! aa?$bb_chain || |aa$bb_chain| == 0 ||
+	     ! aa$bb_chain[0]?$cc )
+		return dd;
+	}

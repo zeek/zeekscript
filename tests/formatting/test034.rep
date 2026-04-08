@@ -1,3 +1,39 @@
-COMMENT-LEADING "#"
-COMMENT-LEADING "# A comment-only file."
-COMMENT-LEADING "#"
+IF-NO-ELSE {
+  KEYWORD "if"
+  SP
+  LPAREN
+  BOOL-CHAIN "&&" {
+    IDENTIFIER "first_condition"
+    OP "&&"
+    IDENTIFIER "second_condition"
+    OP "&&"
+    IDENTIFIER "third_condition"
+    OP "&&"
+    BINARY-OP ">" {
+      FIELD-ACCESS {
+        IDENTIFIER "some_object"
+        DOLLAR
+        IDENTIFIER "long_field"
+      }
+      OP ">"
+      FIELD-ACCESS {
+        IDENTIFIER "another_object"
+        DOLLAR
+        IDENTIFIER "other_field"
+      }
+    }
+  }
+  RPAREN
+  BODY {
+    EXPR-STMT {
+      CALL {
+        IDENTIFIER "do_something"
+        ARGS {
+          LPAREN
+          RPAREN
+        }
+      }
+      SEMI
+    }
+  }
+}

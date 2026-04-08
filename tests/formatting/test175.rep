@@ -2,21 +2,18 @@ EXPORT {
   KEYWORD "export"
   SP
   LBRACE
-  GLOBAL-DECL {
-    KEYWORD "const"
+  REDEF-ENUM "Notice::Type" {
+    KEYWORD "redef"
     SP
-    IDENTIFIER "default_analyzer"
-    DECL-TYPE {
-      COLON
-      TYPE-ATOM "PacketAnalyzer::Tag"
-    }
-    DECL-INIT {
-      ASSIGN "="
-      IDENTIFIER "PacketAnalyzer::ANALYZER_IP"
-    }
-    ATTR-LIST {
-      ATTR "&redef"
-    }
+    KEYWORD "enum"
+    SP
+    IDENTIFIER "Notice::Type"
+    ASSIGN "+="
+    LBRACE
+    ENUM-VALUE "POTENTIAL_CVE_2022_24497"
+    COMMA
+    TRAILING-COMMA
+    RBRACE
     SEMI
   }
   RBRACE

@@ -1,7 +1,5 @@
-function f()
+event some_evt()
 	{
-	switch ( val ) {
-	case 0:
-		break;
-	}
+	add some_set[val]; # track it
+	delete some_set[val]; # remove it
 	}

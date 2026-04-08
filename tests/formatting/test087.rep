@@ -1,27 +1,35 @@
-GLOBAL-DECL {
-  KEYWORD "global"
+FUNC-DECL {
+  KEYWORD "event"
   SP
-  IDENTIFIER "x"
-  DECL-INIT {
-    ASSIGN "="
-    CONSTRUCTOR {
-      KEYWORD "table"
-      ARGS {
-        LPAREN
-        BINARY-OP "=" {
-          INDEX-LITERAL {
-            ARGS {
-              LBRACKET
-              CONSTANT "1"
-              RBRACKET
-            }
-          }
-          OP "="
-          CONSTANT "\"one\""
-        }
-        RPAREN
-      }
-    }
+  IDENTIFIER "some_evt"
+  PARAMS {
+    LPAREN
+    RPAREN
   }
-  SEMI
+  BODY {
+    LBRACE
+    LOCAL-DECL {
+      KEYWORD "local"
+      SP
+      IDENTIFIER "some_services"
+      DECL-INIT {
+        ASSIGN "="
+        BINARY-OP "|" {
+          FIELD-ACCESS {
+            IDENTIFIER "worker_si"
+            DOLLAR
+            IDENTIFIER "some_entities"
+          }
+          OP "|"
+          FIELD-ACCESS {
+            IDENTIFIER "worker_si"
+            DOLLAR
+            IDENTIFIER "other_entities"
+          }
+        }
+      }
+      SEMI
+    }
+    RBRACE
+  }
 }

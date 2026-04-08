@@ -1,49 +1,18 @@
 FUNC-DECL {
   KEYWORD "event"
   SP
-  IDENTIFIER "some_event_abc"
+  IDENTIFIER "some_evt"
   PARAMS {
     LPAREN
-    PARAM "host" {
-      COLON
-      TYPE-ATOM "addr"
-    }
-    COMMA
-    PARAM "svc" {
-      COLON
-      TYPE-ATOM "string"
-    }
-    COMMA
-    PARAM "region" {
-      COLON
-      TYPE-ATOM "string"
-    }
     RPAREN
   }
   BODY {
     LBRACE
-    LOCAL-DECL {
-      KEYWORD "local"
+    COMMENT-TRAILING "# Start tracking."
+    PRINT {
+      KEYWORD "print"
       SP
-      IDENTIFIER "endpoints"
-      DECL-INIT {
-        ASSIGN "="
-        TERNARY {
-          BINARY-OP ">" {
-            IDENTIFIER "some_long_variable_ab"
-            OP ">"
-            CONSTANT "0"
-          }
-          QUESTION
-          FIELD-ACCESS {
-            IDENTIFIER "calls"
-            DOLLAR
-            IDENTIFIER "some_fld"
-          }
-          COLON
-          CONSTANT "\"Disabled\""
-        }
-      }
+      CONSTANT "1"
       SEMI
     }
     RBRACE

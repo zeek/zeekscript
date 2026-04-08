@@ -1,1 +1,4 @@
-event zeek_init() { local filter = Log::Filter($name="log-name", $path="log_path", $include=set("id.orig_h", "id.orig_p", "id.resp_h", "id.resp_p", "app"), $policy=some_policy_fn); }
+function foo()
+	{
+	local next_orig_multiplier = double_to_count(floor(c$orig$size / size_threshold_in_bytes));
+	}

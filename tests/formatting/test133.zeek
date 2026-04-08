@@ -1,8 +1,10 @@
-event some_evt()
-    {
-    some_func([$aa=BB,
-              $cc=fmt("Host uses a weak certificate with %d bits",
-                      key_len),
-              $dd=e, $ff=SSL::some_suppression_interval,
-              $gg=cat(resp_h, c$id$resp_p, hash, key_len)]);
-    }
+type SomeInfo: record {
+	## A timestamp field.
+	ts: time &log;
+
+	## A unique identifier.
+	uid: string &log;
+
+	## A network address.
+	addr_field: addr &log;
+};

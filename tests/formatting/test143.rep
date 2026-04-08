@@ -8,22 +8,40 @@ FUNC-DECL {
   }
   BODY {
     LBRACE
-    EXPR-STMT {
-      SCHEDULE {
-        KEYWORD "schedule"
-        SP
-        IDENTIFIER "some_time_interval"
-        LBRACE
-        CALL {
-          IDENTIFIER "SomeModule::some_very_long_event_name"
-          ARGS {
-            LPAREN
-            RPAREN
-          }
-        }
-        RBRACE
+    SWITCH {
+      KEYWORD "switch"
+      SP
+      PAREN {
+        LPAREN
+        IDENTIFIER "val"
+        RPAREN
       }
-      SEMI
+      LBRACE
+      CASE {
+        KEYWORD "case"
+        SP
+        VALUES {
+          CONSTANT "0"
+        }
+        COLON
+        BODY {
+          KEYWORD "break"
+          SEMI
+        }
+      }
+      CASE {
+        KEYWORD "case"
+        SP
+        VALUES {
+          CONSTANT "1"
+        }
+        COLON
+        BODY {
+          KEYWORD "break"
+          SEMI
+        }
+      }
+      RBRACE
     }
     RBRACE
   }

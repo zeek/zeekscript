@@ -5,15 +5,15 @@ EXPORT {
   GLOBAL-DECL {
     KEYWORD "global"
     SP
-    IDENTIFIER "SomeModule::some_long_handler"
+    IDENTIFIER "some_evt"
     DECL-TYPE {
       COLON
       TYPE-FUNC "event" {
         PARAMS {
           LPAREN
-          PARAM "anomaly_data" {
+          PARAM "rec" {
             COLON
-            TYPE-ATOM "SomePredictions"
+            TYPE-ATOM "Info"
           }
           RPAREN
         }
@@ -21,5 +21,7 @@ EXPORT {
     }
     SEMI
   }
+  COMMENT-LEADING "\n## Some trailing comment"
+  COMMENT-LEADING "## Another trailing comment"
   RBRACE
 }

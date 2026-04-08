@@ -1,24 +1,26 @@
-FUNC-DECL {
-  KEYWORD "event"
+GLOBAL-DECL {
+  KEYWORD "global"
   SP
-  IDENTIFIER "some_evt"
-  PARAMS {
-    LPAREN
-    RPAREN
-  }
-  BODY {
-    LBRACE
-    LOCAL-DECL {
-      KEYWORD "local"
-      SP
-      IDENTIFIER "x"
-      DECL-INIT {
-        ASSIGN "="
-        CONSTANT "1"
+  IDENTIFIER "ftp_connections_cache"
+  DECL-TYPE {
+    COLON
+    TYPE-PARAMETERIZED "set" {
+      SUBSCRIPTS {
+        LBRACKET
+        TYPE-ATOM "string"
+        COMMA
+        TYPE-ATOM "string"
+        COMMA
+        TYPE-ATOM "string"
+        RBRACKET
       }
-      SEMI
     }
-    COMMENT-TRAILING "# init"
-    RBRACE
   }
+  ATTR-LIST {
+    ATTR "&read_expire" {
+      ASSIGN "="
+      IDENTIFIER "cache_interval"
+    }
+  }
+  SEMI
 }

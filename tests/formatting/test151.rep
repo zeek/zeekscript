@@ -1,47 +1,50 @@
 FUNC-DECL {
-  KEYWORD "function"
+  KEYWORD "event"
   SP
-  IDENTIFIER "f"
+  IDENTIFIER "some_event_abc"
   PARAMS {
     LPAREN
+    PARAM "host" {
+      COLON
+      TYPE-ATOM "addr"
+    }
+    COMMA
+    PARAM "svc" {
+      COLON
+      TYPE-ATOM "string"
+    }
+    COMMA
+    PARAM "region" {
+      COLON
+      TYPE-ATOM "string"
+    }
     RPAREN
   }
   BODY {
     LBRACE
-    SWITCH {
-      KEYWORD "switch"
+    LOCAL-DECL {
+      KEYWORD "local"
       SP
-      PAREN {
-        LPAREN
-        IDENTIFIER "val"
-        RPAREN
-      }
-      LBRACE
-      CASE {
-        KEYWORD "case"
-        SP
-        VALUES {
-          CONSTANT "0"
-        }
-        COLON
-        BODY {
-          KEYWORD "break"
-          SEMI
-        }
-      }
-      CASE {
-        KEYWORD "case"
-        SP
-        VALUES {
-          CONSTANT "1"
-        }
-        COLON
-        BODY {
-          KEYWORD "break"
-          SEMI
+      IDENTIFIER "endpoints"
+      DECL-INIT {
+        ASSIGN "="
+        TERNARY {
+          BINARY-OP ">" {
+            IDENTIFIER "some_long_variable_ab"
+            OP ">"
+            CONSTANT "0"
+          }
+          QUESTION
+          FIELD-ACCESS {
+            IDENTIFIER "calls"
+            DOLLAR
+            IDENTIFIER "some_fld"
+          }
+          COLON
+          CONSTANT "\"Disabled\""
         }
       }
-      RBRACE
+      SEMI
     }
     RBRACE
   }

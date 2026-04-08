@@ -1,7 +1,7 @@
-function some_func(val: string)
+function some_func(a: int)
 	{
-	if ( some_pattern == val )
-		result = "found";
-	else
-		result = "default";
+	if ( some_very_long_access_to_a_member[foo] !in SomeModule::other$nested_field )
+		{
+		print "hi";
+		}
 	}

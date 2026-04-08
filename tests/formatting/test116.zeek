@@ -1,1 +1,11 @@
-if ( some_long_bool_variable_a && result$result_string == "ok" && result?$chain_certs && |result$chain_certs| > 2 ) print "x";
+@ifdef ( SomeFeature )
+
+    module SomeMod;
+
+    const some_var = "some-value";
+
+    event zeek_init()
+        {
+        print some_var;
+        }
+@endif

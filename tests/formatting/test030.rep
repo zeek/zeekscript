@@ -1,11 +1,76 @@
-COMMENT-LEADING "# Some comment."
-COMMENT-LEADING "#@ BEGIN-SKIP-TESTING"
-PREPROC-COND "@if" "some_func(\"/some/path\") > 0" {
-  LPAREN
-  RPAREN
+FUNC-DECL {
+  KEYWORD "function"
+  SP
+  IDENTIFIER "some_func"
+  PARAMS {
+    LPAREN
+    PARAM "val" {
+      COLON
+      TYPE-ATOM "string"
+    }
+    RPAREN
+  }
+  BODY {
+    LBRACE
+    IF-WITH-ELSE {
+      KEYWORD "if"
+      SP
+      LPAREN
+      BINARY-OP "==" {
+        IDENTIFIER "some_pattern"
+        OP "=="
+        IDENTIFIER "val"
+      }
+      RPAREN
+      BODY {
+        EXPR-STMT {
+          BINARY-OP "=" {
+            IDENTIFIER "result"
+            OP "="
+            CONSTANT "\"found\""
+          }
+          SEMI
+        }
+      }
+      COMMENT-LEADING "\n# This handles the fallback case."
+      COMMENT-LEADING "# Check secondary pattern too."
+      ELSE-IF {
+        KEYWORD "else"
+        SP
+        IF-NO-ELSE {
+          KEYWORD "if"
+          SP
+          LPAREN
+          BINARY-OP "==" {
+            IDENTIFIER "other_pattern"
+            OP "=="
+            IDENTIFIER "val"
+          }
+          RPAREN
+          BODY {
+            EXPR-STMT {
+              BINARY-OP "=" {
+                IDENTIFIER "result"
+                OP "="
+                SLICE-PARTIAL {
+                  IDENTIFIER "val"
+                  LBRACKET
+                  BINARY-OP "+" {
+                    IDENTIFIER "idx"
+                    OP "+"
+                    CONSTANT "1"
+                  }
+                  COLON
+                  CONSTANT ""
+                  RBRACKET
+                }
+              }
+              SEMI
+            }
+          }
+        }
+      }
+    }
+    RBRACE
+  }
 }
-PREPROC "@load" "/some/path"
-PREPROC "@else"
-PREPROC "@load" "packages/some-pkg"
-PREPROC "@endif"
-COMMENT-LEADING "#@ END-SKIP-TESTING"

@@ -1,5 +1,6 @@
-event some_evt()
-	{
-	for ( val in some_set )
-		next; # skip it
-	}
+export {
+	type SomeInfo: record {
+		some_field_name: set[string]
+		                  &log &optional; # A trailing comment here
+	};
+}

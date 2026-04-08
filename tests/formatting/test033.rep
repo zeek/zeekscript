@@ -1,27 +1,34 @@
-PREPROC-COND "@ifdef" "SOME_FEATURE" {
-  LPAREN
-  RPAREN
-}
-BLANK
-FUNC-DECL {
-  KEYWORD "event"
-  SP
-  IDENTIFIER "zeek_init"
-  PARAMS {
-    LPAREN
-    RPAREN
-  }
-  BODY {
-    LBRACE
-    PRINT {
-      KEYWORD "print"
-      SP
-      IDENTIFIER "some_var"
-      SEMI
+EXPR-STMT {
+  BINARY-OP "=" {
+    IDENTIFIER "age_d"
+    OP "="
+    DIV {
+      CALL {
+        IDENTIFIER "interval_to_double"
+        ARGS {
+          LPAREN
+          BINARY-OP "-" {
+            CALL {
+              IDENTIFIER "network_time"
+              ARGS {
+                LPAREN
+                RPAREN
+              }
+            }
+            OP "-"
+            FIELD-ACCESS {
+              IDENTIFIER "cert"
+              DOLLAR
+              IDENTIFIER "not_valid_before"
+            }
+          }
+          RPAREN
+        }
+      }
+      OP "/"
+      CONSTANT "86400.0"
     }
-    RBRACE
   }
+  SEMI
 }
-COMMENT-LEADING "\n# Note: This comment belongs inside the ifdef block."
-COMMENT-LEADING "# It should be tab-indented."
-PREPROC "@endif"
+COMMENT-TRAILING "# This is a comment that makes the line very long"

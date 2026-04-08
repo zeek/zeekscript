@@ -1,1 +1,1 @@
-type SomeEnumAA: enum { SE_DNS_A, SE_DNS_AAAA, SE_DNS_A6, SE_DNS_PTR, SE_HTTP_HOST, SE_TLS_SNI, SE_NTLM_AUTH, SE_UNKNOWN, };
+event SomeModule::some_raised_evt(c: connection, is_orig: bool, version: count, some_dcid: string, some_scid: string, some_retoken: string, some_integ_tag: string) &group=SomeEvtGroup { print c; }

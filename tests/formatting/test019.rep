@@ -1,47 +1,60 @@
 FUNC-DECL {
-  KEYWORD "function"
+  KEYWORD "event"
   SP
-  IDENTIFIER "some_func"
+  IDENTIFIER "zeek_init"
   PARAMS {
     LPAREN
-    PARAM "val" {
-      COLON
-      TYPE-ATOM "string"
-    }
     RPAREN
   }
   BODY {
     LBRACE
-    IF-WITH-ELSE {
+    IF-NO-ELSE {
       KEYWORD "if"
       SP
       LPAREN
-      BINARY-OP "==" {
-        IDENTIFIER "some_pattern"
-        OP "=="
-        IDENTIFIER "val"
+      BOOL-CHAIN "&&" {
+        BINARY-OP ">" {
+          IDENTIFIER "alpha_val"
+          OP ">"
+          IDENTIFIER "threshold"
+        }
+        OP "&&"
+        BINARY-OP ">" {
+          IDENTIFIER "beta_val"
+          OP ">"
+          IDENTIFIER "threshold"
+        }
+        OP "&&"
+        BINARY-OP ">" {
+          IDENTIFIER "gamma_val"
+          OP ">"
+          IDENTIFIER "threshold"
+        }
+        OP "&&"
+        BINARY-OP ">" {
+          IDENTIFIER "delta_val"
+          OP ">"
+          IDENTIFIER "threshold"
+        }
+        OP "&&"
+        BINARY-OP ">" {
+          IDENTIFIER "epsilon_val"
+          OP ">"
+          IDENTIFIER "threshold"
+        }
+        OP "&&"
+        BINARY-OP ">" {
+          IDENTIFIER "zeta_val"
+          OP ">"
+          IDENTIFIER "threshold"
+        }
       }
       RPAREN
       BODY {
-        EXPR-STMT {
-          BINARY-OP "=" {
-            IDENTIFIER "result"
-            OP "="
-            CONSTANT "\"found\""
-          }
-          SEMI
-        }
-      }
-      BLANK
-      ELSE-BODY {
-        KEYWORD "else"
-        SP
-        EXPR-STMT {
-          BINARY-OP "=" {
-            IDENTIFIER "result"
-            OP "="
-            CONSTANT "\"default\""
-          }
+        PRINT {
+          KEYWORD "print"
+          SP
+          CONSTANT "\"yes\""
           SEMI
         }
       }

@@ -1,11 +1,1 @@
-function some_handler(c: connection)
-    {
-    if ( foo )
-        {
-        if ( bar )
-            {
-            if ( bletch )
-                other_function_abc("Some kind of status message"); #@ NOT-TESTED
-            }
-        }
-    }
+type SomeEnumAA: enum { SE_DNS_A, SE_DNS_AAAA, SE_DNS_A6, SE_DNS_PTR, SE_HTTP_HOST, SE_TLS_SNI, SE_NTLM_AUTH, SE_UNKNOWN, };

@@ -1,38 +1,40 @@
 FUNC-DECL {
-  KEYWORD "event"
+  KEYWORD "function"
   SP
-  IDENTIFIER "ssl_extension"
+  IDENTIFIER "some_func_a"
   PARAMS {
     LPAREN
-    PARAM "c" {
-      COLON
-      TYPE-ATOM "connection"
-    }
-    COMMA
-    PARAM "is_client" {
-      COLON
-      TYPE-ATOM "bool"
-    }
-    COMMA
-    PARAM "code" {
-      COLON
-      TYPE-ATOM "count"
-    }
-    COMMA
-    PARAM "val" {
-      COLON
-      TYPE-ATOM "string"
-    }
     RPAREN
-  }
-  ATTR-LIST {
-    ATTR "&group" {
-      ASSIGN "="
-      CONSTANT "\"doh-generic\""
-    }
   }
   BODY {
     LBRACE
+    IF-NO-ELSE {
+      KEYWORD "if"
+      SP
+      LPAREN
+      IDENTIFIER "foo"
+      RPAREN
+      BODY {
+        EVENT-STMT "SomeModule::some_raised_evt" {
+          KEYWORD "event"
+          SP
+          ARGS {
+            LPAREN
+            IDENTIFIER "o"
+            COMMA
+            IDENTIFIER "label"
+            COMMA
+            IDENTIFIER "conf"
+            COMMA
+            IDENTIFIER "source"
+            COMMA
+            IDENTIFIER "caller"
+            RPAREN
+          }
+          SEMI
+        }
+      }
+    }
     RBRACE
   }
 }

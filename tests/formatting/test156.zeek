@@ -1,1 +1,4 @@
-function f() { if ( ! some_function_name(some_argument, new_file, extra_vals, some_uids, some_ids, info$source ? info$source : "", info$mime ? info$mime : "", info$md5 ? info$md5 : "") ) print "failed"; }
+event some_evt()
+	{
+	local x = 1; # init
+	}

@@ -1,94 +1,24 @@
 FUNC-DECL {
-  KEYWORD "function"
+  KEYWORD "event"
   SP
-  IDENTIFIER "f"
+  IDENTIFIER "some_evt"
   PARAMS {
     LPAREN
     RPAREN
   }
   BODY {
     LBRACE
-    IF-NO-ELSE {
-      KEYWORD "if"
+    LOCAL-DECL {
+      KEYWORD "local"
       SP
-      LPAREN
-      NEGATION {
-        OP "!"
-        CALL {
-          IDENTIFIER "some_function_name"
-          ARGS {
-            LPAREN
-            IDENTIFIER "some_argument"
-            COMMA
-            IDENTIFIER "new_file"
-            COMMA
-            IDENTIFIER "extra_vals"
-            COMMA
-            IDENTIFIER "some_uids"
-            COMMA
-            IDENTIFIER "some_ids"
-            COMMA
-            TERNARY {
-              FIELD-ACCESS {
-                IDENTIFIER "info"
-                DOLLAR
-                IDENTIFIER "source"
-              }
-              QUESTION
-              FIELD-ACCESS {
-                IDENTIFIER "info"
-                DOLLAR
-                IDENTIFIER "source"
-              }
-              COLON
-              CONSTANT "\"\""
-            }
-            COMMA
-            TERNARY {
-              FIELD-ACCESS {
-                IDENTIFIER "info"
-                DOLLAR
-                IDENTIFIER "mime"
-              }
-              QUESTION
-              FIELD-ACCESS {
-                IDENTIFIER "info"
-                DOLLAR
-                IDENTIFIER "mime"
-              }
-              COLON
-              CONSTANT "\"\""
-            }
-            COMMA
-            TERNARY {
-              FIELD-ACCESS {
-                IDENTIFIER "info"
-                DOLLAR
-                IDENTIFIER "md5"
-              }
-              QUESTION
-              FIELD-ACCESS {
-                IDENTIFIER "info"
-                DOLLAR
-                IDENTIFIER "md5"
-              }
-              COLON
-              CONSTANT "\"\""
-            }
-            RPAREN
-          }
-        }
+      IDENTIFIER "x"
+      DECL-INIT {
+        ASSIGN "="
+        CONSTANT "1"
       }
-      RPAREN
-      BODY {
-        PRINT {
-          KEYWORD "print"
-          SP
-          CONSTANT "\"failed\""
-          SEMI
-        }
-      }
+      SEMI
     }
+    COMMENT-TRAILING "# init"
     RBRACE
   }
 }

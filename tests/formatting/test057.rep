@@ -1,27 +1,71 @@
-EXPORT {
-  KEYWORD "export"
+FUNC-DECL {
+  KEYWORD "function"
   SP
-  LBRACE
-  GLOBAL-DECL {
-    KEYWORD "global"
-    SP
-    IDENTIFIER "some_evt"
-    DECL-TYPE {
-      COLON
-      TYPE-FUNC "event" {
-        PARAMS {
-          LPAREN
-          PARAM "rec" {
-            COLON
-            TYPE-ATOM "Info"
+  IDENTIFIER "some_func"
+  PARAMS {
+    LPAREN
+    RPAREN
+  }
+  BODY {
+    LBRACE
+    IF-NO-ELSE {
+      KEYWORD "if"
+      SP
+      LPAREN
+      HAS-FIELD {
+        BOOL-CHAIN "||" {
+          HAS-FIELD {
+            NEGATION {
+              OP "!"
+              IDENTIFIER "aa"
+            }
+            OP "?$"
+            IDENTIFIER "bb_chain"
           }
-          RPAREN
+          OP "||"
+          BINARY-OP "==" {
+            CARDINALITY {
+              OP "|"
+              FIELD-ACCESS {
+                IDENTIFIER "aa"
+                DOLLAR
+                IDENTIFIER "bb_chain"
+              }
+              OP "|"
+            }
+            OP "=="
+            CONSTANT "0"
+          }
+          OP "||"
+          NEGATION {
+            OP "!"
+            INDEX {
+              FIELD-ACCESS {
+                IDENTIFIER "aa"
+                DOLLAR
+                IDENTIFIER "bb_chain"
+              }
+              SUBSCRIPTS {
+                LBRACKET
+                CONSTANT "0"
+                RBRACKET
+              }
+            }
+          }
+        }
+        OP "?$"
+        IDENTIFIER "cc"
+      }
+      RPAREN
+      BODY {
+        RETURN {
+          KEYWORD "return"
+          SP
+          IDENTIFIER "dd"
+          SEMI
         }
       }
     }
-    SEMI
+    RBRACE
   }
-  COMMENT-LEADING "\n## Some trailing comment"
-  COMMENT-LEADING "## Another trailing comment"
-  RBRACE
 }

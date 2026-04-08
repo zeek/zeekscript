@@ -1,5 +1,1 @@
-event some_handler(aa: connection, bb: bool, cc: count, dd: string,
-                   ee: string, ff: string, gg: string,
-                   hh: string, ii: string, jj: bool)
-	{
-	}
+function f() { for ( idx in result$matches ) for ( conn_idx in result$some_uids_with_a_very_long_field_name_that_forces_wrapping ) local x = 1; }

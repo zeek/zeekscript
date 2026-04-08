@@ -1,48 +1,29 @@
-FUNC-DECL {
-  KEYWORD "event"
+GLOBAL-DECL {
+  KEYWORD "const"
   SP
-  IDENTIFIER "zeek_init"
-  PARAMS {
-    LPAREN
-    RPAREN
-  }
-  BODY {
-    LBRACE
-    EXPR-STMT {
-      CALL {
-        IDENTIFIER "Some::create_stream"
-        ARGS {
-          LPAREN
-          IDENTIFIER "SOME::LOG"
-          COMMA
-          INDEX-LITERAL {
-            ARGS {
-              LBRACKET
-              FIELD-ASSIGN "columns" {
-                DOLLAR
-                ASSIGN "="
-                IDENTIFIER "Info"
-              }
-              COMMA
-              FIELD-ASSIGN "path" {
-                DOLLAR
-                ASSIGN "="
-                CONSTANT "\"some_path\""
-              }
-              COMMA
-              FIELD-ASSIGN "policy" {
-                DOLLAR
-                ASSIGN "="
-                IDENTIFIER "log_policy"
-              }
-              RBRACKET
-            }
-          }
-          RPAREN
-        }
+  IDENTIFIER "ss"
+  DECL-TYPE {
+    COLON
+    TYPE-PARAMETERIZED "set" {
+      SUBSCRIPTS {
+        LBRACKET
+        TYPE-ATOM "addr"
+        RBRACKET
       }
-      SEMI
     }
-    RBRACE
   }
+  DECL-INIT {
+    ASSIGN "="
+    CONSTRUCTOR {
+      KEYWORD "set"
+      ARGS {
+        LPAREN
+        CONSTANT "1.2.3.4"
+        COMMA
+        CONSTANT "5.6.7.8"
+        RPAREN
+      }
+    }
+  }
+  SEMI
 }

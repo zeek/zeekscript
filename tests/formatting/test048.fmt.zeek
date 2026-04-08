@@ -1,6 +1,4 @@
-type score: enum {
-	NOT = 0,
-	LOW = 1,
-	MED = 2,
-	HIGH = 3
-};
+event foo(c: connection) &group=bar
+	{
+	print c;
+	}

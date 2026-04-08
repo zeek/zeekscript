@@ -2,6 +2,9 @@ EXPR-STMT {
   INDEX-LITERAL {
     ARGS {
       LBRACKET
+      CONSTANT "1"
+      COMMA
+      CONSTANT "2"
       RBRACKET
     }
   }

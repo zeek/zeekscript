@@ -5,12 +5,6 @@
 		print some_var;
 		}
 
-	# Fallback path below.
-@else
-
-	event zeek_init()
-		{
-		print "other";
-		}
-
+	# Note: This comment belongs inside the ifdef block.
+	# It should be tab-indented.
 @endif

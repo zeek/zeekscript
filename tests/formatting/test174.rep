@@ -1,36 +1,14 @@
-EXPORT {
-  KEYWORD "export"
+IF-NO-ELSE {
+  KEYWORD "if"
   SP
-  LBRACE
-  TYPEDECL-RECORD "SomeInfo" {
-    KEYWORD "type"
-    SP
-    IDENTIFIER "SomeInfo"
-    COLON
-    SP
-    TYPE-RECORD {
-      KEYWORD "record"
-      SP
+  LPAREN
+  IDENTIFIER "condition"
+  RPAREN
+  BODY {
+    BLOCK {
       LBRACE
-      FIELD "some_field_name" {
-        COLON
-        TYPE-PARAMETERIZED "set" {
-          SUBSCRIPTS {
-            LBRACKET
-            TYPE-ATOM "string"
-            RBRACKET
-          }
-        }
-        ATTR-LIST {
-          ATTR "&log"
-          ATTR "&optional"
-        }
-        SEMI
-      }
-      COMMENT-TRAILING "# A trailing comment here"
+      COMMENT-LEADING "\n# Fill this in sometime"
       RBRACE
     }
-    SEMI
   }
-  RBRACE
 }

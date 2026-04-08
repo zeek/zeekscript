@@ -1,34 +1,19 @@
-EXPR-STMT {
-  BINARY-OP "=" {
-    IDENTIFIER "age_d"
-    OP "="
-    DIV {
-      CALL {
-        IDENTIFIER "interval_to_double"
-        ARGS {
-          LPAREN
-          BINARY-OP "-" {
-            CALL {
-              IDENTIFIER "network_time"
-              ARGS {
-                LPAREN
-                RPAREN
-              }
-            }
-            OP "-"
-            FIELD-ACCESS {
-              IDENTIFIER "cert"
-              DOLLAR
-              IDENTIFIER "not_valid_before"
-            }
-          }
-          RPAREN
-        }
-      }
-      OP "/"
-      CONSTANT "86400.0"
+EXPORT {
+  KEYWORD "export"
+  SP
+  LBRACE
+  GLOBAL-DECL {
+    KEYWORD "const"
+    SP
+    IDENTIFIER "cert_hygiene_server_wl_source"
+    DECL-INIT {
+      ASSIGN "="
+      CONSTANT "\"cert-hygiene-server-wl.txt\""
     }
+    ATTR-LIST {
+      ATTR "&redef"
+    }
+    SEMI
   }
-  SEMI
+  RBRACE
 }
-COMMENT-TRAILING "# This is a comment that makes the line very long"

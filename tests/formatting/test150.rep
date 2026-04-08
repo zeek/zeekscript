@@ -1,32 +1,16 @@
-FUNC-DECL {
-  KEYWORD "function"
+LOCAL-DECL {
+  KEYWORD "local"
   SP
-  IDENTIFIER "f"
-  PARAMS {
-    LPAREN
-    RPAREN
-  }
-  BODY {
-    LBRACE
-    SWITCH {
-      KEYWORD "switch"
-      SP
-      IDENTIFIER "val"
-      LBRACE
-      CASE {
-        KEYWORD "case"
-        SP
-        VALUES {
-          CONSTANT "0"
-        }
-        COLON
-        BODY {
-          KEYWORD "break"
-          SEMI
-        }
-      }
-      RBRACE
+  IDENTIFIER "x"
+  DECL-INIT {
+    ASSIGN "="
+    TERNARY {
+      IDENTIFIER "some_very_long_condition_expression_here"
+      QUESTION
+      IDENTIFIER "some_very_long_true_value_expression_here"
+      COLON
+      IDENTIFIER "some_long_false"
     }
-    RBRACE
   }
+  SEMI
 }

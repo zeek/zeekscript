@@ -1,16 +1,7 @@
-LOCAL-DECL {
-  KEYWORD "local"
+MODULE "SomeMod" {
+  KEYWORD "module"
   SP
-  IDENTIFIER "x"
-  DECL-INIT {
-    ASSIGN "="
-    TERNARY {
-      IDENTIFIER "cond"
-      QUESTION
-      IDENTIFIER "some_very_very_very_long_true_value_expression_here"
-      COLON
-      IDENTIFIER "some_very_very_very_long_false_value_expression_here"
-    }
-  }
+  IDENTIFIER "SomeMod"
   SEMI
 }
+COMMENT-TRAILING "# main module"

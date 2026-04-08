@@ -1,10 +1,5 @@
-function some_fn()
+event zeek_init()
 	{
-	local info =
-		SomeModule::SomeFn($note=Found, $uid=uid,
-		               $msg=fmt("%s found on %s entity using %s item.",
-		                            usecase_desc, orig_entity, item),
-		                   $sub=fmt("Score: %s. Days: %s", item_score,
-		                            history_days),
-		                   $identifier=cat(orig_entity, usecase, item));
+	Some::create_stream(SOME::LOG, [$columns=Info, $path="some_path",
+	                                $policy=log_policy]);
 	}

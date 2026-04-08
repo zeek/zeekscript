@@ -8,46 +8,65 @@ FUNC-DECL {
   }
   BODY {
     LBRACE
-    IF-NO-ELSE {
-      KEYWORD "if"
+    LOCAL-DECL {
+      KEYWORD "local"
       SP
-      LPAREN
-      IDENTIFIER "test"
-      RPAREN
-      BODY {
-        BLOCK {
-          LBRACE
-          BLANK
-          LOCAL-DECL {
-            KEYWORD "local"
-            SP
-            IDENTIFIER "some_val"
-            DECL-INIT {
-              ASSIGN "="
-              CALL {
-                IDENTIFIER "some_long_func_name"
-                ARGS {
-                  LPAREN
-                  INDEX {
-                    IDENTIFIER "result_chain"
-                    SUBSCRIPTS {
-                      LBRACKET
-                      CONSTANT "1"
-                      RBRACKET
-                    }
+      IDENTIFIER "val"
+      DECL-INIT {
+        ASSIGN "="
+        CALL {
+          IDENTIFIER "some_long_func_name"
+          ARGS {
+            LPAREN
+            SLICE {
+              IDENTIFIER "data"
+              LBRACKET
+              BINARY-OP "+" {
+                BINARY-OP "-" {
+                  FIELD-ACCESS {
+                    IDENTIFIER "some"
+                    DOLLAR
+                    IDENTIFIER "off"
                   }
-                  COMMA
-                  CONSTANT "4"
-                  RPAREN
+                  OP "-"
+                  CONSTANT "1"
                 }
+                OP "+"
+                CONSTANT "8"
               }
+              COLON
+              BINARY-OP "-" {
+                BINARY-OP "+" {
+                  BINARY-OP "+" {
+                    BINARY-OP "-" {
+                      FIELD-ACCESS {
+                        IDENTIFIER "some"
+                        DOLLAR
+                        IDENTIFIER "off"
+                      }
+                      OP "-"
+                      CONSTANT "1"
+                    }
+                    OP "+"
+                    CONSTANT "10"
+                  }
+                  OP "+"
+                  DIV {
+                    CONSTANT "23"
+                    OP "/"
+                    CONSTANT "15"
+                  }
+                }
+                OP "-"
+                CONSTANT "3"
+              }
+              RBRACKET
             }
-            SEMI
+            RPAREN
           }
-          COMMENT-TRAILING "# HASH"
-          RBRACE
         }
       }
+      SEMI
     }
     RBRACE
   }

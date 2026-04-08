@@ -1,39 +1,118 @@
-IF-NO-ELSE {
-  KEYWORD "if"
+GLOBAL-DECL {
+  KEYWORD "const"
   SP
-  LPAREN
-  BOOL-CHAIN "&&" {
-    IDENTIFIER "first_condition"
-    OP "&&"
-    IDENTIFIER "second_condition"
-    OP "&&"
-    IDENTIFIER "third_condition"
-    OP "&&"
-    BINARY-OP ">" {
-      FIELD-ACCESS {
-        IDENTIFIER "some_object"
-        DOLLAR
-        IDENTIFIER "long_field"
+  IDENTIFIER "some_lookup"
+  DECL-TYPE {
+    COLON
+    TYPE-PARAMETERIZED "table" {
+      SUBSCRIPTS {
+        LBRACKET
+        TYPE-ATOM "string"
+        RBRACKET
       }
-      OP ">"
-      FIELD-ACCESS {
-        IDENTIFIER "another_object"
-        DOLLAR
-        IDENTIFIER "other_field"
+      KEYWORD "of"
+      SP
+      TYPE-ATOM "string"
+    }
+  }
+  DECL-INIT {
+    ASSIGN "="
+    CONSTRUCTOR {
+      KEYWORD "table"
+      ARGS {
+        LPAREN
+        BINARY-OP "=" {
+          INDEX-LITERAL {
+            ARGS {
+              LBRACKET
+              CONSTANT "\"some-key-aa\""
+              RBRACKET
+            }
+          }
+          OP "="
+          CONSTANT "\"val-aa\""
+        }
+        COMMA
+        BINARY-OP "=" {
+          INDEX-LITERAL {
+            ARGS {
+              LBRACKET
+              CONSTANT "\"some-key-bb\""
+              RBRACKET
+            }
+          }
+          OP "="
+          CONSTANT "\"val-bb\""
+        }
+        COMMA
+        BINARY-OP "=" {
+          INDEX-LITERAL {
+            ARGS {
+              LBRACKET
+              CONSTANT "\"some-key-cc\""
+              RBRACKET
+            }
+          }
+          OP "="
+          CONSTANT "\"val-cc\""
+        }
+        COMMA
+        BINARY-OP "=" {
+          INDEX-LITERAL {
+            ARGS {
+              LBRACKET
+              CONSTANT "\"some-key-dd\""
+              RBRACKET
+            }
+          }
+          OP "="
+          CONSTANT "\"val-dd\""
+        }
+        COMMA
+        TRAILING-COMMA
+        RPAREN
       }
     }
   }
-  RPAREN
-  BODY {
-    EXPR-STMT {
-      CALL {
-        IDENTIFIER "do_something"
-        ARGS {
+  ATTR-LIST {
+    ATTR "&default" {
+      ASSIGN "="
+      LAMBDA {
+        KEYWORD "function"
+        SP
+        PARAMS {
           LPAREN
+          PARAM "n" {
+            COLON
+            TYPE-ATOM "string"
+          }
           RPAREN
         }
+        COLON
+        RETURNS {
+          TYPE-ATOM "string"
+        }
+        BODY {
+          LBRACE
+          RETURN {
+            KEYWORD "return"
+            SP
+            CALL {
+              IDENTIFIER "fmt"
+              ARGS {
+                LPAREN
+                CONSTANT "\"fixme-%s\""
+                COMMA
+                IDENTIFIER "n"
+                RPAREN
+              }
+            }
+            SEMI
+          }
+          RBRACE
+        }
       }
-      SEMI
     }
   }
+  SEMI
 }

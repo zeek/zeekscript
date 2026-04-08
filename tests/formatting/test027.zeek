@@ -1,1 +1,1 @@
-function f() { switch tag_type { case "some_analyzer_udp", "some_analyzer_udp_hmac_md5", "some_analyzer_udp_hmac_sha1", "some_analyzer_udp_hmac_sha256": break; } }
+event foo() { SomeModule::seen([$some_field=SomeModule::build_value(c$some_data$items[stream]), $some_type=SomeModule::URL, $conn=c, $where=SomeModule::IN_URL]); }

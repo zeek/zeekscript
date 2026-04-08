@@ -1,100 +1,33 @@
-GLOBAL-DECL {
-  KEYWORD "const"
+FUNC-DECL {
+  KEYWORD "event"
   SP
-  IDENTIFIER "tbl"
-  DECL-TYPE {
-    COLON
-    TYPE-PARAMETERIZED "table" {
-      SUBSCRIPTS {
-        LBRACKET
-        TYPE-ATOM "count"
-        RBRACKET
-      }
-      KEYWORD "of"
+  IDENTIFIER "some_evt"
+  PARAMS {
+    LPAREN
+    RPAREN
+  }
+  BODY {
+    LBRACE
+    FOR {
+      KEYWORD "for"
       SP
-      TYPE-ATOM "string"
-    }
-  }
-  DECL-INIT {
-    ASSIGN "="
-    CONSTRUCTOR {
-      KEYWORD "table"
-      ARGS {
-        LPAREN
-        BINARY-OP "=" {
-          INDEX-LITERAL {
-            ARGS {
-              LBRACKET
-              CONSTANT "0x00"
-              RBRACKET
-            }
-          }
-          OP "="
-          CONSTANT "\"AAAA\""
+      LPAREN
+      FOR-COND {
+        IDENTIFIER "idx"
+        KEYWORD "in"
+        IDENTIFIER "some_list"
+      }
+      RPAREN
+      COMMENT-TRAILING "# iterate items"
+      BODY {
+        PRINT {
+          KEYWORD "print"
+          SP
+          IDENTIFIER "idx"
+          SEMI
         }
-        COMMA
-        BINARY-OP "=" {
-          INDEX-LITERAL {
-            ARGS {
-              LBRACKET
-              CONSTANT "0x01"
-              RBRACKET
-            }
-          }
-          OP "="
-          CONSTANT "\"BBBB\""
-        }
-        COMMA
-        BINARY-OP "=" {
-          INDEX-LITERAL {
-            ARGS {
-              LBRACKET
-              CONSTANT "0x02"
-              RBRACKET
-            }
-          }
-          OP "="
-          CONSTANT "\"CCCC\""
-        }
-        COMMA
-        BINARY-OP "=" {
-          INDEX-LITERAL {
-            ARGS {
-              LBRACKET
-              CONSTANT "0x03"
-              RBRACKET
-            }
-          }
-          OP "="
-          CONSTANT "\"DDDD\""
-        }
-        COMMA
-        BINARY-OP "=" {
-          INDEX-LITERAL {
-            ARGS {
-              LBRACKET
-              CONSTANT "0x04"
-              RBRACKET
-            }
-          }
-          OP "="
-          CONSTANT "\"EEEE\""
-        }
-        COMMA
-        BINARY-OP "=" {
-          INDEX-LITERAL {
-            ARGS {
-              LBRACKET
-              CONSTANT "0x05"
-              RBRACKET
-            }
-          }
-          OP "="
-          CONSTANT "\"FFFF\""
-        }
-        RPAREN
       }
     }
+    RBRACE
   }
-  SEMI
 }

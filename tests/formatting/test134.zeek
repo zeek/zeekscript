@@ -1,5 +1,1 @@
-event some_event()
-	{
-	some_func([$aa=BB, $cc=dd, #@ SOME-TAG
-	           $ee=ff]);
-	}
+redef SomeModule::some_generic_packet_thresholds += set(skip_conn_packet_threshold);

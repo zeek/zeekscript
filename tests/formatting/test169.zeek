@@ -1,4 +1,1 @@
-function some_func(): count
-	{
-	return 42; # the answer
-	}
+const xs: vector of count = {1, 2, 3};

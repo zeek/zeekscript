@@ -1,43 +1,57 @@
-GLOBAL-DECL {
-  KEYWORD "global"
+FUNC-DECL {
+  KEYWORD "function"
   SP
-  IDENTIFIER "some_tracking_var"
-  DECL-TYPE {
-    COLON
-    TYPE-PARAMETERIZED "table" {
-      SUBSCRIPTS {
-        LBRACKET
-        TYPE-ATOM "count"
-        COMMA
-        TYPE-ATOM "string"
-        RBRACKET
-      }
-      KEYWORD "of"
-      SP
-      TYPE-ATOM "TrackingRec"
+  IDENTIFIER "some_func"
+  PARAMS {
+    LPAREN
+    PARAM "a" {
+      COLON
+      TYPE-ATOM "count"
     }
+    COMMA
+    PARAM "b" {
+      COLON
+      TYPE-ATOM "string"
+    }
+    COMMA
+    PARAM "rec" {
+      COLON
+      TYPE-ATOM "SomeRec"
+    }
+    RPAREN
   }
-  ATTR-LIST {
-    ATTR "&default_insert" {
-      ASSIGN "="
-      CALL {
-        IDENTIFIER "TrackingRec"
-        ARGS {
-          LPAREN
-          FIELD-ASSIGN "field" {
-            DOLLAR
-            ASSIGN "="
-            IDENTIFIER "val"
-          }
-          RPAREN
+  BODY {
+    LBRACE
+    COMMENT-LEADING "#@ BEGIN-SKIP-TESTING"
+    IF-NO-ELSE {
+      KEYWORD "if"
+      SP
+      LPAREN
+      BINARY-OP "in" {
+        IDENTIFIER "rec"
+        OP "in"
+        IDENTIFIER "did_check"
+      }
+      RPAREN
+      BODY {
+        RETURN-VOID {
+          KEYWORD "return"
+          SP
+          SEMI
         }
       }
     }
-    ATTR "&create_expire" {
-      ASSIGN "="
-      INTERVAL "10" "sec"
+    COMMENT-LEADING "#@ END-SKIP-TESTING\n"
+    EXPR-STMT {
+      CALL {
+        IDENTIFIER "next_thing"
+        ARGS {
+          LPAREN
+          RPAREN
+        }
+      }
+      SEMI
     }
-    ATTR "&redef"
+    RBRACE
   }
-  SEMI
 }

@@ -1,29 +1,40 @@
-LOCAL-DECL {
-  KEYWORD "local"
+FUNC-DECL {
+  KEYWORD "function"
   SP
-  IDENTIFIER "x"
-  DECL-INIT {
-    ASSIGN "="
-    CONSTRUCTOR {
-      KEYWORD "set"
-      ARGS {
-        LPAREN
-        CONSTANT "1.0.0.2/31"
-        COMMA
-        CONSTANT "1.1.1.2/31"
-        COMMA
-        CONSTANT "3.7.176.123/32"
-        COMMA
-        CONSTANT "5.1.66.255/32"
-        COMMA
-        CONSTANT "5.2.75.75/32"
-        COMMA
-        CONSTANT "5.45.107.88/32"
-        COMMA
-        CONSTANT "8.8.4.4/32"
-        RPAREN
-      }
-    }
+  IDENTIFIER "f"
+  PARAMS {
+    LPAREN
+    RPAREN
   }
-  SEMI
+  BODY {
+    LBRACE
+    LOCAL-DECL {
+      KEYWORD "local"
+      SP
+      IDENTIFIER "info"
+      DECL-INIT {
+        ASSIGN "="
+        CALL {
+          IDENTIFIER "SomeModule::SomeRecord"
+          ARGS {
+            LPAREN
+            FIELD-ASSIGN "field1" {
+              DOLLAR
+              ASSIGN "="
+              IDENTIFIER "some_very_long_value"
+            }
+            COMMA
+            FIELD-ASSIGN "field2" {
+              DOLLAR
+              ASSIGN "="
+              IDENTIFIER "another_long_value"
+            }
+            RPAREN
+          }
+        }
+      }
+      SEMI
+    }
+    RBRACE
+  }
 }

@@ -1,21 +1,27 @@
-GLOBAL-DECL {
-  KEYWORD "redef"
+EXPORT {
+  KEYWORD "export"
   SP
-  IDENTIFIER "foo"
-  DECL-INIT {
-    ASSIGN "+="
-    CALL {
-      IDENTIFIER "set"
-      ARGS {
-        LPAREN
-        CONSTANT "\"a\""
-        COMMA
-        CONSTANT "\"b\""
-        COMMA
-        CONSTANT "\"c\""
-        RPAREN
+  LBRACE
+  GLOBAL-DECL {
+    KEYWORD "option"
+    SP
+    IDENTIFIER "some_hosts"
+    DECL-INIT {
+      ASSIGN "="
+      CALL {
+        IDENTIFIER "set"
+        ARGS {
+          LPAREN
+          CONSTANT "\"some.host.example.com\""
+          COMMA
+          CONSTANT "\"another.longer.hostname.example.org\""
+          COMMA
+          CONSTANT "\"yet.another.host.example.net\""
+          RPAREN
+        }
       }
     }
+    SEMI
   }
-  SEMI
+  RBRACE
 }

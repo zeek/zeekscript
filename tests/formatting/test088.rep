@@ -1,20 +1,4 @@
-GLOBAL-DECL {
-  KEYWORD "global"
-  SP
-  IDENTIFIER "x"
-  DECL-INIT {
-    ASSIGN "="
-    INDEX-LITERAL {
-      ARGS {
-        LBRACKET
-        CONSTANT "1"
-        COMMA
-        COMMENT-TRAILING "# Comment one"
-        CONSTANT "2"
-        COMMENT-TRAILING "# Comment two"
-        RBRACKET
-      }
-    }
-  }
+EXPR-STMT {
+  INTERVAL "1" "sec"
   SEMI
 }

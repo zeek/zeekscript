@@ -1,2 +1,4 @@
-age_d = interval_to_double(network_time() - cert$not_valid_before)/
-        86400.0; # This is a comment that makes the line very long
+export {
+	const cert_hygiene_server_wl_source =
+		"cert-hygiene-server-wl.txt" &redef;
+}

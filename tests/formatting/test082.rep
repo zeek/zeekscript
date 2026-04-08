@@ -3,6 +3,8 @@ EXPR-STMT {
     ARGS {
       LBRACKET
       CONSTANT "1"
+      COMMA
+      TRAILING-COMMA
       RBRACKET
     }
   }

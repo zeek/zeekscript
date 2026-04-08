@@ -1,60 +1,62 @@
 FUNC-DECL {
-  KEYWORD "function"
+  KEYWORD "event"
   SP
-  IDENTIFIER "some_func"
+  IDENTIFIER "some_handler"
   PARAMS {
     LPAREN
+    PARAM "aa" {
+      COLON
+      TYPE-ATOM "connection"
+    }
+    COMMA
+    PARAM "bb" {
+      COLON
+      TYPE-ATOM "bool"
+    }
+    COMMA
+    PARAM "cc" {
+      COLON
+      TYPE-ATOM "count"
+    }
+    COMMA
+    PARAM "dd" {
+      COLON
+      TYPE-ATOM "string"
+    }
+    COMMA
+    PARAM "ee" {
+      COLON
+      TYPE-ATOM "string"
+    }
+    COMMA
+    PARAM "ff" {
+      COLON
+      TYPE-ATOM "string"
+    }
+    COMMA
+    PARAM "gg" {
+      COLON
+      TYPE-ATOM "string"
+    }
+    COMMA
+    PARAM "hh" {
+      COLON
+      TYPE-ATOM "string"
+    }
+    COMMA
+    PARAM "ii" {
+      COLON
+      TYPE-ATOM "string"
+    }
+    COMMA
+    PARAM "jj" {
+      COLON
+      TYPE-ATOM "bool"
+    }
     RPAREN
   }
   BODY {
     LBRACE
-    IF-NO-ELSE {
-      KEYWORD "if"
-      SP
-      LPAREN
-      BOOL-CHAIN "&&" {
-        HAS-FIELD {
-          BOOL-CHAIN "&&" {
-            IDENTIFIER "some_long_var_aa"
-            OP "&&"
-            BINARY-OP "==" {
-              FIELD-ACCESS {
-                IDENTIFIER "some_var"
-                DOLLAR
-                IDENTIFIER "some_field"
-              }
-              OP "=="
-              CONSTANT "\"ok\""
-            }
-            OP "&&"
-            IDENTIFIER "other"
-          }
-          OP "?$"
-          IDENTIFIER "some_chain"
-        }
-        OP "&&"
-        BINARY-OP ">" {
-          CARDINALITY {
-            OP "|"
-            FIELD-ACCESS {
-              IDENTIFIER "other"
-              DOLLAR
-              IDENTIFIER "some_chain"
-            }
-            OP "|"
-          }
-          OP ">"
-          CONSTANT "2"
-        }
-      }
-      RPAREN
-      BODY {
-        BLOCK {
-          LBRACE
-          RBRACE
-        }
-      }
-    }
     RBRACE
   }
 }

@@ -1,7 +1,7 @@
 FUNC-DECL {
   KEYWORD "event"
   SP
-  IDENTIFIER "SomeModule::some_raised_evt"
+  IDENTIFIER "some_generic_packet_threshold_crossed"
   PARAMS {
     LPAREN
     PARAM "c" {
@@ -9,41 +9,16 @@ FUNC-DECL {
       TYPE-ATOM "connection"
     }
     COMMA
-    PARAM "is_orig" {
-      COLON
-      TYPE-ATOM "bool"
-    }
-    COMMA
-    PARAM "version" {
+    PARAM "threshold" {
       COLON
       TYPE-ATOM "count"
-    }
-    COMMA
-    PARAM "some_dcid" {
-      COLON
-      TYPE-ATOM "string"
-    }
-    COMMA
-    PARAM "some_scid" {
-      COLON
-      TYPE-ATOM "string"
-    }
-    COMMA
-    PARAM "some_retoken" {
-      COLON
-      TYPE-ATOM "string"
-    }
-    COMMA
-    PARAM "some_integ_tag" {
-      COLON
-      TYPE-ATOM "string"
     }
     RPAREN
   }
   ATTR-LIST {
     ATTR "&group" {
       ASSIGN "="
-      IDENTIFIER "SomeEvtGroup"
+      IDENTIFIER "MyPkg_SomeUnknownprotos_EvtGroup"
     }
   }
   BODY {

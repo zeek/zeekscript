@@ -1,68 +1,72 @@
 FUNC-DECL {
-  KEYWORD "event"
+  KEYWORD "function"
   SP
-  IDENTIFIER "some_evt"
+  IDENTIFIER "f"
   PARAMS {
     LPAREN
-    PARAM "c" {
-      COLON
-      TYPE-ATOM "connection"
-    }
     RPAREN
   }
   BODY {
     LBRACE
-    EXPR-STMT {
-      CALL {
-        IDENTIFIER "NOTICE"
-        ARGS {
-          LPAREN
-          INDEX-LITERAL {
+    IF-NO-ELSE {
+      KEYWORD "if"
+      SP
+      LPAREN
+      IDENTIFIER "x"
+      RPAREN
+      BODY {
+        EXPR-STMT {
+          CALL {
+            IDENTIFIER "Input::add_event"
             ARGS {
-              LBRACKET
-              FIELD-ASSIGN "note" {
-                DOLLAR
-                ASSIGN "="
-                IDENTIFIER "Some_Notice"
-              }
-              COMMA
-              FIELD-ASSIGN "conn" {
-                DOLLAR
-                ASSIGN "="
-                IDENTIFIER "c"
-              }
-              COMMA
-              COMMENT-LEADING "# This is a comment about the next field."
-              COMMENT-LEADING "# Another comment line."
-              FIELD-ASSIGN "identifier" {
-                DOLLAR
-                ASSIGN "="
-                CALL {
-                  IDENTIFIER "cat"
-                  ARGS {
-                    LPAREN
-                    FIELD-ACCESS {
-                      IDENTIFIER "id"
-                      DOLLAR
-                      IDENTIFIER "orig_h"
-                    }
-                    COMMA
-                    FIELD-ACCESS {
-                      IDENTIFIER "id"
-                      DOLLAR
-                      IDENTIFIER "resp_h"
-                    }
-                    RPAREN
+              LPAREN
+              INDEX-LITERAL {
+                ARGS {
+                  LBRACKET
+                  FIELD-ASSIGN "source" {
+                    DOLLAR
+                    ASSIGN "="
+                    IDENTIFIER "some_config_source_setting"
                   }
+                  COMMA
+                  FIELD-ASSIGN "name" {
+                    DOLLAR
+                    ASSIGN "="
+                    IDENTIFIER "some_config_name_setting"
+                  }
+                  COMMA
+                  FIELD-ASSIGN "fields" {
+                    DOLLAR
+                    ASSIGN "="
+                    IDENTIFIER "SomeConfigRecord"
+                  }
+                  COMMA
+                  FIELD-ASSIGN "mode" {
+                    DOLLAR
+                    ASSIGN "="
+                    IDENTIFIER "Input::REREAD"
+                  }
+                  COMMA
+                  FIELD-ASSIGN "want_record" {
+                    DOLLAR
+                    ASSIGN "="
+                    CONSTANT "F"
+                  }
+                  COMMA
+                  FIELD-ASSIGN "ev" {
+                    DOLLAR
+                    ASSIGN "="
+                    IDENTIFIER "some_config_event_added"
+                  }
+                  RBRACKET
                 }
               }
-              RBRACKET
+              RPAREN
             }
           }
-          RPAREN
+          SEMI
         }
       }
-      SEMI
     }
     RBRACE
   }

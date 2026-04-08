@@ -1,45 +1,60 @@
-GLOBAL-DECL {
-  KEYWORD "global"
+FUNC-DECL {
+  KEYWORD "function"
   SP
-  IDENTIFIER "some_event_decl"
-  DECL-TYPE {
-    COLON
-    TYPE-FUNC "event" {
-      PARAMS {
-        LPAREN
-        PARAM "o" {
-          COLON
-          TYPE-ATOM "string"
-        }
-        COMMA
-        PARAM "label" {
-          COLON
-          TYPE-ATOM "string"
-        }
-        COMMA
-        PARAM "conf" {
-          COLON
-          TYPE-ATOM "score"
-        }
-        COMMA
-        PARAM "sources" {
-          COLON
-          TYPE-PARAMETERIZED "set" {
-            SUBSCRIPTS {
-              LBRACKET
-              TYPE-ATOM "string"
-              RBRACKET
+  IDENTIFIER "some_func"
+  PARAMS {
+    LPAREN
+    RPAREN
+  }
+  BODY {
+    LBRACE
+    IF-NO-ELSE {
+      KEYWORD "if"
+      SP
+      LPAREN
+      BOOL-CHAIN "&&" {
+        HAS-FIELD {
+          BOOL-CHAIN "&&" {
+            IDENTIFIER "some_long_var_aa"
+            OP "&&"
+            BINARY-OP "==" {
+              FIELD-ACCESS {
+                IDENTIFIER "some_var"
+                DOLLAR
+                IDENTIFIER "some_field"
+              }
+              OP "=="
+              CONSTANT "\"ok\""
             }
+            OP "&&"
+            IDENTIFIER "other"
           }
+          OP "?$"
+          IDENTIFIER "some_chain"
         }
-        COMMA
-        PARAM "caller" {
-          COLON
-          TYPE-ATOM "string"
+        OP "&&"
+        BINARY-OP ">" {
+          CARDINALITY {
+            OP "|"
+            FIELD-ACCESS {
+              IDENTIFIER "other"
+              DOLLAR
+              IDENTIFIER "some_chain"
+            }
+            OP "|"
+          }
+          OP ">"
+          CONSTANT "2"
         }
-        RPAREN
+      }
+      RPAREN
+      BODY {
+        BLOCK {
+          LBRACE
+          RBRACE
+        }
       }
     }
+    RBRACE
   }
-  SEMI
 }

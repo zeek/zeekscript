@@ -1,9 +1,9 @@
-event zeek_init()
+function foo()
 	{
-	register_handler(some_usecase,
-	                 function(h: addr, si: SomeInfo)
-				{
-				print h;
-				},
-	                 6.0);
+	some_handler(opt_id,
+	             function[evt_grp](id: string, val: bool): bool
+			{
+			return val;
+			}
+	             );
 	}

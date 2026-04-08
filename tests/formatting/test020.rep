@@ -1,30 +1,69 @@
-COMMENT-LEADING "#@ BEGIN-SKIP-TESTING\n"
 FUNC-DECL {
-  KEYWORD "function"
+  KEYWORD "event"
   SP
-  IDENTIFIER "some_func"
+  IDENTIFIER "some_evt"
   PARAMS {
     LPAREN
-    PARAM "val" {
+    PARAM "si" {
       COLON
-      TYPE-ATOM "string"
+      TYPE-ATOM "SomeInfo"
     }
     RPAREN
   }
   BODY {
     LBRACE
-    EXPR-STMT {
-      CALL {
-        IDENTIFIER "some_call"
-        ARGS {
-          LPAREN
-          IDENTIFIER "val"
-          RPAREN
+    IF-NO-ELSE {
+      KEYWORD "if"
+      SP
+      LPAREN
+      BOOL-CHAIN "&&" {
+        BINARY-OP ">" {
+          IDENTIFIER "coal_max_entries"
+          OP ">"
+          CONSTANT "0"
+        }
+        OP "&&"
+        BINARY-OP ">=" {
+          CARDINALITY {
+            OP "|"
+            IDENTIFIER "coalesced_state"
+            OP "|"
+          }
+          OP ">="
+          IDENTIFIER "coal_max_entries"
+        }
+        OP "&&"
+        BINARY-OP "!in" {
+          INDEX-LITERAL {
+            ARGS {
+              LBRACKET
+              IDENTIFIER "server_name"
+              COMMA
+              IDENTIFIER "server_subj"
+              COMMA
+              IDENTIFIER "server_issuer"
+              COMMA
+              IDENTIFIER "client_subj"
+              COMMA
+              IDENTIFIER "client_issuer"
+              COMMA
+              IDENTIFIER "ja3"
+              RBRACKET
+            }
+          }
+          OP "!in"
+          IDENTIFIER "coalesced_state"
         }
       }
-      SEMI
+      RPAREN
+      BODY {
+        RETURN-VOID {
+          KEYWORD "return"
+          SP
+          SEMI
+        }
+      }
     }
     RBRACE
   }
 }
-COMMENT-LEADING "\n#@ END-SKIP-TESTING"

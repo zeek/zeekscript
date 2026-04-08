@@ -1,116 +1,21 @@
 GLOBAL-DECL {
-  KEYWORD "const"
+  KEYWORD "redef"
   SP
-  IDENTIFIER "some_lookup"
-  DECL-TYPE {
-    COLON
-    TYPE-PARAMETERIZED "table" {
-      SUBSCRIPTS {
-        LBRACKET
-        TYPE-ATOM "string"
-        RBRACKET
-      }
-      KEYWORD "of"
-      SP
-      TYPE-ATOM "string"
-    }
-  }
+  IDENTIFIER "some_hosts"
   DECL-INIT {
-    ASSIGN "="
-    CONSTRUCTOR {
-      KEYWORD "table"
+    ASSIGN "+="
+    CALL {
+      IDENTIFIER "set"
       ARGS {
         LPAREN
-        BINARY-OP "=" {
-          INDEX-LITERAL {
-            ARGS {
-              LBRACKET
-              CONSTANT "\"some-key-aa\""
-              RBRACKET
-            }
-          }
-          OP "="
-          CONSTANT "\"val-aa\""
-        }
+        CONSTANT "\"some.host.example.com\""
         COMMA
-        BINARY-OP "=" {
-          INDEX-LITERAL {
-            ARGS {
-              LBRACKET
-              CONSTANT "\"some-key-bb\""
-              RBRACKET
-            }
-          }
-          OP "="
-          CONSTANT "\"val-bb\""
-        }
+        CONSTANT "\"another.longer.hostname.example.org\""
         COMMA
-        BINARY-OP "=" {
-          INDEX-LITERAL {
-            ARGS {
-              LBRACKET
-              CONSTANT "\"some-key-cc\""
-              RBRACKET
-            }
-          }
-          OP "="
-          CONSTANT "\"val-cc\""
-        }
-        COMMA
-        BINARY-OP "=" {
-          INDEX-LITERAL {
-            ARGS {
-              LBRACKET
-              CONSTANT "\"some-key-dd\""
-              RBRACKET
-            }
-          }
-          OP "="
-          CONSTANT "\"val-dd\""
-        }
+        CONSTANT "\"yet.another.host.example.net\""
         COMMA
         TRAILING-COMMA
         RPAREN
-      }
-    }
-  }
-  ATTR-LIST {
-    ATTR "&default" {
-      ASSIGN "="
-      LAMBDA {
-        KEYWORD "function"
-        SP
-        PARAMS {
-          LPAREN
-          PARAM "n" {
-            COLON
-            TYPE-ATOM "string"
-          }
-          RPAREN
-        }
-        COLON
-        RETURNS {
-          TYPE-ATOM "string"
-        }
-        BODY {
-          LBRACE
-          RETURN {
-            KEYWORD "return"
-            SP
-            CALL {
-              IDENTIFIER "fmt"
-              ARGS {
-                LPAREN
-                CONSTANT "\"fixme-%s\""
-                COMMA
-                IDENTIFIER "n"
-                RPAREN
-              }
-            }
-            SEMI
-          }
-          RBRACE
-        }
       }
     }
   }

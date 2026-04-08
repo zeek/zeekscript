@@ -1,1 +1,4 @@
-const tbl: table[count] of string = table([1] = "a");
+event some_evt()
+	{
+	assert 1 == 1; # sanity
+	}

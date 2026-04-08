@@ -1,0 +1,9 @@
+function some_func_bb(c: connection, cnt: count): interval
+	{
+	if ( some_long_variable_a > 0 )
+		{
+		SomeModule::some_long_function_name(c,
+		                                    (some_long_variable_a + 3) *
+		                                    some_long_variable_bb, F);
+		}
+	}

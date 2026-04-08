@@ -1,31 +1,52 @@
-LOCAL-DECL {
-  KEYWORD "local"
+FUNC-DECL {
+  KEYWORD "event"
   SP
-  IDENTIFIER "x"
-  DECL-INIT {
-    ASSIGN "="
-    INDEX-LITERAL {
-      ARGS {
-        LBRACKET
-        FIELD-ASSIGN "msg" {
-          DOLLAR
-          ASSIGN "="
-          CALL {
-            IDENTIFIER "fmt"
-            ARGS {
+  IDENTIFIER "zeek_init"
+  PARAMS {
+    LPAREN
+    RPAREN
+  }
+  BODY {
+    LBRACE
+    EXPR-STMT {
+      CALL {
+        IDENTIFIER "register_handler"
+        ARGS {
+          LPAREN
+          LAMBDA {
+            KEYWORD "function"
+            SP
+            PARAMS {
               LPAREN
-              CONSTANT "\"Host uses protocol version %s which is lower than the safe minimum %s\""
+              PARAM "h" {
+                COLON
+                TYPE-ATOM "addr"
+              }
               COMMA
-              IDENTIFIER "some_string"
-              COMMA
-              IDENTIFIER "other_string_a"
+              PARAM "si" {
+                COLON
+                TYPE-ATOM "SomeInfo"
+              }
               RPAREN
             }
+            BODY {
+              LBRACE
+              PRINT {
+                KEYWORD "print"
+                SP
+                IDENTIFIER "h"
+                SEMI
+              }
+              RBRACE
+            }
           }
+          COMMA
+          CONSTANT "6.0"
+          RPAREN
         }
-        RBRACKET
       }
+      SEMI
     }
+    RBRACE
   }
-  SEMI
 }

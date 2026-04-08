@@ -1,6 +1,6 @@
-function some_function_name_aa(c: connection): string
+function some_func(val: string)
 	{
-	if ( c?$tunnel && |c$tunnel| >= 2 &&
-	     c$tunnel[|c$tunnel| - 1]$tunnel_type == Tunnel::VXLAN )
-		print "yep";
+	if ( SomeModule::check_ready() )
+		SomeModule::send_msg(pt, some_long_handler,
+		                     to_addr(rec$some_field), p);
 	}

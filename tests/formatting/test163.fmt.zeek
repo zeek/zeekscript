@@ -1,5 +1,5 @@
-function some_func(a: count, b: string, rec: SomeRec)
+event some_evt()
 	{
-	if ( rec in did_check ) #@ BEGIN-SKIP-TESTING
-		return;
+	while ( some_flag ) # keep going
+		print 1;
 	}

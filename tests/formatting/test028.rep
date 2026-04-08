@@ -1,42 +1,11 @@
-FUNC-DECL {
-  KEYWORD "event"
-  SP
-  IDENTIFIER "zeek_init"
-  PARAMS {
-    LPAREN
-    RPAREN
-  }
-  BODY {
-    LBRACE
-    EXPR-STMT {
-      CALL {
-        IDENTIFIER "SomeModule::some_register_fn"
-        ARGS {
-          LPAREN
-          IDENTIFIER "SomeModule::SOME_ANALYZER"
-          COMMA
-          INDEX-LITERAL {
-            ARGS {
-              LBRACKET
-              FIELD-ASSIGN "get_handle" {
-                DOLLAR
-                ASSIGN "="
-                IDENTIFIER "SomeModule::get_handle"
-              }
-              COMMA
-              FIELD-ASSIGN "describe" {
-                DOLLAR
-                ASSIGN "="
-                IDENTIFIER "SomeModule::describe_it"
-              }
-              RBRACKET
-            }
-          }
-          RPAREN
-        }
-      }
-      SEMI
-    }
-    RBRACE
-  }
+COMMENT-LEADING "# Some comment."
+COMMENT-LEADING "#@ BEGIN-SKIP-TESTING"
+PREPROC-COND "@if" "some_func(\"/some/path\") > 0" {
+  LPAREN
+  RPAREN
 }
+PREPROC "@load" "/some/path"
+PREPROC "@else"
+PREPROC "@load" "packages/some-pkg"
+PREPROC "@endif"
+COMMENT-LEADING "#@ END-SKIP-TESTING"

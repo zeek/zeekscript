@@ -1,7 +1,7 @@
 FUNC-DECL {
-  KEYWORD "event"
+  KEYWORD "function"
   SP
-  IDENTIFIER "zeek_init"
+  IDENTIFIER "f"
   PARAMS {
     LPAREN
     RPAREN
@@ -9,37 +9,19 @@ FUNC-DECL {
   BODY {
     LBRACE
     EXPR-STMT {
-      CALL {
-        IDENTIFIER "Log::create_stream"
-        ARGS {
-          LPAREN
-          IDENTIFIER "LOG"
-          COMMA
-          INDEX-LITERAL {
-            ARGS {
-              LBRACKET
-              FIELD-ASSIGN "columns" {
-                DOLLAR
-                ASSIGN "="
-                IDENTIFIER "Conn::Info"
-              }
-              COMMA
-              FIELD-ASSIGN "path" {
-                DOLLAR
-                ASSIGN "="
-                IDENTIFIER "path"
-              }
-              COMMA
-              FIELD-ASSIGN "policy" {
-                DOLLAR
-                ASSIGN "="
-                IDENTIFIER "Conn::log_policy"
-              }
-              RBRACKET
-            }
+      SCHEDULE {
+        KEYWORD "schedule"
+        SP
+        IDENTIFIER "some_time_interval"
+        LBRACE
+        CALL {
+          IDENTIFIER "SomeModule::some_very_long_event_name"
+          ARGS {
+            LPAREN
+            RPAREN
           }
-          RPAREN
         }
+        RBRACE
       }
       SEMI
     }

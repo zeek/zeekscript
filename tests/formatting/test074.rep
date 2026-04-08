@@ -1,10 +1,14 @@
 EXPR-STMT {
   SLICE-PARTIAL {
-    IDENTIFIER "xs"
+    IDENTIFIER "data"
     LBRACKET
     CONSTANT ""
     COLON
-    CONSTANT "1"
+    BINARY-OP "-" {
+      CONSTANT "1"
+      OP "-"
+      CONSTANT "1"
+    }
     RBRACKET
   }
   SEMI

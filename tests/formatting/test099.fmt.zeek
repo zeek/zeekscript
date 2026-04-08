@@ -1,5 +1,7 @@
-function f()
+function some_func()
 	{
-	local info = SomeModule::SomeRecord($field1=some_very_long_value,
-	                                    $field2=another_long_value);
+	if ( test )
+		{
+		local some_val = some_long_func_name(result_chain[1], 4); # HASH
+		}
 	}

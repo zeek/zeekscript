@@ -1,4 +1,1 @@
-global x = [
-	1, # Comment one
-	2 # Comment two
-];
+1 sec;

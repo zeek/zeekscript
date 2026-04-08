@@ -1,1 +1,1 @@
-[1, 2, ];
+global x = table([1] = "one");

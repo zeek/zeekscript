@@ -1,9 +1,5 @@
-function f()
+event some_event_abc(host: addr, svc: string, region: string)
 	{
-	switch ( val ) {
-	case 0:
-		break;
-	case 1:
-		break;
-	}
+	local endpoints = some_long_variable_ab > 0 ?
+	                  calls$some_fld : "Disabled";
 	}

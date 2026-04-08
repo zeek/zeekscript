@@ -1,10 +1,1 @@
-@ifdef ( SOME_FEATURE )
-
-    event zeek_init()
-        {
-        print some_var;
-        }
-
-    # Note: This comment belongs inside the ifdef block.
-    # It should be tab-indented.
-@endif
+age_d = interval_to_double(network_time() - cert$not_valid_before) / 86400.0; # This is a comment that makes the line very long

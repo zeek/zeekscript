@@ -1,4 +1,4 @@
-event some_evt()
-	{ # Start tracking.
-	print 1;
-	}
+export {
+	const default_analyzer: PacketAnalyzer::Tag =
+		PacketAnalyzer::ANALYZER_IP &redef;
+}

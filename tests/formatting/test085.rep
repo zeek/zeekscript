@@ -1,13 +1,26 @@
-EXPR-STMT {
-  INDEX-LITERAL {
-    ARGS {
-      LBRACKET
-      CONSTANT "1"
-      COMMA
-      CONSTANT "2"
-      COMMA
-      TRAILING-COMMA
-      RBRACKET
+GLOBAL-DECL {
+  KEYWORD "global"
+  SP
+  IDENTIFIER "x"
+  DECL-INIT {
+    ASSIGN "="
+    CONSTRUCTOR {
+      KEYWORD "table"
+      ARGS {
+        LPAREN
+        BINARY-OP "=" {
+          INDEX-LITERAL {
+            ARGS {
+              LBRACKET
+              CONSTANT "1"
+              RBRACKET
+            }
+          }
+          OP "="
+          CONSTANT "\"one\""
+        }
+        RPAREN
+      }
     }
   }
   SEMI

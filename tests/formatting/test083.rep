@@ -5,6 +5,8 @@ EXPR-STMT {
       CONSTANT "1"
       COMMA
       CONSTANT "2"
+      COMMA
+      TRAILING-COMMA
       RBRACKET
     }
   }

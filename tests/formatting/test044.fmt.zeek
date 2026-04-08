@@ -1,11 +1,10 @@
-function foo()
-	{
-	if ( some_condition() )
-		{
-		local published = Some::long_func_name(proxy_pool,
-		                                       cat(c$id$orig_h, fqdn),
-		                                       SomeModule::some_handler,
-		                                       c$id$orig_h, c$uid, fqdn,
-		                                       conn$orig_bytes);
-		}
-	}
+export {
+	type AnomalyTypes: enum {
+		ANOMALY,
+		NEW_ENTITY,
+		NEW_ITEM,
+		NEW_ENTITY_NEW_ITEM,
+		NEW_ENTITY_ITEM_PAIR,
+		UNKNOWN
+	};
+}

@@ -1,8 +1,8 @@
-function some_func(c: connection, name: string, value: string, prefix: string)
-	{
-	if ( name == "some-type" )
-		some_handler(c, value, prefix + "-sfx"); #@ NOT-TESTED
+#@ BEGIN-SKIP-TESTING
 
-	else if ( name == "other-type" )
-		other_handler(c, value, prefix + "-sfx");
+function some_func(val: string)
+	{
+	some_call(val);
 	}
+
+#@ END-SKIP-TESTING

@@ -1,37 +1,73 @@
 FUNC-DECL {
-  KEYWORD "function"
+  KEYWORD "event"
   SP
-  IDENTIFIER "f"
+  IDENTIFIER "foo"
   PARAMS {
     LPAREN
     RPAREN
   }
   BODY {
     LBRACE
-    SWITCH {
-      KEYWORD "switch"
-      SP
-      IDENTIFIER "tag_type"
-      LBRACE
-      CASE {
-        KEYWORD "case"
-        SP
-        VALUES {
-          CONSTANT "\"some_analyzer_udp\""
-          COMMA
-          CONSTANT "\"some_analyzer_udp_hmac_md5\""
-          COMMA
-          CONSTANT "\"some_analyzer_udp_hmac_sha1\""
-          COMMA
-          CONSTANT "\"some_analyzer_udp_hmac_sha256\""
-        }
-        COLON
-        BODY {
-          KEYWORD "break"
-          SEMI
+    EXPR-STMT {
+      CALL {
+        IDENTIFIER "SomeModule::seen"
+        ARGS {
+          LPAREN
+          INDEX-LITERAL {
+            ARGS {
+              LBRACKET
+              FIELD-ASSIGN "some_field" {
+                DOLLAR
+                ASSIGN "="
+                CALL {
+                  IDENTIFIER "SomeModule::build_value"
+                  ARGS {
+                    LPAREN
+                    INDEX {
+                      FIELD-ACCESS {
+                        FIELD-ACCESS {
+                          IDENTIFIER "c"
+                          DOLLAR
+                          IDENTIFIER "some_data"
+                        }
+                        DOLLAR
+                        IDENTIFIER "items"
+                      }
+                      SUBSCRIPTS {
+                        LBRACKET
+                        IDENTIFIER "stream"
+                        RBRACKET
+                      }
+                    }
+                    RPAREN
+                  }
+                }
+              }
+              COMMA
+              FIELD-ASSIGN "some_type" {
+                DOLLAR
+                ASSIGN "="
+                IDENTIFIER "SomeModule::URL"
+              }
+              COMMA
+              FIELD-ASSIGN "conn" {
+                DOLLAR
+                ASSIGN "="
+                IDENTIFIER "c"
+              }
+              COMMA
+              FIELD-ASSIGN "where" {
+                DOLLAR
+                ASSIGN "="
+                IDENTIFIER "SomeModule::IN_URL"
+              }
+              RBRACKET
+            }
+          }
+          RPAREN
         }
       }
-      RBRACE
+      SEMI
     }
     RBRACE
   }

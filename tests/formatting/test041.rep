@@ -1,27 +1,25 @@
-EXPORT {
-  KEYWORD "export"
+LOCAL-DECL {
+  KEYWORD "local"
   SP
-  LBRACE
-  GLOBAL-DECL {
-    KEYWORD "option"
-    SP
-    IDENTIFIER "some_hosts"
-    DECL-INIT {
-      ASSIGN "="
-      CALL {
-        IDENTIFIER "set"
-        ARGS {
-          LPAREN
-          CONSTANT "\"some.host.example.com\""
-          COMMA
-          CONSTANT "\"another.longer.hostname.example.org\""
-          COMMA
-          CONSTANT "\"yet.another.host.example.net\""
-          RPAREN
-        }
+  IDENTIFIER "x"
+  DECL-INIT {
+    ASSIGN "="
+    CALL {
+      IDENTIFIER "set"
+      ARGS {
+        LPAREN
+        CONSTANT "\"a\""
+        COMMA
+        CONSTANT "\"b\""
+        COMMA
+        CONSTANT "\"c\""
+        COMMA
+        CONSTANT "\"d\""
+        COMMA
+        CONSTANT "\"e\""
+        RPAREN
       }
     }
-    SEMI
   }
-  RBRACE
+  SEMI
 }

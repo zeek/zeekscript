@@ -1,73 +1,25 @@
+COMMENT-LEADING "#@ BEGIN"
 FUNC-DECL {
   KEYWORD "function"
   SP
-  IDENTIFIER "f"
+  IDENTIFIER "foo"
   PARAMS {
     LPAREN
     RPAREN
   }
   BODY {
     LBRACE
-    IF-NO-ELSE {
-      KEYWORD "if"
-      SP
-      LPAREN
-      IDENTIFIER "x"
-      RPAREN
-      BODY {
-        EXPR-STMT {
-          CALL {
-            IDENTIFIER "Input::add_event"
-            ARGS {
-              LPAREN
-              INDEX-LITERAL {
-                ARGS {
-                  LBRACKET
-                  FIELD-ASSIGN "source" {
-                    DOLLAR
-                    ASSIGN "="
-                    IDENTIFIER "some_config_source_setting"
-                  }
-                  COMMA
-                  FIELD-ASSIGN "name" {
-                    DOLLAR
-                    ASSIGN "="
-                    IDENTIFIER "some_config_name_setting"
-                  }
-                  COMMA
-                  FIELD-ASSIGN "fields" {
-                    DOLLAR
-                    ASSIGN "="
-                    IDENTIFIER "SomeConfigRecord"
-                  }
-                  COMMA
-                  FIELD-ASSIGN "mode" {
-                    DOLLAR
-                    ASSIGN "="
-                    IDENTIFIER "Input::REREAD"
-                  }
-                  COMMA
-                  FIELD-ASSIGN "want_record" {
-                    DOLLAR
-                    ASSIGN "="
-                    CONSTANT "F"
-                  }
-                  COMMA
-                  FIELD-ASSIGN "ev" {
-                    DOLLAR
-                    ASSIGN "="
-                    IDENTIFIER "some_config_event_added"
-                  }
-                  RBRACKET
-                }
-              }
-              RPAREN
-            }
-          }
-          SEMI
+    EXPR-STMT {
+      CALL {
+        IDENTIFIER "bar"
+        ARGS {
+          LPAREN
+          RPAREN
         }
       }
+      SEMI
     }
     RBRACE
   }
 }
+COMMENT-LEADING "#@ END"

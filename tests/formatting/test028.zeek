@@ -1,1 +1,8 @@
-event zeek_init() { SomeModule::some_register_fn(SomeModule::SOME_ANALYZER, [$get_handle=SomeModule::get_handle, $describe=SomeModule::describe_it]); }
+# Some comment.
+#@ BEGIN-SKIP-TESTING
+@if ( some_func("/some/path") > 0 )
+    @load /some/path
+@else
+    @load packages/some-pkg
+@endif
+#@ END-SKIP-TESTING

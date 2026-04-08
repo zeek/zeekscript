@@ -1,70 +1,24 @@
-FUNC-DECL-RET {
+FUNC-DECL {
   KEYWORD "function"
   SP
-  IDENTIFIER "some_func_bb"
+  IDENTIFIER "foo"
   PARAMS {
     LPAREN
-    PARAM "c" {
-      COLON
-      TYPE-ATOM "connection"
-    }
-    COMMA
-    PARAM "cnt" {
-      COLON
-      TYPE-ATOM "count"
-    }
     RPAREN
-  }
-  COLON
-  RETURNS {
-    TYPE-ATOM "interval"
   }
   BODY {
     LBRACE
-    IF-NO-ELSE {
-      KEYWORD "if"
-      SP
+    PREPROC-COND "@if" "FOO" {
       LPAREN
-      BINARY-OP ">" {
-        IDENTIFIER "some_long_variable_a"
-        OP ">"
-        CONSTANT "0"
-      }
       RPAREN
-      BODY {
-        BLOCK {
-          LBRACE
-          EXPR-STMT {
-            CALL {
-              IDENTIFIER "SomeModule::some_long_function_name"
-              ARGS {
-                LPAREN
-                IDENTIFIER "c"
-                COMMA
-                BINARY-OP "*" {
-                  PAREN {
-                    LPAREN
-                    BINARY-OP "+" {
-                      IDENTIFIER "some_long_variable_a"
-                      OP "+"
-                      CONSTANT "3"
-                    }
-                    RPAREN
-                  }
-                  OP "*"
-                  IDENTIFIER "some_long_variable_bb"
-                }
-                COMMA
-                CONSTANT "F"
-                RPAREN
-              }
-            }
-            SEMI
-          }
-          RBRACE
-        }
-      }
     }
+    PRINT {
+      KEYWORD "print"
+      SP
+      CONSTANT "1"
+      SEMI
+    }
+    PREPROC "@endif"
     RBRACE
   }
 }

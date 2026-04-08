@@ -1,17 +1,32 @@
-GLOBAL-DECL {
-  KEYWORD "redef"
+FUNC-DECL {
+  KEYWORD "function"
   SP
-  IDENTIFIER "SomeModule::some_generic_packet_thresholds"
-  DECL-INIT {
-    ASSIGN "+="
-    CALL {
-      IDENTIFIER "set"
-      ARGS {
-        LPAREN
-        IDENTIFIER "skip_conn_packet_threshold"
-        RPAREN
-      }
-    }
+  IDENTIFIER "f"
+  PARAMS {
+    LPAREN
+    RPAREN
   }
-  SEMI
+  BODY {
+    LBRACE
+    SWITCH {
+      KEYWORD "switch"
+      SP
+      IDENTIFIER "val"
+      LBRACE
+      CASE {
+        KEYWORD "case"
+        SP
+        VALUES {
+          CONSTANT "0"
+        }
+        COLON
+        BODY {
+          KEYWORD "break"
+          SEMI
+        }
+      }
+      RBRACE
+    }
+    RBRACE
+  }
 }

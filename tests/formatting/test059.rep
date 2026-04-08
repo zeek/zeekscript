@@ -1,7 +1,7 @@
 FUNC-DECL {
-  KEYWORD "function"
+  KEYWORD "event"
   SP
-  IDENTIFIER "some_func"
+  IDENTIFIER "some_event"
   PARAMS {
     LPAREN
     RPAREN
@@ -12,56 +12,43 @@ FUNC-DECL {
       KEYWORD "if"
       SP
       LPAREN
-      HAS-FIELD {
-        BOOL-CHAIN "||" {
-          HAS-FIELD {
-            NEGATION {
-              OP "!"
-              IDENTIFIER "aa"
-            }
-            OP "?$"
-            IDENTIFIER "bb_chain"
-          }
-          OP "||"
-          BINARY-OP "==" {
-            CARDINALITY {
-              OP "|"
-              FIELD-ACCESS {
-                IDENTIFIER "aa"
-                DOLLAR
-                IDENTIFIER "bb_chain"
-              }
-              OP "|"
-            }
-            OP "=="
-            CONSTANT "0"
-          }
-          OP "||"
-          NEGATION {
-            OP "!"
-            INDEX {
-              FIELD-ACCESS {
-                IDENTIFIER "aa"
-                DOLLAR
-                IDENTIFIER "bb_chain"
-              }
-              SUBSCRIPTS {
-                LBRACKET
-                CONSTANT "0"
-                RBRACKET
-              }
-            }
-          }
-        }
-        OP "?$"
-        IDENTIFIER "cc"
-      }
+      IDENTIFIER "some_condition"
       RPAREN
       BODY {
-        RETURN {
-          KEYWORD "return"
-          SP
-          IDENTIFIER "dd"
+        EXPR-STMT {
+          CALL {
+            IDENTIFIER "SomeModule::some_long_call"
+            ARGS {
+              LPAREN
+              IDENTIFIER "some_first_arg"
+              COMMA
+              CALL {
+                IDENTIFIER "some_func"
+                ARGS {
+                  LPAREN
+                  FIELD-ACCESS {
+                    IDENTIFIER "aa"
+                    DOLLAR
+                    IDENTIFIER "xx"
+                  }
+                  COMMA
+                  FIELD-ACCESS {
+                    IDENTIFIER "aa"
+                    DOLLAR
+                    IDENTIFIER "yy"
+                  }
+                  RPAREN
+                }
+              }
+              COMMA
+              IDENTIFIER "some_other_arg"
+              COMMA
+              IDENTIFIER "bb"
+              COMMA
+              IDENTIFIER "cc"
+              RPAREN
+            }
+          }
           SEMI
         }
       }

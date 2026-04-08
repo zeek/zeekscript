@@ -1,29 +1,62 @@
-LOCAL-DECL {
-  KEYWORD "local"
+FUNC-DECL-RET {
+  KEYWORD "function"
   SP
-  IDENTIFIER "x"
-  DECL-INIT {
-    ASSIGN "="
-    CONSTRUCTOR {
-      KEYWORD "set"
-      ARGS {
-        LPAREN
-        CONSTANT "1.0.0.2/31"
-        COMMA
-        CONSTANT "1.1.1.2/31"
-        COMMA
-        CONSTANT "3.7.176.123/32"
-        COMMA
-        CONSTANT "5.1.66.255/32"
-        COMMA
-        CONSTANT "5.2.75.75/32"
-        COMMA
-        CONSTANT "5.45.107.88/32"
-        COMMA
-        CONSTANT "8.8.4.4/32"
-        RPAREN
-      }
+  IDENTIFIER "some_func_bb"
+  PARAMS {
+    LPAREN
+    PARAM "c" {
+      COLON
+      TYPE-ATOM "connection"
     }
+    COMMA
+    PARAM "cnt" {
+      COLON
+      TYPE-ATOM "count"
+    }
+    RPAREN
   }
-  SEMI
+  COLON
+  RETURNS {
+    TYPE-ATOM "interval"
+  }
+  BODY {
+    LBRACE
+    LOCAL-DECL {
+      KEYWORD "local"
+      SP
+      IDENTIFIER "some_long_variable_a"
+      DECL-INIT {
+        ASSIGN "="
+        CALL {
+          IDENTIFIER "double_to_count"
+          ARGS {
+            LPAREN
+            CALL {
+              IDENTIFIER "floor"
+              ARGS {
+                LPAREN
+                DIV {
+                  FIELD-ACCESS {
+                    FIELD-ACCESS {
+                      IDENTIFIER "c"
+                      DOLLAR
+                      IDENTIFIER "orig"
+                    }
+                    DOLLAR
+                    IDENTIFIER "size"
+                  }
+                  OP "/"
+                  IDENTIFIER "some_long_variable_bb"
+                }
+                RPAREN
+              }
+            }
+            RPAREN
+          }
+        }
+      }
+      SEMI
+    }
+    RBRACE
+  }
 }

@@ -1,43 +1,25 @@
-FUNC-DECL {
-  KEYWORD "event"
+EXPORT {
+  KEYWORD "export"
   SP
-  IDENTIFIER "some_encrypted_data"
-  PARAMS {
-    LPAREN
-    PARAM "c" {
+  LBRACE
+  GLOBAL-DECL {
+    KEYWORD "global"
+    SP
+    IDENTIFIER "SomeModule::some_long_handler"
+    DECL-TYPE {
       COLON
-      TYPE-ATOM "connection"
+      TYPE-FUNC "event" {
+        PARAMS {
+          LPAREN
+          PARAM "anomaly_data" {
+            COLON
+            TYPE-ATOM "SomePredictions"
+          }
+          RPAREN
+        }
+      }
     }
-    COMMA
-    PARAM "is_orig" {
-      COLON
-      TYPE-ATOM "bool"
-    }
-    COMMA
-    PARAM "some_record_vers" {
-      COLON
-      TYPE-ATOM "count"
-    }
-    COMMA
-    PARAM "some_content_t" {
-      COLON
-      TYPE-ATOM "count"
-    }
-    COMMA
-    PARAM "length" {
-      COLON
-      TYPE-ATOM "count"
-    }
-    RPAREN
+    SEMI
   }
-  ATTR-LIST {
-    ATTR "&group" {
-      ASSIGN "="
-      CONSTANT "\"some-group\""
-    }
-  }
-  BODY {
-    LBRACE
-    RBRACE
-  }
+  RBRACE
 }

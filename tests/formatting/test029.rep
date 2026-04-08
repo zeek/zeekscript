@@ -1,74 +1,48 @@
+PREPROC-COND "@ifdef" "SOME_FEATURE" {
+  LPAREN
+  RPAREN
+}
+BLANK
 FUNC-DECL {
   KEYWORD "event"
   SP
-  IDENTIFIER "foo"
+  IDENTIFIER "zeek_init"
   PARAMS {
     LPAREN
     RPAREN
   }
   BODY {
     LBRACE
-    EXPR-STMT {
-      CALL {
-        IDENTIFIER "SomeModule::seen"
-        ARGS {
-          LPAREN
-          INDEX-LITERAL {
-            ARGS {
-              LBRACKET
-              FIELD-ASSIGN "some_field" {
-                DOLLAR
-                ASSIGN "="
-                CALL {
-                  IDENTIFIER "SomeModule::build_value"
-                  ARGS {
-                    LPAREN
-                    INDEX {
-                      FIELD-ACCESS {
-                        FIELD-ACCESS {
-                          IDENTIFIER "c"
-                          DOLLAR
-                          IDENTIFIER "some_data"
-                        }
-                        DOLLAR
-                        IDENTIFIER "items"
-                      }
-                      SUBSCRIPTS {
-                        LBRACKET
-                        IDENTIFIER "stream"
-                        RBRACKET
-                      }
-                    }
-                    RPAREN
-                  }
-                }
-              }
-              COMMA
-              FIELD-ASSIGN "some_type" {
-                DOLLAR
-                ASSIGN "="
-                IDENTIFIER "SomeModule::URL"
-              }
-              COMMA
-              FIELD-ASSIGN "conn" {
-                DOLLAR
-                ASSIGN "="
-                IDENTIFIER "c"
-              }
-              COMMA
-              FIELD-ASSIGN "where" {
-                DOLLAR
-                ASSIGN "="
-                IDENTIFIER "SomeModule::IN_URL"
-              }
-              RBRACKET
-            }
-          }
-          RPAREN
-        }
-      }
+    PRINT {
+      KEYWORD "print"
+      SP
+      IDENTIFIER "some_var"
       SEMI
     }
     RBRACE
   }
 }
+COMMENT-LEADING "\n# Fallback path below."
+PREPROC "@else"
+BLANK
+FUNC-DECL {
+  KEYWORD "event"
+  SP
+  IDENTIFIER "zeek_init"
+  PARAMS {
+    LPAREN
+    RPAREN
+  }
+  BODY {
+    LBRACE
+    PRINT {
+      KEYWORD "print"
+      SP
+      CONSTANT "\"other\""
+      SEMI
+    }
+    RBRACE
+  }
+}
+BLANK
+PREPROC "@endif"

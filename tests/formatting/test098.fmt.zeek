@@ -1,9 +1,5 @@
-local x = set(
-	1.0.0.2/31,
-	1.1.1.2/31,
-	3.7.176.123/32,
-	5.1.66.255/32,
-	5.2.75.75/32,
-	5.45.107.88/32,
-	8.8.4.4/32
-);
+function some_func_bb(c: connection, cnt: count): interval
+	{
+	local some_long_variable_a =
+		double_to_count(floor(c$orig$size/some_long_variable_bb));
+	}

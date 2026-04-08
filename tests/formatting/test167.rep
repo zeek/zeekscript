@@ -1,20 +1,23 @@
-FUNC-DECL {
-  KEYWORD "event"
+EXPORT {
+  KEYWORD "export"
   SP
-  IDENTIFIER "some_evt"
-  PARAMS {
-    LPAREN
-    RPAREN
-  }
-  BODY {
-    LBRACE
-    COMMENT-TRAILING "# Start tracking."
-    PRINT {
-      KEYWORD "print"
-      SP
-      CONSTANT "1"
-      SEMI
+  LBRACE
+  GLOBAL-DECL {
+    KEYWORD "const"
+    SP
+    IDENTIFIER "default_analyzer"
+    DECL-TYPE {
+      COLON
+      TYPE-ATOM "PacketAnalyzer::Tag"
     }
-    RBRACE
+    DECL-INIT {
+      ASSIGN "="
+      IDENTIFIER "PacketAnalyzer::ANALYZER_IP"
+    }
+    ATTR-LIST {
+      ATTR "&redef"
+    }
+    SEMI
   }
+  RBRACE
 }

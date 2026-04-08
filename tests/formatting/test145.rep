@@ -1,16 +1,31 @@
 GLOBAL-DECL {
   KEYWORD "const"
   SP
-  IDENTIFIER "ss"
+  IDENTIFIER "tbl"
+  DECL-TYPE {
+    COLON
+    TYPE-PARAMETERIZED "table" {
+      SUBSCRIPTS {
+        LBRACKET
+        TYPE-ATOM "count"
+        RBRACKET
+      }
+      KEYWORD "of"
+      SP
+      TYPE-ATOM "string"
+    }
+  }
   DECL-INIT {
     ASSIGN "="
     CONSTRUCTOR {
-      KEYWORD "set"
+      KEYWORD "table"
       ARGS {
         LPAREN
-        CONSTANT "1.2.3.4"
-        COMMA
-        CONSTANT "5.6.7.8"
+        BINARY-OP "=" {
+          CONSTANT "[1]"
+          OP "="
+          CONSTANT "\"a\""
+        }
         RPAREN
       }
     }

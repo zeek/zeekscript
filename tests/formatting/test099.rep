@@ -1,39 +1,53 @@
 FUNC-DECL {
   KEYWORD "function"
   SP
-  IDENTIFIER "f"
+  IDENTIFIER "some_func"
   PARAMS {
     LPAREN
     RPAREN
   }
   BODY {
     LBRACE
-    LOCAL-DECL {
-      KEYWORD "local"
+    IF-NO-ELSE {
+      KEYWORD "if"
       SP
-      IDENTIFIER "info"
-      DECL-INIT {
-        ASSIGN "="
-        CALL {
-          IDENTIFIER "SomeModule::SomeRecord"
-          ARGS {
-            LPAREN
-            FIELD-ASSIGN "field1" {
-              DOLLAR
+      LPAREN
+      IDENTIFIER "test"
+      RPAREN
+      BODY {
+        BLOCK {
+          LBRACE
+          BLANK
+          LOCAL-DECL {
+            KEYWORD "local"
+            SP
+            IDENTIFIER "some_val"
+            DECL-INIT {
               ASSIGN "="
-              IDENTIFIER "some_very_long_value"
+              CALL {
+                IDENTIFIER "some_long_func_name"
+                ARGS {
+                  LPAREN
+                  INDEX {
+                    IDENTIFIER "result_chain"
+                    SUBSCRIPTS {
+                      LBRACKET
+                      CONSTANT "1"
+                      RBRACKET
+                    }
+                  }
+                  COMMA
+                  CONSTANT "4"
+                  RPAREN
+                }
+              }
             }
-            COMMA
-            FIELD-ASSIGN "field2" {
-              DOLLAR
-              ASSIGN "="
-              IDENTIFIER "another_long_value"
-            }
-            RPAREN
+            SEMI
           }
+          COMMENT-TRAILING "# HASH"
+          RBRACE
         }
       }
-      SEMI
     }
     RBRACE
   }

@@ -1,8 +1,4 @@
-event some_evt(c: connection)
-	{
-	NOTICE([$note=Some_Notice,
-		$conn=c,
-		# This is a comment about the next field.
-		# Another comment line.
-		$identifier=cat(id$orig_h, id$resp_h)]);
-	}
+function f() {
+	if ( x )
+		Input::add_event([$source=some_config_source_setting, $name=some_config_name_setting, $fields=SomeConfigRecord, $mode=Input::REREAD, $want_record=F, $ev=some_config_event_added]);
+}

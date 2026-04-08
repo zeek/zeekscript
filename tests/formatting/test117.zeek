@@ -1,7 +1,1 @@
-function some_func(a: int)
-	{
-	if ( some_very_long_access_to_a_member[foo] !in SomeModule::other$nested_field )
-		{
-		print "hi";
-		}
-	}
+function f() { for ( a, b in tbl ) print file_handle, some_variable, another_table[some_index], final_value; }

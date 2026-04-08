@@ -1,17 +1,10 @@
 EXPR-STMT {
-  SLICE-PARTIAL {
-    IDENTIFIER "data"
-    LBRACKET
-    CALL {
-      IDENTIFIER "f"
-      ARGS {
-        LPAREN
-        RPAREN
-      }
+  INDEX-LITERAL {
+    ARGS {
+      LBRACKET
+      CONSTANT "1"
+      RBRACKET
     }
-    COLON
-    CONSTANT ""
-    RBRACKET
   }
   SEMI
 }

@@ -1,5 +1,7 @@
-event SomeModule::Geneve::some_filtered_option(inner_c: connection,
-                                               inner_hdr: pkt_hdr, vni: count,
-                                               flags: count,
-                               opt: SomeModule::Geneve::some_geneve_hdr_option)
-	{ }
+function some_func(c: connection): SomeInfo
+	{
+	local rec = c$some_rec;
+	if ( ! rec?$some_field || |rec$some_field| == 0 ||
+	     ! rec$some_field[0]?$some_val )
+		return ci;
+	}

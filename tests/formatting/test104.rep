@@ -1,54 +1,43 @@
-LOCAL-DECL {
-  KEYWORD "local"
+GLOBAL-DECL {
+  KEYWORD "global"
   SP
-  IDENTIFIER "filter"
-  DECL-INIT {
-    ASSIGN "="
-    CALL {
-      IDENTIFIER "Log::Filter"
-      ARGS {
-        LPAREN
-        FIELD-ASSIGN "name" {
-          DOLLAR
-          ASSIGN "="
-          CONSTANT "\"log-name\""
-        }
+  IDENTIFIER "some_tracking_var"
+  DECL-TYPE {
+    COLON
+    TYPE-PARAMETERIZED "table" {
+      SUBSCRIPTS {
+        LBRACKET
+        TYPE-ATOM "count"
         COMMA
-        FIELD-ASSIGN "path" {
-          DOLLAR
-          ASSIGN "="
-          CONSTANT "\"log_path\""
-        }
-        COMMA
-        FIELD-ASSIGN "include" {
-          DOLLAR
-          ASSIGN "="
-          CALL {
-            IDENTIFIER "set"
-            ARGS {
-              LPAREN
-              CONSTANT "\"id.orig_h\""
-              COMMA
-              CONSTANT "\"id.orig_p\""
-              COMMA
-              CONSTANT "\"id.resp_h\""
-              COMMA
-              CONSTANT "\"id.resp_p\""
-              COMMA
-              CONSTANT "\"app\""
-              RPAREN
-            }
+        TYPE-ATOM "string"
+        RBRACKET
+      }
+      KEYWORD "of"
+      SP
+      TYPE-ATOM "TrackingRec"
+    }
+  }
+  ATTR-LIST {
+    ATTR "&default_insert" {
+      ASSIGN "="
+      CALL {
+        IDENTIFIER "TrackingRec"
+        ARGS {
+          LPAREN
+          FIELD-ASSIGN "field" {
+            DOLLAR
+            ASSIGN "="
+            IDENTIFIER "val"
           }
+          RPAREN
         }
-        COMMA
-        FIELD-ASSIGN "policy" {
-          DOLLAR
-          ASSIGN "="
-          IDENTIFIER "some_policy_fn"
-        }
-        RPAREN
       }
     }
+    ATTR "&create_expire" {
+      ASSIGN "="
+      INTERVAL "10" "sec"
+    }
+    ATTR "&redef"
   }
   SEMI
 }

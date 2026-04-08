@@ -1,11 +1,54 @@
-PREPROC-COND "@if" "FOO" {
-  LPAREN
-  RPAREN
-}
-PRINT {
-  KEYWORD "print"
+TYPEDECL-RECORD "Foo" {
+  KEYWORD "type"
   SP
-  CONSTANT "1"
+  IDENTIFIER "Foo"
+  COLON
+  SP
+  TYPE-RECORD {
+    KEYWORD "record"
+    SP
+    LBRACE
+    FIELD "aa" {
+      COLON
+      TYPE-ATOM "string"
+      ATTR-LIST {
+        ATTR "&default" {
+          ASSIGN "="
+          CONSTANT "\"\""
+        }
+      }
+      SEMI
+    }
+    FIELD "bb" {
+      COLON
+      TYPE-ATOM "count"
+      ATTR-LIST {
+        ATTR "&default" {
+          ASSIGN "="
+          CONSTANT "0"
+        }
+      }
+      SEMI
+    }
+    COMMENT-TRAILING "# a comment"
+    BLANK
+    FIELD "cc" {
+      COLON
+      TYPE-ATOM "bool"
+      SEMI
+    }
+    FIELD "dd" {
+      COLON
+      TYPE-ATOM "bool"
+      ATTR-LIST {
+        ATTR "&default" {
+          ASSIGN "="
+          CONSTANT "F"
+        }
+      }
+      SEMI
+    }
+    RBRACE
+  }
   SEMI
 }
-PREPROC "@endif"

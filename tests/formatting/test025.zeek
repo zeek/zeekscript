@@ -1,6 +1,1 @@
-function some_func(val: string)
-	{
-	if ( SomeModule::check_ready() )
-		SomeModule::send_msg(pt, some_long_handler,
-		                     to_addr(rec$some_field), p);
-	}
+function f() { switch tag_type { case "some_analyzer_udp", "some_analyzer_udp_hmac_md5", "some_analyzer_udp_hmac_sha1", "some_analyzer_udp_hmac_sha256": break; } }

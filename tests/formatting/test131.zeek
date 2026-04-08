@@ -1,7 +1,5 @@
-event some_evt()
-    {
-    SomeModule::setup_stream(SOME_STREAM_LOG, [$columns=SomeStreamInfo,
-                                               $path="some_long_module_stream_path",
-                                               $policy=some_stream_log_policy
-                       ]);
-    }
+export {
+	type SomeAttrs: record {
+		some_strings: set[string] &log &optional; # A set of associated strings
+	};
+}

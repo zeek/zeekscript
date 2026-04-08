@@ -1,24 +1,64 @@
-RETURN {
-  KEYWORD "return"
+FUNC-DECL {
+  KEYWORD "event"
   SP
-  BOOL-CHAIN "&&" {
-    BINARY-OP "in" {
-      IDENTIFIER "a_long_var_name"
-      OP "in"
-      IDENTIFIER "subj"
+  IDENTIFIER "some_handler"
+  PARAMS {
+    LPAREN
+    PARAM "rec" {
+      COLON
+      TYPE-ATOM "SomeModule::Info"
     }
-    OP "&&"
-    BINARY-OP "!in" {
-      IDENTIFIER "b_long_var_name"
-      OP "!in"
-      IDENTIFIER "subj"
-    }
-    OP "&&"
-    BINARY-OP "!in" {
-      IDENTIFIER "c_long_var_name"
-      OP "!in"
-      IDENTIFIER "subj"
-    }
+    RPAREN
   }
-  SEMI
+  BODY {
+    LBRACE
+    ADD {
+      KEYWORD "add"
+      SP
+      INDEX {
+        IDENTIFIER "some_long_cache"
+        SUBSCRIPTS {
+          LBRACKET
+          IDENTIFIER "aaa"
+          COMMA
+          IDENTIFIER "bbb"
+          COMMA
+          IDENTIFIER "ccc"
+          COMMA
+          FIELD-ACCESS {
+            IDENTIFIER "rec"
+            DOLLAR
+            IDENTIFIER "source_field"
+          }
+          COMMA
+          FIELD-ACCESS {
+            IDENTIFIER "rec"
+            DOLLAR
+            IDENTIFIER "type_field"
+          }
+          COMMA
+          FIELD-ACCESS {
+            IDENTIFIER "rec"
+            DOLLAR
+            IDENTIFIER "name_field"
+          }
+          COMMA
+          FIELD-ACCESS {
+            IDENTIFIER "rec"
+            DOLLAR
+            IDENTIFIER "orig_flag"
+          }
+          COMMA
+          FIELD-ACCESS {
+            IDENTIFIER "rec"
+            DOLLAR
+            IDENTIFIER "byte_count"
+          }
+          RBRACKET
+        }
+      }
+      SEMI
+    }
+    RBRACE
+  }
 }

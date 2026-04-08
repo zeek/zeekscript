@@ -1,37 +1,24 @@
-GLOBAL-DECL {
-  KEYWORD "global"
+TYPEDECL-ALIAS "some_very_long_type_name_aaaaa" {
+  KEYWORD "type"
   SP
-  IDENTIFIER "some_table_name_a"
-  DECL-TYPE {
-    COLON
-    TYPE-PARAMETERIZED "table" {
-      SUBSCRIPTS {
-        LBRACKET
-        TYPE-ATOM "count"
-        COMMA
-        TYPE-ATOM "string"
-        RBRACKET
-      }
-      KEYWORD "of"
-      SP
-      TYPE-ATOM "TrackingRec"
+  IDENTIFIER "some_very_long_type_name_aaaaa"
+  COLON
+  SP
+  TYPE-PARAMETERIZED "table" {
+    SUBSCRIPTS {
+      LBRACKET
+      TYPE-ATOM "addr"
+      COMMA
+      TYPE-ATOM "port"
+      COMMA
+      TYPE-ATOM "subnet"
+      COMMA
+      TYPE-ATOM "string"
+      RBRACKET
     }
-  }
-  ATTR-LIST {
-    ATTR "&default_insert" {
-      ASSIGN "="
-      CALL {
-        IDENTIFIER "TrackingRec"
-        ARGS {
-          LPAREN
-          RPAREN
-        }
-      }
-    }
-    ATTR "&create_expire" {
-      ASSIGN "="
-      INTERVAL "10" "sec"
-    }
+    KEYWORD "of"
+    SP
+    TYPE-ATOM "string"
   }
   SEMI
 }

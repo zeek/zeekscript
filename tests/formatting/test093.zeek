@@ -1,1 +1,7 @@
-local x = [$msg=fmt("Host uses protocol version %s which is lower than the safe minimum %s", some_string, other_string_a)];
+event zeek_init()
+    {
+    register_handler(function(h: addr, si: SomeInfo)
+        {
+        print h;
+        }, 6.0);
+    }

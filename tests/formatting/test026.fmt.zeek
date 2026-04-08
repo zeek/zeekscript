@@ -1,5 +1,6 @@
-function foo()
+event zeek_init()
 	{
-	call( # with a comment
-	     arg1, arg2);
+	SomeModule::some_register_fn(SomeModule::SOME_ANALYZER,
+	                             [$get_handle=SomeModule::get_handle,
+	                              $describe=SomeModule::describe_it]);
 	}

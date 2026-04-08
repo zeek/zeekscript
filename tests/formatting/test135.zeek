@@ -1,5 +1,1 @@
-event zeek_init()
-	{
-	Log::create_stream(LOG, [$columns=Conn::Info,
-	                $path=path, $policy=Conn::log_policy]);
-	}
+function f() { schedule some_time_interval { SomeModule::some_very_long_event_name() }; }

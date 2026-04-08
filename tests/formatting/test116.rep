@@ -1,49 +1,43 @@
-IF-NO-ELSE {
-  KEYWORD "if"
-  SP
+PREPROC-COND "@ifdef" "SomeFeature" {
   LPAREN
-  BOOL-CHAIN "&&" {
-    HAS-FIELD {
-      BOOL-CHAIN "&&" {
-        IDENTIFIER "some_long_bool_variable_a"
-        OP "&&"
-        BINARY-OP "==" {
-          FIELD-ACCESS {
-            IDENTIFIER "result"
-            DOLLAR
-            IDENTIFIER "result_string"
-          }
-          OP "=="
-          CONSTANT "\"ok\""
-        }
-        OP "&&"
-        IDENTIFIER "result"
-      }
-      OP "?$"
-      IDENTIFIER "chain_certs"
-    }
-    OP "&&"
-    BINARY-OP ">" {
-      CARDINALITY {
-        OP "|"
-        FIELD-ACCESS {
-          IDENTIFIER "result"
-          DOLLAR
-          IDENTIFIER "chain_certs"
-        }
-        OP "|"
-      }
-      OP ">"
-      CONSTANT "2"
-    }
-  }
   RPAREN
+}
+BLANK
+MODULE "SomeMod" {
+  KEYWORD "module"
+  SP
+  IDENTIFIER "SomeMod"
+  SEMI
+}
+BLANK
+GLOBAL-DECL {
+  KEYWORD "const"
+  SP
+  IDENTIFIER "some_var"
+  DECL-INIT {
+    ASSIGN "="
+    CONSTANT "\"some-value\""
+  }
+  SEMI
+}
+BLANK
+FUNC-DECL {
+  KEYWORD "event"
+  SP
+  IDENTIFIER "zeek_init"
+  PARAMS {
+    LPAREN
+    RPAREN
+  }
   BODY {
+    LBRACE
     PRINT {
       KEYWORD "print"
       SP
-      CONSTANT "\"x\""
+      IDENTIFIER "some_var"
       SEMI
     }
+    RBRACE
   }
 }
+PREPROC "@endif"

@@ -1,1 +1,3 @@
-global some_long_cache_name: set[string, subnet, subnet, transport_proto, SomeModule::SomeType] &read_expire=cache_interval;
+@ifdef ( SOME_FEATURE )
+event SomeModule::some_esp_message(c: connection, is_orig: bool, msg: SomeModule::SomeEspMsg) &group=MyPkg_SomeEvtGroup { shuntit(c); }
+@endif

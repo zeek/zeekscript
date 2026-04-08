@@ -1,62 +1,10 @@
-FUNC-DECL-RET {
-  KEYWORD "function"
+GLOBAL-DECL {
+  KEYWORD "const"
   SP
-  IDENTIFIER "some_func_bb"
-  PARAMS {
-    LPAREN
-    PARAM "c" {
-      COLON
-      TYPE-ATOM "connection"
-    }
-    COMMA
-    PARAM "cnt" {
-      COLON
-      TYPE-ATOM "count"
-    }
-    RPAREN
+  IDENTIFIER "some_long_pattern_name"
+  DECL-INIT {
+    ASSIGN "="
+    CONSTANT "/\\x4c\\x00\\x6f\\x00\\x67\\x00\\x69\\x00\\x6e\\x00\\x20\\x00\\x66\\x00\\x61\\x00\\x69\\x00\\x6c\\x00\\x65\\x00\\x64\\x00\\x20\\x00\\x66\\x00\\x6f\\x00\\x72\\x00\\x20\\x00\\x75\\x00\\x73\\x00\\x65\\x00\\x72\\x00/"
   }
-  COLON
-  RETURNS {
-    TYPE-ATOM "interval"
-  }
-  BODY {
-    LBRACE
-    LOCAL-DECL {
-      KEYWORD "local"
-      SP
-      IDENTIFIER "some_long_variable_a"
-      DECL-INIT {
-        ASSIGN "="
-        CALL {
-          IDENTIFIER "double_to_count"
-          ARGS {
-            LPAREN
-            CALL {
-              IDENTIFIER "floor"
-              ARGS {
-                LPAREN
-                DIV {
-                  FIELD-ACCESS {
-                    FIELD-ACCESS {
-                      IDENTIFIER "c"
-                      DOLLAR
-                      IDENTIFIER "orig"
-                    }
-                    DOLLAR
-                    IDENTIFIER "size"
-                  }
-                  OP "/"
-                  IDENTIFIER "some_long_variable_bb"
-                }
-                RPAREN
-              }
-            }
-            RPAREN
-          }
-        }
-      }
-      SEMI
-    }
-    RBRACE
-  }
+  SEMI
 }

@@ -1,16 +1,29 @@
-LOCAL-DECL {
-  KEYWORD "local"
+FUNC-DECL {
+  KEYWORD "event"
   SP
-  IDENTIFIER "x"
-  DECL-INIT {
-    ASSIGN "="
-    TERNARY {
-      IDENTIFIER "some_very_long_condition_expression_here"
-      QUESTION
-      IDENTIFIER "some_very_long_true_value_expression_here"
-      COLON
-      IDENTIFIER "some_long_false"
-    }
+  IDENTIFIER "some_evt"
+  PARAMS {
+    LPAREN
+    RPAREN
   }
-  SEMI
+  BODY {
+    LBRACE
+    FOR {
+      KEYWORD "for"
+      SP
+      LPAREN
+      FOR-COND {
+        IDENTIFIER "val"
+        KEYWORD "in"
+        IDENTIFIER "some_set"
+      }
+      RPAREN
+      BODY {
+        KEYWORD "next"
+        SEMI
+      }
+    }
+    COMMENT-TRAILING "# skip it"
+    RBRACE
+  }
 }

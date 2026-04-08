@@ -1,5 +1,8 @@
-function some_func()
+event zeek_init()
 	{
-	local val = some_long_func_name(data[some$off - 1 + 8 :
-	                                     some$off - 1 + 10 + 23/15 - 3]);
+	local filter = Log::Filter($name="log-name", $path="log_path",
+	                           $include=set("id.orig_h", "id.orig_p",
+	                                        "id.resp_h", "id.resp_p",
+	                                        "app"),
+	                           $policy=some_policy_fn);
 	}

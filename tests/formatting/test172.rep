@@ -1,26 +1,29 @@
-GLOBAL-DECL {
-  KEYWORD "global"
+FUNC-DECL {
+  KEYWORD "function"
   SP
-  IDENTIFIER "ftp_connections_cache"
-  DECL-TYPE {
-    COLON
-    TYPE-PARAMETERIZED "set" {
-      SUBSCRIPTS {
-        LBRACKET
-        TYPE-ATOM "string"
-        COMMA
-        TYPE-ATOM "string"
-        COMMA
-        TYPE-ATOM "string"
-        RBRACKET
+  IDENTIFIER "f"
+  PARAMS {
+    LPAREN
+    RPAREN
+  }
+  BODY {
+    LBRACE
+    IF-NO-ELSE {
+      KEYWORD "if"
+      SP
+      LPAREN
+      IDENTIFIER "x"
+      RPAREN
+      BODY {
+        COMMENT-LEADING "# comment before body"
+        PRINT {
+          KEYWORD "print"
+          SP
+          CONSTANT "\"done\""
+          SEMI
+        }
       }
     }
+    RBRACE
   }
-  ATTR-LIST {
-    ATTR "&read_expire" {
-      ASSIGN "="
-      IDENTIFIER "cache_interval"
-    }
-  }
-  SEMI
 }

@@ -1,36 +1,41 @@
 FUNC-DECL {
-  KEYWORD "function"
+  KEYWORD "event"
   SP
-  IDENTIFIER "f"
+  IDENTIFIER "some_evt"
   PARAMS {
     LPAREN
     RPAREN
   }
   BODY {
     LBRACE
-    SWITCH {
-      KEYWORD "switch"
+    ADD {
+      KEYWORD "add"
       SP
-      PAREN {
-        LPAREN
-        IDENTIFIER "val"
-        RPAREN
-      }
-      LBRACE
-      CASE {
-        KEYWORD "case"
-        SP
-        VALUES {
-          CONSTANT "0"
-        }
-        COLON
-        BODY {
-          KEYWORD "break"
-          SEMI
+      INDEX {
+        IDENTIFIER "some_set"
+        SUBSCRIPTS {
+          LBRACKET
+          IDENTIFIER "val"
+          RBRACKET
         }
       }
-      RBRACE
+      SEMI
     }
+    COMMENT-TRAILING "# track it"
+    DELETE {
+      KEYWORD "delete"
+      SP
+      INDEX {
+        IDENTIFIER "some_set"
+        SUBSCRIPTS {
+          LBRACKET
+          IDENTIFIER "val"
+          RBRACKET
+        }
+      }
+      SEMI
+    }
+    COMMENT-TRAILING "# remove it"
     RBRACE
   }
 }

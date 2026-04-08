@@ -1,8 +1,10 @@
-# Some comment.
-#@ BEGIN-SKIP-TESTING
-@if ( some_func("/some/path") > 0 )
-    @load /some/path
-@else
-    @load packages/some-pkg
-@endif
-#@ END-SKIP-TESTING
+function some_func(val: string)
+	{
+	if ( some_pattern == val )
+		result = "found";
+
+	# This handles the fallback case.
+	# Check secondary pattern too.
+	else if ( other_pattern == val )
+		result = val[idx + 1 :];
+	}

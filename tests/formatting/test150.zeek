@@ -1,1 +1,1 @@
-function f() { switch val { case 0: break; } }
+local x = some_very_long_condition_expression_here ? some_very_long_true_value_expression_here : some_long_false;

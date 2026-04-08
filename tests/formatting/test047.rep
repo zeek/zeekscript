@@ -1,31 +1,59 @@
-TYPEDECL-ENUM "SomeEnumAA" {
-  KEYWORD "type"
+FUNC-DECL {
+  KEYWORD "event"
   SP
-  IDENTIFIER "SomeEnumAA"
-  COLON
-  SP
-  TYPE-ENUM {
-    KEYWORD "enum"
-    SP
+  IDENTIFIER "SomeModule::some_raised_evt"
+  PARAMS {
+    LPAREN
+    PARAM "c" {
+      COLON
+      TYPE-ATOM "connection"
+    }
+    COMMA
+    PARAM "is_orig" {
+      COLON
+      TYPE-ATOM "bool"
+    }
+    COMMA
+    PARAM "version" {
+      COLON
+      TYPE-ATOM "count"
+    }
+    COMMA
+    PARAM "some_dcid" {
+      COLON
+      TYPE-ATOM "string"
+    }
+    COMMA
+    PARAM "some_scid" {
+      COLON
+      TYPE-ATOM "string"
+    }
+    COMMA
+    PARAM "some_retoken" {
+      COLON
+      TYPE-ATOM "string"
+    }
+    COMMA
+    PARAM "some_integ_tag" {
+      COLON
+      TYPE-ATOM "string"
+    }
+    RPAREN
+  }
+  ATTR-LIST {
+    ATTR "&group" {
+      ASSIGN "="
+      IDENTIFIER "SomeEvtGroup"
+    }
+  }
+  BODY {
     LBRACE
-    ENUM-VALUE "SE_DNS_A"
-    COMMA
-    ENUM-VALUE "SE_DNS_AAAA"
-    COMMA
-    ENUM-VALUE "SE_DNS_A6"
-    COMMA
-    ENUM-VALUE "SE_DNS_PTR"
-    COMMA
-    ENUM-VALUE "SE_HTTP_HOST"
-    COMMA
-    ENUM-VALUE "SE_TLS_SNI"
-    COMMA
-    ENUM-VALUE "SE_NTLM_AUTH"
-    COMMA
-    ENUM-VALUE "SE_UNKNOWN"
-    COMMA
-    TRAILING-COMMA
+    PRINT {
+      KEYWORD "print"
+      SP
+      IDENTIFIER "c"
+      SEMI
+    }
     RBRACE
   }
-  SEMI
 }

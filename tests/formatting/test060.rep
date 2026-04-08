@@ -1,62 +1,57 @@
 FUNC-DECL {
-  KEYWORD "event"
+  KEYWORD "function"
   SP
-  IDENTIFIER "some_handler"
+  IDENTIFIER "f"
   PARAMS {
     LPAREN
-    PARAM "aa" {
-      COLON
-      TYPE-ATOM "connection"
-    }
-    COMMA
-    PARAM "bb" {
-      COLON
-      TYPE-ATOM "bool"
-    }
-    COMMA
-    PARAM "cc" {
-      COLON
-      TYPE-ATOM "count"
-    }
-    COMMA
-    PARAM "dd" {
-      COLON
-      TYPE-ATOM "string"
-    }
-    COMMA
-    PARAM "ee" {
-      COLON
-      TYPE-ATOM "string"
-    }
-    COMMA
-    PARAM "ff" {
-      COLON
-      TYPE-ATOM "string"
-    }
-    COMMA
-    PARAM "gg" {
-      COLON
-      TYPE-ATOM "string"
-    }
-    COMMA
-    PARAM "hh" {
-      COLON
-      TYPE-ATOM "string"
-    }
-    COMMA
-    PARAM "ii" {
-      COLON
-      TYPE-ATOM "string"
-    }
-    COMMA
-    PARAM "jj" {
-      COLON
-      TYPE-ATOM "bool"
-    }
     RPAREN
   }
   BODY {
     LBRACE
+    FOR {
+      KEYWORD "for"
+      SP
+      LPAREN
+      FOR-COND {
+        IDENTIFIER "idx"
+        KEYWORD "in"
+        FIELD-ACCESS {
+          IDENTIFIER "result"
+          DOLLAR
+          IDENTIFIER "matches"
+        }
+      }
+      RPAREN
+      BODY {
+        FOR {
+          KEYWORD "for"
+          SP
+          LPAREN
+          FOR-COND {
+            IDENTIFIER "conn_idx"
+            KEYWORD "in"
+            FIELD-ACCESS {
+              IDENTIFIER "result"
+              DOLLAR
+              IDENTIFIER "some_uids_with_a_very_long_field_name_that_forces_wrapping"
+            }
+          }
+          RPAREN
+          BODY {
+            LOCAL-DECL {
+              KEYWORD "local"
+              SP
+              IDENTIFIER "x"
+              DECL-INIT {
+                ASSIGN "="
+                CONSTANT "1"
+              }
+              SEMI
+            }
+          }
+        }
+      }
+    }
     RBRACE
   }
 }

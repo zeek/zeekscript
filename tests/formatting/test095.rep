@@ -1,52 +1,29 @@
-FUNC-DECL {
-  KEYWORD "event"
+LOCAL-DECL {
+  KEYWORD "local"
   SP
-  IDENTIFIER "zeek_init"
-  PARAMS {
-    LPAREN
-    RPAREN
-  }
-  BODY {
-    LBRACE
-    EXPR-STMT {
-      CALL {
-        IDENTIFIER "register_handler"
-        ARGS {
-          LPAREN
-          LAMBDA {
-            KEYWORD "function"
-            SP
-            PARAMS {
-              LPAREN
-              PARAM "h" {
-                COLON
-                TYPE-ATOM "addr"
-              }
-              COMMA
-              PARAM "si" {
-                COLON
-                TYPE-ATOM "SomeInfo"
-              }
-              RPAREN
-            }
-            BODY {
-              LBRACE
-              PRINT {
-                KEYWORD "print"
-                SP
-                IDENTIFIER "h"
-                SEMI
-              }
-              RBRACE
-            }
-          }
-          COMMA
-          CONSTANT "6.0"
-          RPAREN
-        }
+  IDENTIFIER "x"
+  DECL-INIT {
+    ASSIGN "="
+    CONSTRUCTOR {
+      KEYWORD "set"
+      ARGS {
+        LPAREN
+        CONSTANT "1.0.0.2/31"
+        COMMA
+        CONSTANT "1.1.1.2/31"
+        COMMA
+        CONSTANT "3.7.176.123/32"
+        COMMA
+        CONSTANT "5.1.66.255/32"
+        COMMA
+        CONSTANT "5.2.75.75/32"
+        COMMA
+        CONSTANT "5.45.107.88/32"
+        COMMA
+        CONSTANT "8.8.4.4/32"
+        RPAREN
       }
-      SEMI
     }
-    RBRACE
   }
+  SEMI
 }

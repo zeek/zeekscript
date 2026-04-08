@@ -1,59 +1,37 @@
 FUNC-DECL {
   KEYWORD "function"
   SP
-  IDENTIFIER "some_func"
+  IDENTIFIER "f"
   PARAMS {
     LPAREN
-    PARAM "val" {
-      COLON
-      TYPE-ATOM "string"
-    }
     RPAREN
   }
   BODY {
     LBRACE
-    IF-NO-ELSE {
-      KEYWORD "if"
+    SWITCH {
+      KEYWORD "switch"
       SP
-      LPAREN
-      CALL {
-        IDENTIFIER "SomeModule::check_ready"
-        ARGS {
-          LPAREN
-          RPAREN
+      IDENTIFIER "tag_type"
+      LBRACE
+      CASE {
+        KEYWORD "case"
+        SP
+        VALUES {
+          CONSTANT "\"some_analyzer_udp\""
+          COMMA
+          CONSTANT "\"some_analyzer_udp_hmac_md5\""
+          COMMA
+          CONSTANT "\"some_analyzer_udp_hmac_sha1\""
+          COMMA
+          CONSTANT "\"some_analyzer_udp_hmac_sha256\""
         }
-      }
-      RPAREN
-      BODY {
-        EXPR-STMT {
-          CALL {
-            IDENTIFIER "SomeModule::send_msg"
-            ARGS {
-              LPAREN
-              IDENTIFIER "pt"
-              COMMA
-              IDENTIFIER "some_long_handler"
-              COMMA
-              CALL {
-                IDENTIFIER "to_addr"
-                ARGS {
-                  LPAREN
-                  FIELD-ACCESS {
-                    IDENTIFIER "rec"
-                    DOLLAR
-                    IDENTIFIER "some_field"
-                  }
-                  RPAREN
-                }
-              }
-              COMMA
-              IDENTIFIER "p"
-              RPAREN
-            }
-          }
+        COLON
+        BODY {
+          KEYWORD "break"
           SEMI
         }
       }
+      RBRACE
     }
     RBRACE
   }

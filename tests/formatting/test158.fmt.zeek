@@ -1,2 +1,5 @@
-local x = some_very_long_condition_expression_here ?
-          some_very_long_true_value_expression_here : some_long_false;
+event some_evt()
+	{
+	for ( val in some_set )
+		next; # skip it
+	}

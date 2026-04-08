@@ -1,34 +1,24 @@
-GLOBAL-DECL {
-  KEYWORD "const"
+FUNC-DECL {
+  KEYWORD "event"
   SP
-  IDENTIFIER "tbl"
-  DECL-TYPE {
-    COLON
-    TYPE-PARAMETERIZED "table" {
-      SUBSCRIPTS {
-        LBRACKET
-        TYPE-ATOM "count"
-        RBRACKET
-      }
-      KEYWORD "of"
+  IDENTIFIER "some_evt"
+  PARAMS {
+    LPAREN
+    RPAREN
+  }
+  BODY {
+    LBRACE
+    ASSERT {
+      KEYWORD "assert"
       SP
-      TYPE-ATOM "string"
-    }
-  }
-  DECL-INIT {
-    ASSIGN "="
-    CONSTRUCTOR {
-      KEYWORD "table"
-      ARGS {
-        LPAREN
-        BINARY-OP "=" {
-          CONSTANT "[1]"
-          OP "="
-          CONSTANT "\"a\""
-        }
-        RPAREN
+      BINARY-OP "==" {
+        CONSTANT "1"
+        OP "=="
+        CONSTANT "1"
       }
+      SEMI
     }
+    COMMENT-TRAILING "# sanity"
+    RBRACE
   }
-  SEMI
 }
