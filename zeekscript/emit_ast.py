@@ -1560,10 +1560,20 @@ class Emitter:
         self._close()
 
     def _emit_case_list(self, node: tree_sitter.Node) -> None:
-        kids = self._children(node)
+        kids = [c for c in node.children
+                if not c.is_extra or c.type != "nl"]
         i = 0
         while i < len(kids):
             k = kids[i]
+            if k.is_extra:
+                prev = None
+                for j in range(i - 1, -1, -1):
+                    if not kids[j].is_extra:
+                        prev = kids[j]
+                        break
+                self._emit_comment(k, prev)
+                i += 1
+                continue
             if self._text(k) == "case":
                 # Collect: case expr_list : stmt_list
                 i += 1
