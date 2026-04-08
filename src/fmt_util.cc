@@ -652,8 +652,27 @@ Candidate format_args_vertical(const Formatting& open, const Formatting& close,
 
 		for ( const auto& lc : it.leading )
 			{
-			fmt += "\n" + body_pad + lc;
+			// Leading '\n' = blank line from adjacent BLANK.
+			size_t start = 0;
+			while ( start < lc.size() && lc[start] == '\n' )
+				{
+				fmt += "\n";
+				++lines;
+				++start;
+				}
+
+			size_t end = lc.size();
+			while ( end > start && lc[end - 1] == '\n' )
+				--end;
+
+			fmt += "\n" + body_pad + lc.substr(start, end - start);
 			++lines;
+
+			for ( size_t j = end; j < lc.size(); ++j )
+				{
+				fmt += "\n";
+				++lines;
+				}
 			}
 
 		fmt += "\n" + body_pad;
