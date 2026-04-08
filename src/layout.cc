@@ -786,7 +786,8 @@ Candidates build_layout(LayoutItems items, const FmtContext& ctx)
 	auto trail_after = [&](size_t i) -> int
 		{
 		int w = 0;
-		for ( size_t j = i + 1; j < items.size(); ++j )
+		size_t j;
+		for ( j = i + 1; j < items.size(); ++j )
 			{
 			auto& i_j = items[j];
 			auto k = i_j->kind;
@@ -818,7 +819,11 @@ Candidates build_layout(LayoutItems items, const FmtContext& ctx)
 				break;
 			}
 
-		w += ctx.Trail();
+		// Only add outer trail when all remaining items
+		// are inline - a newline-producing item means the
+		// outer trail applies to a later line, not this one.
+		if ( j == items.size() )
+			w += ctx.Trail();
 		return w;
 		};
 
