@@ -1,7 +1,5 @@
 export {
-	redef enum Log::ID += {
-		LOG
-	};
+	redef enum Log::ID += { LOG };
 }
 
 type CertInfo: record {

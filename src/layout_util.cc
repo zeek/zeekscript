@@ -590,12 +590,14 @@ struct EnumValues {
 	std::vector<std::string> values;
 	LayoutVec commas;
 	bool has_trailing_comma;
+	bool has_init_values;
 };
 
 static EnumValues collect_enum_values(const Layout& inner)
 	{
 	EnumValues ev;
 	ev.has_trailing_comma = false;
+	ev.has_init_values = false;
 	LayoutPtr pending_comma;
 
 	for ( const auto& c : inner.Children() )
@@ -604,7 +606,10 @@ static EnumValues collect_enum_values(const Layout& inner)
 			{
 			auto v = c->Arg();
 			if ( ! c->Arg(1).empty() )
+				{
 				v += " " + c->Arg(1);
+				ev.has_init_values = true;
+				}
 
 			ev.values.push_back(v);
 			ev.commas.push_back(pending_comma);
@@ -628,6 +633,30 @@ static LIPtr format_enum_body(const Layout& source,
 	{
 	auto ev = collect_enum_values(source);
 
+	// Try flat: " VALUE1, VALUE2 }" on the same line as "{".
+	// Enums with init values (= N) always use vertical layout.
+	if ( ! ev.has_init_values )
+		{
+		Formatting flat_body(" ");
+		for ( size_t i = 0; i < ev.values.size(); ++i )
+			{
+			if ( i > 0 )
+				flat_body += ", ";
+			flat_body += ev.values[i];
+			}
+
+		if ( ev.has_trailing_comma )
+			flat_body += ",";
+
+		flat_body += " ";
+		flat_body += close_brace;
+
+		int flat_len = ctx.Col() + flat_body.Size();
+		if ( flat_len <= ctx.MaxCol() )
+			return lit(std::move(flat_body));
+		}
+
+	// Vertical: each value on its own line.
 	auto pad = line_prefix(ctx.Indent() + 1,
 				(ctx.Indent() + 1) * INDENT_WIDTH);
 	Formatting body;
