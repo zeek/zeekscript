@@ -32,7 +32,7 @@ test: $(TARGET)
 	@pass=0; fail=0; \
 	for f in ../tests/formatting/test*.rep; do \
 		name=$$(basename "$$f" .rep); \
-		expected="../tests/formatting/$${name}.fmt.zeek"; \
+		expected="../tests/formatting/$${name}.fmt"; \
 		if diff -q <(./$(TARGET) "$$f") "$$expected" \
 		    >/dev/null 2>&1; then \
 			pass=$$((pass + 1)); \

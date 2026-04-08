@@ -1,4 +1,4 @@
-# C++ Formatter Failing Tests (174 pass, 0 fail as of 2026-04-06)
+# C++ Formatter Failing Tests (177 pass, 0 fail as of 2026-04-07)
 
 ## By category (sorted by count)
 
@@ -17,8 +17,8 @@ the current pass/fail counts.
 
 ### How categories are determined
 
-Diff each failing test's output against its `.fmt.zeek` baseline
-(`diff <(./clz-format ../tests/formatting/testNNN.rep) ../tests/formatting/testNNN.fmt.zeek`).
+Diff each failing test's output against its `.fmt` baseline
+(`diff <(./clz-format ../tests/formatting/testNNN.rep) ../tests/formatting/testNNN.fmt`).
 The *primary* failure mode determines the category:
 
 - **Line-breaking / layout quality**: output is correct tokens but

@@ -11,8 +11,8 @@ count=0
 errors=0
 
 for f in "$FMT_DIR"/test*.zeek; do
-    # Skip .fmt.zeek files — we only want the input files
-    case "$f" in *.fmt.zeek) continue;; esac
+    # Skip .fmt files — we only want the input files
+    case "$f" in *.fmt) continue;; esac
 
     rep="${f%.zeek}.rep"
     if python3.11 "$EMITTER" "$f" > "$rep" 2>/dev/null; then
