@@ -4,8 +4,8 @@ GLOBAL-DECL {
   IDENTIFIER "some_hosts"
   DECL-INIT {
     ASSIGN "+="
-    CALL {
-      IDENTIFIER "set"
+    CONSTRUCTOR {
+      KEYWORD "set"
       ARGS {
         LPAREN
         CONSTANT "\"some.host.example.com\""

@@ -4,8 +4,8 @@ LOCAL-DECL {
   IDENTIFIER "x"
   DECL-INIT {
     ASSIGN "="
-    CALL {
-      IDENTIFIER "set"
+    CONSTRUCTOR {
+      KEYWORD "set"
       ARGS {
         LPAREN
         CONSTANT "\"a\""

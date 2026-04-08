@@ -1,0 +1,6 @@
+export {
+    option ignored_hosts = set(
+        "aaa.com", "bbb.com", "ccc-1.com",
+        "ddd.com", "eee.com", "fff.com"
+    );
+}

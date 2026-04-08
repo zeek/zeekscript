@@ -305,13 +305,12 @@ static void decl_with_init(const DeclParts& d, Candidates& result,
 	else
 		result.push_back(Candidate(flat, ctx));
 
-	// Split after init operator when the flat candidate overflows.
-	// Use per-line overflow of the assembled text, which catches
-	// cases where the Candidate overflow is 0 but continuation
-	// lines extend past max_col.
+	// Split after init operator when the flat candidate overflows
+	// or when the value is multi-line (e.g. a constructor that
+	// went vertical at high column but could be flat after split).
 	int flat_mlo = flat.MaxLineOverflow(ctx.Col(), ctx.MaxCol());
 
-	if ( flat_mlo > 0 )
+	if ( flat_mlo > 0 || val.Lines() > 1 )
 		{
 		// Skip when the column savings from splitting are
 		// too small to justify the extra line break.

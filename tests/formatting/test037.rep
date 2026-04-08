@@ -4,8 +4,8 @@ GLOBAL-DECL {
   IDENTIFIER "foo"
   DECL-INIT {
     ASSIGN "+="
-    CALL {
-      IDENTIFIER "set"
+    CONSTRUCTOR {
+      KEYWORD "set"
       ARGS {
         LPAREN
         CONSTANT "\"a\""

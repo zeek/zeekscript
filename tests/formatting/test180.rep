@@ -5,18 +5,24 @@ EXPORT {
   GLOBAL-DECL {
     KEYWORD "option"
     SP
-    IDENTIFIER "some_hosts"
+    IDENTIFIER "ignored_hosts"
     DECL-INIT {
       ASSIGN "="
       CONSTRUCTOR {
         KEYWORD "set"
         ARGS {
           LPAREN
-          CONSTANT "\"some.host.example.com\""
+          CONSTANT "\"aaa.com\""
           COMMA
-          CONSTANT "\"another.longer.hostname.example.org\""
+          CONSTANT "\"bbb.com\""
           COMMA
-          CONSTANT "\"yet.another.host.example.net\""
+          CONSTANT "\"ccc-1.com\""
+          COMMA
+          CONSTANT "\"ddd.com\""
+          COMMA
+          CONSTANT "\"eee.com\""
+          COMMA
+          CONSTANT "\"fff.com\""
           RPAREN
         }
       }

@@ -407,8 +407,10 @@ class Emitter:
                 return
 
         # Function/event call: expr ( expr_list )
-        # Keyword-named constructors (set, table, vector) with many
-        # args emit as CONSTRUCTOR; other calls emit as CALL.
+        # Keyword-named constructors (set, table, vector) as the
+        # direct RHS of an initializer emit as CONSTRUCTOR (flat or
+        # vertical); nested in other exprs they stay as CALL
+        # (fill-pack).
         if "(" in token_texts and ")" in token_texts:
             first_text = self._text(kids[0])
             constructors = ("set", "table", "vector")
@@ -416,15 +418,9 @@ class Emitter:
             if kids[0].is_named or first_text in callables:
                 args = [k for k in kids if k.type == "expr_list"]
 
-                # Count expression children to decide threshold.
-                nargs = 0
-                if args:
-                    nargs = sum(1 for c in args[0].children
-                                if c.type == "expr")
-
                 if (not kids[0].is_named
                         and first_text in constructors
-                        and nargs >= 7):
+                        and node.parent.type == "initializer"):
                     self._emit_constructor(
                         first_text, args[0] if args else None)
                     return
