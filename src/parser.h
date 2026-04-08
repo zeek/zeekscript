@@ -17,9 +17,9 @@
 
 class Parser {
 public:
-	// Parse the entire input, returning top-level nodes.
-	// On error, prints to stderr and returns empty.
-	static LayoutVec Parse(const std::string& input);
+	// Parse the entire input.  On error, prints to stderr.
+	// Returns {nodes, had_error}.
+	static std::pair<LayoutVec, bool> Parse(const std::string& input);
 
 private:
 	Parser(const std::string& input) : input(input) {}
@@ -35,10 +35,11 @@ private:
 	char Peek() const { return input[pos]; }
 	char Advance();
 
-	void Error(const char* msg) const;
+	void Error(const char* msg);
 
 	const std::string& input;
 	size_t pos = 0;
 	int line = 1;
 	int col = 1;
+	bool had_error = false;
 };

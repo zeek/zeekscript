@@ -95,10 +95,10 @@ static void flush_comments(LayoutVec& out,
 		}
 	}
 
-LayoutVec Parser::Parse(const std::string& input)
+std::pair<LayoutVec, bool> Parser::Parse(const std::string& input)
 	{
 	Parser p(input);
-	return p.ParseFile();
+	return {p.ParseFile(), p.had_error};
 	}
 
 LayoutVec Parser::ParseFile()
@@ -293,8 +293,9 @@ char Parser::Advance()
 	return c;
 	}
 
-void Parser::Error(const char* msg) const
+void Parser::Error(const char* msg)
 	{
 	fprintf(stderr, "parse error at line %d, col %d: %s\n",
 	        line, col, msg);
+	had_error = true;
 	}

@@ -53,13 +53,10 @@ int main(int argc, char** argv)
 	else
 		input = ReadStdin();
 
-	auto nodes = Parser::Parse(input);
+	auto [nodes, parse_err] = Parser::Parse(input);
 
-	if ( nodes.empty() && ! input.empty() )
-		{
-		fprintf(stderr, "parse failed\n");
+	if ( parse_err )
 		return 1;
-		}
 
 	try
 		{
