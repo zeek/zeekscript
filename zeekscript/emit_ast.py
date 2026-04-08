@@ -103,6 +103,21 @@ class Emitter:
         return kids[0].type in ("id", "constant", "integer",
                                 "string", "pattern_literal")
 
+    def _find_name(self, node: tree_sitter.Node) -> str:
+        """Return the text of the first 'id' child, or empty string."""
+        for k in node.children:
+            if not k.is_extra and k.type == "id":
+                return self._text(k)
+        return ""
+
+    def _maybe_trailing_comma(self, node: tree_sitter.Node) -> None:
+        """Emit TRAILING-COMMA if the last non-extra child is a comma."""
+        kids = self._children(node)
+        if (kids
+                and not kids[-1].is_named
+                and self._text(kids[-1]) == ","):
+            self._w('TRAILING-COMMA')
+
     def _flatten_bool_chain(self, node: tree_sitter.Node,
                             op: str,
                             out: list[tree_sitter.Node]) -> None:
@@ -123,6 +138,18 @@ class Emitter:
     # Comment handling
     # ------------------------------------------------------------------
 
+    def _emit_comment(self, child: tree_sitter.Node,
+                      prev: tree_sitter.Node | None) -> None:
+        """Emit a comment node, classifying as trailing or leading."""
+        self._maybe_blank(child)
+        text = self._text(child)
+        if (prev is not None
+                and child.start_point[0] == prev.end_point[0]):
+            self._w(f'COMMENT-TRAILING {_quote(text)}')
+        else:
+            self._w(f'COMMENT-LEADING {_quote(text)}')
+        self._mark_content(child)
+
     def _emit_extras_in(self, node: tree_sitter.Node) -> None:
         """Emit comments among a node's children, classifying attachment."""
         children = node.children
@@ -132,22 +159,12 @@ class Emitter:
             if child.type == "nl":
                 continue
 
-            self._maybe_blank(child)
-            text = self._text(child)
-
-            # Find preceding non-extra sibling for same-line check.
             prev_content = None
             for j in range(i - 1, -1, -1):
                 if not children[j].is_extra:
                     prev_content = children[j]
                     break
-
-            if (prev_content is not None
-                    and child.start_point[0] == prev_content.end_point[0]):
-                self._w(f'COMMENT-TRAILING {_quote(text)}')
-            else:
-                self._w(f'COMMENT-LEADING {_quote(text)}')
-            self._mark_content(child)
+            self._emit_comment(child, prev_content)
 
     def _iter_children(self, node: tree_sitter.Node):
         """Yield non-extra children, emitting extras inline in source order.
@@ -161,15 +178,7 @@ class Emitter:
             if child.is_extra:
                 if child.type == "nl":
                     continue
-                self._maybe_blank(child)
-                text = self._text(child)
-                if (last_non_extra is not None
-                        and child.start_point[0]
-                            == last_non_extra.end_point[0]):
-                    self._w(f'COMMENT-TRAILING {_quote(text)}')
-                else:
-                    self._w(f'COMMENT-LEADING {_quote(text)}')
-                self._mark_content(child)
+                self._emit_comment(child, last_non_extra)
                 continue
             last_non_extra = child
             yield child
@@ -428,20 +437,8 @@ class Emitter:
                 if (not kids[0].is_named
                         and first_text in constructors
                         and nargs >= 7):
-                    self._open('CONSTRUCTOR')
-                    self._w(f'KEYWORD {_quote(first_text)}')
-                    self._open('ARGS')
-                    self._w('LPAREN')
-                    if args:
-                        self._emit_expr_list(args[0])
-                        el_kids = self._children(args[0])
-                        if (el_kids
-                                and not el_kids[-1].is_named
-                                and self._text(el_kids[-1]) == ","):
-                            self._w('TRAILING-COMMA')
-                    self._w('RPAREN')
-                    self._close()
-                    self._close()
+                    self._emit_constructor(
+                        first_text, args[0] if args else None)
                     self._mark_content(node)
                     return
 
@@ -454,12 +451,7 @@ class Emitter:
                 self._w('LPAREN')
                 if args:
                     self._emit_expr_list(args[0])
-                    # Detect trailing comma in source.
-                    el_kids = args[0].children
-                    if (el_kids
-                            and not el_kids[-1].is_named
-                            and self._text(el_kids[-1]) == ","):
-                        self._w('TRAILING-COMMA')
+                    self._maybe_trailing_comma(args[0])
                 self._w('RPAREN')
                 self._close()
                 self._emit_extras_in(node)
@@ -530,12 +522,7 @@ class Emitter:
                     self._w('RBRACKET')
                 elif child.type == "expr_list":
                     self._emit_expr_list(child)
-                    # Detect trailing comma in source.
-                    el_kids = child.children
-                    if (el_kids
-                            and not el_kids[-1].is_named
-                            and self._text(el_kids[-1]) == ","):
-                        self._w('TRAILING-COMMA')
+                    self._maybe_trailing_comma(child)
                 self._mark_content(child)
             self._close()
             self._close()
@@ -646,20 +633,7 @@ class Emitter:
                                 break
                         if keyword == "table":
                             break
-            self._open('CONSTRUCTOR')
-            self._w(f'KEYWORD {_quote(keyword)}')
-            self._open('ARGS')
-            self._w('LPAREN')
-            if args:
-                self._emit_expr_list(args[0])
-                el_kids = self._children(args[0])
-                if (el_kids
-                        and not el_kids[-1].is_named
-                        and self._text(el_kids[-1]) == ","):
-                    self._w('TRAILING-COMMA')
-            self._w('RPAREN')
-            self._close()
-            self._close()
+            self._emit_constructor(keyword, args[0] if args else None)
             self._mark_content(node)
             return
 
@@ -695,6 +669,20 @@ class Emitter:
             self._emit_func_body(node)
         else:
             self._emit_expr(node)
+
+    def _emit_constructor(self, keyword: str,
+                          args_node: tree_sitter.Node | None) -> None:
+        """Emit CONSTRUCTOR { KEYWORD ARGS { LPAREN expr_list RPAREN } }."""
+        self._open('CONSTRUCTOR')
+        self._w(f'KEYWORD {_quote(keyword)}')
+        self._open('ARGS')
+        self._w('LPAREN')
+        if args_node:
+            self._emit_expr_list(args_node)
+            self._maybe_trailing_comma(args_node)
+        self._w('RPAREN')
+        self._close()
+        self._close()
 
     def _emit_expr_list(self, node: tree_sitter.Node) -> None:
         """Emit children of an expr_list, emitting COMMA tokens."""
@@ -861,12 +849,7 @@ class Emitter:
 
     def _emit_type_spec(self, node: tree_sitter.Node) -> None:
         """Emit a record field (type_spec): id : type [attrs] ;"""
-        name = ""
-        for k in node.children:
-            if not k.is_extra and k.type == "id":
-                name = self._text(k)
-                break
-        self._open(f'FIELD {_quote(name)}')
+        self._open(f'FIELD {_quote(self._find_name(node))}')
         for child in self._iter_children(node):
             if not child.is_named:
                 if self._text(child) == ":":
@@ -904,12 +887,7 @@ class Emitter:
             elif not child.is_named and self._text(child) == ",":
                 self._w('COMMA')
 
-        # Detect trailing comma in source.
-        kids = node.children
-        if (kids
-                and not kids[-1].is_named
-                and self._text(kids[-1]) == ","):
-            self._w('TRAILING-COMMA')
+        self._maybe_trailing_comma(node)
 
     # ------------------------------------------------------------------
     # Attributes
@@ -958,14 +936,7 @@ class Emitter:
                 self._w('COMMA')
 
     def _emit_formal_arg(self, node: tree_sitter.Node) -> None:
-        # Need the name before opening the PARAM node, so
-        # pre-scan for it (ids always come first).
-        name = ""
-        for k in node.children:
-            if not k.is_extra and k.type == "id":
-                name = self._text(k)
-                break
-        self._open(f'PARAM {_quote(name)}')
+        self._open(f'PARAM {_quote(self._find_name(node))}')
         for child in self._iter_children(node):
             if not child.is_named:
                 if self._text(child) == ":":
@@ -1023,9 +994,10 @@ class Emitter:
     # Declarations
     # ------------------------------------------------------------------
 
-    def _emit_global_decl(self, node: tree_sitter.Node) -> None:
+    def _emit_var_decl(self, node: tree_sitter.Node, tag: str) -> None:
+        """Emit a variable declaration (global, const, option, redef, local)."""
         kids = self._children(node)
-        keyword = self._text(kids[0])  # global/const/option/redef
+        keyword = self._text(kids[0])
         name = ""
         typ = None
         init_expr = None
@@ -1036,27 +1008,23 @@ class Emitter:
         if i < len(kids) and kids[i].type == "id":
             name = self._text(kids[i])
             i += 1
-        # : type
         if i < len(kids) and self._text(kids[i]) == ":":
             i += 1
             if i < len(kids) and kids[i].type == "type":
                 typ = kids[i]
                 i += 1
-        # initializer
         if i < len(kids) and kids[i].type == "initializer":
-            init_node = kids[i]
-            for ik in self._children(init_node):
+            for ik in self._children(kids[i]):
                 if ik.type == "init_class":
                     init_op = self._text(self._children(ik)[0])
                 elif ik.type == "expr":
                     init_expr = ik
             i += 1
-        # attr_list
         if i < len(kids) and kids[i].type == "attr_list":
             attrs = kids[i]
             i += 1
 
-        self._open('GLOBAL-DECL')
+        self._open(tag)
         self._kw(keyword)
         self._w(f'IDENTIFIER {_quote(name)}')
         if typ:
@@ -1076,6 +1044,12 @@ class Emitter:
         self._close()
         self._mark_content(node)
 
+    def _emit_global_decl(self, node: tree_sitter.Node) -> None:
+        self._emit_var_decl(node, 'GLOBAL-DECL')
+
+    def _emit_local_decl(self, node: tree_sitter.Node) -> None:
+        self._emit_var_decl(node, 'LOCAL-DECL')
+
     def _emit_init_expr(self, node: tree_sitter.Node,
                         type_node: tree_sitter.Node | None) -> None:
         """Emit an initializer expression, doing brace-to-constructor transform."""
@@ -1087,20 +1061,8 @@ class Emitter:
             ctor_name = self._text(type_kids[0]) if type_kids else None
             if ctor_name in ("table", "set", "vector"):
                 args = [k for k in kids if k.type == "expr_list"]
-                self._open('CONSTRUCTOR')
-                self._w(f'KEYWORD {_quote(ctor_name)}')
-                self._open('ARGS')
-                self._w('LPAREN')
-                if args:
-                    self._emit_expr_list(args[0])
-                    el_kids = self._children(args[0])
-                    if (el_kids
-                            and not el_kids[-1].is_named
-                            and self._text(el_kids[-1]) == ","):
-                        self._w('TRAILING-COMMA')
-                self._w('RPAREN')
-                self._close()
-                self._close()
+                self._emit_constructor(
+                    ctor_name, args[0] if args else None)
                 return
         self._emit_expr(node)
 
@@ -1225,12 +1187,7 @@ class Emitter:
         self._mark_content(node)
 
     def _emit_redef_record_decl(self, node: tree_sitter.Node) -> None:
-        name = ""
-        for k in node.children:
-            if not k.is_extra and k.type == "id":
-                name = self._text(k)
-                break
-        self._open(f'REDEF-RECORD {_quote(name)}')
+        self._open(f'REDEF-RECORD {_quote(self._find_name(node))}')
         for k in self._iter_children(node):
             if k.type == "type_spec":
                 self._maybe_blank(k)
@@ -1240,12 +1197,7 @@ class Emitter:
         self._mark_content(node)
 
     def _emit_redef_enum_decl(self, node: tree_sitter.Node) -> None:
-        name = ""
-        for k in node.children:
-            if not k.is_extra and k.type == "id":
-                name = self._text(k)
-                break
-        self._open(f'REDEF-ENUM {_quote(name)}')
+        self._open(f'REDEF-ENUM {_quote(self._find_name(node))}')
         for child in self._iter_children(node):
             if child.type == "id":
                 pass  # already extracted for tag
@@ -1341,55 +1293,6 @@ class Emitter:
             return
 
         self._emit_unknown(node)
-
-    def _emit_local_decl(self, node: tree_sitter.Node) -> None:
-        kids = self._children(node)
-        keyword = self._text(kids[0])
-        name = ""
-        typ = None
-        init_expr = None
-        init_op = "="
-        attrs = None
-
-        i = 1
-        if i < len(kids) and kids[i].type == "id":
-            name = self._text(kids[i])
-            i += 1
-        if i < len(kids) and self._text(kids[i]) == ":":
-            i += 1
-            if i < len(kids) and kids[i].type == "type":
-                typ = kids[i]
-                i += 1
-        if i < len(kids) and kids[i].type == "initializer":
-            for ik in self._children(kids[i]):
-                if ik.type == "init_class":
-                    init_op = self._text(self._children(ik)[0])
-                elif ik.type == "expr":
-                    init_expr = ik
-            i += 1
-        if i < len(kids) and kids[i].type == "attr_list":
-            attrs = kids[i]
-            i += 1
-
-        self._open('LOCAL-DECL')
-        self._kw(keyword)
-        self._w(f'IDENTIFIER {_quote(name)}')
-        if typ:
-            self._open('DECL-TYPE')
-            self._w('COLON')
-            self._emit_type(typ)
-            self._close()
-        if init_expr:
-            self._open('DECL-INIT')
-            self._w(f'ASSIGN {_quote(init_op)}')
-            self._emit_init_expr(init_expr, typ)
-            self._close()
-        if attrs:
-            self._emit_attr_list(attrs)
-        self._emit_extras_in(node)
-        self._w('SEMI')
-        self._close()
-        self._mark_content(node)
 
     def _emit_if_extras(self, node, after_node, before_node,
                          ref_node=None,
@@ -1640,17 +1543,12 @@ class Emitter:
     def _emit_event_stmt(self, node: tree_sitter.Node) -> None:
         """Event statement: event name(args);"""
         # The id and expr_list live inside an event_hdr child.
-        name = ""
         hdr = None
         for k in node.children:
             if not k.is_extra and k.type == "event_hdr":
                 hdr = k
                 break
-        if hdr:
-            for k in hdr.children:
-                if not k.is_extra and k.type == "id":
-                    name = self._text(k)
-                    break
+        name = self._find_name(hdr) if hdr else ""
         self._open(f'EVENT-STMT {_quote(name)}')
         self._kw("event")
         if hdr:
