@@ -114,12 +114,16 @@ static std::string reduce_overflow(const std::string& text, int max_col)
 	return result;
 	}
 
-std::string Format(const LayoutVec& nodes)
+std::string Format(const LayoutVec& nodes, bool raw)
 	{
 	static constexpr int MAX_WIDTH = 80;
 	FmtContext ctx(0, 0, MAX_WIDTH);
 
 	auto result = format_stmt_list(nodes, ctx);
 	warn_standalone_trailing(result.Str(), nodes);
+
+	if ( raw )
+		return result.Str();
+
 	return reduce_overflow(result.Str(), MAX_WIDTH);
 	}

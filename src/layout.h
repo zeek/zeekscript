@@ -19,7 +19,7 @@ using LIPtr = std::shared_ptr<LayoutItem>;
 using ComputeFn = LIPtr (Layout::*)(const FmtContext&) const;
 
 // Top-level entry point: format a list of top-level nodes.
-std::string Format(const LayoutVec& nodes);
+std::string Format(const LayoutVec& nodes, bool raw = false);
 
 // Format a single node in a given context, returning one or more candidates.
 Candidates format_node(const Layout& node, const FmtContext& ctx);
