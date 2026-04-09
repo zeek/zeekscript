@@ -1,0 +1,4 @@
+event Some::handler(c: connection, is_orig: bool, name: string,
+                   value: string) #@ NOT-TESTED
+    {
+    }

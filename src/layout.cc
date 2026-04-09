@@ -798,8 +798,12 @@ Candidates build_layout(LayoutItems items, const FmtContext& ctx)
 
 			if ( k == Lit )
 				{
-				if ( i_j->Fmt().Contains('\n') )
+				int nl = i_j->Fmt().Find('\n');
+				if ( nl >= 0 )
+					{
+					w += nl;
 					break;
+					}
 				w += i_j->Fmt().Size();
 				}
 

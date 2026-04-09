@@ -529,12 +529,16 @@ Candidates flat_or_fill(const Formatting& prefix, const Formatting& open,
 
 	auto fill = format_args_fill(items, open_col, ctx.Indent(), inner_ctx);
 
-	// If multi-line and the assembled last line + hard trail
-	// overflows, re-fill with hard trail so nested calls wrap
-	// correctly.  Soft trail (e.g. &group=...) can break to its
+	// If the assembled output + hard trail overflows, re-fill
+	// with hard trail so the fill can wrap to stay within the
+	// limit.  Soft trail (e.g. &group=...) can break to its
 	// own line, so it should not force tighter wrapping.
 	int hard = ctx.HardTrail();
-	if ( fill.Lines() > 1 && hard > 0 )
+	if ( fill.Lines() == 1 && hard > 0 &&
+	     ! result.empty() && result[0].Ovf() > 0 )
+		fill = format_args_fill(items, open_col, ctx.Indent(),
+					inner_ctx, hard);
+	else if ( fill.Lines() > 1 && hard > 0 )
 		{
 		auto assembled = prefix + open + fill_prefix +
 					fill.Fmt() + cb + suffix;

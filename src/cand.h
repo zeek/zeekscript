@@ -18,18 +18,17 @@ public:
 
 	// Multi-line candidate.  first_col is the absolute column where the
 	// first line starts (needed for balance/spread computation).
-	Candidate(Formatting t, int w, int l, int ovf, int first_col = 0)
-		: fmt(std::move(t)), width(w), lines(l), overflow(ovf),
-		  spread(l > 1 ? ComputeSpread(fmt.Str(), first_col) : 0) {}
+	Candidate(Formatting t, int w, int l, int ovf, int first_col = 0);
 
 	Candidate(Formatting t) : fmt(std::move(t)), width(fmt.Size()),
-		  lines(1), overflow(0), spread(0) { }
+		  lines(1), overflow(0), spread(0), max_line_width(0) { }
 
 	const Formatting& Fmt() const { return fmt; }
 	int Width() const { return width; }
 	int Lines() const { return lines; }
 	int Ovf() const { return overflow; }
 	int Spread() const { return spread; }
+	int MaxLineWidth() const { return max_line_width; }
 
 	// Build a new single-line candidate by appending.
 	// Overflow is not set; use In() to finalize.
@@ -46,19 +45,21 @@ public:
 	bool Fits() const { return lines == 1 && overflow <= 0; }
 
 	// Comparison: fewer overflows wins, then fewer lines, then
-	// more balanced (smaller spread).
+	// narrower (lower max line width), then more balanced (spread).
 	bool BetterThan(const Candidate& o) const;
 
 private:
-	// Compute spread (max line width - min line width).
+	// Compute metrics: returns {spread, max_line_width}.
 	// first_col is the absolute column where the first line starts.
-	static int ComputeSpread(const std::string& text, int first_col);
+	static std::pair<int, int> ComputeMetrics(const std::string& text,
+	                                          int first_col);
 
 	Formatting fmt;
 	int width;	// width of last (or only) line
 	int lines;	// number of lines (1 = single line)
 	int overflow;	// columns past the allowed width
 	int spread;	// max line width - min line width (0 = balanced)
+	int max_line_width;	// widest line (0 for single-line)
 };
 
 using Candidates = std::vector<Candidate>;
