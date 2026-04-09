@@ -313,9 +313,12 @@ Candidate format_args_fill(const ArgComments& items, int align_col, int indent,
 			continue;
 			}
 
-		// Try keeping a multi-line bracketed arg on the
-		// current line (re-formatted at the inline position).
-		else if ( bc.Lines() > 1 && bc.Ovf() == 0 )
+		// Multi-line item handling: try keeping a bracketed
+		// arg on the current line; FieldAssign items always
+		// wrap (record fields shouldn't trail mid-line).
+		else if ( bc.Lines() > 1 &&
+		          (bc.Ovf() == 0 ||
+		           it.arg->GetTag() == Tag::FieldAssign) )
 			{
 			auto scs = try_same_line_arg(*it.arg, cur_col,
 				align_col, indent, max_col, t);
