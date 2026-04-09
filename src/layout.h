@@ -668,6 +668,7 @@ public:
 	LIPtr ComputeElseFollowOn(const FmtContext& ctx) const;
 	LIPtr ComputeFuncRet(const FmtContext& ctx) const;
 	LIPtr ComputeFuncAttrs(const FmtContext& ctx) const;
+	LIPtr ComputeBlock(const FmtContext& ctx) const;
 	LIPtr ComputeFuncBody(const FmtContext& ctx) const;
 	LIPtr ComputeLambdaPrefix(const FmtContext& ctx) const;
 	LIPtr ComputeLambdaRet(const FmtContext& ctx) const;

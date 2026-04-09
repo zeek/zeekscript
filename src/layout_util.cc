@@ -237,6 +237,24 @@ LIPtr Layout::ComputeFuncAttrs(const FmtContext& ctx) const
 	return lit(std::move(as));
 	}
 
+// Standalone BLOCK statement: Whitesmith braces at current indent.
+LIPtr Layout::ComputeBlock(const FmtContext& ctx) const
+	{
+	auto& kids = Children();
+
+	Formatting body;
+	if ( kids.size() > 2 )
+		{
+		LayoutVec inner(kids.begin() + 1, kids.end() - 1);
+		body = format_stmt_list(inner, ctx, true);
+		}
+
+	auto pad = line_prefix(ctx.Indent(), ctx.IndentCol());
+	auto& rb = kids.back();
+	return lit(Formatting(kids.front()) + "\n" + body +
+	           rb->EmitPreComments(pad) + pad + rb);
+	}
+
 // Trailing comment + Whitesmith body block for FUNC-DECL.
 LIPtr Layout::ComputeFuncBody(const FmtContext& ctx) const
 	{
