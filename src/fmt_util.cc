@@ -735,6 +735,108 @@ static void format_preproc(const Layout& node, int& preproc_depth,
 		}
 	}
 
+// Check whether a node qualifies for inline-if formatting and
+// compute the formatted inline text.  Requirements: IF-NO-ELSE,
+// single simple non-block body, no pre-comments on the body child.
+// On success sets inline_text and returns true.
+static bool try_inline_if(const LayoutVec& nodes, size_t i,
+                          const FmtContext& ctx,
+                          Formatting& inline_text)
+	{
+	auto& node = *nodes[i];
+	if ( node.GetTag() != Tag::IfNoElse || node.MustBreakBefore() )
+		return false;
+
+	// Child 5 is the BODY.
+	auto& body = *node.Child(5);
+	auto content = body.ContentChildren();
+	if ( content.size() != 1 )
+		return false;
+	auto& c0 = content[0];
+	if ( c0->GetTag() == Tag::Block || c0->MustBreakBefore() )
+		return false;
+
+	// Trailing comment on the if or on its sibling SEMI.
+	auto comment_text = node.TrailingComment();
+	LayoutPtr sibling_semi;
+	++i; // move to trailing node, if any
+	if ( ! node.FindOptChild(Tag::Semi) && i < nodes.size() &&
+	     nodes[i]->GetTag() == Tag::Semi )
+		{
+		sibling_semi = nodes[i];
+		if ( comment_text.empty() )
+			comment_text = sibling_semi->TrailingComment();
+		}
+
+	int semi_w = sibling_semi ? sibling_semi->Width() : 0;
+	int comment_w = static_cast<int>(comment_text.size());
+	int trail_w = semi_w + comment_w;
+
+	// Format the condition part.  The normal layout produces:
+	//   if ( <expr> )\n\t<body>
+	// We take the first line (the condition) and append the
+	// body inline.
+	auto cands = node.Format(ctx.Reserve(trail_w));
+	auto& cand = best(cands);
+	const auto fmt_str = cand.Fmt().Str();
+	auto nl = fmt_str.find('\n');
+	if ( nl == std::string::npos )
+		return false;
+
+	// Format body at indent 0 / col 0 so there's no pad.
+	FmtContext body_ctx(0, 0, ctx.MaxCol(), 0);
+	auto body_str = format_stmt_list(content, body_ctx).Str();
+	while ( ! body_str.empty() && body_str.back() == '\n' )
+		body_str.pop_back();
+
+	std::string cond = fmt_str.substr(0, nl);
+	inline_text = Formatting(cond + " " + body_str);
+	if ( sibling_semi )
+		inline_text += sibling_semi;
+	inline_text += comment_text;
+
+	return true;
+	}
+
+// Try to format a run of 3+ consecutive IF-NO-ELSE statements
+// starting at position i as inline single-line statements.
+// Returns the formatted lines on success, empty vector on failure.
+static std::vector<Formatting> try_inline_if_run(
+	const LayoutVec& nodes, size_t i, size_t& run_end,
+	const FmtContext& ctx)
+	{
+	// Find the end of the IF-NO-ELSE run, skipping sibling SEMIs.
+	run_end = i;
+	size_t if_count = 0;
+	while ( run_end < nodes.size() &&
+	        nodes[run_end]->GetTag() == Tag::IfNoElse )
+		{
+		++if_count;
+		++run_end;
+		if ( run_end < nodes.size() &&
+		     nodes[run_end]->GetTag() == Tag::Semi )
+			++run_end;
+		}
+
+	if ( if_count < 3 )
+		return {};
+
+	std::vector<Formatting> result;
+	for ( size_t j = i; j < run_end; ++j )
+		{
+		if ( nodes[j]->GetTag() != Tag::IfNoElse )
+			continue;
+		Formatting fmt;
+		if ( ! try_inline_if(nodes, j, ctx, fmt) )
+			return {};
+		if ( fmt.MaxLineOverflow(ctx.Col(), ctx.MaxCol()) > 0 )
+			return {};
+		result.push_back(std::move(fmt));
+		}
+
+	return result;
+	}
+
 // Format a statement node, consuming a following SEMI sibling.
 static void format_stmt(const Layout& node, const LayoutVec& nodes,
                         size_t& i, const FmtContext& ctx,
@@ -809,6 +911,20 @@ Formatting format_stmt_list(const LayoutVec& nodes, const FmtContext& ctx,
 			format_preproc(node, preproc_depth, max_col,
 			               cur_ctx, pad, result);
 			continue;
+			}
+
+		if ( t == Tag::IfNoElse )
+			{
+			size_t run_end;
+			auto inlines = try_inline_if_run(nodes, i,
+							 run_end, cur_ctx);
+			if ( ! inlines.empty() )
+				{
+				for ( auto& fmt : inlines )
+					result += pad + fmt + "\n";
+				i = run_end - 1;
+				continue;
+				}
 			}
 
 		format_stmt(node, nodes, i, cur_ctx, pad, result);
