@@ -416,6 +416,7 @@ struct FillSearch
 	int cont_avail;
 	int min_width;
 	int greedy_lines;
+	int last_trail;	// extra width on last line (close + comment)
 
 	std::vector<int> best_breaks;
 	int best_score = INT_MAX;
@@ -482,11 +483,16 @@ static void fill_search(FillSearch& fs, int line_start, int cur_w,
 
 		int avail = (line_num == 1) ? fs.first_avail : fs.cont_avail;
 
+		// Last item: account for trailing content (close + comment).
+		if ( i == fs.n - 1 )
+			{
+			if ( cur_w + fs.last_trail > avail && i > line_start )
+				return;
+			break;
+			}
+
 		if ( cur_w > avail && i > line_start )
 			return;
-
-		if ( i == fs.n - 1 )
-			break;
 
 		// Prune: remaining items too narrow for next line.
 		int remaining = line_width(fs, i + 1, fs.n);
@@ -509,7 +515,8 @@ static void fill_search(FillSearch& fs, int line_start, int cur_w,
 // fill layout.  Only works for simple items (all single-line, no
 // comments).  Prunes on overflow and narrow orphan lines.
 static Candidates try_best_fill(const ArgComments& items, int align_col,
-                                int indent, const FmtContext& first_ctx)
+                                int indent, const FmtContext& first_ctx,
+                                int trail = 0)
 	{
 	int n = static_cast<int>(items.size());
 	if ( n < 3 )
@@ -556,7 +563,7 @@ static Candidates try_best_fill(const ArgComments& items, int align_col,
 
 	FillSearch fs = {arg_widths, comma_widths, n,
 	                 first_avail, cont_avail, min_width,
-	                 greedy_lines, {}, INT_MAX, INT_MAX, {}};
+	                 greedy_lines, trail, {}, INT_MAX, INT_MAX, {}};
 	fill_search(fs, 0, 0, 1);
 
 	if ( fs.best_lines == INT_MAX )
@@ -735,7 +742,8 @@ Candidates flat_or_fill(const Formatting& prefix, const Formatting& open,
 	// Try balanced fill.  For parameter lists, replace greedy
 	// (the beam can't distinguish them when the body dominates).
 	// For expression lists, offer both and let the beam choose.
-	auto bcs = try_best_fill(items, open_col, ctx.Indent(), inner_ctx);
+	auto bcs = try_best_fill(items, open_col, ctx.Indent(), inner_ctx,
+	                         ctx.HardTrail());
 	if ( bcs.empty() )
 		return result;
 
