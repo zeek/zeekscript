@@ -25,6 +25,7 @@ IF-NO-ELSE {
   }
   RPAREN
   BODY {
+    SAME-LINE
     EXPR-STMT {
       CALL {
         IDENTIFIER "do_something"

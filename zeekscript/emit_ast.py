@@ -1374,11 +1374,11 @@ class Emitter:
                     self._mark_content(child)
             self._close()
 
-        # Emit extras between body and else, then check for a
-        # blank line before the else keyword.
+        # Emit extras between body and else keyword, then check
+        # for a blank line before the else keyword.
         if else_kw:
             had_extras = self._emit_if_extras(
-                node, body, else_body, ref_node=body,
+                node, body, else_kw, ref_node=body,
                 skip_trailing=True)
             if had_extras:
                 self._maybe_blank(else_kw)
@@ -1395,6 +1395,10 @@ class Emitter:
             else:
                 self._open('ELSE-BODY')
             self._kw("else")
+            # Comments between else and its body are leading
+            # comments on the else branch's statement.
+            self._mark_content(else_kw)
+            self._emit_if_extras(node, else_kw, else_body)
             self._emit_stmt(else_body)
             self._close()
         self._close()

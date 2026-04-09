@@ -15,6 +15,7 @@ FUNC-DECL {
       IDENTIFIER "foo"
       RPAREN
       BODY {
+        SAME-LINE
         EVENT-STMT "SomeModule::some_raised_evt" {
           KEYWORD "event"
           SP

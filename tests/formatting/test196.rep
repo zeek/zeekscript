@@ -127,8 +127,7 @@ FUNC-DECL-RET {
     RBRACE
   }
 }
-BLANK
-COMMENT-LEADING "# Only 2 ifs: should NOT inline."
+COMMENT-LEADING "\n# Only 2 ifs: should NOT inline."
 FUNC-DECL {
   KEYWORD "function"
   SP
@@ -180,8 +179,7 @@ FUNC-DECL {
     RBRACE
   }
 }
-BLANK
-COMMENT-LEADING "# 3 ifs but one too long: should NOT inline any."
+COMMENT-LEADING "\n# 3 ifs but one too long: should NOT inline any."
 FUNC-DECL {
   KEYWORD "function"
   SP
@@ -243,8 +241,7 @@ FUNC-DECL {
     RBRACE
   }
 }
-BLANK
-COMMENT-LEADING "# Sequence interrupted by non-if: 2 + 3."
+COMMENT-LEADING "\n# Sequence interrupted by non-if: 2 + 3."
 FUNC-DECL {
   KEYWORD "function"
   SP
@@ -344,8 +341,7 @@ FUNC-DECL {
     RBRACE
   }
 }
-BLANK
-COMMENT-LEADING "# if with comment before body: should NOT inline."
+COMMENT-LEADING "\n# if with comment before body: should NOT inline."
 FUNC-DECL {
   KEYWORD "function"
   SP
@@ -362,8 +358,8 @@ FUNC-DECL {
       LPAREN
       IDENTIFIER "x"
       RPAREN
-      COMMENT-LEADING "# comment before body"
       BODY {
+        COMMENT-LEADING "# comment before body"
         PRINT {
           KEYWORD "print"
           SP
@@ -407,8 +403,7 @@ FUNC-DECL {
     RBRACE
   }
 }
-BLANK
-COMMENT-LEADING "# 3+ wrapped ifs that fit: author chose wrapped, preserve it."
+COMMENT-LEADING "\n# 3+ wrapped ifs that fit: author chose wrapped, preserve it."
 FUNC-DECL {
   KEYWORD "function"
   SP
@@ -467,8 +462,7 @@ FUNC-DECL {
     RBRACE
   }
 }
-BLANK
-COMMENT-LEADING "# Author chose no-wrap, but one of them violates it."
+COMMENT-LEADING "\n# Author chose no-wrap, but one of them violates it."
 FUNC-DECL {
   KEYWORD "function"
   SP

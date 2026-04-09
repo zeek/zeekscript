@@ -81,6 +81,7 @@ FUNC-DECL {
       }
       RPAREN
       BODY {
+        SAME-LINE
         PRINT {
           KEYWORD "print"
           SP

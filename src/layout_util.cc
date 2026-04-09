@@ -1103,8 +1103,19 @@ LIPtr Layout::ComputeElseFollowOn(const FmtContext& ctx) const
 	else
 		{
 		auto else_ctx = ctx.Indented();
-		auto cs = format_expr(*else_child, else_ctx);
 		auto epad = line_prefix(else_ctx.Indent(), else_ctx.Col());
+		auto child_comments = else_child->EmitPreComments(epad);
+
+		if ( ! child_comments->Empty() )
+			{
+			// Pre-comment ends with '\n'; strip it so the
+			// statement's "\n" + epad provides the break.
+			if ( child_comments->Back() == '\n' )
+				child_comments->PopBack();
+			result += "\n" + *child_comments;
+			}
+
+		auto cs = format_expr(*else_child, else_ctx);
 		result += "\n" + epad + best(cs).Fmt();
 		}
 

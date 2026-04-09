@@ -32,6 +32,7 @@ FUNC-DECL-RET {
       }
       RPAREN
       BODY {
+        SAME-LINE
         BLOCK {
           LBRACE
           EXPR-STMT {

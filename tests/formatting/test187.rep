@@ -15,6 +15,7 @@ FUNC-DECL {
       IDENTIFIER "some_condition"
       RPAREN
       BODY {
+        SAME-LINE
         BLOCK {
           LBRACE
           IF-NO-ELSE {
