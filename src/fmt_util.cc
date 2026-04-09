@@ -740,9 +740,10 @@ static void format_stmt(const Layout& node, const LayoutVec& nodes,
                         size_t& i, const FmtContext& ctx,
                         const std::string& pad, Formatting& result)
 	{
-	// Consume a following SEMI sibling.
+	// Consume a following SEMI sibling when the node doesn't
+	// already contain its own (e.g. bare "break" keyword).
 	LayoutPtr sibling_semi;
-	if ( i + 1 < nodes.size() &&
+	if ( ! node.FindOptChild(Tag::Semi) && i + 1 < nodes.size() &&
 	     nodes[i + 1]->GetTag() == Tag::Semi )
 		sibling_semi = nodes[++i];
 
@@ -790,6 +791,12 @@ Formatting format_stmt_list(const LayoutVec& nodes, const FmtContext& ctx,
 			if ( skip_leading_blanks && ! seen_content )
 				continue;
 			result += "\n";
+			continue;
+			}
+
+		if ( t == Tag::Semi )
+			{
+			result += pad + Formatting(nodes[i]) + "\n";
 			continue;
 			}
 

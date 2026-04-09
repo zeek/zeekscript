@@ -1,7 +1,7 @@
 GLOBAL-DECL {
   KEYWORD "const"
   SP
-  IDENTIFIER "service_patterns"
+  IDENTIFIER "some_patterns"
   DECL-INIT {
     ASSIGN "="
     CONSTRUCTOR {
@@ -12,25 +12,26 @@ GLOBAL-DECL {
           INDEX-LITERAL {
             ARGS {
               LBRACKET
-              CONSTANT "/(.*\\.)?(akamaized|akamaihd|akamai|akamaiapis)\\.(com|net)/i"
+              CONSTANT "/aaa/i"
               RBRACKET
             }
           }
           OP "="
-          CONSTANT "\"akamai\""
+          CONSTANT "\"aaa\""
         }
         COMMA
-        COMMENT-LEADING "\n# Meta domains."
+        COMMENT-LEADING "# Group end"
+        BLANK
         BINARY-OP "=" {
           INDEX-LITERAL {
             ARGS {
               LBRACKET
-              CONSTANT "/(.*\\.)?(meta|(oculus(cdn)?)|facebook(-dns|-hardware)?|fbcdn)\\.(com|net)/i"
+              CONSTANT "/bbb/i"
               RBRACKET
             }
           }
           OP "="
-          CONSTANT "\"facebook\""
+          CONSTANT "\"bbb\""
         }
         COMMA
         TRAILING-COMMA
@@ -40,3 +41,4 @@ GLOBAL-DECL {
   }
   SEMI
 }
+SEMI

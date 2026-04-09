@@ -174,13 +174,18 @@ class Emitter:
         processes it, so _maybe_blank sees the right gap.
         """
         last_non_extra = None
+        saw_comment = False
         for child in node.children:
             if child.is_extra:
                 if child.type == "nl":
                     continue
                 self._emit_comment(child, last_non_extra)
+                saw_comment = True
                 continue
             last_non_extra = child
+            if saw_comment:
+                self._maybe_blank(child)
+                saw_comment = False
             yield child
             self._mark_content(child)
 
@@ -1265,6 +1270,11 @@ class Emitter:
                     self._emit_stmt_list(k)
             self._w('RBRACE')
             self._close()
+            return
+
+        # Bare semicolon (empty statement)
+        if first_text == ";":
+            self._w('SEMI')
             return
 
         # Expression statement
