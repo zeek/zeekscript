@@ -729,7 +729,9 @@ Candidates flat_or_fill(const Formatting& prefix, const Formatting& open,
 	if ( fill.Lines() < 2 || close_break || ! open_comment.empty() )
 		return result;
 
-	// Try a better-balanced break layout.
+	// Try balanced fill.  For parameter lists, replace greedy
+	// (the beam can't distinguish them when the body dominates).
+	// For expression lists, offer both and let the beam choose.
 	auto bcs = try_best_fill(items, open_col, ctx.Indent(), inner_ctx);
 	if ( bcs.empty() )
 		return result;
@@ -739,7 +741,11 @@ Candidates flat_or_fill(const Formatting& prefix, const Formatting& open,
 	int bw = bal.Width() + close_extra + close_w + suffix_w;
 
 	auto bal_fmt = prefix + open + bal.Fmt() + cb + suffix;
-	result.push_back({std::move(bal_fmt), bw, bl, bal.Ovf(), ctx.Col()});
+	Candidate c{std::move(bal_fmt), bw, bl, bal.Ovf(), ctx.Col()};
+	if ( ctx.IsParamList() )
+		result.back() = c;
+	else
+		result.push_back(c);
 
 	return result;
 	}

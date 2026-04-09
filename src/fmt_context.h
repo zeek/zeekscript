@@ -69,10 +69,16 @@ public:
 	FmtContext Reserve(int n) const
 		{ return {indent, col, width, trail + n, soft_trail}; }
 
+	// True when formatting a parameter/argument list (enables
+	// balanced fill instead of greedy).
+	bool IsParamList() const { return param_list; }
+	void SetIsParamList() { param_list = true; }
+
 private:
 	int indent;
 	int col;
 	int width;
 	int trail;	// columns reserved after last line (comment, etc.)
 	int soft_trail;	// portion of trail that can break to its own line
+	bool param_list = false;
 };

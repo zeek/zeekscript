@@ -7,6 +7,7 @@
 #include <cstdio>
 #include <stdexcept>
 #include <unordered_map>
+#include <unordered_set>
 
 #include "flat_split.h"
 #include "fmt_util.h"
@@ -25,10 +26,25 @@ std::string line_prefix(int indent, int col)
 
 // ---- Core Layout methods ------------------------------------------------
 
+// Tags whose argument lists are treated as parameter lists for
+// balanced fill.  Currently includes calls (Call, EventStmt) as
+// well as declarations (FuncDecl, TypeFunc, etc.).  Could be
+// tightened to only declarations, whose typed parameters make
+// balanced fill more clearly beneficial.
+static const std::unordered_set<Tag> param_list_tags = {
+	Tag::FuncDecl, Tag::FuncDeclRet, Tag::Call, Tag::EventStmt,
+	Tag::TypeFunc, Tag::TypeFuncRet,
+};
+
 Candidates Layout::Format(const FmtContext& ctx) const
 	{
 	if ( ! layout.empty() )
-		return BuildLayout(layout, ctx);
+		{
+		auto fctx = ctx;
+		if ( param_list_tags.count(tag) )
+			fctx.SetIsParamList();
+		return BuildLayout(layout, fctx);
+		}
 
 	auto fallback = std::string("/* ") + TagToString(tag) + " */";
 	return {Candidate(fallback, ctx)};
@@ -458,6 +474,8 @@ Partials LIArgListR::LayoutStep(Partials& beam, const FmtContext& ctx,
 		{
 		int avail = ctx.MaxCol() - p.col;
 		FmtContext sub(ctx.Indent(), p.col, avail, trail, soft_trail);
+		if ( ctx.IsParamList() )
+			sub.SetIsParamList();
 
 		// All-comments or trailing comma: force vertical.
 		bool force_vert = has_tc;
