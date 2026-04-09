@@ -1071,6 +1071,7 @@ static constexpr ComputeFn CLambdaPrefix = &Layout::ComputeLambdaPrefix;
 static constexpr ComputeFn CLambdaRet = &Layout::ComputeLambdaRet;
 static constexpr ComputeFn CLambdaBody = &Layout::ComputeLambdaBody;
 static constexpr ComputeFn CBlock = &Layout::ComputeBlock;
+static constexpr ComputeFn CWhenTimeout = &Layout::ComputeWhenTimeout;
 static constexpr ComputeFn CFuncRet = &Layout::ComputeFuncRet;
 static constexpr ComputeFn CFuncAttrs = &Layout::ComputeFuncAttrs;
 static constexpr ComputeFn CFuncBody = &Layout::ComputeFuncBody;
@@ -1132,6 +1133,12 @@ static const std::unordered_map<Tag, LayoutItems> layout_table = {
 		tok(5), sp(), tok(6),
 		computed(CRedefRecordBody), last()}},
 	{Tag::Block, {computed(CBlock)}},
+	{Tag::KeywordExpr, {tok(0), lit(" "), expr(2)}},
+	{Tag::WhenLocal, {lit("local "), arg(0), lit(" = "), expr(0)}},
+	{Tag::When, {tok(0), lit(" "), tok(2), lit(" "), expr(3),
+		lit(" "), tok(4), body_text(5)}},
+	{Tag::WhenTimeout, {tok(0), lit(" "), tok(2), lit(" "), expr(3),
+		lit(" "), tok(4), body_text(5), computed(CWhenTimeout)}},
 	{Tag::IfNoElse, {tok(0), lit(" "), tok(2), lit(" "), expr(3),
 		lit(" "), tok(4), body_text(5)}},
 	{Tag::IfElse, {tok(0), lit(" "), tok(2), lit(" "), expr(3),

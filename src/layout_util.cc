@@ -255,6 +255,26 @@ LIPtr Layout::ComputeBlock(const FmtContext& ctx) const
 	           rb->EmitPreComments(pad) + pad + rb);
 	}
 
+// Timeout clause for WHEN-TIMEOUT statement.
+// Children: 0=kw 1=sp 2=( 3=expr 4=) 5=body 6=kw 7=sp 8=TIMEOUT
+// TIMEOUT children: 0=interval 1={ 2=body 3=}
+LIPtr Layout::ComputeWhenTimeout(const FmtContext& ctx) const
+	{
+	auto pad = line_prefix(ctx.Indent(), ctx.IndentCol());
+	auto& tk = Child(8)->Children();
+
+	auto interval = best(format_expr(*tk[0], ctx)).Fmt();
+
+	auto block_ctx = ctx.Indented();
+	auto brace_pad = line_prefix(block_ctx.Indent(), block_ctx.Col());
+	auto body = format_stmt_list(tk[2]->Children(), block_ctx, true);
+	auto rb_comments = tk[3]->EmitPreComments(brace_pad);
+
+	return lit("\n" + pad + Formatting(Child(6)) + " " + interval +
+	           "\n" + brace_pad + Formatting(tk[1]) + "\n" +
+	           body + rb_comments + brace_pad + Formatting(tk[3]));
+	}
+
 // Trailing comment + Whitesmith body block for FUNC-DECL.
 LIPtr Layout::ComputeFuncBody(const FmtContext& ctx) const
 	{

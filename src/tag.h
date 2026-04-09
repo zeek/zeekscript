@@ -67,6 +67,7 @@ enum class Tag {
 	While,
 	Switch,
 	When,
+	WhenTimeout,
 	Return,
 	ReturnVoid,
 	Print,

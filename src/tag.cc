@@ -71,6 +71,7 @@ static const std::unordered_map<std::string, TagEntry> tag_map = {
 	{"WHILE", {Tag::While, false}},
 	{"SWITCH", {Tag::Switch, false}},
 	{"WHEN", {Tag::When, false}},
+	{"WHEN-TIMEOUT", {Tag::WhenTimeout, false}},
 	{"RETURN", {Tag::Return, false}},
 	{"RETURN-VOID", {Tag::ReturnVoid, false}},
 	{"PRINT", {Tag::Print, false}},

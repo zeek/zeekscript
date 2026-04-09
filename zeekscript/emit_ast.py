@@ -1630,7 +1630,10 @@ class Emitter:
                 i += 1
 
     def _emit_when(self, node: tree_sitter.Node) -> None:
-        self._open('WHEN')
+        has_timeout = any(
+            not c.is_named and self._text(c) == "timeout"
+            for c in node.children)
+        self._open('WHEN-TIMEOUT' if has_timeout else 'WHEN')
         self._kw("when")
         state = "init"
         in_timeout = False
