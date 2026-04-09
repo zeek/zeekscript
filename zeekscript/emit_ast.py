@@ -53,7 +53,7 @@ _BINARY_OPS = frozenset({
     "?$",
 })
 
-_UNARY_OPS = frozenset({"!", "-", "~"})
+_UNARY_OPS = frozenset({"!", "-", "~", "++", "--"})
 
 
 class Emitter:
@@ -284,14 +284,30 @@ class Emitter:
             self._emit_expr_child(kids[0])
             return
 
-        # Keyword-prefix expressions: hook expr, schedule expr, copy expr
+        # Keyword-prefix expressions: hook expr, schedule expr
         if (not kids[0].is_named
-                and self._text(kids[0]) in ("hook", "schedule", "copy")
+                and self._text(kids[0]) in ("hook", "schedule")
                 and len(kids) == 2):
             keyword = self._text(kids[0])
             self._open(f'KEYWORD-EXPR {_quote(keyword)}')
             self._kw(keyword)
             self._emit_expr_child(kids[1])
+            self._close()
+            return
+
+        # copy(expr) - keyword parsed with explicit parens
+        if (not kids[0].is_named
+                and self._text(kids[0]) == "copy"
+                and len(kids) >= 3):
+            self._open('CALL')
+            self._w('IDENTIFIER "copy"')
+            self._open('ARGS')
+            self._w('LPAREN')
+            expr_kids = [k for k in kids if k.is_named]
+            if expr_kids:
+                self._emit_expr(expr_kids[0])
+            self._w('RPAREN')
+            self._close()
             self._close()
             return
 
