@@ -241,8 +241,7 @@ static Candidates try_same_line_arg(const Layout& arg, int cur_col,
 	}
 
 Candidate format_args_fill(const ArgComments& items, int align_col, int indent,
-                         const FmtContext& first_line_ctx, int trail,
-                         int first_line_max)
+                         const FmtContext& first_line_ctx, int trail)
 	{
 	auto pad = line_prefix(indent, align_col);
 	Formatting fmt;
@@ -360,9 +359,6 @@ Candidate format_args_fill(const ArgComments& items, int align_col, int indent,
 			{
 			int need = 2 + aw;
 			int limit = is_last ? max_col - trail : max_col;
-			if ( first_line_max > 0 && lines == 1 &&
-			     limit > first_line_max )
-				limit = first_line_max;
 			if ( cur_col + need <= limit )
 				{
 				fmt += Formatting(it.comma) + " " + bc.Fmt();
@@ -407,14 +403,117 @@ Candidate format_args_fill(const ArgComments& items, int align_col, int indent,
 	return {fmt, cur_col, lines, total_overflow};
 	}
 
-// For a 2-line greedy fill, try breaking one item earlier to balance
-// line lengths.  Returns the balanced candidate, or empty if no
-// improvement.  Only works for simple items (no comments, single-line).
-static Candidates try_balanced_fill(const ArgComments& items, int align_col,
-                                    int indent, const FmtContext& first_ctx)
+// State for brute-force break-point search.
+struct FillSearch
+	{
+	const std::vector<int>& arg_widths;	// arg only (no comma)
+	const std::vector<int>& comma_widths;	// preceding ", "
+	int n;
+	int first_avail;
+	int cont_avail;
+	int min_width;
+	int greedy_lines;
+
+	std::vector<int> best_breaks;
+	int best_score = INT_MAX;
+	int best_lines = INT_MAX;
+
+	std::vector<int> cur_breaks;
+	};
+
+// Width of items from..to-1 on a single line.  The first item on a
+// line does not contribute its comma (it goes on the previous line).
+static int line_width(const FillSearch& fs, int from, int to)
+	{
+	int w = 0;
+	for ( int j = from; j < to; ++j )
+		{
+		if ( j > from )
+			w += fs.comma_widths[j];
+		w += fs.arg_widths[j];
+		}
+	return w;
+	}
+
+// Score a complete layout: max line width - min line width.
+static void score_layout(FillSearch& fs, int line_num)
+	{
+	if ( line_num > fs.greedy_lines )
+		return;
+
+	int min_w = INT_MAX, max_w = 0;
+	int prev = 0;
+
+	for ( int bp : fs.cur_breaks )
+		{
+		int w = line_width(fs, prev, bp);
+		min_w = std::min(min_w, w);
+		max_w = std::max(max_w, w);
+		prev = bp;
+		}
+
+	int w = line_width(fs, prev, fs.n);
+	min_w = std::min(min_w, w);
+	max_w = std::max(max_w, w);
+
+	int score = max_w - min_w;
+	if ( line_num < fs.best_lines ||
+	     (line_num == fs.best_lines && score < fs.best_score) )
+		{
+		fs.best_breaks = fs.cur_breaks;
+		fs.best_score = score;
+		fs.best_lines = line_num;
+		}
+	}
+
+// Recursively try all break-point placements from item line_start.
+static void fill_search(FillSearch& fs, int line_start, int cur_w,
+                        int line_num)
+	{
+	for ( int i = line_start; i < fs.n; ++i )
+		{
+		if ( i == line_start )
+			cur_w += fs.arg_widths[i];
+		else
+			cur_w += fs.comma_widths[i] + fs.arg_widths[i];
+
+		int avail = (line_num == 1) ? fs.first_avail : fs.cont_avail;
+
+		if ( cur_w > avail && i > line_start )
+			return;
+
+		if ( i == fs.n - 1 )
+			break;
+
+		// Prune: remaining items too narrow for next line.
+		int remaining = line_width(fs, i + 1, fs.n);
+		if ( remaining < fs.min_width && line_num > 1 )
+			continue;
+
+		// Prune: current line too narrow.
+		if ( cur_w < fs.min_width && line_num > 1 )
+			continue;
+
+		fs.cur_breaks.push_back(i + 1);
+		fill_search(fs, i + 1, 0, line_num + 1);
+		fs.cur_breaks.pop_back();
+		}
+
+	score_layout(fs, line_num);
+	}
+
+// Brute-force search over break points to find the most balanced
+// fill layout.  Only works for simple items (all single-line, no
+// comments).  Prunes on overflow and narrow orphan lines.
+static Candidates try_best_fill(const ArgComments& items, int align_col,
+                                int indent, const FmtContext& first_ctx)
 	{
 	int n = static_cast<int>(items.size());
-	std::vector<int> widths(n);
+	if ( n < 3 )
+		return {};
+
+	std::vector<int> arg_widths(n);
+	std::vector<int> comma_widths(n);
 
 	for ( int i = 0; i < n; ++i )
 		{
@@ -426,62 +525,104 @@ static Candidates try_balanced_fill(const ArgComments& items, int align_col,
 		if ( bc.Lines() > 1 )
 			return {};
 
-		widths[i] = bc.Width();
-		if ( it.comma )
-			widths[i] += it.comma->Width() + 1;
+		arg_widths[i] = bc.Width();
+		comma_widths[i] = it.comma ? it.comma->Width() + 1 : 0;
 		}
 
-	// Find greedy break: first item that doesn't fit on line 1.
-	int avail = first_ctx.Width();
-	int line1_w = 0;
-	int greedy_break = n;
+	int max_col = first_ctx.MaxCol();
+	int first_avail = max_col - first_ctx.Col();
+	int cont_avail = max_col - align_col;
+	int min_width = cont_avail / 3;
+
+	// Count greedy lines as baseline.
+	int greedy_lines = 1;
+	int cur = 0;
+	for ( int i = 0; i < n; ++i )
+		{
+		int w = (i == 0 || cur == 0) ? arg_widths[i]
+		        : comma_widths[i] + arg_widths[i];
+		int avail = (greedy_lines == 1) ? first_avail : cont_avail;
+		if ( cur + w > avail && cur > 0 )
+			{
+			++greedy_lines;
+			cur = arg_widths[i];
+			}
+		else
+			cur += w;
+		}
+
+	FillSearch fs = {arg_widths, comma_widths, n,
+	                 first_avail, cont_avail, min_width,
+	                 greedy_lines, {}, INT_MAX, INT_MAX, {}};
+	fill_search(fs, 0, 0, 1);
+
+	if ( fs.best_lines == INT_MAX )
+		return {};
+
+	// Reconstruct greedy breaks; skip if best matches greedy.
+	std::vector<int> greedy_breaks;
+	cur = 0;
+	for ( int i = 0; i < n; ++i )
+		{
+		int w = (i == 0 || cur == 0) ? arg_widths[i]
+		        : comma_widths[i] + arg_widths[i];
+		int avail = greedy_breaks.empty() ? first_avail : cont_avail;
+		if ( cur + w > avail && cur > 0 )
+			{
+			greedy_breaks.push_back(i);
+			cur = arg_widths[i];
+			}
+		else
+			cur += w;
+		}
+
+	if ( fs.best_breaks == greedy_breaks )
+		return {};
+
+	// Build the result using the chosen break points.
+	auto pad = line_prefix(indent, align_col);
+	Formatting fmt;
+	int col = first_ctx.Col();
+	int lines = 1;
+	size_t bp = 0;
 
 	for ( int i = 0; i < n; ++i )
 		{
-		if ( line1_w + widths[i] > avail )
+		auto& it = items[i];
+
+		if ( i == 0 )
 			{
-			greedy_break = i;
-			break;
+			auto bc = best(format_expr(*it.arg, first_ctx));
+			fmt += bc.Fmt();
+			col += bc.Width();
+			}
+		else if ( bp < fs.best_breaks.size() &&
+		          i == fs.best_breaks[bp] )
+			{
+			fmt += Formatting(it.comma) + "\n" + pad;
+			col = align_col;
+			++lines;
+			++bp;
+
+			FmtContext sub(indent, col, max_col - col);
+			auto bc = best(format_expr(*it.arg, sub));
+			fmt += bc.Fmt();
+			col += bc.Width();
+			}
+		else
+			{
+			FmtContext sub(indent, col + 2, max_col - col - 2);
+			auto bc = best(format_expr(*it.arg, sub));
+			fmt += Formatting(it.comma) + " " + bc.Fmt();
+			col += 2 + bc.Width();
 			}
 
-		line1_w += widths[i];
+		if ( it.comma )
+			col += it.comma->Width();
 		}
 
-	if ( greedy_break <= 1 || greedy_break >= n )
-		return {};
-
-	// Try breaking one item earlier.
-	int total = 0;
-	for ( int i = 0; i < n; ++i )
-		total += widths[i];
-
-	int w1 = 0;
-	for ( int i = 0; i < greedy_break - 1; ++i )
-		w1 += widths[i];
-
-	int greedy_w2 = align_col + (total - line1_w);
-	int greedy_spread = std::abs((first_ctx.Col() + line1_w) - greedy_w2);
-
-	int try_w2 = align_col + (total - w1);
-	int try_spread = std::abs((first_ctx.Col() + w1) - try_w2);
-
-	if ( try_spread >= greedy_spread )
-		return {};
-
-	// Verify line 2 fits within the full width.
-	int w2 = total - w1;
-	if ( align_col + w2 > first_ctx.MaxCol() )
-		return {};
-
-	// Re-fill with full max_col but a narrower first-line limit
-	// to force the earlier break.
-	auto bal = format_args_fill(items, align_col, indent, first_ctx, 0,
-					first_ctx.Col() + w1);
-
-	if ( bal.Lines() != 2 )
-		return {};
-
-	return {std::move(bal)};
+	int end_ovf = std::max(0, col - max_col);
+	return {{std::move(fmt), col, lines, end_ovf, first_ctx.Col()}};
 	}
 
 // Try flat, then greedy-fill for a bracketed list of items.
@@ -585,23 +726,20 @@ Candidates flat_or_fill(const Formatting& prefix, const Formatting& open,
 	result.push_back({std::move(fill_fmt), flast_w, fill_lines,
 	                  fill.Ovf(), ctx.Col()});
 
-	// For 2-line fills, try a balanced break (one item earlier)
-	// to reduce spread between the two lines.
-	if ( fill.Lines() == 2 && ! close_break &&
-	     open_comment.empty() )
-		{
-		auto bcs = try_balanced_fill(items, open_col,
-						ctx.Indent(), inner_ctx);
-		if ( ! bcs.empty() )
-			{
-			auto& bal = bcs[0];
-			int bw = bal.Width() + close_extra + close_w + suffix_w;
+	if ( fill.Lines() < 2 || close_break || ! open_comment.empty() )
+		return result;
 
-			auto bal_fmt = prefix + open + bal.Fmt() + cb + suffix;
-			result.push_back({std::move(bal_fmt), bw, 2,
-			                  bal.Ovf(), ctx.Col()});
-			}
-		}
+	// Try a better-balanced break layout.
+	auto bcs = try_best_fill(items, open_col, ctx.Indent(), inner_ctx);
+	if ( bcs.empty() )
+		return result;
+
+	auto& bal = bcs[0];
+	int bl = bal.Lines() + (open_comment.empty() ? 0 : 1);
+	int bw = bal.Width() + close_extra + close_w + suffix_w;
+
+	auto bal_fmt = prefix + open + bal.Fmt() + cb + suffix;
+	result.push_back({std::move(bal_fmt), bw, bl, bal.Ovf(), ctx.Col()});
 
 	return result;
 	}

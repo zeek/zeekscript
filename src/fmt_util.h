@@ -40,8 +40,7 @@ ArgComments collect_args(const LayoutVec& children);
 Candidate format_args_flat(const ArgComments& items, const FmtContext& ctx);
 
 Candidate format_args_fill(const ArgComments& items, int align_col, int indent,
-                         const FmtContext& first_line_ctx, int trail = 0,
-                         int first_line_max = 0);
+                         const FmtContext& first_line_ctx, int trail = 0);
 
 Candidates flat_or_fill(const Formatting& prefix, const Formatting& open,
                       const Formatting& close, const Formatting& suffix,

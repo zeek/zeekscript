@@ -1,0 +1,59 @@
+COMMENT-LEADING "# Balanced fill across 3+ lines."
+FUNC-DECL {
+  KEYWORD "function"
+  SP
+  IDENTIFIER "foo"
+  PARAMS {
+    LPAREN
+    RPAREN
+  }
+  BODY {
+    LBRACE
+    IF-NO-ELSE {
+      KEYWORD "if"
+      SP
+      LPAREN
+      IDENTIFIER "publish_message"
+      RPAREN
+      BODY {
+        EXPR-STMT {
+          CALL {
+            IDENTIFIER "Cluster::publish_hrw"
+            ARGS {
+              LPAREN
+              IDENTIFIER "Cluster::proxy_pool"
+              COMMA
+              CALL {
+                IDENTIFIER "cat"
+                ARGS {
+                  LPAREN
+                  FIELD-ACCESS {
+                    IDENTIFIER "msg"
+                    DOLLAR
+                    IDENTIFIER "xid"
+                  }
+                  COMMA
+                  FIELD-ACCESS {
+                    IDENTIFIER "msg"
+                    DOLLAR
+                    IDENTIFIER "chaddr"
+                  }
+                  RPAREN
+                }
+              }
+              COMMA
+              IDENTIFIER "analyze_message"
+              COMMA
+              IDENTIFIER "msg"
+              COMMA
+              IDENTIFIER "options"
+              RPAREN
+            }
+          }
+          SEMI
+        }
+      }
+    }
+    RBRACE
+  }
+}
