@@ -6,16 +6,44 @@
 // When force_flat is true, sub-expressions are formatted at the
 // base column (ctx) rather than the accumulated position, so they
 // don't try to wrap internally - overflow is detected at this level.
+// When trail_aware is true, sub-expressions see the trailing width
+// of subsequent literal pieces, matching the beam's trail_after.
 static void format_flat(FmtSteps& steps, const FmtContext& ctx,
-                        bool force_flat)
+                        bool force_flat, bool trail_aware)
 	{
+	// Compute trailing width for trail-aware mode: sum of known
+	// (non-SExpr) piece sizes after each SExpr, plus ctx.Trail()
+	// when no SExpr intervenes.
+	std::vector<int> trail(steps.size(), 0);
+	if ( trail_aware )
+		for ( size_t i = 0; i < steps.size(); ++i )
+			{
+			if ( steps[i].kind != FmtStep::SExpr )
+				continue;
+			int t = 0;
+			bool reached_end = true;
+			for ( size_t j = i + 1; j < steps.size(); ++j )
+				{
+				if ( steps[j].kind == FmtStep::SExpr )
+					{ reached_end = false; break; }
+				t += steps[j].text.Size();
+				}
+			if ( reached_end )
+				t += ctx.Trail();
+			trail[i] = t;
+			}
+
 	int used = 0;
-	for ( auto& s : steps )
+	for ( size_t i = 0; i < steps.size(); ++i )
 		{
+		auto& s = steps[i];
 		if ( s.kind == FmtStep::SExpr )
 			{
-			auto sub_ctx = force_flat ? ctx : ctx.After(used);
-			s.text = best(format_expr(*s.node, sub_ctx)).Fmt();
+			FmtContext sub = force_flat ? ctx : ctx.After(used);
+			if ( trail_aware )
+				sub = FmtContext(sub.Indent(), sub.Col(),
+						sub.Width(), trail[i]);
+			s.text = best(format_expr(*s.node, sub)).Fmt();
 			}
 		used += s.text.Size();
 		}
@@ -129,6 +157,9 @@ static void try_narrowed_expr(const FmtSteps& steps, int i, int used,
 	auto cs = format_expr(*s_i.node, sub);
 	for ( const auto& c : cs )
 		{
+		if ( c.ReluctantBreaks() > 0 )
+			continue;
+
 		Formatting alt_first;
 		for ( int j = 0; j < i; ++j )
 			alt_first += steps[j].text;
@@ -204,6 +235,9 @@ static Candidate build_split(const FmtSteps& steps, const SplitAt& sp,
 
 		for ( const auto& c : cs )
 			{
+			if ( c.ReluctantBreaks() > 0 )
+				continue;
+
 			Formatting alt_first;
 			for ( int j = 0; j < i; ++j )
 				alt_first += steps[j].text;
@@ -263,6 +297,12 @@ static void try_flat_alternates(const FmtSteps& steps, Candidates& result,
 			if ( c.Fmt().Str() == s.text.Str() )
 				continue;
 
+			// Skip reluctant-break ($-split) candidates -
+			// they should only compete in the beam, not
+			// be absorbed into outer flat forms.
+			if ( c.ReluctantBreaks() > 0 )
+				continue;
+
 			Formatting flat;
 			for ( size_t j = 0; j < steps.size(); ++j )
 				flat += (j == i) ? c.Fmt() : steps[j].text;
@@ -284,10 +324,11 @@ static void try_flat_alternates(const FmtSteps& steps, Candidates& result,
 	}
 
 Candidates flat_or_split(FmtSteps steps, const std::vector<SplitAt>& splits,
-                         const FmtContext& ctx, bool force_flat)
+                         const FmtContext& ctx, bool force_flat,
+                         bool always_split)
 	{
 	// Format all sub-expressions assuming flat layout.
-	format_flat(steps, ctx, force_flat);
+	format_flat(steps, ctx, force_flat, always_split);
 
 	auto flat = concat(steps);
 	int lines = flat.CountLines();
@@ -305,14 +346,16 @@ Candidates flat_or_split(FmtSteps steps, const std::vector<SplitAt>& splits,
 	else
 		result.push_back(Candidate(std::move(flat), ctx));
 
-	// If flat fits, no need for splits.
-	if ( result[0].Ovf() <= 0 )
+	// If flat fits, no need for splits (unless always_split
+	// is set - the split candidate may help a parent layout
+	// that has trailing items not visible in our trail).
+	if ( result[0].Ovf() <= 0 && ! always_split )
 		return result;
 
 	// A different sub-expression candidate might produce a
 	// flat form that fits or has less overflow.
 	try_flat_alternates(steps, result, ctx, force_flat);
-	if ( result[0].Ovf() <= 0 )
+	if ( result[0].Ovf() <= 0 && ! always_split )
 		return result;
 
 	// Generate a split candidate for each split point.

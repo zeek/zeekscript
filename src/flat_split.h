@@ -19,4 +19,5 @@
 // position.  This prevents them from wrapping internally and
 // ensures overflow is detected at this level.
 Candidates flat_or_split(FmtSteps steps, const std::vector<SplitAt>& splits,
-                         const FmtContext& ctx, bool force_flat = false);
+                         const FmtContext& ctx, bool force_flat = false,
+                         bool always_split = false);

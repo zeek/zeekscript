@@ -704,7 +704,8 @@ Partials LIFlatSplitR::LayoutStep(Partials& beam, const FmtContext& ctx,
 		{
 		int avail = ctx.MaxCol() - p.col;
 		FmtContext sub(ctx.Indent(), p.col, avail, trail);
-		auto cs = flat_or_split(Steps(), Splits(), sub, ForceFlatSubs());
+		auto cs = flat_or_split(Steps(), Splits(), sub,
+					ForceFlatSubs(), AlwaysSplit());
 		for ( const auto& c : cs )
 			{
 			Partial np = p;
@@ -776,8 +777,19 @@ Partials LISoftContR::LayoutStep(Partials& beam,
 
 // ---- Beam search driver --------------------------------------------------
 
+// Count reluctant breaks ($\n) in a Formatting.
+static int reluctant_breaks(const Formatting& f)
+	{
+	auto& s = f.Str();
+	int count = 0;
+	for ( size_t i = 1; i < s.size(); ++i )
+		if ( s[i] == '\n' && s[i - 1] == '$' )
+			++count;
+	return count;
+	}
+
 // Prune beam to best BEAM_WIDTH using same priority as
-// Candidate::BetterThan: overflow > lines > spread.
+// Candidate::BetterThan: reluctant (saving lines) > overflow > lines.
 static void prune_beam(Partials& beam)
 	{
 	if ( static_cast<int>(beam.size()) <= BEAM_WIDTH )
@@ -786,8 +798,20 @@ static void prune_beam(Partials& beam)
 	std::sort(beam.begin(), beam.end(),
 		[](const Partial& a, const Partial& b)
 			{
-			return std::tie(a.overflow, a.lines) <
-			       std::tie(b.overflow, b.lines);
+			int ra = reluctant_breaks(a.fmt);
+			int rb = reluctant_breaks(b.fmt);
+			if ( ra != rb )
+				{
+				int ld = a.lines - b.lines;
+				if ( ra > rb && ld <= -2 ) return true;
+				if ( rb > ra && -ld <= -2 ) return false;
+				return ra < rb;
+				}
+
+			if ( a.overflow != b.overflow )
+				return a.overflow < b.overflow;
+
+			return a.lines < b.lines;
 			});
 
 	beam.resize(BEAM_WIDTH);
@@ -970,7 +994,8 @@ void Layout::ResolveItem(LayoutItems& items, size_t i,
 			}
 
 		item = std::make_shared<LIFlatSplitR>(std::move(steps),
-					item->Splits(), item->ForceFlatSubs());
+					item->Splits(), item->ForceFlatSubs(),
+					item->AlwaysSplit());
 		break;
 		}
 
@@ -1088,9 +1113,13 @@ static const std::unordered_map<Tag, LayoutItems> layout_table = {
 	{Tag::Cardinality, {tok(0), expr(1), tok(2)}},
 	{Tag::Negation, {tok(0), lit(" "), expr(1)}},
 	{Tag::UnaryOp, {tok(0), expr(1)}},
-	{Tag::FieldAccess, {expr(0), tok(1), tok(2)}},
+	{Tag::FieldAccess, {flat_split(
+		{FmtStep::EI(0), FmtStep::TI(1), FmtStep::TI(2)},
+		{{1, SplitAt::IndentedOrSame}}, false, true)}},
 	{Tag::FieldAssign, {tok(0), arg(0), tok(1), expr(2)}},
-	{Tag::HasField, {expr(0), tok(1), tok(2)}},
+	{Tag::HasField, {flat_split(
+		{FmtStep::EI(0), FmtStep::TI(1), FmtStep::TI(2)},
+		{{1, SplitAt::IndentedOrSame}}, false, true)}},
 	{Tag::Paren, {tok(0), expr(1), tok(2)}},
 	{Tag::Schedule, {tok(0), sp(), expr(2), sp(), tok(3), sp(),
 		expr(4), sp(), tok(5)}},

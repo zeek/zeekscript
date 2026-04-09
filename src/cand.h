@@ -21,7 +21,8 @@ public:
 	Candidate(Formatting t, int w, int l, int ovf, int first_col = 0);
 
 	Candidate(Formatting t) : fmt(std::move(t)), width(fmt.Size()),
-		  lines(1), overflow(0), spread(0), max_line_width(0) { }
+		  lines(1), overflow(0), spread(0), max_line_width(0),
+		  reluctant(0) { }
 
 	const Formatting& Fmt() const { return fmt; }
 	int Width() const { return width; }
@@ -29,6 +30,7 @@ public:
 	int Ovf() const { return overflow; }
 	int Spread() const { return spread; }
 	int MaxLineWidth() const { return max_line_width; }
+	int ReluctantBreaks() const { return reluctant; }
 
 	// Build a new single-line candidate by appending.
 	// Overflow is not set; use In() to finalize.
@@ -49,10 +51,16 @@ public:
 	bool BetterThan(const Candidate& o) const;
 
 private:
-	// Compute metrics: returns {spread, max_line_width}.
+	struct Metrics {
+		int spread;
+		int max_line_width;
+		int reluctant_breaks;
+	};
+
+	// Compute metrics from materialized text.
 	// first_col is the absolute column where the first line starts.
-	static std::pair<int, int> ComputeMetrics(const std::string& text,
-	                                          int first_col);
+	static Metrics ComputeMetrics(const std::string& text,
+	                              int first_col);
 
 	Formatting fmt;
 	int width;	// width of last (or only) line
@@ -60,9 +68,16 @@ private:
 	int overflow;	// columns past the allowed width
 	int spread;	// max line width - min line width (0 = balanced)
 	int max_line_width;	// widest line (0 for single-line)
+	int reluctant;	// $-break count (0 for non-field-access)
 };
 
 using Candidates = std::vector<Candidate>;
 
 // Pick the best candidate from a non-empty vector.
+// Reluctant ($-split) candidates are skipped when non-reluctant exist.
 const Candidate& best(const Candidates& cs);
+
+// Like best() but allows reluctant candidates to win when they
+// save >= 2 lines.  Used at statement level where no outer
+// context can absorb the overflow at a better break point.
+const Candidate& best_overall(const Candidates& cs);

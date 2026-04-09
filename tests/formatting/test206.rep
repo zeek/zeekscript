@@ -1,0 +1,86 @@
+FUNC-DECL {
+  KEYWORD "function"
+  SP
+  IDENTIFIER "foo"
+  PARAMS {
+    LPAREN
+    RPAREN
+  }
+  BODY {
+    LBRACE
+    IF-NO-ELSE {
+      KEYWORD "if"
+      SP
+      LPAREN
+      IDENTIFIER "x"
+      RPAREN
+      BODY {
+        BLOCK {
+          LBRACE
+          IF-NO-ELSE {
+            KEYWORD "if"
+            SP
+            LPAREN
+            BINARY-OP "in" {
+              IDENTIFIER "name"
+              OP "in"
+              IDENTIFIER "HTTP::proxy_headers"
+            }
+            RPAREN
+            BODY {
+              BLOCK {
+                LBRACE
+                ADD {
+                  KEYWORD "add"
+                  SP
+                  INDEX {
+                    FIELD-ACCESS {
+                      INDEX {
+                        FIELD-ACCESS {
+                          FIELD-ACCESS {
+                            IDENTIFIER "c"
+                            DOLLAR
+                            IDENTIFIER "http2_streams"
+                          }
+                          DOLLAR
+                          IDENTIFIER "streams"
+                        }
+                        SUBSCRIPTS {
+                          LBRACKET
+                          IDENTIFIER "stream"
+                          RBRACKET
+                        }
+                      }
+                      DOLLAR
+                      IDENTIFIER "proxied"
+                    }
+                    SUBSCRIPTS {
+                      LBRACKET
+                      CALL {
+                        IDENTIFIER "fmt"
+                        ARGS {
+                          LPAREN
+                          CONSTANT "\"%s -> %s\""
+                          COMMA
+                          IDENTIFIER "name"
+                          COMMA
+                          IDENTIFIER "value"
+                          RPAREN
+                        }
+                      }
+                      RBRACKET
+                    }
+                  }
+                  SEMI
+                }
+                RBRACE
+              }
+            }
+          }
+          RBRACE
+        }
+      }
+    }
+    RBRACE
+  }
+}

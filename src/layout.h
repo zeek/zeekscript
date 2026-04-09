@@ -235,10 +235,11 @@ public:
 		  sb_flags(fl), must_break(false) {}
 
 	// Flat-or-split: steps + split points, resolved in the beam.
-	LayoutItem(FmtSteps s, std::vector<SplitAt> sp, bool ff = false)
+	LayoutItem(FmtSteps s, std::vector<SplitAt> sp,
+	           bool ff = false, bool as = false)
 		: kind(FlatSplit), steps(std::move(s)),
 		  splits(std::move(sp)), force_flat(ff),
-		  must_break(false) {}
+		  always_split(as), must_break(false) {}
 
 	// Resolved DeclCands: holds pre-computed Candidates.
 	LayoutItem(LIKind k, Candidates cs)
@@ -288,6 +289,7 @@ public:
 	const FmtSteps& Steps() const { return steps; }
 	const std::vector<SplitAt>& Splits() const { return splits; }
 	bool ForceFlatSubs() const { return force_flat; }
+	bool AlwaysSplit() const { return always_split; }
 	ComputeFn GetComputeFn() const { return compute_fn; }
 	ComputeFn SuffixFn() const { return suffix_fn; }
 	ComputeFn PrefixFn() const { return prefix_fn; }
@@ -309,6 +311,7 @@ protected:
 	int sub_child_idx = -1;
 	int sb_flags = 0;
 	bool force_flat = false;
+	bool always_split = false;
 	ComputeFn compute_fn = nullptr;
 	ComputeFn suffix_fn = nullptr;
 	ComputeFn prefix_fn = nullptr;
@@ -399,8 +402,8 @@ public:
 class LIFlatSplitR : public LayoutItem {
 public:
 	LIFlatSplitR(FmtSteps s, std::vector<SplitAt> sp,
-	             bool ff = false)
-		: LayoutItem(std::move(s), std::move(sp), ff) {}
+	             bool ff = false, bool as = false)
+		: LayoutItem(std::move(s), std::move(sp), ff, as) {}
 	Partials LayoutStep(Partials& beam, const FmtContext& ctx,
 		int trail, int soft_trail) const override;
 };
@@ -535,9 +538,9 @@ inline LIPtr op_fill() { return std::make_shared<LayoutItem>(OpFill); }
 // Flat-or-split with deferred child references: FmtStep::EI(n)
 // and FmtStep::TI(n) are resolved during BuildLayout.
 inline LIPtr flat_split(FmtSteps s, std::vector<SplitAt> sp,
-                        bool ff = false)
+                        bool ff = false, bool as = false)
 	{
-	return std::make_shared<LayoutItem>(std::move(s), std::move(sp), ff);
+	return std::make_shared<LayoutItem>(std::move(s), std::move(sp), ff, as);
 	}
 
 // Build layout candidates from a sequence of components using

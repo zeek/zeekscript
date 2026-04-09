@@ -1038,7 +1038,7 @@ static void format_stmt(const Layout& node, const LayoutVec& nodes,
 	if ( node.GetTag() == Tag::Keyword )
 		stmt_fmt = node.Arg();
 	else
-		stmt_fmt = best(node.Format(ctx.Reserve(trail_w))).Fmt();
+		stmt_fmt = best_overall(node.Format(ctx.Reserve(trail_w))).Fmt();
 
 	result += pad + stmt_fmt;
 	if ( sibling_semi )
