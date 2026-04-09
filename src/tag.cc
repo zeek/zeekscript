@@ -133,6 +133,7 @@ static const std::unordered_map<std::string, TagEntry> tag_map = {
 	{"BLANK", {Tag::Blank, false}},
 	{"RAW", {Tag::Raw, false}},
 	{"TRAILING-COMMA", {Tag::TrailingComma, false}},
+	{"SAME-LINE", {Tag::SameLine, false}},
 
 	// Preprocessor
 	{"PREPROC", {Tag::Preproc, false}},

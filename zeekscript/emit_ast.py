@@ -1351,6 +1351,10 @@ class Emitter:
 
         if body:
             self._open('BODY')
+            # Mark when the author wrote the body on the same line.
+            if not else_body and \
+               body.start_point[0] == node.start_point[0]:
+                self._w('SAME-LINE')
             self._emit_stmt(body)
             # Capture same-line trailing comment inside BODY.
             if else_kw:

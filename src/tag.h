@@ -129,6 +129,7 @@ enum class Tag {
 	Blank,
 	Raw,
 	TrailingComma,
+	SameLine,
 
 	// Preprocessor
 	Preproc,
@@ -162,7 +163,8 @@ inline bool is_type_tag(Tag t)
 // Marker nodes: separators and whitespace that are not content.
 inline bool is_marker(Tag t)
 	{
-	return t == Tag::Blank || t == Tag::Semi || t == Tag::TrailingComma;
+	return t == Tag::Blank || t == Tag::Semi || t == Tag::TrailingComma ||
+	       t == Tag::SameLine;
 	}
 
 bool is_token(Tag t);

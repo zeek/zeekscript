@@ -1,0 +1,532 @@
+COMMENT-LEADING "# 3+ inline ifs: all fit, should inline."
+FUNC-DECL-RET {
+  KEYWORD "function"
+  SP
+  IDENTIFIER "f"
+  PARAMS {
+    LPAREN
+    PARAM "val" {
+      COLON
+      TYPE-ATOM "string"
+    }
+    RPAREN
+  }
+  COLON
+  RETURNS {
+    TYPE-ATOM "string"
+  }
+  BODY {
+    LBRACE
+    IF-NO-ELSE {
+      KEYWORD "if"
+      SP
+      LPAREN
+      BINARY-OP "in" {
+        CONSTANT "/aaa/i"
+        OP "in"
+        IDENTIFIER "val"
+      }
+      RPAREN
+      BODY {
+        SAME-LINE
+        RETURN {
+          KEYWORD "return"
+          SP
+          CONSTANT "\"aaa\""
+          SEMI
+        }
+      }
+    }
+    IF-NO-ELSE {
+      KEYWORD "if"
+      SP
+      LPAREN
+      BINARY-OP "in" {
+        CONSTANT "/bbb/i"
+        OP "in"
+        IDENTIFIER "val"
+      }
+      RPAREN
+      BODY {
+        SAME-LINE
+        RETURN {
+          KEYWORD "return"
+          SP
+          CONSTANT "\"bbb\""
+          SEMI
+        }
+      }
+    }
+    IF-NO-ELSE {
+      KEYWORD "if"
+      SP
+      LPAREN
+      BINARY-OP "in" {
+        CONSTANT "/ccc/i"
+        OP "in"
+        IDENTIFIER "val"
+      }
+      RPAREN
+      BODY {
+        SAME-LINE
+        RETURN {
+          KEYWORD "return"
+          SP
+          CONSTANT "\"ccc\""
+          SEMI
+        }
+      }
+    }
+    IF-NO-ELSE {
+      KEYWORD "if"
+      SP
+      LPAREN
+      BINARY-OP "in" {
+        CONSTANT "/ddd/i"
+        OP "in"
+        IDENTIFIER "val"
+      }
+      RPAREN
+      BODY {
+        SAME-LINE
+        RETURN {
+          KEYWORD "return"
+          SP
+          CONSTANT "\"ddd\""
+          SEMI
+        }
+      }
+    }
+    IF-NO-ELSE {
+      KEYWORD "if"
+      SP
+      LPAREN
+      BINARY-OP "in" {
+        CONSTANT "/eee/"
+        OP "in"
+        IDENTIFIER "val"
+      }
+      RPAREN
+      BODY {
+        SAME-LINE
+        RETURN {
+          KEYWORD "return"
+          SP
+          CONSTANT "\"eee\""
+          SEMI
+        }
+      }
+    }
+    BLANK
+    RETURN {
+      KEYWORD "return"
+      SP
+      IDENTIFIER "val"
+      SEMI
+    }
+    RBRACE
+  }
+}
+BLANK
+COMMENT-LEADING "# Only 2 ifs: should NOT inline."
+FUNC-DECL {
+  KEYWORD "function"
+  SP
+  IDENTIFIER "g"
+  PARAMS {
+    LPAREN
+    RPAREN
+  }
+  BODY {
+    LBRACE
+    IF-NO-ELSE {
+      KEYWORD "if"
+      SP
+      LPAREN
+      IDENTIFIER "x"
+      RPAREN
+      BODY {
+        SAME-LINE
+        RETURN {
+          KEYWORD "return"
+          SP
+          CONSTANT "\"a\""
+          SEMI
+        }
+      }
+    }
+    IF-NO-ELSE {
+      KEYWORD "if"
+      SP
+      LPAREN
+      IDENTIFIER "y"
+      RPAREN
+      BODY {
+        SAME-LINE
+        RETURN {
+          KEYWORD "return"
+          SP
+          CONSTANT "\"b\""
+          SEMI
+        }
+      }
+    }
+    RETURN {
+      KEYWORD "return"
+      SP
+      CONSTANT "\"c\""
+      SEMI
+    }
+    RBRACE
+  }
+}
+BLANK
+COMMENT-LEADING "# 3 ifs but one too long: should NOT inline any."
+FUNC-DECL {
+  KEYWORD "function"
+  SP
+  IDENTIFIER "h"
+  PARAMS {
+    LPAREN
+    RPAREN
+  }
+  BODY {
+    LBRACE
+    IF-NO-ELSE {
+      KEYWORD "if"
+      SP
+      LPAREN
+      IDENTIFIER "x"
+      RPAREN
+      BODY {
+        SAME-LINE
+        RETURN {
+          KEYWORD "return"
+          SP
+          CONSTANT "\"a\""
+          SEMI
+        }
+      }
+    }
+    IF-NO-ELSE {
+      KEYWORD "if"
+      SP
+      LPAREN
+      IDENTIFIER "y"
+      RPAREN
+      BODY {
+        SAME-LINE
+        RETURN {
+          KEYWORD "return"
+          SP
+          CONSTANT "\"b\""
+          SEMI
+        }
+      }
+    }
+    IF-NO-ELSE {
+      KEYWORD "if"
+      SP
+      LPAREN
+      IDENTIFIER "some_very_long_condition_that_pushes_past_the_limit"
+      RPAREN
+      BODY {
+        SAME-LINE
+        RETURN {
+          KEYWORD "return"
+          SP
+          CONSTANT "\"this_long_value\""
+          SEMI
+        }
+      }
+    }
+    RBRACE
+  }
+}
+BLANK
+COMMENT-LEADING "# Sequence interrupted by non-if: 2 + 3."
+FUNC-DECL {
+  KEYWORD "function"
+  SP
+  IDENTIFIER "i"
+  PARAMS {
+    LPAREN
+    RPAREN
+  }
+  BODY {
+    LBRACE
+    IF-NO-ELSE {
+      KEYWORD "if"
+      SP
+      LPAREN
+      IDENTIFIER "x"
+      RPAREN
+      BODY {
+        SAME-LINE
+        RETURN {
+          KEYWORD "return"
+          SP
+          CONSTANT "\"a\""
+          SEMI
+        }
+      }
+    }
+    IF-NO-ELSE {
+      KEYWORD "if"
+      SP
+      LPAREN
+      IDENTIFIER "y"
+      RPAREN
+      BODY {
+        SAME-LINE
+        RETURN {
+          KEYWORD "return"
+          SP
+          CONSTANT "\"b\""
+          SEMI
+        }
+      }
+    }
+    PRINT {
+      KEYWORD "print"
+      SP
+      CONSTANT "\"mid\""
+      SEMI
+    }
+    IF-NO-ELSE {
+      KEYWORD "if"
+      SP
+      LPAREN
+      IDENTIFIER "a"
+      RPAREN
+      BODY {
+        SAME-LINE
+        RETURN {
+          KEYWORD "return"
+          SP
+          CONSTANT "\"c\""
+          SEMI
+        }
+      }
+    }
+    IF-NO-ELSE {
+      KEYWORD "if"
+      SP
+      LPAREN
+      IDENTIFIER "b"
+      RPAREN
+      BODY {
+        SAME-LINE
+        RETURN {
+          KEYWORD "return"
+          SP
+          CONSTANT "\"d\""
+          SEMI
+        }
+      }
+    }
+    IF-NO-ELSE {
+      KEYWORD "if"
+      SP
+      LPAREN
+      IDENTIFIER "c"
+      RPAREN
+      BODY {
+        SAME-LINE
+        RETURN {
+          KEYWORD "return"
+          SP
+          CONSTANT "\"e\""
+          SEMI
+        }
+      }
+    }
+    RBRACE
+  }
+}
+BLANK
+COMMENT-LEADING "# if with comment before body: should NOT inline."
+FUNC-DECL {
+  KEYWORD "function"
+  SP
+  IDENTIFIER "j"
+  PARAMS {
+    LPAREN
+    RPAREN
+  }
+  BODY {
+    LBRACE
+    IF-NO-ELSE {
+      KEYWORD "if"
+      SP
+      LPAREN
+      IDENTIFIER "x"
+      RPAREN
+      COMMENT-LEADING "# comment before body"
+      BODY {
+        PRINT {
+          KEYWORD "print"
+          SP
+          CONSTANT "\"done\""
+          SEMI
+        }
+      }
+    }
+    IF-NO-ELSE {
+      KEYWORD "if"
+      SP
+      LPAREN
+      IDENTIFIER "y"
+      RPAREN
+      BODY {
+        SAME-LINE
+        PRINT {
+          KEYWORD "print"
+          SP
+          CONSTANT "\"two\""
+          SEMI
+        }
+      }
+    }
+    IF-NO-ELSE {
+      KEYWORD "if"
+      SP
+      LPAREN
+      IDENTIFIER "z"
+      RPAREN
+      BODY {
+        SAME-LINE
+        PRINT {
+          KEYWORD "print"
+          SP
+          CONSTANT "\"three\""
+          SEMI
+        }
+      }
+    }
+    RBRACE
+  }
+}
+BLANK
+COMMENT-LEADING "# 3+ wrapped ifs that fit: author chose wrapped, preserve it."
+FUNC-DECL {
+  KEYWORD "function"
+  SP
+  IDENTIFIER "k"
+  PARAMS {
+    LPAREN
+    RPAREN
+  }
+  BODY {
+    LBRACE
+    IF-NO-ELSE {
+      KEYWORD "if"
+      SP
+      LPAREN
+      IDENTIFIER "x"
+      RPAREN
+      BODY {
+        RETURN {
+          KEYWORD "return"
+          SP
+          CONSTANT "\"a\""
+          SEMI
+        }
+      }
+    }
+    IF-NO-ELSE {
+      KEYWORD "if"
+      SP
+      LPAREN
+      IDENTIFIER "y"
+      RPAREN
+      BODY {
+        RETURN {
+          KEYWORD "return"
+          SP
+          CONSTANT "\"b\""
+          SEMI
+        }
+      }
+    }
+    IF-NO-ELSE {
+      KEYWORD "if"
+      SP
+      LPAREN
+      IDENTIFIER "z"
+      RPAREN
+      BODY {
+        RETURN {
+          KEYWORD "return"
+          SP
+          CONSTANT "\"c\""
+          SEMI
+        }
+      }
+    }
+    RBRACE
+  }
+}
+BLANK
+COMMENT-LEADING "# Author chose no-wrap, but one of them violates it."
+FUNC-DECL {
+  KEYWORD "function"
+  SP
+  IDENTIFIER "l"
+  PARAMS {
+    LPAREN
+    RPAREN
+  }
+  BODY {
+    LBRACE
+    IF-NO-ELSE {
+      KEYWORD "if"
+      SP
+      LPAREN
+      IDENTIFIER "x"
+      RPAREN
+      BODY {
+        SAME-LINE
+        RETURN {
+          KEYWORD "return"
+          SP
+          CONSTANT "\"a\""
+          SEMI
+        }
+      }
+    }
+    IF-NO-ELSE {
+      KEYWORD "if"
+      SP
+      LPAREN
+      IDENTIFIER "y"
+      RPAREN
+      BODY {
+        SAME-LINE
+        RETURN {
+          KEYWORD "return"
+          SP
+          CONSTANT "\"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\""
+          SEMI
+        }
+      }
+    }
+    IF-NO-ELSE {
+      KEYWORD "if"
+      SP
+      LPAREN
+      IDENTIFIER "z"
+      RPAREN
+      BODY {
+        SAME-LINE
+        RETURN {
+          KEYWORD "return"
+          SP
+          CONSTANT "\"c\""
+          SEMI
+        }
+      }
+    }
+    RBRACE
+  }
+}

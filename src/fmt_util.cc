@@ -736,8 +736,9 @@ static void format_preproc(const Layout& node, int& preproc_depth,
 	}
 
 // Check whether a node qualifies for inline-if formatting and
-// compute the formatted inline text.  Requirements: IF-NO-ELSE,
-// single simple non-block body, no pre-comments on the body child.
+// compute the formatted inline text.  Requirements: IF-NO-ELSE
+// with SAME-LINE marker, single simple non-block body, no
+// pre-comments on the body child.
 // On success sets inline_text and returns true.
 static bool try_inline_if(const LayoutVec& nodes, size_t i,
                           const FmtContext& ctx,
@@ -749,6 +750,8 @@ static bool try_inline_if(const LayoutVec& nodes, size_t i,
 
 	// Child 5 is the BODY.
 	auto& body = *node.Child(5);
+	if ( ! body.FindOptChild(Tag::SameLine) )
+		return false;
 	auto content = body.ContentChildren();
 	if ( content.size() != 1 )
 		return false;
@@ -887,6 +890,9 @@ Formatting format_stmt_list(const LayoutVec& nodes, const FmtContext& ctx,
 		{
 		const auto& node = *nodes[i];
 		Tag t = node.GetTag();
+
+		if ( t == Tag::SameLine )
+			continue;
 
 		if ( t == Tag::Blank )
 			{
