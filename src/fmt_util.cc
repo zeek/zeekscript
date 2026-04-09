@@ -241,7 +241,8 @@ static Candidates try_same_line_arg(const Layout& arg, int cur_col,
 	}
 
 Candidate format_args_fill(const ArgComments& items, int align_col, int indent,
-                         const FmtContext& first_line_ctx, int trail)
+                         const FmtContext& first_line_ctx, int trail,
+                         int first_line_max)
 	{
 	auto pad = line_prefix(indent, align_col);
 	Formatting fmt;
@@ -359,6 +360,9 @@ Candidate format_args_fill(const ArgComments& items, int align_col, int indent,
 			{
 			int need = 2 + aw;
 			int limit = is_last ? max_col - trail : max_col;
+			if ( first_line_max > 0 && lines == 1 &&
+			     limit > first_line_max )
+				limit = first_line_max;
 			if ( cur_col + need <= limit )
 				{
 				fmt += Formatting(it.comma) + " " + bc.Fmt();
@@ -464,9 +468,15 @@ static Candidates try_balanced_fill(const ArgComments& items, int align_col,
 	if ( try_spread >= greedy_spread )
 		return {};
 
-	// Re-fill with a narrower first line to force the earlier break.
-	auto bal = format_args_fill(items, align_col, indent,
-				FmtContext(indent, first_ctx.Col(), w1));
+	// Verify line 2 fits within the full width.
+	int w2 = total - w1;
+	if ( align_col + w2 > first_ctx.MaxCol() )
+		return {};
+
+	// Re-fill with full max_col but a narrower first-line limit
+	// to force the earlier break.
+	auto bal = format_args_fill(items, align_col, indent, first_ctx, 0,
+					first_ctx.Col() + w1);
 
 	if ( bal.Lines() != 2 )
 		return {};
