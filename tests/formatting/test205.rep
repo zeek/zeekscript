@@ -1,0 +1,76 @@
+FUNC-DECL {
+  KEYWORD "function"
+  SP
+  IDENTIFIER "foo"
+  PARAMS {
+    LPAREN
+    RPAREN
+  }
+  BODY {
+    LBRACE
+    EXPR-STMT {
+      CALL {
+        IDENTIFIER "NOTICE"
+        ARGS {
+          LPAREN
+          INDEX-LITERAL {
+            ARGS {
+              LBRACKET
+              FIELD-ASSIGN "note" {
+                DOLLAR
+                ASSIGN "="
+                IDENTIFIER "Some::Note"
+              }
+              COMMA
+              FIELD-ASSIGN "msg" {
+                DOLLAR
+                ASSIGN "="
+                CALL {
+                  IDENTIFIER "fmt"
+                  ARGS {
+                    LPAREN
+                    CONSTANT "\"%s made %d connections to %s (%s)\""
+                    COMMA
+                    IDENTIFIER "src_host"
+                    COMMA
+                    IDENTIFIER "total_conns"
+                    COMMA
+                    IDENTIFIER "total_bytes"
+                    COMMA
+                    IDENTIFIER "conns"
+                    RPAREN
+                  }
+                }
+              }
+              COMMA
+              FIELD-ASSIGN "src" {
+                DOLLAR
+                ASSIGN "="
+                IDENTIFIER "src_host"
+              }
+              COMMA
+              FIELD-ASSIGN "identifier" {
+                DOLLAR
+                ASSIGN "="
+                CALL {
+                  IDENTIFIER "cat"
+                  ARGS {
+                    LPAREN
+                    IDENTIFIER "src_host"
+                    COMMA
+                    IDENTIFIER "bucket"
+                    RPAREN
+                  }
+                }
+              }
+              RBRACKET
+            }
+          }
+          RPAREN
+        }
+      }
+      SEMI
+    }
+    RBRACE
+  }
+}

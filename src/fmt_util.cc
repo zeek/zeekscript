@@ -305,9 +305,15 @@ Candidate format_args_fill(const ArgComments& items, int align_col, int indent,
 			force_wrap = false;
 			comma_consumed = false;
 
+			int prev_lines = lines;
 			format_fill_arg(*it.arg, indent, max_col,
 			              fmt, cur_col, lines, total_overflow, t);
 			++lines;
+
+			if ( lines - prev_lines > 1 &&
+			     it.arg->GetTag() == Tag::FieldAssign )
+				force_wrap = true;
+
 			append_trailing(it, nc, fmt, cur_col, force_wrap,
 			              comma_consumed);
 			continue;
