@@ -1,0 +1,28 @@
+COMMENT-LEADING "# Trailing comment on last element before closing paren."
+GLOBAL-DECL {
+  KEYWORD "redef"
+  SP
+  IDENTIFIER "login_timeouts"
+  DECL-INIT {
+    ASSIGN "="
+    CONSTRUCTOR {
+      KEYWORD "set"
+      ARGS {
+        LPAREN
+        CONSTANT "\"timed out\""
+        COMMA
+        CONSTANT "\"Timeout\""
+        COMMA
+        CONSTANT "\"Timed out\""
+        COMMA
+        COMMENT-TRAILING "# Comment 1"
+        CONSTANT "\"Error reading command input\""
+        COMMA
+        COMMENT-TRAILING "# Comment 2"
+        TRAILING-COMMA
+        RPAREN
+      }
+    }
+  }
+  SEMI
+}

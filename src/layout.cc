@@ -351,7 +351,8 @@ Partials LIArgListR::LayoutStep(Partials& beam, const FmtContext& ctx,
 	auto child = LI_Node();
 	auto open = Formatting(child->Children().front());
 	auto close = Formatting(child->Children().back());
-	auto items = collect_args(child->Children());
+	LayoutPtr dangling_comma;
+	auto items = collect_args(child->Children(), &dangling_comma);
 	auto& suffix = Fmt();
 	auto& prefix = Prefix();
 
@@ -397,7 +398,7 @@ Partials LIArgListR::LayoutStep(Partials& beam, const FmtContext& ctx,
 		if ( force_vert )
 			{
 			auto c = format_args_vertical(open, close, items,
-							sub, has_tc);
+						sub, has_tc, dangling_comma);
 			Partial np = p;
 			merge_candidate(np, c);
 			next.push_back(std::move(np));
@@ -424,7 +425,8 @@ Partials LIArgListR::LayoutStep(Partials& beam, const FmtContext& ctx,
 
 			if ( cs.empty() || cs.back().Ovf() > 0 )
 				cs.push_back(format_args_vertical(open, close,
-								items, sub));
+							items, sub, false,
+							dangling_comma));
 			}
 		else
 			{
@@ -434,7 +436,8 @@ Partials LIArgListR::LayoutStep(Partials& beam, const FmtContext& ctx,
 				close_pfx = ", ";
 
 			cs = flat_or_fill(prefix, open, close, suffix, items,
-						sub, child->Text(), close_pfx);
+						sub, child->Text(), close_pfx,
+						dangling_comma);
 
 			if ( vert_upgrade && items.size() >= 3 &&
 			     cs.size() > 1 &&

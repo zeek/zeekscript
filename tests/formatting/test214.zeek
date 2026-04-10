@@ -1,0 +1,7 @@
+# Trailing comment on last element before closing paren.
+redef login_timeouts = set(
+    "timed out",
+    "Timeout",
+    "Timed out", # Comment 1
+    "Error reading command input", # Comment 2
+);

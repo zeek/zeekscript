@@ -36,7 +36,7 @@ bool has_breaks(const ArgItems& items)
 	return false;
 	}
 
-ArgItems collect_args(const LayoutVec& children)
+ArgItems collect_args(const LayoutVec& children, LayoutPtr* dangling_comma)
 	{
 	ArgItems items;
 	LayoutPtr pending_comma;
@@ -62,6 +62,9 @@ ArgItems collect_args(const LayoutVec& children)
 		items.push_back({c, std::move(leading), pending_comma});
 		pending_comma = nullptr;
 		}
+
+	if ( dangling_comma )
+		*dangling_comma = pending_comma;
 
 	return items;
 	}
@@ -235,7 +238,8 @@ static Candidates try_same_line_arg(const Layout& arg, int cur_col,
 	}
 
 Candidate format_args_fill(const ArgItems& items, int align_col, int indent,
-                         const FmtContext& first_line_ctx, int trail)
+                         const FmtContext& first_line_ctx, int trail,
+                         const LayoutPtr& dangling_comma)
 	{
 	auto pad = line_prefix(indent, align_col);
 	Formatting fmt;
@@ -251,7 +255,7 @@ Candidate format_args_fill(const ArgItems& items, int align_col, int indent,
 		{
 		auto& it = items[i];
 		bool is_last = (i + 1 == items.size());
-		auto nc = is_last ? nullptr : items[i + 1].comma;
+		auto nc = is_last ? dangling_comma : items[i + 1].comma;
 
 		// Leading comments force a wrap and appear on their
 		// own lines before the item.
@@ -659,9 +663,12 @@ Candidates flat_or_fill(const Formatting& prefix, const Formatting& open,
                       const Formatting& close, const Formatting& suffix,
                       const ArgItems& items, const FmtContext& ctx,
                       const std::string& open_comment,
-                      const std::string& close_prefix)
+                      const std::string& close_prefix,
+                      const LayoutPtr& dangling_comma)
 	{
-	bool any_breaks = has_breaks(items) || ! open_comment.empty();
+	bool any_breaks =
+		has_breaks(items) || ! open_comment.empty() ||
+		(dangling_comma && dangling_comma->MustBreakAfter());
 	int prefix_w = prefix.Size();
 	int open_w = open.Size();
 	int close_w = close.Size();
@@ -707,7 +714,8 @@ Candidates flat_or_fill(const Formatting& prefix, const Formatting& open,
 		fill_prefix = open_comment + "\n" + pad;
 		}
 
-	auto fill = format_args_fill(items, open_col, ctx.Indent(), inner_ctx);
+	auto fill = format_args_fill(items, open_col, ctx.Indent(),
+				inner_ctx, 0, dangling_comma);
 
 	// If the assembled output + hard trail overflows, re-fill
 	// with hard trail so the fill can wrap to stay within the
@@ -717,7 +725,8 @@ Candidates flat_or_fill(const Formatting& prefix, const Formatting& open,
 	if ( fill.Lines() == 1 && hard > 0 &&
 	     ! result.empty() && result[0].Ovf() > 0 )
 		fill = format_args_fill(items, open_col, ctx.Indent(),
-					inner_ctx, hard);
+					inner_ctx, hard, dangling_comma);
+
 	else if ( fill.Lines() > 1 && hard > 0 )
 		{
 		auto assembled = prefix + open + fill_prefix +
@@ -726,7 +735,8 @@ Candidates flat_or_fill(const Formatting& prefix, const Formatting& open,
 					ctx.MaxCol() - hard);
 		if ( ovf > 0 )
 			fill = format_args_fill(items, open_col, ctx.Indent(),
-						inner_ctx, hard);
+						inner_ctx, hard,
+						dangling_comma);
 		}
 
 	// When the last arg is a lambda, put the close bracket on
@@ -819,7 +829,8 @@ static int format_vert_item(const ArgItem& it, const LayoutPtr& next_comma,
 
 Candidate format_args_vertical(const Formatting& open, const Formatting& close,
                              const ArgItems& items, const FmtContext& ctx,
-                             bool trailing_comma)
+                             bool trailing_comma,
+                             const LayoutPtr& dangling_comma)
 	{
 	int body_indent = ctx.Indent() + 1;
 	int body_col = body_indent * INDENT_WIDTH;
@@ -864,7 +875,7 @@ Candidate format_args_vertical(const Formatting& open, const Formatting& close,
 		++lines;
 
 		auto nc = (i + 1 < items.size()) ?
-					items[i + 1].comma : nullptr;
+				items[i + 1].comma : dangling_comma;
 		int line_w = format_vert_item(it, nc, trailing_comma,
 		                              body_col, body_ctx, fmt);
 		if ( line_w > ctx.MaxCol() )

@@ -445,7 +445,7 @@ class Emitter:
                         and node.parent.type == "initializer"):
                     self._emit_constructor(
                         first_text, args[0] if args else None,
-                        attrs[0] if attrs else None)
+                        attrs[0] if attrs else None, node)
                     return
 
                 self._open('CALL')
@@ -629,7 +629,8 @@ class Emitter:
                                 break
                         if keyword == "table":
                             break
-            self._emit_constructor(keyword, args[0] if args else None)
+            self._emit_constructor(keyword, args[0] if args else None,
+                                   expr_node=node)
             return
 
         # Fallback
@@ -665,6 +666,7 @@ class Emitter:
     def _emit_constructor(self, keyword: str,
                           args_node: tree_sitter.Node | None,
                           attrs_node: tree_sitter.Node | None = None,
+                          expr_node: tree_sitter.Node | None = None,
                           ) -> None:
         """Emit CONSTRUCTOR { KEYWORD ARGS { LPAREN expr_list RPAREN } }."""
         self._open('CONSTRUCTOR')
@@ -673,6 +675,8 @@ class Emitter:
         self._w('LPAREN')
         if args_node:
             self._emit_expr_list(args_node)
+            if expr_node:
+                self._emit_extras_in(expr_node)
             self._maybe_trailing_comma(args_node)
         self._w('RPAREN')
         self._close()
@@ -1058,7 +1062,8 @@ class Emitter:
             if ctor_name in ("table", "set", "vector"):
                 args = [k for k in kids if k.type == "expr_list"]
                 self._emit_constructor(
-                    ctor_name, args[0] if args else None)
+                    ctor_name, args[0] if args else None,
+                    expr_node=node)
                 return
         self._emit_expr(node)
 
