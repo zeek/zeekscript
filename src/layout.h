@@ -224,6 +224,11 @@ public:
 		: kind(k), child_idx(static_cast<int>(child_index)),
 		  sb_flags(fl), must_break(false) {}
 
+	// ArgList with flags and computed suffix.
+	LayoutItem(LIKind k, unsigned child_index, int fl, ComputeFn suffix)
+		: kind(k), child_idx(static_cast<int>(child_index)),
+		  sb_flags(fl), suffix_fn(suffix), must_break(false) {}
+
 	// Resolved arglist: node + suffix.
 	LayoutItem(LIKind k, const LayoutPtr& n, Formatting suffix)
 		: kind(k), fmt(std::move(suffix)), node(n),
@@ -490,12 +495,19 @@ inline LIPtr decl_cands()
 inline LIPtr arglist(unsigned child_index)
 	{ return std::make_shared<LayoutItem>(ArgList, child_index); }
 inline LIPtr arglist(unsigned child_index, Formatting suffix)
-	{ return std::make_shared<LayoutItem>(ArgList, child_index,
-		std::move(suffix)); }
+	{
+	return std::make_shared<LayoutItem>(ArgList, child_index,
+						std::move(suffix));
+	}
 inline LIPtr arglist(unsigned child_index, ComputeFn suffix)
 	{ return std::make_shared<LayoutItem>(ArgList, child_index, suffix); }
 inline LIPtr arglist(unsigned child_index, int flags)
 	{ return std::make_shared<LayoutItem>(ArgList, child_index, flags); }
+inline LIPtr arglist(unsigned child_index, int flags, ComputeFn suffix)
+	{
+	return std::make_shared<LayoutItem>(ArgList, child_index,
+						flags, suffix);
+	}
 
 // Bracketed argument list with a computed prefix, passed to
 // flat_or_fill as the prefix argument (e.g. "function" before
@@ -671,6 +683,7 @@ public:
 	LIPtr ComputeElseFollowOn(const FmtContext& ctx) const;
 	LIPtr ComputeFuncRet(const FmtContext& ctx) const;
 	LIPtr ComputeFuncAttrs(const FmtContext& ctx) const;
+	LIPtr ComputeCallAttrs(const FmtContext& ctx) const;
 	LIPtr ComputeBlock(const FmtContext& ctx) const;
 	LIPtr ComputeWhenTimeout(const FmtContext& ctx) const;
 	LIPtr ComputeFuncBody(const FmtContext& ctx) const;

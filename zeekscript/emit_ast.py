@@ -438,12 +438,14 @@ class Emitter:
             callables = constructors + ("record", "event")
             if kids[0].is_named or first_text in callables:
                 args = [k for k in kids if k.type == "expr_list"]
+                attrs = [k for k in kids if k.type == "attr_list"]
 
                 if (not kids[0].is_named
                         and first_text in constructors
                         and node.parent.type == "initializer"):
                     self._emit_constructor(
-                        first_text, args[0] if args else None)
+                        first_text, args[0] if args else None,
+                        attrs[0] if attrs else None)
                     return
 
                 self._open('CALL')
@@ -458,6 +460,8 @@ class Emitter:
                     self._maybe_trailing_comma(args[0])
                 self._w('RPAREN')
                 self._close()
+                if attrs:
+                    self._emit_attr_list(attrs[0])
                 self._emit_extras_in(node)
                 self._close()
                 return
@@ -659,7 +663,9 @@ class Emitter:
             self._emit_expr(node)
 
     def _emit_constructor(self, keyword: str,
-                          args_node: tree_sitter.Node | None) -> None:
+                          args_node: tree_sitter.Node | None,
+                          attrs_node: tree_sitter.Node | None = None,
+                          ) -> None:
         """Emit CONSTRUCTOR { KEYWORD ARGS { LPAREN expr_list RPAREN } }."""
         self._open('CONSTRUCTOR')
         self._w(f'KEYWORD {_quote(keyword)}')
@@ -670,6 +676,8 @@ class Emitter:
             self._maybe_trailing_comma(args_node)
         self._w('RPAREN')
         self._close()
+        if attrs_node:
+            self._emit_attr_list(attrs_node)
         self._close()
 
     def _emit_expr_list(self, node: tree_sitter.Node) -> None:

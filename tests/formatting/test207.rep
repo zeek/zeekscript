@@ -1,0 +1,70 @@
+FUNC-DECL {
+  KEYWORD "function"
+  SP
+  IDENTIFIER "foo"
+  PARAMS {
+    LPAREN
+    RPAREN
+  }
+  BODY {
+    LBRACE
+    LOCAL-DECL {
+      KEYWORD "local"
+      SP
+      IDENTIFIER "u"
+      DECL-INIT {
+        ASSIGN "="
+        CALL {
+          IDENTIFIER "Bar"
+          ARGS {
+            LPAREN
+            FIELD-ASSIGN "aaa" {
+              DOLLAR
+              ASSIGN "="
+              CALL {
+                IDENTIFIER "table"
+                ARGS {
+                  LPAREN
+                  RPAREN
+                }
+                ATTR-LIST {
+                  ATTR "&create_expire" {
+                    ASSIGN "="
+                    IDENTIFIER "window"
+                  }
+                }
+              }
+            }
+            COMMA
+            FIELD-ASSIGN "bbb" {
+              DOLLAR
+              ASSIGN "="
+              CALL {
+                IDENTIFIER "table"
+                ARGS {
+                  LPAREN
+                  RPAREN
+                }
+                ATTR-LIST {
+                  ATTR "&create_expire" {
+                    ASSIGN "="
+                    IDENTIFIER "window"
+                  }
+                }
+              }
+            }
+            COMMA
+            FIELD-ASSIGN "ccc" {
+              DOLLAR
+              ASSIGN "="
+              IDENTIFIER "notice"
+            }
+            RPAREN
+          }
+        }
+      }
+      SEMI
+    }
+    RBRACE
+  }
+}

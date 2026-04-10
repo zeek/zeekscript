@@ -525,8 +525,10 @@ Partials LIArgListR::LayoutStep(Partials& beam, const FmtContext& ctx,
 						sub, child->TrailingComment(),
 						close_pfx);
 
+			int open_col = p.col + prefix.Size() + open.Size();
 			if ( vert_upgrade && items.size() >= 3 &&
 			     cs.size() > 1 &&
+			     open_col > ctx.MaxCol() / 2 &&
 			     cs.back().Lines() == static_cast<int>(items.size()) )
 				{
 				cs.pop_back();
@@ -1099,6 +1101,7 @@ static constexpr ComputeFn CBlock = &Layout::ComputeBlock;
 static constexpr ComputeFn CWhenTimeout = &Layout::ComputeWhenTimeout;
 static constexpr ComputeFn CFuncRet = &Layout::ComputeFuncRet;
 static constexpr ComputeFn CFuncAttrs = &Layout::ComputeFuncAttrs;
+static constexpr ComputeFn CCallAttrs = &Layout::ComputeCallAttrs;
 static constexpr ComputeFn CFuncBody = &Layout::ComputeFuncBody;
 static constexpr ComputeFn CSwitchExpr = &Layout::ComputeSwitchExpr;
 static constexpr ComputeFn CSwitchCases = &Layout::ComputeSwitchCases;
@@ -1125,9 +1128,9 @@ static const std::unordered_map<Tag, LayoutItems> layout_table = {
 		expr(4), sp(), tok(5)}},
 	{Tag::Param, {arg(0), computed(CParamType)}},
 	{Tag::Call, {expr(0), arglist(1,
-		AL_TrailingCommaVertical | AL_VerticalUpgrade)}},
+		AL_TrailingCommaVertical | AL_VerticalUpgrade, CCallAttrs)}},
 	{Tag::Constructor, {tok(0), arglist(1,
-		AL_TrailingCommaVertical | AL_FlatOrVertical)}},
+		AL_TrailingCommaVertical | AL_FlatOrVertical, CCallAttrs)}},
 	{Tag::IndexLiteral, {arglist(0,
 		AL_AllCommentsVertical | AL_TrailingCommaFill)}},
 	{Tag::Index, {expr(0), arglist(1)}},

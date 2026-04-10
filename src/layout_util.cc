@@ -237,6 +237,16 @@ LIPtr Layout::ComputeFuncAttrs(const FmtContext& ctx) const
 	return lit(std::move(as));
 	}
 
+// Attribute list for CALL/CONSTRUCTOR: " &attr ..." or empty.
+LIPtr Layout::ComputeCallAttrs(const FmtContext& ctx) const
+	{
+	auto attrs = FindOptChild(Tag::AttrList);
+	if ( ! attrs )
+		return lit(Formatting());
+
+	return lit(" " + attrs->FormatAttrList(ctx));
+	}
+
 // Standalone BLOCK statement: Whitesmith braces at current indent.
 LIPtr Layout::ComputeBlock(const FmtContext& ctx) const
 	{
