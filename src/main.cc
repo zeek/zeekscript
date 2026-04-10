@@ -33,15 +33,12 @@ static std::string ReadStdin()
 
 int main(int argc, char** argv)
 	{
-	bool dump_mode = false;
 	bool raw_mode = false;
 	const char* file = nullptr;
 
 	for ( int i = 1; i < argc; ++i )
 		{
-		if ( strcmp(argv[i], "--dump") == 0 )
-			dump_mode = true;
-		else if ( strcmp(argv[i], "--raw") == 0 )
+		if ( strcmp(argv[i], "--raw") == 0 )
 			raw_mode = true;
 		else if ( strcmp(argv[i], "-") == 0 )
 			file = nullptr;
@@ -63,16 +60,8 @@ int main(int argc, char** argv)
 
 	try
 		{
-		if ( dump_mode )
-			{
-			for ( const auto& node : nodes )
-				node->Dump();
-			}
-		else
-			{
-			std::string out = Format(nodes, raw_mode);
-			printf("%s", out.c_str());
-			}
+		std::string out = Format(nodes, raw_mode);
+		printf("%s", out.c_str());
 		}
 	catch ( const FormatError& e )
 		{

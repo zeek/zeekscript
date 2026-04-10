@@ -181,7 +181,6 @@ LayoutPtr Parser::ParseNode()
 		return node;
 		}
 
-	node->SetHasBlock();
 	Advance();  // consume '{'
 	SkipWhitespace();
 

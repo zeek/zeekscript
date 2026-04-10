@@ -4,7 +4,6 @@
 
 #include <algorithm>
 #include <cassert>
-#include <cstdio>
 #include <stdexcept>
 #include <unordered_map>
 #include <unordered_set>
@@ -152,94 +151,6 @@ void Layout::ComputeRender()
 		}
 	else if ( ! args.empty() )
 		render = args.back();
-	}
-
-static void print_quoted(const std::string& s)
-	{
-	putchar('"');
-
-	for ( char c : s )
-		{
-		switch ( c ) {
-		case '"': printf("\\\""); break;
-		case '\\': printf("\\\\"); break;
-		case '\n': printf("\\n"); break;
-		case '\t': printf("\\t"); break;
-		case '\r': printf("\\r"); break;
-		default: putchar(c); break;
-		}
-		}
-
-	putchar('"');
-	}
-
-static void do_indent(int n)
-	{
-	for ( int i = 0; i < n; ++i )
-		printf("  ");
-	}
-
-void Layout::Dump(int indent) const
-	{
-	// Emit pre-comments as COMMENT-LEADING siblings, then any
-	// interleaved markers (BLANK etc.), before this node.
-	for ( const auto& pc : pre_comments )
-		{
-		do_indent(indent);
-		printf("COMMENT-LEADING ");
-		print_quoted(pc);
-		printf("\n");
-		}
-
-	for ( const auto& pm : pre_markers )
-		pm->Dump(indent);
-
-	do_indent(indent);
-
-	printf("%s", TagToString(tag));
-
-	for ( const auto& a : args )
-		{
-		putchar(' ');
-		print_quoted(a);
-		}
-
-	if ( ! has_block )
-		{
-		printf("\n");
-
-		// Emit trailing comment as a sibling COMMENT-TRAILING.
-		// The comment is in render after " #".
-		if ( must_break_after )
-			{
-			auto pos = render.find(" #");
-			if ( pos != std::string::npos )
-				{
-				do_indent(indent);
-				printf("COMMENT-TRAILING ");
-				print_quoted(render.substr(pos + 1));
-				printf("\n");
-				}
-			}
-
-		return;
-		}
-
-	if ( children.empty() && ! must_break_after )
-		{
-		printf(" {\n");
-		do_indent(indent);
-		printf("}\n");
-		return;
-		}
-
-	printf(" {\n");
-
-	for ( const auto& child : children )
-		child->Dump(indent + 1);
-
-	do_indent(indent);
-	printf("}\n");
 	}
 
 LIPtr tok(const LayoutPtr& n)

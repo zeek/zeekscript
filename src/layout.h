@@ -669,9 +669,6 @@ public:
 	// True if a line break must follow this node.
 	bool MustBreakAfter() const { return must_break_after; }
 
-	bool HasBlock() const { return has_block; }
-	void SetHasBlock() { has_block = true; }
-
 	bool HasChildren() const { return ! children.empty(); }
 
 	// Emit pre-comments and pre-markers as indented lines.
@@ -719,9 +716,6 @@ public:
 	bool ClosesDepth() const;
 	bool AtColumnZero() const;
 
-	// Debug: print tree to stdout.
-	void Dump(int indent = 0) const;
-
 private:
 	Tag tag;
 	LayoutItems layout;
@@ -730,7 +724,6 @@ private:
 	std::string render;
 	std::vector<std::string> pre_comments;
 	LayoutVec pre_markers;
-	bool has_block = false;
 	bool must_break_after = false;
 };
 

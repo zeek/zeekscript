@@ -43,20 +43,6 @@ test: $(TARGET)
 	done; \
 	echo "$$pass pass, $$fail fail"
 
-roundtrip: $(TARGET)
-	@pass=0; fail=0; \
-	for f in ../tests/formatting/test*.rep; do \
-		if diff -q <(./$(TARGET) --dump "$$f") "$$f" \
-		    >/dev/null 2>&1; then \
-			pass=$$((pass + 1)); \
-		else \
-			echo "FAIL: $$f"; \
-			fail=$$((fail + 1)); \
-		fi; \
-	done; \
-	echo "$$pass pass, $$fail fail"; \
-	[ $$fail -eq 0 ]
-
 new: $(TARGET)
 	@for f in ../tests/formatting/test*.rep; do \
 		name=$$(basename "$$f" .rep); \
@@ -67,4 +53,4 @@ new: $(TARGET)
 clean:
 	rm -f $(OBJS) $(TARGET)
 
-.PHONY: all clean test roundtrip new
+.PHONY: all clean test new
