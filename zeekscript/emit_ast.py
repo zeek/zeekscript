@@ -1621,9 +1621,10 @@ class Emitter:
                 i += 1
                 exprs = kids[i] if i < len(kids) and kids[i].type == "expr_list" else None
                 i += 1  # skip ':'
+                colon = None
                 if i < len(kids) and self._text(kids[i]) == ":":
+                    colon = kids[i]
                     i += 1
-                stmts = kids[i] if i < len(kids) and kids[i].type == "stmt_list" else None
                 self._open('CASE')
                 self._kw("case")
                 if exprs:
@@ -1631,13 +1632,20 @@ class Emitter:
                     self._emit_expr_list(exprs)
                     self._close()
                 self._w('COLON')
+                # Collect any comment after the colon.
+                comments = []
+                while i < len(kids) and kids[i].is_extra:
+                    comments.append(kids[i])
+                    i += 1
+                stmts = kids[i] if i < len(kids) and kids[i].type == "stmt_list" else None
+                for c in comments:
+                    self._emit_comment(c, colon)
                 if stmts:
                     self._open('BODY')
                     self._emit_stmt_list(stmts)
                     self._close()
-                self._close()
-                if stmts:
                     i += 1
+                self._close()
             elif self._text(k) == "default":
                 i += 1  # skip ':'
                 if i < len(kids) and self._text(kids[i]) == ":":

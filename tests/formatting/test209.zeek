@@ -1,0 +1,7 @@
+event foo()
+    {
+    switch val {
+    case "bar": # trailing comment
+        do_something();
+    }
+    }

@@ -1,0 +1,41 @@
+FUNC-DECL {
+  KEYWORD "event"
+  SP
+  IDENTIFIER "foo"
+  PARAMS {
+    LPAREN
+    RPAREN
+  }
+  BODY {
+    LBRACE
+    SWITCH {
+      KEYWORD "switch"
+      SP
+      IDENTIFIER "val"
+      LBRACE
+      CASE {
+        KEYWORD "case"
+        SP
+        VALUES {
+          CONSTANT "\"bar\""
+        }
+        COLON
+        COMMENT-TRAILING "# trailing comment"
+        BODY {
+          EXPR-STMT {
+            CALL {
+              IDENTIFIER "do_something"
+              ARGS {
+                LPAREN
+                RPAREN
+              }
+            }
+            SEMI
+          }
+        }
+      }
+      RBRACE
+    }
+    RBRACE
+  }
+}
