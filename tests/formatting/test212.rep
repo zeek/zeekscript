@@ -1,0 +1,37 @@
+COMMENT-LEADING "# Trailing comma with single element: should flatten."
+GLOBAL-DECL {
+  KEYWORD "global"
+  SP
+  IDENTIFIER "s1"
+  DECL-INIT {
+    ASSIGN "="
+    CONSTRUCTOR {
+      KEYWORD "set"
+      ARGS {
+        LPAREN
+        CONSTANT "3"
+        RPAREN
+      }
+    }
+  }
+  SEMI
+}
+GLOBAL-DECL {
+  KEYWORD "global"
+  SP
+  IDENTIFIER "s2"
+  DECL-INIT {
+    ASSIGN "="
+    CONSTRUCTOR {
+      KEYWORD "set"
+      ARGS {
+        LPAREN
+        CONSTANT "3"
+        COMMA
+        TRAILING-COMMA
+        RPAREN
+      }
+    }
+  }
+  SEMI
+}

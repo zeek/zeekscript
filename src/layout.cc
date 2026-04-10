@@ -388,8 +388,9 @@ Partials LIArgListR::LayoutStep(Partials& beam, const FmtContext& ctx,
 		if ( ctx.IsParamList() )
 			sub.SetIsParamList();
 
-		// All-comments or trailing comma: force vertical.
-		bool force_vert = has_tc;
+		// All-comments or trailing comma: force vertical
+		// (but not for single-item lists that fit on one line).
+		bool force_vert = has_tc && items.size() > 1;
 		if ( ! force_vert && all_comments_vert && has_breaks(items) )
 			force_vert = all_items_commented(items);
 
@@ -416,7 +417,7 @@ Partials LIArgListR::LayoutStep(Partials& beam, const FmtContext& ctx,
 					sub.Width() - pfx_w - open_w - close_w);
 				auto flat = prefix + open +
 					format_args_flat(items, ac).Fmt() +
-					close + suffix;
+					(has_tc ? "," : "") + close + suffix;
 				Candidate fc(std::move(flat), sub);
 				cs.push_back(fc);
 				}
