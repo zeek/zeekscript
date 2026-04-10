@@ -525,10 +525,8 @@ Partials LIArgListR::LayoutStep(Partials& beam, const FmtContext& ctx,
 						sub, child->TrailingComment(),
 						close_pfx);
 
-			int open_col = p.col + prefix.Size() + open.Size();
 			if ( vert_upgrade && items.size() >= 3 &&
 			     cs.size() > 1 &&
-			     open_col > ctx.MaxCol() / 2 &&
 			     cs.back().Lines() == static_cast<int>(items.size()) )
 				{
 				cs.pop_back();

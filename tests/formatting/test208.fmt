@@ -1,0 +1,5 @@
+function register_use_case(use_case: string,
+                           notice_lambda: function(o_h: addr,
+                                                   si: ProxySourceInfo),
+                    volume_threshold: double &default=default_volume_threshold)
+	{ }

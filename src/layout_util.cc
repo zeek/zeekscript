@@ -143,8 +143,22 @@ LIPtr Layout::ComputeOfType(const FmtContext& ctx) const
 // Compute the type suffix for a PARAM node: ": type".
 LIPtr Layout::ComputeParamType(const FmtContext& ctx) const
 	{
-	return lit(Formatting(Child(0, Tag::Colon)) + " " +
-		best(format_expr(*FindTypeChild(), ctx)).Fmt());
+	Formatting colon_sp = Formatting(Child(0, Tag::Colon)) + " ";
+	int name_w = Formatting(Arg(0)).Size() + colon_sp.Size();
+
+	// Compute attr suffix so type formatting can reserve trail for it.
+	auto attrs = FindOptChild(Tag::AttrList);
+	Formatting attr_str;
+	if ( attrs )
+		attr_str = " " + attrs->FormatAttrList(ctx);
+
+	auto type_ctx = ctx.After(name_w);
+	if ( ! attr_str.Empty() )
+		type_ctx = FmtContext(type_ctx.Indent(), type_ctx.Col(),
+			type_ctx.Width(), type_ctx.Trail() + attr_str.Size());
+
+	auto type_str = best(format_expr(*FindTypeChild(), type_ctx)).Fmt();
+	return lit(colon_sp + type_str + attr_str);
 	}
 
 // Compute the return type suffix for a TYPE-FUNC-RET node: ": rettype".
