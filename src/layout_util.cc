@@ -487,7 +487,7 @@ static void decl_wrapped_attrs(const DeclParts& d, Candidates& result,
 		}
 
 	// Attrs aligned one column past where the type starts.
-	int attr_col = d.head.Size() + 3;
+	int attr_col = ctx.Col() + d.head.Size() + 3;
 	auto attr_pad = line_prefix(ctx.Indent(), attr_col);
 	int max_col = ctx.MaxCol();
 	int semi_w = d.semi_node->Width();
