@@ -14,8 +14,8 @@ FUNC-DECL {
       LPAREN
       IDENTIFIER "x"
       RPAREN
+      COMMENT-LEADING "# comment before body"
       BODY {
-        COMMENT-LEADING "# comment before body"
         PRINT {
           KEYWORD "print"
           SP

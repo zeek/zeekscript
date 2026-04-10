@@ -1,0 +1,46 @@
+COMMENT-LEADING "# default with break in switch."
+FUNC-DECL {
+  KEYWORD "event"
+  SP
+  IDENTIFIER "foo"
+  PARAMS {
+    LPAREN
+    RPAREN
+  }
+  BODY {
+    LBRACE
+    SWITCH {
+      KEYWORD "switch"
+      SP
+      IDENTIFIER "auth_type"
+      LBRACE
+      DEFAULT {
+        KEYWORD "default"
+        COLON
+        BODY {
+          BLANK
+          KEYWORD "break"
+          SEMI
+        }
+      }
+      CASE {
+        KEYWORD "case"
+        SP
+        VALUES {
+          CONSTANT "3"
+        }
+        COLON
+        BODY {
+          PRINT {
+            KEYWORD "print"
+            SP
+            CONSTANT "\"yep\""
+            SEMI
+          }
+        }
+      }
+      RBRACE
+    }
+    RBRACE
+  }
+}

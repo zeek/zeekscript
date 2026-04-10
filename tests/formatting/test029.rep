@@ -22,7 +22,8 @@ FUNC-DECL {
     RBRACE
   }
 }
-COMMENT-LEADING "\n# Fallback path below."
+BLANK
+COMMENT-LEADING "# Fallback path below."
 PREPROC "@else"
 BLANK
 FUNC-DECL {

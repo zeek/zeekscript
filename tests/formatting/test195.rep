@@ -20,7 +20,8 @@ GLOBAL-DECL {
           CONSTANT "\"aaa\""
         }
         COMMA
-        COMMENT-LEADING "# Group end\n"
+        COMMENT-LEADING "# Group end"
+        BLANK
         BINARY-OP "=" {
           INDEX-LITERAL {
             ARGS {

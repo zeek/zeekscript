@@ -17,7 +17,8 @@ TYPEDECL-RECORD "SomeInfo" {
       }
       SEMI
     }
-    COMMENT-LEADING "\n## A unique identifier."
+    BLANK
+    COMMENT-LEADING "## A unique identifier."
     FIELD "uid" {
       COLON
       TYPE-ATOM "string"
@@ -26,7 +27,8 @@ TYPEDECL-RECORD "SomeInfo" {
       }
       SEMI
     }
-    COMMENT-LEADING "\n## A network address."
+    BLANK
+    COMMENT-LEADING "## A network address."
     FIELD "addr_field" {
       COLON
       TYPE-ATOM "addr"

@@ -1655,7 +1655,9 @@ class Emitter:
                 self._w('KEYWORD "default"')
                 self._w('COLON')
                 if stmts:
+                    self._open('BODY')
                     self._emit_stmt_list(stmts)
+                    self._close()
                     i += 1
                 self._close()
             else:

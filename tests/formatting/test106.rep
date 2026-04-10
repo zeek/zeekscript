@@ -41,7 +41,8 @@ FUNC-DECL {
         }
       }
     }
-    COMMENT-LEADING "#@ END-SKIP-TESTING\n"
+    COMMENT-LEADING "#@ END-SKIP-TESTING"
+    BLANK
     EXPR-STMT {
       CALL {
         IDENTIFIER "next_thing"

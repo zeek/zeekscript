@@ -20,7 +20,8 @@ GLOBAL-DECL {
           CONSTANT "\"akamai\""
         }
         COMMA
-        COMMENT-LEADING "\n# Meta domains."
+        BLANK
+        COMMENT-LEADING "# Meta domains."
         BINARY-OP "=" {
           INDEX-LITERAL {
             ARGS {
