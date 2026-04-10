@@ -37,6 +37,15 @@ static void AttachPreComments(std::vector<std::string>& pending,
 	pending.clear();
 	}
 
+// Find the deepest last leaf descendant of a node.
+static Layout& last_leaf(Layout& node)
+	{
+	if ( ! node.HasChildren() )
+		return node;
+
+	return last_leaf(*node.Children().back());
+	}
+
 // Process a single parsed node, handling comment attachment and
 // marker accumulation.  Returns true if the node was consumed
 // internally (not added to 'out').
@@ -48,7 +57,16 @@ static bool process_comment(LayoutPtr& node, LayoutVec& out,
 
 	if ( t == Tag::CommentTrailing && ! out.empty() )
 		{
-		out.back()->SetTrailingComment(node->Arg());
+		auto& target = *out.back();
+
+		if ( target.HasLayout() && target.HasChildren() )
+			{
+			last_leaf(target).SetTrailingComment(node->Arg());
+			target.SetMustBreakAfter();
+			}
+		else
+			target.SetTrailingComment(node->Arg());
+
 		return true;
 		}
 
@@ -91,6 +109,7 @@ static void flush_comments(LayoutVec& out,
 		{
 		auto cn = MakeNode(Tag::CommentLeading);
 		cn->AddArg(std::move(c));
+		cn->ComputeRender();
 		out.push_back(std::move(cn));
 		}
 	}
@@ -157,7 +176,10 @@ LayoutPtr Parser::ParseNode()
 
 	// Optionally parse a { children } block.
 	if ( AtEnd() || Peek() != '{' )
+		{
+		node->ComputeRender();
 		return node;
+		}
 
 	node->SetHasBlock();
 	Advance();  // consume '{'
@@ -190,6 +212,7 @@ LayoutPtr Parser::ParseNode()
 
 	Advance();  // consume '}'
 
+	node->ComputeRender();
 	return node;
 	}
 

@@ -16,8 +16,12 @@ Candidates format_node(const Layout& node, const FmtContext& ctx)
 static void collect_trailing(const Layout& node,
                             std::vector<std::string>& out)
 	{
-	if ( ! node.TrailingComment().empty() )
-		out.push_back(node.TrailingComment());
+	if ( node.MustBreakAfter() && ! node.HasChildren() )
+		{
+		auto pos = node.Text().find(" #");
+		if ( pos != std::string::npos )
+			out.push_back(node.Text().substr(pos));
+		}
 	for ( const auto& c : node.Children() )
 		collect_trailing(*c, out);
 	}

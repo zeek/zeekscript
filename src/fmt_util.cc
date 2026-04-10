@@ -27,7 +27,7 @@ int fit_col(int align_col, int w, int max_col)
 // Arg list collection
 // ------------------------------------------------------------------
 
-bool has_breaks(const ArgComments& items)
+bool has_breaks(const ArgItems& items)
 	{
 	for ( auto& it : items )
 		if ( it.HasBreak() )
@@ -36,9 +36,9 @@ bool has_breaks(const ArgComments& items)
 	return false;
 	}
 
-ArgComments collect_args(const LayoutVec& children)
+ArgItems collect_args(const LayoutVec& children)
 	{
-	ArgComments items;
+	ArgItems items;
 	LayoutPtr pending_comma;
 
 	for ( size_t i = 0; i < children.size(); ++i )
@@ -59,8 +59,7 @@ ArgComments collect_args(const LayoutVec& children)
 		std::vector<std::string> leading(c->PreComments().begin(),
 		                                 c->PreComments().end());
 
-		items.push_back({c, c->TrailingComment(),
-		                 std::move(leading), pending_comma});
+		items.push_back({c, std::move(leading), pending_comma});
 		pending_comma = nullptr;
 		}
 
@@ -71,7 +70,7 @@ ArgComments collect_args(const LayoutVec& children)
 // Arg list formatting
 // ------------------------------------------------------------------
 
-Candidate format_args_flat(const ArgComments& items, const FmtContext& ctx)
+Candidate format_args_flat(const ArgItems& items, const FmtContext& ctx)
 	{
 	Formatting fmt;
 	int w = 0;
@@ -97,17 +96,12 @@ Candidate format_args_flat(const ArgComments& items, const FmtContext& ctx)
 // Append trailing material after an item in a fill layout.  Handles
 // the item's own trailing comment and the next comma (which may carry
 // a trailing comment that forces a wrap).
-static void append_trailing(const ArgComment& it, const LayoutPtr& next_comma,
+static void append_trailing(const ArgItem& it, const LayoutPtr& next_comma,
                            Formatting& fmt, int& cur_col, bool& force_wrap,
                            bool& next_comma_consumed)
 	{
-	// The item's own trailing comment (rare for non-last items).
-	if ( ! it.comment.empty() )
-		{
-		fmt += it.comment;
-		cur_col += static_cast<int>(it.comment.size());
+	if ( it.arg->MustBreakAfter() )
 		force_wrap = true;
-		}
 
 	// The comma between this item and the next may carry a
 	// trailing comment (e.g., "x, # note").
@@ -240,7 +234,7 @@ static Candidates try_same_line_arg(const Layout& arg, int cur_col,
 	return {};
 	}
 
-Candidate format_args_fill(const ArgComments& items, int align_col, int indent,
+Candidate format_args_fill(const ArgItems& items, int align_col, int indent,
                          const FmtContext& first_line_ctx, int trail)
 	{
 	auto pad = line_prefix(indent, align_col);
@@ -520,7 +514,7 @@ static void fill_search(FillSearch& fs, int line_start, int cur_w,
 // Brute-force search over break points to find the most balanced
 // fill layout.  Only works for simple items (all single-line, no
 // comments).  Prunes on overflow and narrow orphan lines.
-static Candidates try_best_fill(const ArgComments& items, int align_col,
+static Candidates try_best_fill(const ArgItems& items, int align_col,
                                 int indent, const FmtContext& first_ctx,
                                 int trail = 0)
 	{
@@ -534,7 +528,7 @@ static Candidates try_best_fill(const ArgComments& items, int align_col,
 	for ( int i = 0; i < n; ++i )
 		{
 		auto& it = items[i];
-		if ( ! it.comment.empty() || ! it.leading.empty() )
+		if ( it.arg->MustBreakAfter() || ! it.leading.empty() )
 			return {};
 
 		auto bc = best(format_expr(*it.arg, first_ctx));
@@ -644,7 +638,7 @@ static Candidates try_best_fill(const ArgComments& items, int align_col,
 // Try flat, then greedy-fill for a bracketed list of items.
 Candidates flat_or_fill(const Formatting& prefix, const Formatting& open,
                       const Formatting& close, const Formatting& suffix,
-                      const ArgComments& items, const FmtContext& ctx,
+                      const ArgItems& items, const FmtContext& ctx,
                       const std::string& open_comment,
                       const std::string& close_prefix)
 	{
@@ -769,18 +763,17 @@ Candidates flat_or_fill(const Formatting& prefix, const Formatting& open,
 
 // Format one item in vertical layout: expr + optional comma +
 // trailing comment.  Returns the total line width.
-static int format_vert_item(const ArgComment& it, const LayoutPtr& next_comma,
+static int format_vert_item(const ArgItem& it, const LayoutPtr& next_comma,
                             bool trailing_comma, int body_col,
                             const FmtContext& body_ctx, Formatting& fmt)
 	{
-	// Reserve trailing comma + comment width so the expression
-	// can split if the assembled line would overflow.
+	// Reserve trailing comma width so the expression can split
+	// if the assembled line would overflow.
 	int suffix_w = 0;
 	if ( next_comma )
 		suffix_w += next_comma->Width();
 	else if ( trailing_comma )
 		suffix_w += 1;
-	suffix_w += static_cast<int>(it.comment.size());
 
 	FmtContext item_ctx = suffix_w > 0 ?
 		body_ctx.Reserve(suffix_w) : body_ctx;
@@ -802,13 +795,11 @@ static int format_vert_item(const ArgComment& it, const LayoutPtr& next_comma,
 			}
 		}
 
-	fmt += it.comment;
-	line_w += static_cast<int>(it.comment.size());
 	return line_w;
 	}
 
 Candidate format_args_vertical(const Formatting& open, const Formatting& close,
-                             const ArgComments& items, const FmtContext& ctx,
+                             const ArgItems& items, const FmtContext& ctx,
                              bool trailing_comma)
 	{
 	int body_indent = ctx.Indent() + 1;
@@ -892,12 +883,11 @@ static void format_preproc(const Layout& node, int& preproc_depth,
 		update_preproc_indent(preproc_depth, max_col, ctx, pad);
 		}
 
-	auto text = node.FormatText();
 	if ( node.AtColumnZero() )
-		result += text;
+		result += node.Text();
 	else
-		result += pad + text;
-	result += node.TrailingComment() + "\n";
+		result += pad + node.Text();
+	result += "\n";
 
 	if ( node.OpensDepth() )
 		{
@@ -916,7 +906,8 @@ static bool try_inline_if(const LayoutVec& nodes, size_t i,
                           Formatting& inline_text)
 	{
 	auto& node = *nodes[i];
-	if ( node.GetTag() != Tag::IfNoElse || node.MustBreakBefore() )
+	if ( node.GetTag() != Tag::IfNoElse || node.MustBreakBefore() ||
+	     node.MustBreakAfter() )
 		return false;
 
 	// Child 5 is the BODY.
@@ -930,27 +921,15 @@ static bool try_inline_if(const LayoutVec& nodes, size_t i,
 	if ( c0->GetTag() == Tag::Block || c0->MustBreakBefore() )
 		return false;
 
-	// Trailing comment on the if or on its sibling SEMI.
-	auto comment_text = node.TrailingComment();
 	LayoutPtr sibling_semi;
 	++i; // move to trailing node, if any
 	if ( ! node.FindOptChild(Tag::Semi) && i < nodes.size() &&
 	     nodes[i]->GetTag() == Tag::Semi )
-		{
 		sibling_semi = nodes[i];
-		if ( comment_text.empty() )
-			comment_text = sibling_semi->TrailingComment();
-		}
 
 	int semi_w = sibling_semi ? sibling_semi->Width() : 0;
-	int comment_w = static_cast<int>(comment_text.size());
-	int trail_w = semi_w + comment_w;
 
-	// Format the condition part.  The normal layout produces:
-	//   if ( <expr> )\n\t<body>
-	// We take the first line (the condition) and append the
-	// body inline.
-	auto cands = node.Format(ctx.Reserve(trail_w));
+	auto cands = node.Format(ctx.Reserve(semi_w));
 	auto& cand = best(cands);
 	const auto fmt_str = cand.Fmt().Str();
 	auto nl = fmt_str.find('\n');
@@ -967,7 +946,6 @@ static bool try_inline_if(const LayoutVec& nodes, size_t i,
 	inline_text = Formatting(cond + " " + body_str);
 	if ( sibling_semi )
 		inline_text += sibling_semi;
-	inline_text += comment_text;
 
 	return true;
 	}
@@ -1023,27 +1001,20 @@ static void format_stmt(const Layout& node, const LayoutVec& nodes,
 	     nodes[i + 1]->GetTag() == Tag::Semi )
 		sibling_semi = nodes[++i];
 
+	// SEMI Width() includes any trailing comment via Text().
+	// Format() includes the node's own trailing comment.
 	int semi_w = sibling_semi ? sibling_semi->Width() : 0;
 
-	// Check for trailing comment on the node or its SEMI.
-	auto comment_text = node.TrailingComment();
-	if ( comment_text.empty() && sibling_semi )
-		comment_text = sibling_semi->TrailingComment();
-
-	int comment_w = static_cast<int>(comment_text.size());
-	int trail_w = semi_w + comment_w;
-
-	// Bare KEYWORD at statement level: break, next, etc.
 	Formatting stmt_fmt;
 	if ( node.GetTag() == Tag::Keyword )
-		stmt_fmt = node.Arg();
+		stmt_fmt = Formatting(node.Text());
 	else
-		stmt_fmt = best_overall(node.Format(ctx.Reserve(trail_w))).Fmt();
+		stmt_fmt = best_overall(node.Format(ctx.Reserve(semi_w))).Fmt();
 
 	result += pad + stmt_fmt;
 	if ( sibling_semi )
 		result += sibling_semi;
-	result += comment_text + "\n";
+	result += "\n";
 	}
 
 Formatting format_stmt_list(const LayoutVec& nodes, const FmtContext& ctx,

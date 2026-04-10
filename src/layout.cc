@@ -43,11 +43,11 @@ Candidates Layout::Format(const FmtContext& ctx) const
 		auto fctx = ctx;
 		if ( param_list_tags.count(tag) )
 			fctx.SetIsParamList();
+
 		return BuildLayout(layout, fctx);
 		}
 
-	auto fallback = std::string("/* ") + TagToString(tag) + " */";
-	return {Candidate(fallback, ctx)};
+	return {Candidate(render, ctx)};
 	}
 
 const std::string& Layout::Arg(size_t i) const
@@ -136,16 +136,22 @@ static const std::unordered_map<Tag, const char*> token_syntax = {
 	{Tag::Question, "?"}, {Tag::Semi, ";"},
 };
 
-std::string Layout::Text() const
+void Layout::ComputeRender()
 	{
 	auto it = token_syntax.find(tag);
 	if ( it != token_syntax.end() )
-		return std::string(it->second) + trailing_comment;
-
-	if ( ! args.empty() )
-		return args.back() + trailing_comment;
-
-	return trailing_comment;
+		render = it->second;
+	else if ( tag == Tag::PreprocCond )
+		render = args[0] + " " + children[0]->Text() + " " +
+			args[1] + " " + children[1]->Text();
+	else if ( tag == Tag::Preproc )
+		{
+		render = args[0];
+		if ( args.size() > 1 )
+			render += " " + args[1];
+		}
+	else if ( ! args.empty() )
+		render = args.back();
 	}
 
 static void print_quoted(const std::string& s)
@@ -202,20 +208,24 @@ void Layout::Dump(int indent) const
 		{
 		printf("\n");
 
-		// Emit trailing comment as a sibling COMMENT-TRAILING line.
-		// Strip leading space added by SetTrailingComment.
-		if ( ! trailing_comment.empty() )
+		// Emit trailing comment as a sibling COMMENT-TRAILING.
+		// The comment is in render after " #".
+		if ( must_break_after )
 			{
-			do_indent(indent);
-			printf("COMMENT-TRAILING ");
-			print_quoted(trailing_comment.substr(1));
-			printf("\n");
+			auto pos = render.find(" #");
+			if ( pos != std::string::npos )
+				{
+				do_indent(indent);
+				printf("COMMENT-TRAILING ");
+				print_quoted(render.substr(pos + 1));
+				printf("\n");
+				}
 			}
 
 		return;
 		}
 
-	if ( children.empty() && trailing_comment.empty() )
+	if ( children.empty() && ! must_break_after )
 		{
 		printf(" {\n");
 		do_indent(indent);
@@ -230,16 +240,6 @@ void Layout::Dump(int indent) const
 
 	do_indent(indent);
 	printf("}\n");
-
-	// Emit trailing comment as a sibling after the block.
-	// Strip leading space added by SetTrailingComment.
-	if ( ! trailing_comment.empty() )
-		{
-		do_indent(indent);
-		printf("COMMENT-TRAILING ");
-		print_quoted(trailing_comment.substr(1));
-		printf("\n");
-		}
 	}
 
 LIPtr tok(const LayoutPtr& n)
@@ -270,12 +270,12 @@ static void merge_candidate(Partial& np, const Candidate& c)
 
 // Check whether every item in a list carries a trailing comment
 // (either on the item itself or on the following comma).
-static bool all_items_commented(const ArgComments& items)
+static bool all_items_commented(const ArgItems& items)
 	{
 	for ( size_t j = 0; j < items.size(); ++j )
 		{
 		auto nc = (j + 1 < items.size()) ? items[j + 1].comma : nullptr;
-		if ( items[j].comment.empty() &&
+		if ( ! items[j].arg->MustBreakAfter() &&
 		     ! (nc && nc->MustBreakAfter()) )
 			return false;
 		}
@@ -522,8 +522,7 @@ Partials LIArgListR::LayoutStep(Partials& beam, const FmtContext& ctx,
 				close_pfx = ", ";
 
 			cs = flat_or_fill(prefix, open, close, suffix, items,
-						sub, child->TrailingComment(),
-						close_pfx);
+						sub, child->Text(), close_pfx);
 
 			if ( vert_upgrade && items.size() >= 3 &&
 			     cs.size() > 1 &&
@@ -1107,9 +1106,8 @@ static constexpr ComputeFn CElseFollowOn = &Layout::ComputeElseFollowOn;
 
 // Tag-to-layout table for purely declarative nodes.
 static const std::unordered_map<Tag, LayoutItems> layout_table = {
-	{Tag::Identifier, {arg(0)}},
-	{Tag::Constant, {arg(0)}},
-	{Tag::TypeAtom, {arg(0)}},
+	// Identifier, Constant, TypeAtom have no layout entries;
+	// Format() uses render directly.
 	{Tag::Interval, {arg(0), lit(" "), arg(1)}},
 	{Tag::Cardinality, {tok(0), expr(1), tok(2)}},
 	{Tag::Negation, {tok(0), lit(" "), expr(1)}},

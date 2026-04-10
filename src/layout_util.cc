@@ -303,7 +303,7 @@ LIPtr Layout::ComputeWhenTimeout(const FmtContext& ctx) const
 LIPtr Layout::ComputeFuncBody(const FmtContext& ctx) const
 	{
 	const auto& body = Children().back();
-	return lit(Formatting(body->TrailingComment()) +
+	return lit(Formatting(body->Text()) +
 			body->FormatWhitesmithBlock(ctx));
 	}
 
@@ -823,7 +823,7 @@ static LIPtr format_record_body(const Layout& source,
 			body += ki->EmitPreComments(field_pad);
 
 			auto suffix = Formatting(ki->Children().back()) +
-						ki->TrailingComment();
+						ki->Text().substr(ki->Arg().size());
 			auto field_text = format_field(*ki, suffix, field_ctx);
 
 			body += field_pad + field_text + "\n";
@@ -987,27 +987,6 @@ LIPtr Layout::ComputeSwitchCases(const FmtContext& ctx) const
 
 // ---- Preproc formatting --------------------------------------------------
 
-// Preprocessor directive formatting.  PREPROC-COND has children
-// [0]=LPAREN [1]=RPAREN; plain PREPROC has only args.
-FmtPtr Layout::FormatText() const
-	{
-	const auto& directive = Arg(0);
-	const auto& a = Arg(1);
-
-	if ( GetTag() == Tag::PreprocCond )
-		{
-		auto result = Formatting(directive + " ") +
-				Child(0, Tag::LParen) + " " + a + " " +
-				Child(1, Tag::RParen);
-		return std::make_shared<Formatting>(std::move(result));
-		}
-
-	if ( a.empty() )
-		return std::make_shared<Formatting>(directive);
-
-	return std::make_shared<Formatting>(directive + " " + a);
-	}
-
 bool Layout::OpensDepth() const
 	{
 	return GetTag() == Tag::PreprocCond || Arg(0) == "@else";
@@ -1043,7 +1022,7 @@ Formatting Layout::FormatWhitesmithBlock(const FmtContext& ctx) const
 	// trailing comments from the brace tokens themselves.
 	auto lb = FindChild(Tag::LBrace);
 	auto rb = FindChild(Tag::RBrace);
-	auto close_trail = rb->TrailingComment();
+	auto close_trail = rb->Text().substr(1);
 	LayoutVec inner;
 
 	bool past_open = false;

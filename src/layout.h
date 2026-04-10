@@ -592,6 +592,7 @@ public:
 	                 const FmtContext& ctx) const;
 
 	Tag GetTag() const { return tag; }
+	bool HasLayout() const { return ! layout.empty(); }
 	bool IsLambda() const { return is_lambda(tag); }
 	bool IsMarker() const { return is_marker(tag); }
 	bool IsToken() const { return is_token(tag); }
@@ -626,9 +627,13 @@ public:
 	// Same but there must be at least n or throw an exception.
 	LayoutVec ContentChildren(const char* name, int n) const;
 
-	const std::string& TrailingComment() const { return trailing_comment; }
 	void SetTrailingComment(std::string c)
-		{ trailing_comment = " " + std::move(c); }
+		{
+		render += " " + std::move(c);
+		must_break_after = true;
+		}
+
+	void SetMustBreakAfter() { must_break_after = true; }
 
 	const std::vector<std::string>& PreComments() const
 		{ return pre_comments; }
@@ -643,6 +648,10 @@ public:
 		{ pre_markers.push_back(std::move(m)); }
 
 	void AddArg(std::string a) { args.push_back(std::move(a)); }
+
+	// Pre-compute render from tag + args.  Call after all args
+	// are added, before SetTrailingComment.
+	void ComputeRender();
 	void AddChild(LayoutPtr child)
 		{ children.push_back(std::move(child)); }
 
@@ -650,16 +659,15 @@ public:
 	const std::string& Arg(size_t i = 0) const;
 
 	// Complete text for this node: for tokens, the syntax
-	// string + trailing comment; for atoms, the arg + trailing
-	// comment; for composite nodes, just the trailing comment.
-	std::string Text() const;
+	// string; for atoms, the arg; plus any trailing comment.
+	// Pre-computed by ComputeRender().
+	const std::string& Text() const { return render; }
 
 	// Width of this node's text in columns.
 	int Width() const { return static_cast<int>(Text().size()); }
 
-	// True if a line break must follow this node (has a
-	// trailing comment).
-	bool MustBreakAfter() const { return ! trailing_comment.empty(); }
+	// True if a line break must follow this node.
+	bool MustBreakAfter() const { return must_break_after; }
 
 	bool HasBlock() const { return has_block; }
 	void SetHasBlock() { has_block = true; }
@@ -706,8 +714,7 @@ public:
 	// Format a Whitesmith-style braced block.
 	Formatting FormatWhitesmithBlock(const FmtContext& ctx) const;
 
-	// Preprocessor directive formatting and depth control.
-	FmtPtr FormatText() const;
+	// Preprocessor directive depth control.
 	bool OpensDepth() const;
 	bool ClosesDepth() const;
 	bool AtColumnZero() const;
@@ -720,10 +727,11 @@ private:
 	LayoutItems layout;
 	std::vector<std::string> args;
 	LayoutVec children;
-	std::string trailing_comment;
+	std::string render;
 	std::vector<std::string> pre_comments;
 	LayoutVec pre_markers;
 	bool has_block = false;
+	bool must_break_after = false;
 };
 
 // Factory: creates a Layout with optional layout items based on tag.
