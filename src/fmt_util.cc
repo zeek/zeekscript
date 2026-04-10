@@ -313,6 +313,25 @@ Candidate format_args_fill(const ArgItems& items, int align_col, int indent,
 			continue;
 			}
 
+		// Non-first lambda: wrap to give it maximum width.
+		else if ( it.arg->IsLambda() )
+			{
+			fmt += Formatting(it.comma) + "\n" + pad;
+			cur_col = align_col;
+
+			int prev_lines = lines;
+			format_fill_arg(*it.arg, indent, max_col, fmt,
+					cur_col, lines, total_overflow, t);
+			++lines;
+
+			if ( lines - prev_lines > 1 )
+				force_wrap = true;
+
+			append_trailing(it, nc, fmt, cur_col, force_wrap,
+					comma_consumed);
+			continue;
+			}
+
 		// Multi-line item handling: try keeping a bracketed
 		// arg on the current line; FieldAssign items always
 		// wrap (record fields shouldn't trail mid-line).

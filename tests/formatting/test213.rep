@@ -1,0 +1,128 @@
+COMMENT-LEADING "# Non-first lambda arg gets a line break before it."
+FUNC-DECL {
+  KEYWORD "event"
+  SP
+  IDENTIFIER "zeek_init"
+  PARAMS {
+    LPAREN
+    RPAREN
+  }
+  BODY {
+    LBRACE
+    EXPR-STMT {
+      CALL {
+        IDENTIFIER "register_use_case"
+        ARGS {
+          LPAREN
+          IDENTIFIER "http_basic_usecase"
+          COMMA
+          LAMBDA {
+            KEYWORD "function"
+            SP
+            PARAMS {
+              LPAREN
+              PARAM "o_h" {
+                COLON
+                TYPE-ATOM "addr"
+              }
+              COMMA
+              PARAM "si" {
+                COLON
+                TYPE-ATOM "ProxySourceInfo"
+              }
+              RPAREN
+            }
+            BODY {
+              LBRACE
+              EXPR-STMT {
+                CALL {
+                  IDENTIFIER "NOTICE"
+                  ARGS {
+                    LPAREN
+                    INDEX-LITERAL {
+                      ARGS {
+                        LBRACKET
+                        FIELD-ASSIGN "note" {
+                          DOLLAR
+                          ASSIGN "="
+                          IDENTIFIER "HTTP_Basic_Auth"
+                        }
+                        COMMA
+                        FIELD-ASSIGN "msg" {
+                          DOLLAR
+                          ASSIGN "="
+                          CONSTANT "\"HTTP basic authentication bruteforce attempt.\""
+                        }
+                        COMMA
+                        FIELD-ASSIGN "identifier" {
+                          DOLLAR
+                          ASSIGN "="
+                          CALL {
+                            IDENTIFIER "cat"
+                            ARGS {
+                              LPAREN
+                              IDENTIFIER "o_h"
+                              RPAREN
+                            }
+                          }
+                        }
+                        COMMA
+                        FIELD-ASSIGN "src" {
+                          DOLLAR
+                          ASSIGN "="
+                          IDENTIFIER "o_h"
+                        }
+                        COMMA
+                        FIELD-ASSIGN "sub" {
+                          DOLLAR
+                          ASSIGN "="
+                          CALL {
+                            IDENTIFIER "fmt"
+                            ARGS {
+                              LPAREN
+                              CONSTANT "\"Saw %d failed and %d successful HTTP authentication attempts.\""
+                              COMMA
+                              CARDINALITY {
+                                OP "|"
+                                FIELD-ACCESS {
+                                  IDENTIFIER "si"
+                                  DOLLAR
+                                  IDENTIFIER "failed_entities"
+                                }
+                                OP "|"
+                              }
+                              COMMA
+                              CARDINALITY {
+                                OP "|"
+                                FIELD-ACCESS {
+                                  IDENTIFIER "si"
+                                  DOLLAR
+                                  IDENTIFIER "successful_entities"
+                                }
+                                OP "|"
+                              }
+                              RPAREN
+                            }
+                          }
+                        }
+                        RBRACKET
+                      }
+                    }
+                    RPAREN
+                  }
+                }
+                SEMI
+              }
+              RBRACE
+            }
+          }
+          COMMA
+          CONSTANT "250.0"
+          RPAREN
+        }
+      }
+      SEMI
+    }
+    RBRACE
+  }
+}
