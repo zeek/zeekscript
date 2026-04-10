@@ -906,8 +906,7 @@ static bool try_inline_if(const LayoutVec& nodes, size_t i,
                           Formatting& inline_text)
 	{
 	auto& node = *nodes[i];
-	if ( node.GetTag() != Tag::IfNoElse || node.MustBreakBefore() ||
-	     node.MustBreakAfter() )
+	if ( node.GetTag() != Tag::IfNoElse || node.MustBreakBefore() )
 		return false;
 
 	// Child 5 is the BODY.
