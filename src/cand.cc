@@ -116,6 +116,10 @@ const Candidate& best(const Candidates& cs)
 	// candidates propagate through the beam for width reduction
 	// but are not chosen by local best() - they would steal
 	// overflow that the outer context handles at a better break.
+	// Exception: when the best non-reluctant significantly
+	// overflows and a reluctant candidate eliminates it, the
+	// reluctant wins - the outer context cannot help with
+	// overflow baked into a sub-expression.
 	const Candidate* result = nullptr;
 	const Candidate* reluctant_best = nullptr;
 
@@ -128,7 +132,13 @@ const Candidate& best(const Candidates& cs)
 		else if ( ! result || c.BetterThan(*result) )
 			result = &c;
 
-	return result ? *result : *reluctant_best;
+	if ( ! result )
+		return *reluctant_best;
+
+	if ( reluctant_best && result->Ovf() > 2 && reluctant_best->Ovf() <= 0 )
+		return *reluctant_best;
+
+	return *result;
 	}
 
 const Candidate& best_overall(const Candidates& cs)
