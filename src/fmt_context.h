@@ -74,6 +74,11 @@ public:
 	bool IsParamList() const { return param_list; }
 	void SetIsParamList() { param_list = true; }
 
+	// True when formatting the RHS of an initialization or
+	// assignment (enables vertical upgrade for calls).
+	bool IsInitRHS() const { return init_rhs; }
+	void SetInitRHS() { init_rhs = true; }
+
 private:
 	int indent;
 	int col;
@@ -81,4 +86,5 @@ private:
 	int trail;	// columns reserved after last line (comment, etc.)
 	int soft_trail;	// portion of trail that can break to its own line
 	bool param_list = false;
+	bool init_rhs = false;
 };

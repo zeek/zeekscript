@@ -51,6 +51,13 @@ Candidates flat_or_fill(const Formatting& prefix, const Formatting& open,
                       const std::string& close_prefix = "",
                       const LayoutPtr& dangling_comma = nullptr);
 
+// Fill at bracket alignment with a line break after the open bracket.
+// Packs args past the margin (reduce_overflow strips leading spaces).
+Candidate format_args_fill_break(const Formatting& prefix,
+	const Formatting& open, const Formatting& close,
+	const Formatting& suffix, const ArgItems& items,
+	const FmtContext& ctx, int start_col);
+
 Candidate format_args_vertical(const Formatting& open, const Formatting& close,
                              const ArgItems& items, const FmtContext& ctx,
                              bool trailing_comma = false,

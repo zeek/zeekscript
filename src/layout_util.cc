@@ -353,6 +353,7 @@ static void decl_with_init(const DeclParts& d, Candidates& result,
 	int suffix_w = d.suffix.Size();
 
 	FmtContext val_ctx = ctx.After(before_w).Reserve(suffix_w);
+	val_ctx.SetInitRHS();
 	auto val = best(format_expr(*d.init_val, val_ctx));
 
 	auto flat = before_val + val.Fmt() + d.suffix;
@@ -381,6 +382,7 @@ static void decl_with_init(const DeclParts& d, Candidates& result,
 			return;
 
 		FmtContext cont = ctx.Indented().Reserve(suffix_w);
+		cont.SetInitRHS();
 		auto val2 = best(format_expr(*d.init_val, cont));
 
 		auto line1 = d.head + d.type_str + " " + d.assign_op;

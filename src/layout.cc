@@ -239,6 +239,8 @@ Partials LIExpr::LayoutStep(Partials& beam, const FmtContext& ctx,
 		{
 		int avail = ctx.MaxCol() - p.col;
 		FmtContext sub(ctx.Indent(), p.col, avail, trail, soft_trail);
+		if ( is_init_rhs )
+			sub.SetInitRHS();
 		auto cs = format_expr(*LI_Node(), sub);
 		for ( const auto& c : cs )
 			{
@@ -443,9 +445,13 @@ Partials LIArgListR::LayoutStep(Partials& beam, const FmtContext& ctx,
 			     cs.size() > 1 &&
 			     cs.back().Lines() == static_cast<int>(items.size()) )
 				{
-				cs.pop_back();
-				cs.push_back(format_args_vertical(open, close,
-								items, sub));
+				if ( ctx.IsInitRHS() )
+					cs.push_back(format_args_vertical(
+						open, close, items, sub));
+				else
+					cs.push_back(format_args_fill_break(
+						prefix, open, close, suffix,
+						items, sub, p.col));
 				}
 			}
 
@@ -718,6 +724,10 @@ void Layout::ResolveItem(LayoutItems& items, size_t i,
 		item = std::make_shared<LIExpr>(Child(item->ChildIdx()));
 		break;
 
+	case InitExprIdx:
+		item = std::make_shared<LIExpr>(Child(item->ChildIdx()), true);
+		break;
+
 	case LastTok:
 		item = tok(Children().back());
 		break;
@@ -879,7 +889,7 @@ static const std::unordered_map<Tag, LayoutItems> layout_table = {
 	{Tag::FieldAccess, {flat_split(
 		{FmtStep::EI(0), FmtStep::TI(1), FmtStep::TI(2)},
 		{{1, SplitAt::IndentedOrSame}}, false, true)}},
-	{Tag::FieldAssign, {tok(0), arg(0), tok(1), expr(2)}},
+	{Tag::FieldAssign, {tok(0), arg(0), tok(1), init_expr(2)}},
 	{Tag::HasField, {flat_split(
 		{FmtStep::EI(0), FmtStep::TI(1), FmtStep::TI(2)},
 		{{1, SplitAt::IndentedOrSame}}, false, true)}},

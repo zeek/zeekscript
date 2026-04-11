@@ -57,6 +57,7 @@ enum LIKind {
 	// the beam search runs.
 	Tok,	// child token by index, resolved to Lit
 	ExprIdx,	// child expression by index, resolved to FmtExpr
+	InitExprIdx,	// like ExprIdx but sets init_rhs flag
 	LastTok,	// last child token, resolved to Lit
 	ArgIdx,	// numbered Arg() string, resolved to Lit
 
@@ -330,9 +331,12 @@ public:
 
 class LIExpr : public LayoutItem {
 public:
-	LIExpr(const LayoutPtr& n) : LayoutItem(n) {}
+	LIExpr(const LayoutPtr& n, bool ir = false)
+		: LayoutItem(n), is_init_rhs(ir) {}
 	Partials LayoutStep(Partials& beam, const FmtContext& ctx,
 		int trail, int soft_trail) const override;
+private:
+	bool is_init_rhs;
 };
 
 class LISp : public LayoutItem {
@@ -451,6 +455,11 @@ inline LIPtr indent_down() { return std::make_shared<LayoutItem>(IndentDown); }
 // child is formatted as an expression (producing candidates).
 inline LIPtr expr(unsigned child_index)
 	{ return std::make_shared<LayoutItem>(ExprIdx, child_index); }
+
+// Like expr() but marks the context as an init/assignment RHS,
+// enabling vertical upgrade for calls.
+inline LIPtr init_expr(unsigned child_index)
+	{ return std::make_shared<LayoutItem>(InitExprIdx, child_index); }
 
 // Last child as token: resolved by BuildLayout into
 // tok(Children().back()).

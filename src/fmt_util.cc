@@ -834,6 +834,25 @@ static int format_vert_item(const ArgItem& it, const LayoutPtr& next_comma,
 	return line_w;
 	}
 
+Candidate format_args_fill_break(const Formatting& prefix,
+		const Formatting& open, const Formatting& close,
+		const Formatting& suffix, const ArgItems& items,
+		const FmtContext& ctx, int start_col)
+	{
+	int ac = start_col + prefix.Size() + open.Size();
+	int avail = ctx.MaxCol() - ac;
+	auto pad = line_prefix(ctx.Indent(), ac);
+	FmtContext fc(ctx.Indent(), ac, avail, ctx.HardTrail());
+
+	auto bf = format_args_fill(items, ac, ctx.Indent(), fc,
+					ctx.HardTrail(), nullptr, avail);
+
+	auto fmt = prefix + open + "\n" + pad + bf.Fmt() + close + suffix;
+	int w = bf.Width() + close.Size() + suffix.Size();
+
+	return {std::move(fmt), w, bf.Lines() + 1, 0, ctx.Col()};
+	}
+
 Candidate format_args_vertical(const Formatting& open, const Formatting& close,
                              const ArgItems& items, const FmtContext& ctx,
                              bool trailing_comma,
