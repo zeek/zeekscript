@@ -37,22 +37,43 @@ static void format_flat(FmtSteps& steps, const FmtContext& ctx,
 	for ( size_t i = 0; i < steps.size(); ++i )
 		{
 		auto& s = steps[i];
-		if ( s.kind == FmtStep::SExpr )
+		if ( s.kind != FmtStep::SExpr )
 			{
-			FmtContext sub = force_flat ? ctx : ctx.After(used);
-			if ( trail_aware )
-				sub = FmtContext(sub.Indent(), sub.Col(),
-						sub.Width(), trail[i]);
-			auto c = best(format_expr(*s.node, sub));
-			s.text = c.Fmt();
+			used += s.text.Size();
+			continue;
+			}
 
-			if ( c.Lines() > 1 )
+		FmtContext sub = force_flat ? ctx : ctx.After(used);
+		if ( trail_aware )
+			sub = FmtContext(sub.Indent(), sub.Col(),
+						sub.Width(), trail[i]);
+		auto c = best(format_expr(*s.node, sub));
+		s.text = c.Fmt();
+
+		// Trail-aware adds trailing piece widths to the sub-expression
+		// trail, but that constrains ALL lines when only the last
+		// carries the trailing pieces.  Re-format with the outer
+		// trail only; if the result collapses to a single line that
+		// overflows with the trailing pieces, keep the original.
+		if ( trail_aware && trail[i] > ctx.Trail() && c.Lines() > 1 )
+			{
+			FmtContext outer(sub.Indent(), sub.Col(),
+					sub.Width(), ctx.Trail());
+			auto c2 = best(format_expr(*s.node, outer));
+			auto sub_width = sub.Col() + c2.Width() + trail[i];
+			bool use_c2 =
+				c2.Lines() > 1 || sub_width <= ctx.MaxCol();
+			if ( use_c2 )
 				{
-				used = c.Width();
-				continue;
+				c = c2;
+				s.text = c.Fmt();
 				}
 			}
-		used += s.text.Size();
+
+		if ( c.Lines() > 1 )
+			used = c.Width();
+		else
+			used += s.text.Size();
 		}
 	}
 

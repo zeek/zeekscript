@@ -1,0 +1,6 @@
+function foo()
+	{
+	if ( ssl_cache_intermediate_ca && result$result_string == "ok" &&
+	     result?$chain_certs && |result$chain_certs| > 2 )
+		bar();
+	}
