@@ -1,0 +1,6 @@
+export {
+    global observation_result:
+        function(o: string, label: string, conf: Confidence::level,
+             source: string, caller: string,
+             cache: bool &default=F);
+}

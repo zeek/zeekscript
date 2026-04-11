@@ -1,0 +1,56 @@
+EXPORT {
+  KEYWORD "export"
+  SP
+  LBRACE
+  GLOBAL-DECL {
+    KEYWORD "global"
+    SP
+    IDENTIFIER "observation_result"
+    DECL-TYPE {
+      COLON
+      TYPE-FUNC "function" {
+        PARAMS {
+          LPAREN
+          PARAM "o" {
+            COLON
+            TYPE-ATOM "string"
+          }
+          COMMA
+          PARAM "label" {
+            COLON
+            TYPE-ATOM "string"
+          }
+          COMMA
+          PARAM "conf" {
+            COLON
+            TYPE-ATOM "Confidence::level"
+          }
+          COMMA
+          PARAM "source" {
+            COLON
+            TYPE-ATOM "string"
+          }
+          COMMA
+          PARAM "caller" {
+            COLON
+            TYPE-ATOM "string"
+          }
+          COMMA
+          PARAM "cache" {
+            COLON
+            TYPE-ATOM "bool"
+            ATTR-LIST {
+              ATTR "&default" {
+                ASSIGN "="
+                CONSTANT "F"
+              }
+            }
+          }
+          RPAREN
+        }
+      }
+    }
+    SEMI
+  }
+  RBRACE
+}

@@ -279,17 +279,20 @@ int Formatting::CountLines() const
 
 int Formatting::LastLineLen() const
 	{
-	int len = 0;
+	const auto& s = Str();
+	const char* p = s.c_str();
+	auto pos = s.rfind('\n');
+	if ( pos != std::string::npos )
+		p += pos + 1;
 
-	for ( int i = static_cast<int>(pieces.size()) - 1; i >= 0; --i )
-		{
-		int aln = pieces[i].AfterLastNewline();
-		if ( aln >= 0 )
-			return len + aln;
-		len += static_cast<int>(pieces[i].Size());
-		}
+	int col = 0;
+	for ( ; *p; ++p )
+		if ( *p == '\t' )
+			col = (col / INDENT_WIDTH + 1) * INDENT_WIDTH;
+		else
+			++col;
 
-	return len;
+	return col;
 	}
 
 void Formatting::AccumOverflow(int& col, int max_col, int& ovf) const

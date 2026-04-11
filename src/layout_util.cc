@@ -402,9 +402,11 @@ struct DeclContState {
 };
 
 static DeclContState decl_cont_setup(const DeclParts& d,
-                                     const FmtContext& ctx)
+                                     const FmtContext& ctx,
+                                     int suffix_w = 0)
 	{
-	auto cont = ctx.Indented();
+	auto base = ctx.Indented();
+	auto cont = suffix_w > 0 ? base.Reserve(suffix_w) : base;
 	auto type_fmt = best(format_expr(*d.type_node, cont)).Fmt();
 	auto pad = line_prefix(cont.Indent(), cont.Col());
 	auto prefix = d.head + d.colon_node + "\n" + pad;
@@ -430,7 +432,7 @@ static void decl_no_init(const DeclParts& d, Candidates& result,
 	if ( d.type_str.Empty() )
 		return;
 
-	auto [cont, tv, prefix] = decl_cont_setup(d, ctx);
+	auto [cont, tv, prefix] = decl_cont_setup(d, ctx, 1);
 
 	// Try type + suffix on one continuation line.
 	auto oneline = tv + d.suffix;
