@@ -1,0 +1,115 @@
+FUNC-DECL {
+  KEYWORD "function"
+  SP
+  IDENTIFIER "foo"
+  PARAMS {
+    LPAREN
+    RPAREN
+  }
+  BODY {
+    LBRACE
+    IF-NO-ELSE {
+      KEYWORD "if"
+      SP
+      LPAREN
+      IDENTIFIER "test"
+      RPAREN
+      BODY {
+        BLOCK {
+          LBRACE
+          EXPR-STMT {
+            CALL {
+              IDENTIFIER "NOTICE"
+              ARGS {
+                LPAREN
+                INDEX-LITERAL {
+                  ARGS {
+                    LBRACKET
+                    FIELD-ASSIGN "note" {
+                      DOLLAR
+                      ASSIGN "="
+                      IDENTIFIER "Weak_Cipher"
+                    }
+                    COMMA
+                    FIELD-ASSIGN "msg" {
+                      DOLLAR
+                      ASSIGN "="
+                      CALL {
+                        IDENTIFIER "fmt"
+                        ARGS {
+                          LPAREN
+                          CONSTANT "\"Host established connection using unsafe ciper suite %s\""
+                          COMMA
+                          FIELD-ACCESS {
+                            FIELD-ACCESS {
+                              IDENTIFIER "c"
+                              DOLLAR
+                              IDENTIFIER "ssl"
+                            }
+                            DOLLAR
+                            IDENTIFIER "cipher"
+                          }
+                          RPAREN
+                        }
+                      }
+                    }
+                    COMMA
+                    FIELD-ASSIGN "conn" {
+                      DOLLAR
+                      ASSIGN "="
+                      IDENTIFIER "c"
+                    }
+                    COMMA
+                    FIELD-ASSIGN "suppress_for" {
+                      DOLLAR
+                      ASSIGN "="
+                      IDENTIFIER "SSL::notice_suppression_interval"
+                    }
+                    COMMA
+                    FIELD-ASSIGN "identifier" {
+                      DOLLAR
+                      ASSIGN "="
+                      CALL {
+                        IDENTIFIER "cat"
+                        ARGS {
+                          LPAREN
+                          IDENTIFIER "resp_h"
+                          COMMA
+                          FIELD-ACCESS {
+                            FIELD-ACCESS {
+                              IDENTIFIER "c"
+                              DOLLAR
+                              IDENTIFIER "id"
+                            }
+                            DOLLAR
+                            IDENTIFIER "resp_p"
+                          }
+                          COMMA
+                          FIELD-ACCESS {
+                            FIELD-ACCESS {
+                              IDENTIFIER "c"
+                              DOLLAR
+                              IDENTIFIER "ssl"
+                            }
+                            DOLLAR
+                            IDENTIFIER "cipher"
+                          }
+                          RPAREN
+                        }
+                      }
+                    }
+                    RBRACKET
+                  }
+                }
+                RPAREN
+              }
+            }
+            SEMI
+          }
+          RBRACE
+        }
+      }
+    }
+    RBRACE
+  }
+}

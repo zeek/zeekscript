@@ -41,7 +41,8 @@ Candidate format_args_flat(const ArgItems& items, const FmtContext& ctx);
 
 Candidate format_args_fill(const ArgItems& items, int align_col, int indent,
                          const FmtContext& first_line_ctx, int trail = 0,
-                         const LayoutPtr& dangling_comma = nullptr);
+                         const LayoutPtr& dangling_comma = nullptr,
+                         int close_room = 0);
 
 Candidates flat_or_fill(const Formatting& prefix, const Formatting& open,
                       const Formatting& close, const Formatting& suffix,

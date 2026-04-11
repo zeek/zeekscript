@@ -239,7 +239,8 @@ static Candidates try_same_line_arg(const Layout& arg, int cur_col,
 
 Candidate format_args_fill(const ArgItems& items, int align_col, int indent,
                          const FmtContext& first_line_ctx, int trail,
-                         const LayoutPtr& dangling_comma)
+                         const LayoutPtr& dangling_comma,
+                         int close_room)
 	{
 	auto pad = line_prefix(indent, align_col);
 	Formatting fmt;
@@ -380,11 +381,15 @@ Candidate format_args_fill(const ArgItems& items, int align_col, int indent,
 			continue;
 			}
 
-		// Inline if it fits, otherwise wrap.
 		else
-			{
+			{ // Inline if it fits, otherwise wrap.
+			int limit = max_col;
+			if ( is_last )
+				limit -= trail;
+			else
+				limit += close_room;
+
 			int need = 2 + aw;
-			int limit = is_last ? max_col - trail : max_col;
 			if ( cur_col + need <= limit )
 				{
 				fmt += Formatting(it.comma) + " " + bc.Fmt();
@@ -675,8 +680,9 @@ Candidates flat_or_fill(const Formatting& prefix, const Formatting& open,
 	int close_extra = static_cast<int>(close_prefix.size());
 	int suffix_w = suffix.Size();
 	int open_col = ctx.Col() + prefix_w + open_w;
+	int close_room = close_extra + close_w;
 	int inner_w =
-		ctx.MaxCol() - open_col - close_extra - close_w - suffix_w;
+		ctx.MaxCol() - open_col - close_room - suffix_w;
 
 	FmtContext inner_ctx(ctx.Indent(), open_col, inner_w);
 	auto cb = close_prefix + close;
@@ -715,7 +721,7 @@ Candidates flat_or_fill(const Formatting& prefix, const Formatting& open,
 		}
 
 	auto fill = format_args_fill(items, open_col, ctx.Indent(),
-				inner_ctx, 0, dangling_comma);
+				inner_ctx, 0, dangling_comma, close_room);
 
 	// If the assembled output + hard trail overflows, re-fill
 	// with hard trail so the fill can wrap to stay within the
@@ -725,7 +731,8 @@ Candidates flat_or_fill(const Formatting& prefix, const Formatting& open,
 	if ( fill.Lines() == 1 && hard > 0 &&
 	     ! result.empty() && result[0].Ovf() > 0 )
 		fill = format_args_fill(items, open_col, ctx.Indent(),
-					inner_ctx, hard, dangling_comma);
+					inner_ctx, hard, dangling_comma,
+					close_room);
 
 	else if ( fill.Lines() > 1 && hard > 0 )
 		{
@@ -736,7 +743,7 @@ Candidates flat_or_fill(const Formatting& prefix, const Formatting& open,
 		if ( ovf > 0 )
 			fill = format_args_fill(items, open_col, ctx.Indent(),
 						inner_ctx, hard,
-						dangling_comma);
+						dangling_comma, close_room);
 		}
 
 	// When the last arg is a lambda, put the close bracket on
