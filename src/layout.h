@@ -79,8 +79,6 @@ enum LIKind {
 	StmtBody,	// format children as an indented statement list
 	BodyText,	// Whitesmith-style brace block body
 
-	// Boolean chain fill: "a || b || c" with greedy line packing.
-	OpFill,
 };
 
 // A piece in a flat-or-split sequence.
@@ -244,7 +242,7 @@ public:
 	           bool ff = false, bool as = false)
 		: kind(FlatSplit), steps(std::move(s)),
 		  splits(std::move(sp)), force_flat(ff),
-		  always_split(as), must_break(false) {}
+		  offer_split(as), must_break(false) {}
 
 	// Resolved DeclCands: holds pre-computed Candidates.
 	LayoutItem(LIKind k, Candidates cs)
@@ -280,11 +278,6 @@ public:
 	LayoutItem(LIKind k, Formatting f)
 		: kind(k), fmt(std::move(f)), must_break(false) {}
 
-	// Resolved OpFill: operator string + operand nodes.
-	LayoutItem(LIKind k, std::string op, LayoutVec ops)
-		: kind(k), fmt(std::move(op)),
-		  operands(std::move(ops)), must_break(false) {}
-
 	const Formatting& Fmt() const { return fmt; }
 	const LayoutPtr& LI_Node() const { return node; }
 	int ChildIdx() const { return child_idx; }
@@ -294,11 +287,10 @@ public:
 	const FmtSteps& Steps() const { return steps; }
 	const std::vector<SplitAt>& Splits() const { return splits; }
 	bool ForceFlatSubs() const { return force_flat; }
-	bool AlwaysSplit() const { return always_split; }
+	bool OfferSplit() const { return offer_split; }
 	ComputeFn GetComputeFn() const { return compute_fn; }
 	ComputeFn SuffixFn() const { return suffix_fn; }
 	ComputeFn PrefixFn() const { return prefix_fn; }
-	const LayoutVec& Operands() const { return operands; }
 	const Candidates& Cands() const { return cands; }
 	const Formatting& Prefix() const { return li_prefix; }
 
@@ -308,7 +300,6 @@ protected:
 	Formatting fmt;
 	Formatting li_prefix;
 	LayoutPtr node;
-	LayoutVec operands;
 	Candidates cands;
 	FmtSteps steps;
 	std::vector<SplitAt> splits;
@@ -316,7 +307,7 @@ protected:
 	int sub_child_idx = -1;
 	int sb_flags = 0;
 	bool force_flat = false;
-	bool always_split = false;
+	bool offer_split = false;
 	ComputeFn compute_fn = nullptr;
 	ComputeFn suffix_fn = nullptr;
 	ComputeFn prefix_fn = nullptr;
@@ -392,14 +383,6 @@ public:
 	           Formatting suffix, int fl)
 		: LayoutItem(ArgList, n, std::move(prefix),
 			std::move(suffix), fl) {}
-	Partials LayoutStep(Partials& beam, const FmtContext& ctx,
-		int trail, int soft_trail) const override;
-};
-
-class LIOpFillR : public LayoutItem {
-public:
-	LIOpFillR(std::string op, LayoutVec ops)
-		: LayoutItem(OpFill, std::move(op), std::move(ops)) {}
 	Partials LayoutStep(Partials& beam, const FmtContext& ctx,
 		int trail, int soft_trail) const override;
 };
@@ -542,10 +525,6 @@ inline LIPtr body_text(unsigned child_index)
 // Empty content is a no-op.
 inline LIPtr soft_cont(ComputeFn op)
 	{ return std::make_shared<LayoutItem>(SoftCont, 0U, op); }
-
-// Operator fill: format content children separated by arg(0),
-// try flat, then greedy-fill with wrap at operator.
-inline LIPtr op_fill() { return std::make_shared<LayoutItem>(OpFill); }
 
 // Flat-or-split with deferred child references: FmtStep::EI(n)
 // and FmtStep::TI(n) are resolved during BuildLayout.

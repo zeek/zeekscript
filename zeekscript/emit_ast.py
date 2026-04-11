@@ -116,19 +116,6 @@ class Emitter:
                 and self._text(kids[-1]) == ","):
             self._w('TRAILING-COMMA')
 
-    def _flatten_bool_chain(self, node: tree_sitter.Node,
-                            op: str,
-                            out: list[tree_sitter.Node]) -> None:
-        """Collect operands of left-associative && or || chain."""
-        kids = self._children(node)
-        token_texts = {self._text(k) for k in kids if not k.is_named}
-        bin_ops = token_texts & _BINARY_OPS
-        if bin_ops and len(kids) == 3 and bin_ops.pop() == op:
-            self._flatten_bool_chain(kids[0], op, out)
-            out.append(kids[2])
-        else:
-            out.append(node)
-
     def _has_blank(self, start: int, end: int) -> bool:
         return self.source[start:end].count(b"\n") >= 2
 
@@ -364,19 +351,6 @@ class Emitter:
                 self._emit_expr_child(kids[0])
                 self._w(f'OP {_quote(op)}')
                 self._emit_expr_child(kids[2])
-                self._emit_extras_in(node)
-                self._close()
-                return
-
-            # &&/|| chains -> BOOL-CHAIN with flat operands
-            if op in ("&&", "||"):
-                operands = []
-                self._flatten_bool_chain(node, op, operands)
-                self._open(f'BOOL-CHAIN {_quote(op)}')
-                for i, operand in enumerate(operands):
-                    if i > 0:
-                        self._w(f'OP {_quote(op)}')
-                    self._emit_expr_child(operand)
                 self._emit_extras_in(node)
                 self._close()
                 return

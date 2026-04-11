@@ -9,15 +9,20 @@
 
 #include "layout.h"
 
-// Try flat layout first.  If overflow, generate a split candidate
-// for each SplitAt spec by breaking after the designated piece and
-// re-formatting any Expr pieces after the break with the derived
-// context.  Returns flat + any split candidates.
+// Try flat layout first.  If overflow or if the flat form is
+// multi-line, generate a split candidate for each SplitAt spec
+// by breaking after the designated piece and re-formatting any
+// Expr pieces after the break with the derived context.
+// Returns flat + any split candidates.
 //
-// force_flat: when true, sub-expressions in the flat layout are
-// formatted at the base column rather than the accumulated
-// position.  This prevents them from wrapping internally and
-// ensures overflow is detected at this level.
+// force_flat: sub-expressions are formatted at the base column
+// rather than the accumulated position, so overflow is detected
+// at this level rather than causing internal wrapping.
+//
+// offer_split: always include split candidates alongside flat,
+// even when flat fits on one line.  Lets a parent beam choose
+// between the flat and split forms (e.g. FieldAccess, HasField).
+// Also enables trail-aware sub-expression formatting.
 Candidates flat_or_split(FmtSteps steps, const std::vector<SplitAt>& splits,
                          const FmtContext& ctx, bool force_flat = false,
-                         bool always_split = false);
+                         bool offer_split = false);

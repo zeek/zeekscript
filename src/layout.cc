@@ -462,153 +462,6 @@ Partials LIArgListR::LayoutStep(Partials& beam, const FmtContext& ctx,
 	return next;
 	}
 
-// Try formatting operator-separated operands on a single line.
-struct OpFlatResult {
-	Formatting fmt;
-	int width;
-	bool fits;
-};
-
-static OpFlatResult try_flat_ops(const LayoutVec& operands,
-                                 const Formatting& sep, int sep_w,
-                                 const FmtContext& ctx, int col, int trail)
-	{
-	Formatting flat;
-	int flat_w = 0;
-	bool any_multiline = false;
-
-	for ( size_t j = 0; j < operands.size(); ++j )
-		{
-		auto bc = best(format_expr(*operands[j],
-					ctx.After(col + flat_w)));
-		if ( bc.Lines() > 1 )
-			any_multiline = true;
-
-		if ( j > 0 )
-			{
-			flat += sep;
-			flat_w += sep_w;
-			}
-
-		flat += bc.Fmt();
-		flat_w += bc.Width();
-		}
-
-	int ovf = std::max(0, col + flat_w + trail - ctx.MaxCol());
-	return {std::move(flat), flat_w, ovf == 0 && ! any_multiline};
-	}
-
-// Fill-pack operator-separated operands, wrapping at operator
-// boundaries onto continuation lines.
-struct OpFillResult {
-	Formatting fmt;
-	int col;
-	int lines;
-	int overflow;
-};
-
-static OpFillResult fill_pack_ops(const LayoutVec& operands,
-                                  const Formatting& op,
-                                  const Formatting& sep, int sep_w,
-                                  int max_col, int start_col,
-                                  const FmtContext& cont_ctx,
-                                  const std::string& pad)
-	{
-	Formatting text;
-	int cur_col = start_col;
-	int fill_lines = 0;
-	int fill_ovf = 0;
-
-	for ( size_t j = 0; j < operands.size(); ++j )
-		{
-		FmtContext sub(cont_ctx.Indent(), cur_col, max_col - cur_col);
-		auto bc = best(format_expr(*operands[j], sub));
-		int w = bc.Width();
-
-		if ( j == 0 )
-			{
-			text += bc.Fmt();
-			cur_col += w;
-			}
-		else
-			{
-			int need = bc.Lines() > 1 ? max_col + 1 : sep_w + w;
-
-			if ( cur_col + need <= max_col )
-				{
-				text += sep + bc.Fmt();
-				cur_col += need;
-				}
-			else
-				{
-				text += " " + op + "\n" + pad;
-				cur_col = cont_ctx.Col();
-				++fill_lines;
-
-				FmtContext ws(cont_ctx.Indent(), cur_col,
-						max_col - cur_col);
-				auto wb = best(format_expr(*operands[j], ws));
-				text += wb.Fmt();
-				cur_col += wb.Width();
-				fill_ovf += wb.Ovf();
-				}
-			}
-
-		if ( bc.Lines() > 1 )
-			{
-			fill_lines += bc.Lines() - 1;
-			cur_col = text.LastLineLen();
-			}
-
-		fill_ovf += bc.Ovf();
-		}
-
-	fill_ovf += std::max(0, cur_col - max_col);
-	return {std::move(text), cur_col, fill_lines, fill_ovf};
-	}
-
-Partials LIOpFillR::LayoutStep(Partials& beam, const FmtContext& ctx,
-                               int trail, int) const
-	{
-	Partials next;
-	auto& operands = Operands();
-	auto& op = Fmt();
-	auto sep = " " + op + " ";
-	int sep_w = static_cast<int>(sep.Size());
-	int max_col = ctx.MaxCol() - trail;
-
-	for ( auto& p : beam )
-		{
-		auto fr = try_flat_ops(operands, sep, sep_w, ctx, p.col, trail);
-		if ( fr.fits )
-			{
-			Partial np = p;
-			np.fmt += fr.fmt;
-			np.col += fr.width;
-			np.must_break = false;
-			next.push_back(std::move(np));
-			continue;
-			}
-
-		FmtContext cont_ctx = p.col == ctx.IndentCol() ?
-					ctx.Indented() : ctx.AtCol(p.col);
-		auto pad = line_prefix(cont_ctx.Indent(), cont_ctx.Col());
-
-		auto fl = fill_pack_ops(operands, op, sep, sep_w,
-					max_col, p.col, cont_ctx, pad);
-
-		Partial np = p;
-		np.fmt += fl.fmt;
-		np.col = fl.col;
-		np.lines += fl.lines;
-		np.overflow += fl.overflow;
-		np.must_break = false;
-		next.push_back(std::move(np));
-		}
-
-	return next;
-	}
-
 Partials LIFlatSplitR::LayoutStep(Partials& beam, const FmtContext& ctx,
                                    int trail, int) const
 	{
@@ -619,7 +472,7 @@ Partials LIFlatSplitR::LayoutStep(Partials& beam, const FmtContext& ctx,
 		int avail = ctx.MaxCol() - p.col;
 		FmtContext sub(ctx.Indent(), p.col, avail, trail);
 		auto cs = flat_or_split(Steps(), Splits(), sub,
-					ForceFlatSubs(), AlwaysSplit());
+					ForceFlatSubs(), OfferSplit());
 		for ( const auto& c : cs )
 			{
 			Partial np = p;
@@ -909,7 +762,7 @@ void Layout::ResolveItem(LayoutItems& items, size_t i,
 
 		item = std::make_shared<LIFlatSplitR>(std::move(steps),
 					item->Splits(), item->ForceFlatSubs(),
-					item->AlwaysSplit());
+					item->OfferSplit());
 		break;
 		}
 
@@ -952,10 +805,6 @@ void Layout::ResolveItem(LayoutItems& items, size_t i,
 
 	case BodyText:
 		item = lit(*Child(item->ChildIdx())->FormatBodyText(ctx));
-		break;
-
-	case OpFill:
-		item = std::make_shared<LIOpFillR>(Arg(), ContentChildren());
 		break;
 
 	case IndentDown:
@@ -1125,7 +974,6 @@ static const std::unordered_map<Tag, LayoutItems> layout_table = {
 		tok(3), computed(CSwitchCases), hard_brk(), last()}},
 	{Tag::GlobalDecl, {decl_cands()}},
 	{Tag::LocalDecl, {decl_cands()}},
-	{Tag::BoolChain, {op_fill()}},
 	{Tag::Ternary, {flat_split(
 		{FmtStep::EI(0), FmtStep::L(" "), FmtStep::TI(1),
 		 FmtStep::S(), FmtStep::EI(2), FmtStep::L(" "),

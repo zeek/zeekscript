@@ -12,19 +12,21 @@ FUNC-DECL {
       KEYWORD "if"
       SP
       LPAREN
-      BOOL-CHAIN "&&" {
+      BINARY-OP "&&" {
         HAS-FIELD {
-          BOOL-CHAIN "&&" {
-            IDENTIFIER "some_long_var_aa"
-            OP "&&"
-            BINARY-OP "==" {
-              FIELD-ACCESS {
-                IDENTIFIER "some_var"
-                DOLLAR
-                IDENTIFIER "some_field"
+          BINARY-OP "&&" {
+            BINARY-OP "&&" {
+              IDENTIFIER "some_long_var_aa"
+              OP "&&"
+              BINARY-OP "==" {
+                FIELD-ACCESS {
+                  IDENTIFIER "some_var"
+                  DOLLAR
+                  IDENTIFIER "some_field"
+                }
+                OP "=="
+                CONSTANT "\"ok\""
               }
-              OP "=="
-              CONSTANT "\"ok\""
             }
             OP "&&"
             IDENTIFIER "other"

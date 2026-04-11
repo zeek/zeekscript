@@ -16,21 +16,23 @@ FUNC-DECL {
       KEYWORD "if"
       SP
       LPAREN
-      BOOL-CHAIN "&&" {
-        BINARY-OP ">" {
-          IDENTIFIER "coal_max_entries"
-          OP ">"
-          CONSTANT "0"
-        }
-        OP "&&"
-        BINARY-OP ">=" {
-          CARDINALITY {
-            OP "|"
-            IDENTIFIER "coalesced_state"
-            OP "|"
+      BINARY-OP "&&" {
+        BINARY-OP "&&" {
+          BINARY-OP ">" {
+            IDENTIFIER "coal_max_entries"
+            OP ">"
+            CONSTANT "0"
           }
-          OP ">="
-          IDENTIFIER "coal_max_entries"
+          OP "&&"
+          BINARY-OP ">=" {
+            CARDINALITY {
+              OP "|"
+              IDENTIFIER "coalesced_state"
+              OP "|"
+            }
+            OP ">="
+            IDENTIFIER "coal_max_entries"
+          }
         }
         OP "&&"
         BINARY-OP "!in" {

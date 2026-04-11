@@ -35,28 +35,30 @@ FUNC-DECL-RET {
       SP
       LPAREN
       HAS-FIELD {
-        BOOL-CHAIN "||" {
-          HAS-FIELD {
-            NEGATION {
-              OP "!"
-              IDENTIFIER "rec"
-            }
-            OP "?$"
-            IDENTIFIER "some_field"
-          }
-          OP "||"
-          BINARY-OP "==" {
-            CARDINALITY {
-              OP "|"
-              FIELD-ACCESS {
+        BINARY-OP "||" {
+          BINARY-OP "||" {
+            HAS-FIELD {
+              NEGATION {
+                OP "!"
                 IDENTIFIER "rec"
-                DOLLAR
-                IDENTIFIER "some_field"
               }
-              OP "|"
+              OP "?$"
+              IDENTIFIER "some_field"
             }
-            OP "=="
-            CONSTANT "0"
+            OP "||"
+            BINARY-OP "==" {
+              CARDINALITY {
+                OP "|"
+                FIELD-ACCESS {
+                  IDENTIFIER "rec"
+                  DOLLAR
+                  IDENTIFIER "some_field"
+                }
+                OP "|"
+              }
+              OP "=="
+              CONSTANT "0"
+            }
           }
           OP "||"
           NEGATION {

@@ -16,7 +16,7 @@ FUNC-DECL {
       KEYWORD "if"
       SP
       LPAREN
-      BOOL-CHAIN "&&" {
+      BINARY-OP "&&" {
         HAS-FIELD {
           FIELD-ACCESS {
             IDENTIFIER "x"

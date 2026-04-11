@@ -20,25 +20,27 @@ FUNC-DECL-RET {
       KEYWORD "if"
       SP
       LPAREN
-      BOOL-CHAIN "&&" {
-        HAS-FIELD {
-          IDENTIFIER "c"
-          OP "?$"
-          IDENTIFIER "tunnel"
-        }
-        OP "&&"
-        BINARY-OP ">=" {
-          CARDINALITY {
-            OP "|"
-            FIELD-ACCESS {
-              IDENTIFIER "c"
-              DOLLAR
-              IDENTIFIER "tunnel"
-            }
-            OP "|"
+      BINARY-OP "&&" {
+        BINARY-OP "&&" {
+          HAS-FIELD {
+            IDENTIFIER "c"
+            OP "?$"
+            IDENTIFIER "tunnel"
           }
-          OP ">="
-          CONSTANT "2"
+          OP "&&"
+          BINARY-OP ">=" {
+            CARDINALITY {
+              OP "|"
+              FIELD-ACCESS {
+                IDENTIFIER "c"
+                DOLLAR
+                IDENTIFIER "tunnel"
+              }
+              OP "|"
+            }
+            OP ">="
+            CONSTANT "2"
+          }
         }
         OP "&&"
         BINARY-OP "==" {

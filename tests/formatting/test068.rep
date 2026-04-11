@@ -1,7 +1,7 @@
 RETURN {
   KEYWORD "return"
   SP
-  BOOL-CHAIN "&&" {
+  BINARY-OP "&&" {
     BINARY-OP "in" {
       IDENTIFIER "some_very_long_variable_name"
       OP "in"

@@ -10,7 +10,6 @@ struct TagEntry {
 static const std::unordered_map<std::string, TagEntry> tag_map = {
 	// Expressions
 	{"BINARY-OP", {Tag::BinaryOp, false}},
-	{"BOOL-CHAIN", {Tag::BoolChain, false}},
 	{"CARDINALITY", {Tag::Cardinality, false}},
 	{"DIV", {Tag::Div, false}},
 	{"HAS-FIELD", {Tag::HasField, false}},

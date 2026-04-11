@@ -16,7 +16,7 @@ FUNC-DECL-RET {
       KEYWORD "if"
       SP
       LPAREN
-      BOOL-CHAIN "&&" {
+      BINARY-OP "&&" {
         IDENTIFIER "some_condition"
         OP "&&"
         IDENTIFIER "some_other_condition"

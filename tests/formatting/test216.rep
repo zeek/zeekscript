@@ -15,44 +15,28 @@ FUNC-DECL {
       BINARY-OP "&&" {
         BINARY-OP "&&" {
           BINARY-OP "&&" {
-            BINARY-OP "&&" {
-              BINARY-OP "&&" {
-                BINARY-OP ">" {
-                  IDENTIFIER "alpha_val"
-                  OP ">"
-                  IDENTIFIER "threshold"
-                }
-                OP "&&"
-                BINARY-OP ">" {
-                  IDENTIFIER "beta_val"
-                  OP ">"
-                  IDENTIFIER "threshold"
-                }
-              }
-              OP "&&"
-              BINARY-OP ">" {
-                IDENTIFIER "gamma_val"
-                OP ">"
-                IDENTIFIER "threshold"
-              }
+            BINARY-OP ">" {
+              IDENTIFIER "alpha_val"
+              OP ">"
+              IDENTIFIER "threshold"
             }
             OP "&&"
             BINARY-OP ">" {
-              IDENTIFIER "delta_val"
+              IDENTIFIER "beta_val"
               OP ">"
               IDENTIFIER "threshold"
             }
           }
           OP "&&"
           BINARY-OP ">" {
-            IDENTIFIER "epsilon_val"
+            IDENTIFIER "gamma_val"
             OP ">"
             IDENTIFIER "threshold"
           }
         }
         OP "&&"
         BINARY-OP ">" {
-          IDENTIFIER "zeta_val"
+          IDENTIFIER "delta_val"
           OP ">"
           IDENTIFIER "threshold"
         }

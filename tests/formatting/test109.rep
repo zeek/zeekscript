@@ -2,19 +2,21 @@ IF-NO-ELSE {
   KEYWORD "if"
   SP
   LPAREN
-  BOOL-CHAIN "&&" {
+  BINARY-OP "&&" {
     HAS-FIELD {
-      BOOL-CHAIN "&&" {
-        IDENTIFIER "some_long_bool_variable_a"
-        OP "&&"
-        BINARY-OP "==" {
-          FIELD-ACCESS {
-            IDENTIFIER "result"
-            DOLLAR
-            IDENTIFIER "result_string"
+      BINARY-OP "&&" {
+        BINARY-OP "&&" {
+          IDENTIFIER "some_long_bool_variable_a"
+          OP "&&"
+          BINARY-OP "==" {
+            FIELD-ACCESS {
+              IDENTIFIER "result"
+              DOLLAR
+              IDENTIFIER "result_string"
+            }
+            OP "=="
+            CONSTANT "\"ok\""
           }
-          OP "=="
-          CONSTANT "\"ok\""
         }
         OP "&&"
         IDENTIFIER "result"

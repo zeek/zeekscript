@@ -6,7 +6,6 @@
 enum class Tag {
 	// Expressions
 	BinaryOp,
-	BoolChain,
 	Cardinality,
 	Div,
 	HasField,

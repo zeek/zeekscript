@@ -43,7 +43,14 @@ static void format_flat(FmtSteps& steps, const FmtContext& ctx,
 			if ( trail_aware )
 				sub = FmtContext(sub.Indent(), sub.Col(),
 						sub.Width(), trail[i]);
-			s.text = best(format_expr(*s.node, sub)).Fmt();
+			auto c = best(format_expr(*s.node, sub));
+			s.text = c.Fmt();
+
+			if ( c.Lines() > 1 )
+				{
+				used = c.Width();
+				continue;
+				}
 			}
 		used += s.text.Size();
 		}
@@ -325,10 +332,10 @@ static void try_flat_alternates(const FmtSteps& steps, Candidates& result,
 
 Candidates flat_or_split(FmtSteps steps, const std::vector<SplitAt>& splits,
                          const FmtContext& ctx, bool force_flat,
-                         bool always_split)
+                         bool offer_split)
 	{
 	// Format all sub-expressions assuming flat layout.
-	format_flat(steps, ctx, force_flat, always_split);
+	format_flat(steps, ctx, force_flat, offer_split);
 
 	auto flat = concat(steps);
 	int lines = flat.CountLines();
@@ -346,17 +353,22 @@ Candidates flat_or_split(FmtSteps steps, const std::vector<SplitAt>& splits,
 	else
 		result.push_back(Candidate(std::move(flat), ctx));
 
-	// If flat fits, no need for splits (unless always_split
-	// is set - the split candidate may help a parent layout
-	// that has trailing items not visible in our trail).
-	if ( result[0].Ovf() <= 0 && ! always_split )
-		return result;
-
-	// A different sub-expression candidate might produce a
-	// flat form that fits or has less overflow.
-	try_flat_alternates(steps, result, ctx, force_flat);
-	if ( result[0].Ovf() <= 0 && ! always_split )
-		return result;
+	// Single-line flat with no overflow: done unless we need to
+	// offer a split candidate to the parent beam.
+	if ( result[0].Ovf() <= 0 && result[0].Lines() == 1 )
+		{
+		if ( ! offer_split )
+			return result;
+		}
+	else
+		{
+		// A different sub-expression candidate might produce
+		// a flat form that fits or has less overflow.
+		try_flat_alternates(steps, result, ctx, force_flat);
+		if ( result[0].Ovf() <= 0 && result[0].Lines() == 1 &&
+		     ! offer_split )
+			return result;
+		}
 
 	// Generate a split candidate for each split point.
 	bool multiline = lines > 1;
