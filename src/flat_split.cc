@@ -20,16 +20,22 @@ static void format_flat(FmtSteps& steps, const FmtContext& ctx,
 			{
 			if ( steps[i].kind != FmtStep::SExpr )
 				continue;
+
 			int t = 0;
 			bool reached_end = true;
 			for ( size_t j = i + 1; j < steps.size(); ++j )
 				{
 				if ( steps[j].kind == FmtStep::SExpr )
-					{ reached_end = false; break; }
+					{
+					reached_end = false;
+					break;
+					}
 				t += steps[j].text.Size();
 				}
+
 			if ( reached_end )
 				t += ctx.Trail();
+
 			trail[i] = t;
 			}
 
@@ -47,7 +53,22 @@ static void format_flat(FmtSteps& steps, const FmtContext& ctx,
 		if ( trail_aware )
 			sub = FmtContext(sub.Indent(), sub.Col(),
 						sub.Width(), trail[i]);
-		auto c = best(format_expr(*s.node, sub));
+		auto cs_all = format_expr(*s.node, sub);
+		auto c = best(cs_all);
+
+		// When best() picks a multi-line sub-expression to
+		// avoid small overflow, prefer the single-line version.
+		// A multi-line sub-expression in the flat form prevents
+		// proper comparison with the outer split candidates.
+		if ( c.Lines() > 1 )
+			for ( const auto& alt : cs_all )
+				if ( alt.Lines() == 1 && alt.Ovf() <= 2 &&
+				     alt.ReluctantBreaks() == 0 )
+					{
+					c = alt;
+					break;
+					}
+
 		s.text = c.Fmt();
 
 		// Trail-aware adds trailing piece widths to the sub-expression
@@ -344,6 +365,13 @@ static void try_flat_alternates(const FmtSteps& steps, Candidates& result,
 					Candidate(std::move(flat), last_w,
 						lines, fovf, ctx.Col()) :
 					Candidate(std::move(flat), ctx);
+
+			// Don't replace a single-line flat (small overflow)
+			// with a multi-line alternate - the outer split
+			// candidates handle the overflow at a better break.
+			if ( result[0].Lines() == 1 && result[0].Ovf() <= 2 &&
+			     alt.Lines() > 1 )
+				continue;
 
 			if ( alt.BetterThan(result[0]) )
 				result[0] = std::move(alt);
