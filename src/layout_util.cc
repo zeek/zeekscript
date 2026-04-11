@@ -683,7 +683,7 @@ struct EnumValues {
 	LayoutVec nodes;
 	LayoutVec commas;
 	std::vector<bool> blank_before;
-	bool has_trailing_comma;
+	LayoutPtr trailing_comma;
 	bool has_init_values;
 	bool has_comments;
 };
@@ -691,7 +691,6 @@ struct EnumValues {
 static EnumValues collect_enum_values(const Layout& inner)
 	{
 	EnumValues ev;
-	ev.has_trailing_comma = false;
 	ev.has_init_values = false;
 	ev.has_comments = false;
 	LayoutPtr pending_comma;
@@ -723,7 +722,7 @@ static EnumValues collect_enum_values(const Layout& inner)
 			pending_comma = c;
 
 		else if ( c->GetTag() == Tag::TrailingComma )
-			ev.has_trailing_comma = true;
+			ev.trailing_comma = c;
 
 		else if ( c->GetTag() == Tag::Blank )
 			pending_blank = true;
@@ -751,7 +750,7 @@ static LIPtr format_enum_body(const Layout& source,
 			flat_body += ev.values[i];
 			}
 
-		if ( ev.has_trailing_comma )
+		if ( ev.trailing_comma )
 			flat_body += ",";
 
 		flat_body += " ";
@@ -774,12 +773,15 @@ static LIPtr format_enum_body(const Layout& source,
 		body += pad + ev.values[i];
 		auto nc = (i + 1 < ev.commas.size()) ?
 					ev.commas[i + 1] : nullptr;
-		if ( nc || ev.has_trailing_comma )
+		if ( nc || ev.trailing_comma )
 			{
 			if ( nc )
 				body += nc;
 			else
+				{
 				body += ",";
+				body += ev.trailing_comma;
+				}
 			}
 		body += "\n";
 		}

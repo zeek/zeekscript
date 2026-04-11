@@ -1,0 +1,27 @@
+EXPORT {
+  KEYWORD "export"
+  SP
+  LBRACE
+  TYPEDECL-ENUM "Flag" {
+    KEYWORD "type"
+    SP
+    IDENTIFIER "Flag"
+    COLON
+    SP
+    TYPE-ENUM {
+      KEYWORD "enum"
+      SP
+      LBRACE
+      ENUM-VALUE "ControlPkt" "= 0x80"
+      COMMA
+      COMMENT-TRAILING "#< Control messages between tunnel endpoints."
+      ENUM-VALUE "CriticalOpt" "= 0x40"
+      COMMA
+      TRAILING-COMMA
+      COMMENT-TRAILING "#< Geneve header contains a critical option."
+      RBRACE
+    }
+    SEMI
+  }
+  RBRACE
+}
