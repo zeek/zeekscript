@@ -191,16 +191,20 @@ static void emit_fill_leading(const std::vector<std::string>& leading,
 // tighter position doesn't cost extra inner lines.
 static Candidates try_same_line_arg(const Layout& arg, int cur_col,
                                     int align_col, int indent,
-                                    int max_col, int trail)
+                                    int max_col, int trail,
+                                    bool skip_align_check = false)
 	{
 	auto tag = arg.GetTag();
 	if ( tag != Tag::Call && tag != Tag::IndexLiteral )
 		return {};
 
-	FmtContext ac(indent, align_col, max_col - align_col, trail);
-	auto wc = best(format_expr(arg, ac));
-	if ( wc.Lines() <= 1 )
-		return {};
+	if ( ! skip_align_check )
+		{
+		FmtContext ac(indent, align_col, max_col - align_col, trail);
+		auto wc = best(format_expr(arg, ac));
+		if ( wc.Lines() <= 1 )
+			return {};
+		}
 
 	int same_col = cur_col + 2;
 	int effective_max = max_col - trail;
@@ -237,26 +241,85 @@ static Candidates try_same_line_arg(const Layout& arg, int cur_col,
 	return {};
 	}
 
+// Mutable state threaded through the fill-layout loop.
+struct FillState
+	{
+	Formatting fmt;
+	std::string pad;
+	int cur_col;
+	int lines = 1;
+	int total_overflow = 0;
+	bool force_wrap = false;
+	bool comma_consumed = false;
+	int align_col;
+	int indent;
+	int max_col;
+	};
+
+// Wrap to the alignment column and format the arg there.
+// Sets force_wrap if the result is multi-line FieldAssign.
+static void wrap_and_format(FillState& s, const ArgItem& it,
+				const LayoutPtr& nc, int trail)
+	{
+	s.fmt += "\n" + s.pad;
+	s.cur_col = s.align_col;
+
+	int prev_lines = s.lines;
+	format_fill_arg(*it.arg, s.indent, s.max_col, s.fmt,
+			s.cur_col, s.lines, s.total_overflow, trail);
+	++s.lines;
+
+	if ( s.lines - prev_lines > 1 &&
+	     it.arg->GetTag() == Tag::FieldAssign )
+		s.force_wrap = true;
+
+	append_trailing(it, nc, s.fmt, s.cur_col, s.force_wrap,
+			s.comma_consumed);
+	}
+
+// Emit a same-line candidate (from try_same_line_arg).
+// Returns true on success.
+static bool emit_same_line(FillState& s, const ArgItem& it,
+				const LayoutPtr& nc, const Candidates& scs)
+	{
+	if ( scs.empty() )
+		return false;
+
+	auto& sb = scs[0];
+	s.fmt += Formatting(it.comma) + " " + sb.Fmt();
+	if ( sb.Lines() > 1 )
+		{
+		s.lines += sb.Lines() - 1;
+		s.cur_col = s.fmt.LastLineLen();
+		}
+	else
+		s.cur_col = s.cur_col + 2 + sb.Width();
+
+	s.total_overflow += sb.Ovf();
+
+	append_trailing(it, nc, s.fmt, s.cur_col, s.force_wrap,
+			s.comma_consumed);
+	return true;
+	}
+
 Candidate format_args_fill(const ArgItems& items, int align_col, int indent,
                          const FmtContext& first_line_ctx, int trail,
                          const LayoutPtr& dangling_comma,
                          int close_room)
 	{
-	auto pad = line_prefix(indent, align_col);
-	Formatting fmt;
-
-	int max_col = first_line_ctx.MaxCol();
-	int cur_col = first_line_ctx.Col();
-	int lines = 1;
-	int total_overflow = 0;
-	bool force_wrap = false;
-	bool comma_consumed = false;
+	FillState s;
+	s.pad = line_prefix(indent, align_col);
+	s.cur_col = first_line_ctx.Col();
+	s.align_col = align_col;
+	s.indent = indent;
+	s.max_col = first_line_ctx.MaxCol();
 
 	for ( size_t i = 0; i < items.size(); ++i )
 		{
 		auto& it = items[i];
 		bool is_last = (i + 1 == items.size());
 		auto nc = is_last ? dangling_comma : items[i + 1].comma;
+		int t = is_last ? trail : 0;
 
 		// Leading comments force a wrap and appear on their
 		// own lines before the item.
@@ -264,174 +327,112 @@ Candidate format_args_fill(const ArgItems& items, int align_col, int indent,
 			{
 			if ( it.comma )
 				{
-				fmt += it.comma;
-				cur_col += it.comma->Width();
+				s.fmt += it.comma;
+				s.cur_col += it.comma->Width();
 				}
 
-			emit_fill_leading(it.leading, pad, fmt, lines);
-
-			fmt += "\n" + pad;
-			++lines;
-			cur_col = align_col;
-			force_wrap = false;
-
-			int t = is_last ? trail : 0;
-			format_fill_arg(*it.arg, indent, max_col,
-			              fmt, cur_col, lines, total_overflow, t);
-			append_trailing(it, nc, fmt, cur_col, force_wrap,
-			              comma_consumed);
+			emit_fill_leading(it.leading, s.pad, s.fmt, s.lines);
+			s.force_wrap = false;
+			wrap_and_format(s, it, nc, t);
 			continue;
 			}
 
-		int t = is_last ? trail : 0;
-		FmtContext sub(indent, cur_col, max_col - cur_col, t);
+		FmtContext sub(indent, s.cur_col, s.max_col - s.cur_col, t);
 		auto bc = best(format_expr(*it.arg, sub));
 		int aw = bc.Width();
 
+		// First item: emit and fall through to trailing handling.
 		if ( i == 0 )
 			{
-			fmt += bc.Fmt();
-			cur_col += aw;
-			// Fall through to multi-line / trailing handling.
+			s.fmt += bc.Fmt();
+			s.cur_col += aw;
 			}
 
-		else if ( force_wrap )
+		else if ( s.force_wrap )
 			{
-			if ( it.comma && ! comma_consumed )
-				fmt += it.comma;
-			fmt += "\n" + pad;
-			cur_col = align_col;
-			force_wrap = false;
-			comma_consumed = false;
-
-			int prev_lines = lines;
-			format_fill_arg(*it.arg, indent, max_col,
-			              fmt, cur_col, lines, total_overflow, t);
-			++lines;
-
-			if ( lines - prev_lines > 1 &&
-			     it.arg->GetTag() == Tag::FieldAssign )
-				force_wrap = true;
-
-			append_trailing(it, nc, fmt, cur_col, force_wrap,
-			              comma_consumed);
+			if ( it.comma && ! s.comma_consumed )
+				s.fmt += it.comma;
+			s.force_wrap = false;
+			s.comma_consumed = false;
+			wrap_and_format(s, it, nc, t);
 			continue;
 			}
 
 		// Non-first lambda: wrap to give it maximum width.
 		else if ( it.arg->IsLambda() )
 			{
-			fmt += Formatting(it.comma) + "\n" + pad;
-			cur_col = align_col;
-
-			int prev_lines = lines;
-			format_fill_arg(*it.arg, indent, max_col, fmt,
-					cur_col, lines, total_overflow, t);
-			++lines;
-
-			if ( lines - prev_lines > 1 )
-				force_wrap = true;
-
-			append_trailing(it, nc, fmt, cur_col, force_wrap,
-					comma_consumed);
+			s.fmt += Formatting(it.comma);
+			int prev = s.lines;
+			wrap_and_format(s, it, nc, t);
+			if ( s.lines - prev > 1 )
+				s.force_wrap = true;
 			continue;
 			}
 
-		// Multi-line item handling: try keeping a bracketed
-		// arg on the current line; FieldAssign items always
-		// wrap (record fields shouldn't trail mid-line).
+		// Multi-line item: try keeping a bracketed arg on the
+		// current line; FieldAssign items always wrap.
 		else if ( bc.Lines() > 1 &&
 		          (bc.Ovf() == 0 ||
 		           it.arg->GetTag() == Tag::FieldAssign) )
 			{
-			auto scs = try_same_line_arg(*it.arg, cur_col,
-				align_col, indent, max_col, t);
-			if ( ! scs.empty() )
-				{
-				auto& sb = scs[0];
-				fmt += Formatting(it.comma) + " " + sb.Fmt();
-				if ( sb.Lines() > 1 )
-					{
-					lines += sb.Lines() - 1;
-					cur_col = fmt.LastLineLen();
-					}
-				else
-					cur_col = cur_col + 2 + sb.Width();
-				total_overflow += sb.Ovf();
-				append_trailing(it, nc, fmt, cur_col,
-					force_wrap, comma_consumed);
+			auto scs = try_same_line_arg(*it.arg, s.cur_col,
+				align_col, indent, s.max_col, t);
+			if ( emit_same_line(s, it, nc, scs) )
 				continue;
-				}
-
-			// Same-line didn't work; force wrap.
-			fmt += Formatting(it.comma) + "\n" + pad;
-			cur_col = align_col;
-
-			int prev_lines = lines;
-			format_fill_arg(*it.arg, indent, max_col, fmt,
-					cur_col, lines, total_overflow, t);
-			++lines;
-
-			if ( lines - prev_lines > 1 &&
-			     it.arg->GetTag() == Tag::FieldAssign )
-				force_wrap = true;
-
-			append_trailing(it, nc, fmt, cur_col, force_wrap,
-					comma_consumed);
+			s.fmt += Formatting(it.comma);
+			wrap_and_format(s, it, nc, t);
 			continue;
 			}
 
 		else
-			{ // Inline if it fits, otherwise wrap.
-			int limit = max_col;
+			{
+			// Inline if it fits.
+			int limit = s.max_col;
 			if ( is_last )
 				limit -= trail;
 			else
 				limit += close_room;
 
-			int need = 2 + aw;
-			if ( cur_col + need <= limit )
+			if ( s.cur_col + 2 + aw <= limit )
 				{
-				fmt += Formatting(it.comma) + " " + bc.Fmt();
-				cur_col += need;
+				s.fmt += Formatting(it.comma) + " " + bc.Fmt();
+				s.cur_col += 2 + aw;
 				}
 			else
 				{
-				fmt += Formatting(it.comma) + "\n" + pad;
-				cur_col = align_col;
-
-				int prev_lines = lines;
-				format_fill_arg(*it.arg, indent, max_col, fmt,
-						cur_col, lines, total_overflow, t);
-				++lines;
-
-				if ( lines - prev_lines > 1 &&
-				     it.arg->GetTag() == Tag::FieldAssign )
-					force_wrap = true;
-
-				append_trailing(it, nc, fmt, cur_col, force_wrap,
-						comma_consumed);
+				// Try splitting an IndexLiteral on same line.
+				if ( it.arg->GetTag() == Tag::IndexLiteral )
+					{
+					auto scs = try_same_line_arg(*it.arg,
+						s.cur_col, align_col, indent,
+						s.max_col, t, true);
+					if ( emit_same_line(s, it, nc, scs) )
+						continue;
+					}
+				s.fmt += Formatting(it.comma);
+				wrap_and_format(s, it, nc, t);
 				continue;
 				}
 			}
 
+		// Fall-through for first item and inline-fits.
 		if ( bc.Lines() > 1 )
 			{
-			lines += bc.Lines() - 1;
-			cur_col = fmt.LastLineLen();
+			s.lines += bc.Lines() - 1;
+			s.cur_col = s.fmt.LastLineLen();
 			if ( it.arg->GetTag() == Tag::FieldAssign )
-				force_wrap = true;
+				s.force_wrap = true;
 			}
 
-		total_overflow += bc.Ovf();
-		append_trailing(it, nc, fmt, cur_col, force_wrap,
-				comma_consumed);
+		s.total_overflow += bc.Ovf();
+		append_trailing(it, nc, s.fmt, s.cur_col, s.force_wrap,
+				s.comma_consumed);
 		}
 
-	int end_ovf = std::max(0, cur_col + trail - max_col);
-	total_overflow += end_ovf;
+	int end_ovf = std::max(0, s.cur_col + trail - s.max_col);
+	s.total_overflow += end_ovf;
 
-	return {fmt, cur_col, lines, total_overflow};
+	return {s.fmt, s.cur_col, s.lines, s.total_overflow};
 	}
 
 // State for brute-force break-point search.
