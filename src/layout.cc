@@ -861,6 +861,7 @@ void Layout::ResolveItem(LayoutItems& items, size_t i,
 static constexpr ComputeFn CParamType = &Layout::ComputeParamType;
 static constexpr ComputeFn COfType = &Layout::ComputeOfType;
 static constexpr ComputeFn CRetType = &Layout::ComputeRetType;
+static constexpr ComputeFn CTypeAliasSfx = &Layout::ComputeTypeAliasSuffix;
 static constexpr ComputeFn CEnumBody = &Layout::ComputeEnumBody;
 static constexpr ComputeFn CRedefEnumBody = &Layout::ComputeRedefEnumBody;
 static constexpr ComputeFn CRecordBody = &Layout::ComputeRecordBody;
@@ -921,7 +922,7 @@ static const std::unordered_map<Tag, LayoutItems> layout_table = {
 		stmt_body(), indent_down(), last()}},
 	{Tag::ModuleDecl, {tok(0), sp(), tok(2), tok(3)}},
 	{Tag::TypeDeclAlias, {tok(0), sp(), tok(2), tok(3), sp(),
-		expr(5), tok(6)}},
+		expr(5), computed(CTypeAliasSfx)}},
 	{Tag::TypeDeclEnum, {tok(0), sp(), tok(2), tok(3), sp(),
 		tok(5, 0), sp(), tok(5, 2),
 		computed(CEnumBody), last()}},

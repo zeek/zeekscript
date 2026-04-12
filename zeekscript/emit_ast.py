@@ -1178,6 +1178,8 @@ class Emitter:
             elif child.type == "type_spec":
                 self._maybe_blank(child)
                 self._emit_type_spec(child)
+            elif child.type == "attr_list":
+                self._emit_attr_list(child)
         self._close()
 
     def _emit_redef_enum_decl(self, node: tree_sitter.Node) -> None:

@@ -731,6 +731,16 @@ static EnumValues collect_enum_values(const Layout& inner)
 	return ev;
 	}
 
+// Helper: build " &attr ..." suffix from an optional ATTR-LIST child.
+static Formatting attr_suffix(const Layout& node, const FmtContext& ctx)
+	{
+	auto attrs = node.FindOptChild(Tag::AttrList);
+	if ( ! attrs )
+		return {};
+
+	return " " + attrs->FormatAttrList(ctx);
+	}
+
 // Format enum values + close brace from a node whose children
 // contain EnumValue, Comma, TrailingComma, and a closing RBrace.
 static LIPtr format_enum_body(const Layout& source,
@@ -792,21 +802,20 @@ static LIPtr format_enum_body(const Layout& source,
 	return lit(Formatting("\n") + body + close_pad + close_brace + suffix);
 	}
 
+// Type alias: optional " &attr ..." + ";".
+LIPtr Layout::ComputeTypeAliasSuffix(const FmtContext& ctx) const
+	{
+	auto sfx = attr_suffix(*this, ctx);
+	auto semi = FindChild(Tag::Semi);
+	return lit(sfx + Formatting(semi));
+	}
+
 // Enum body + close brace + optional attrs.  Inner = Child(5) = TYPE-ENUM.
 LIPtr Layout::ComputeEnumBody(const FmtContext& ctx) const
 	{
 	auto inner = Child(5);
-	Formatting suffix;
-
-	auto attrs = FindOptChild(Tag::AttrList);
-	if ( attrs )
-		{
-		auto as = attrs->FormatAttrList(ctx);
-		if ( ! as.Empty() )
-			suffix = " " + as;
-		}
-
-	return format_enum_body(*inner, inner->Children().back(), ctx, suffix);
+	return format_enum_body(*inner, inner->Children().back(), ctx,
+				attr_suffix(*this, ctx));
 	}
 
 // Enum body + close brace for redef enum (values are direct children).
@@ -818,7 +827,8 @@ LIPtr Layout::ComputeRedefEnumBody(const FmtContext& ctx) const
 // Format record fields + close brace from a node whose children
 // contain Field, Blank, and a closing RBrace.
 static LIPtr format_record_body(const Layout& source,
-	const LayoutPtr& close_brace, const FmtContext& ctx)
+	const LayoutPtr& close_brace, const FmtContext& ctx,
+	const Formatting& suffix = Formatting())
 	{
 	int field_indent = ctx.Indent() + 1;
 	int field_col = field_indent * INDENT_WIDTH;
@@ -840,29 +850,32 @@ static LIPtr format_record_body(const Layout& source,
 			{
 			body += ki->EmitPreComments(field_pad);
 
-			auto suffix = Formatting(ki->Children().back()) +
+			auto sfx = Formatting(ki->Children().back()) +
 						ki->Text().substr(ki->Arg().size());
-			auto field_text = format_field(*ki, suffix, field_ctx);
+			auto field_text = format_field(*ki, sfx, field_ctx);
 
 			body += field_pad + field_text + "\n";
 			}
 		}
 
 	auto close_pad = line_prefix(ctx.Indent(), ctx.Col());
-	return lit(Formatting("\n") + body + close_pad + close_brace);
+	return lit(Formatting("\n") + body + close_pad + close_brace + suffix);
 	}
 
-// Record body + close brace.  Inner = Child(5) = TYPE-RECORD node.
+// Helper: build attr suffix from an optional ATTR-LIST child.
+// Record body + close brace + optional attrs.  Inner = Child(5) = TYPE-RECORD.
 LIPtr Layout::ComputeRecordBody(const FmtContext& ctx) const
 	{
 	auto inner = Child(5);
-	return format_record_body(*inner, inner->Children().back(), ctx);
+	return format_record_body(*inner, inner->Children().back(), ctx,
+					attr_suffix(*this, ctx));
 	}
 
 // Record body + close brace for redef record (fields are direct children).
 LIPtr Layout::ComputeRedefRecordBody(const FmtContext& ctx) const
 	{
-	return format_record_body(*this, ChildFromEnd(1, Tag::RBrace), ctx);
+	return format_record_body(*this, ChildFromEnd(1, Tag::RBrace), ctx,
+					attr_suffix(*this, ctx));
 	}
 
 // ---- Switch formatting ---------------------------------------------------

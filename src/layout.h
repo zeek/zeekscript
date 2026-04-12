@@ -669,6 +669,7 @@ public:
 	LIPtr ComputeRetType(const FmtContext& ctx) const;
 	LIPtr ComputeParamType(const FmtContext& ctx) const;
 	LIPtr ComputeOfType(const FmtContext& ctx) const;
+	LIPtr ComputeTypeAliasSuffix(const FmtContext& ctx) const;
 	LIPtr ComputeEnumBody(const FmtContext& ctx) const;
 	LIPtr ComputeRedefEnumBody(const FmtContext& ctx) const;
 	LIPtr ComputeRecordBody(const FmtContext& ctx) const;

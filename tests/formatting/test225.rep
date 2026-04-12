@@ -1,0 +1,12 @@
+TYPEDECL-ALIAS "Foo" {
+  KEYWORD "type"
+  SP
+  IDENTIFIER "Foo"
+  COLON
+  SP
+  TYPE-ATOM "addr"
+  ATTR-LIST {
+    ATTR "&redef"
+  }
+  SEMI
+}

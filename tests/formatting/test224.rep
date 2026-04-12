@@ -1,0 +1,27 @@
+TYPEDECL-RECORD "Foo" {
+  KEYWORD "type"
+  SP
+  IDENTIFIER "Foo"
+  COLON
+  SP
+  TYPE-RECORD {
+    KEYWORD "record"
+    SP
+    LBRACE
+    FIELD "x" {
+      COLON
+      TYPE-ATOM "count"
+      SEMI
+    }
+    FIELD "y" {
+      COLON
+      TYPE-ATOM "string"
+      SEMI
+    }
+    RBRACE
+  }
+  ATTR-LIST {
+    ATTR "&redef"
+  }
+  SEMI
+}

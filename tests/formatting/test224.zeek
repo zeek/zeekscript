@@ -1,0 +1,1 @@
+type Foo: record {  x: count;  y: string; } &redef;
