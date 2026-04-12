@@ -1,0 +1,5 @@
+event Aaa::bbb_ccccc(ddd: EeeFffff)
+	{
+	if ( Ggggggg::hh_iiiiiii() && Ggggggg::jjjjj_kkkk_llll() == Ggggggg::MMMMMM )
+		Ggggggg::nnnnnnn(Ggggggg::ooooo_ppppp, Aaa::bbb_ccccc_qqqq, ddd);
+	}

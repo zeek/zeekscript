@@ -1,0 +1,61 @@
+FUNC-DECL {
+  KEYWORD "event"
+  SP
+  IDENTIFIER "Aaa::bbb_ccccc"
+  PARAMS {
+    LPAREN
+    PARAM "ddd" {
+      COLON
+      TYPE-ATOM "EeeFffff"
+    }
+    RPAREN
+  }
+  BODY {
+    LBRACE
+    IF-NO-ELSE {
+      KEYWORD "if"
+      SP
+      LPAREN
+      BINARY-OP "&&" {
+        CALL {
+          IDENTIFIER "Ggggggg::hh_iiiiiii"
+          ARGS {
+            LPAREN
+            RPAREN
+          }
+        }
+        OP "&&"
+        BINARY-OP "==" {
+          CALL {
+            IDENTIFIER "Ggggggg::jjjjj_kkkk_llll"
+            ARGS {
+              LPAREN
+              RPAREN
+            }
+          }
+          OP "=="
+          IDENTIFIER "Ggggggg::MMMMMM"
+        }
+      }
+      RPAREN
+      BODY {
+        EXPR-STMT {
+          CALL {
+            IDENTIFIER "Ggggggg::nnnnnnn"
+            ARGS {
+              LPAREN
+              IDENTIFIER "Ggggggg::ooooo_ppppp"
+              COMMA
+              IDENTIFIER "Aaa::bbb_ccccc_qqqq"
+              COMMA
+              IDENTIFIER "ddd"
+              RPAREN
+            }
+          }
+          SEMI
+        }
+      }
+    }
+    RBRACE
+  }
+}

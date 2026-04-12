@@ -573,13 +573,16 @@ static Candidates try_best_fill(const ArgItems& items, int align_col,
 	int cont_avail = max_col - align_col;
 	int min_width = cont_avail / 3;
 
-	// Count greedy lines as baseline.
+	// Count greedy lines as baseline.  Account for trailing
+	// content (close bracket, semicolon) on the last item.
 	int greedy_lines = 1;
 	int cur = 0;
 	for ( int i = 0; i < n; ++i )
 		{
 		int w = (i == 0 || cur == 0) ? arg_widths[i]
 		        : comma_widths[i] + arg_widths[i];
+		if ( i == n - 1 )
+			w += trail;
 		int avail = (greedy_lines == 1) ? first_avail : cont_avail;
 		if ( cur + w > avail && cur > 0 )
 			{
@@ -605,6 +608,8 @@ static Candidates try_best_fill(const ArgItems& items, int align_col,
 		{
 		int w = (i == 0 || cur == 0) ? arg_widths[i]
 		        : comma_widths[i] + arg_widths[i];
+		if ( i == n - 1 )
+			w += trail;
 		int avail = greedy_breaks.empty() ? first_avail : cont_avail;
 		if ( cur + w > avail && cur > 0 )
 			{
