@@ -450,17 +450,26 @@ static void decl_no_init(const DeclParts& d, Candidates& result,
 		return;
 		}
 
-	// Type alone, attrs on separate lines.
+	// Type alone, attrs on continuation lines.
 	Formatting type_suffix = d.attrs_node ? Formatting() : d.suffix;
 	auto split = prefix + tv + type_suffix;
 
 	if ( d.attrs_node )
 		{
 		auto apad = line_prefix(cont.Indent(), cont.Col() + 1);
-		auto astrs = d.attrs_node->FormatAttrStrings(ctx);
-		for ( const auto& a : astrs )
-			split += "\n" + apad + a;
-		split += d.semi_node;
+		auto joined = d.attrs_node->FormatAttrList(ctx);
+		int joined_w = cont.Col() + 1 + joined.Size() +
+			d.semi_node->Width();
+
+		if ( joined_w <= ctx.MaxCol() )
+			split += "\n" + apad + joined + d.semi_node;
+		else
+			{
+			auto astrs = d.attrs_node->FormatAttrStrings(ctx);
+			for ( const auto& a : astrs )
+				split += "\n" + apad + a;
+			split += d.semi_node;
+			}
 		}
 
 	int last_w = split.LastLineLen();
