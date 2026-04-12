@@ -548,7 +548,7 @@ static Candidates try_best_fill(const ArgItems& items, int align_col,
                                 int trail = 0)
 	{
 	int n = static_cast<int>(items.size());
-	if ( n < 3 )
+	if ( n < 3 || n > 16 )
 		return {};
 
 	std::vector<int> arg_widths(n);
