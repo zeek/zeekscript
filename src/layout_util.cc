@@ -586,8 +586,7 @@ static void decl_type_split(const DeclParts& d, Candidates& result,
 
 	int last_w = split.LastLineLen();
 	int lines = split.CountLines();
-	int line1_w = d.head.Size() + d.colon_node->Width();
-	int overflow = ovf_no_trail(line1_w, ctx) + ovf(last_w, ctx);
+	int overflow = split.TextOverflow(ctx.Col(), ctx.MaxCol());
 
 	result.push_back({split, last_w, lines, overflow, ctx.Col()});
 	}

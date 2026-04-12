@@ -1,0 +1,171 @@
+EXPORT {
+  KEYWORD "export"
+  SP
+  LBRACE
+  GLOBAL-DECL {
+    KEYWORD "const"
+    SP
+    IDENTIFIER "aaaa_bbbbb"
+    DECL-TYPE {
+      COLON
+      TYPE-OF "vector" {
+        KEYWORD "of"
+        SP
+        TYPE-ATOM "string"
+      }
+    }
+    DECL-INIT {
+      ASSIGN "="
+      CONSTRUCTOR {
+        KEYWORD "vector"
+        ARGS {
+          LPAREN
+          CONSTANT "\"cccccccccccccc/ddd,eee,ffff,ggggg,hhhhhhhhhhhh,iii,jjjj,kkkk,lll,mmm,nnnnn,ooooo,pppp,qqqq,rrrr,ssss,tt,uuu,vvvv,wwww,xxxx,yyyy,zzzz,aaa\""
+          COMMA
+          CONSTANT "\"cccccccccccccc/bbb,bbb\""
+          COMMA
+          CONSTANT "\"ddddd/eeee,fff,gggg,hhh,iii,jjjj,kkk,lll,fff,fff:mm-nnnnnnnnn,ooo,pppp\""
+          COMMA
+          CONSTANT "\"qqqq/rrrrrrrr,sss\""
+          COMMA
+          CONSTANT "\"qqqq/ttt,ttt\""
+          COMMA
+          CONSTANT "\"qqqq/uuu,uuu\""
+          COMMA
+          CONSTANT "\"qqqq/vvvvv,www,xx,ttt,uuu,yyy,zzz,qqqq\""
+          COMMA
+          CONSTANT "\"ddddd/ooo,ooo,aaaaaa,hhh,gggg,fff\""
+          COMMA
+          CONSTANT "\"cccccccccccccc/bbb.cc-ddd-eeeeeeeeee,fff,GggggHhh\""
+          COMMA
+          CONSTANT "\"cccccccccccccc/i-jjjj,kk,llll,mmm\""
+          COMMA
+          CONSTANT "\"cccccccccccccc/nnnnnnnnnn,oo,www\""
+          COMMA
+          CONSTANT "\"cccccccccccccc/bbb.pppppppppppppppp-qqqqqqqqqqqq.rrrrrrrrrrrrrrrrrrrrr.ssssssss,tttt,uuu\""
+          COMMA
+          CONSTANT "\"cccccccccccccc/i-vvvvvvv,www\""
+          COMMA
+          CONSTANT "\"ddddd/hhh,hhh,gggg,fff,ooo\""
+          COMMA
+          CONSTANT "\"ddddd/xxx,yy,xxx\""
+          COMMA
+          CONSTANT "\"ddddd/zzz+aaa,zzz\""
+          COMMA
+          CONSTANT "\"ddddd/bbbb,ccc,bbbb\""
+          COMMA
+          CONSTANT "\"ddddd/bbb.ddddd.eeeeeeeee,fff\""
+          COMMA
+          CONSTANT "\"ddddd/gggg,hhh,gggg,fff,ooo\""
+          COMMA
+          CONSTANT "\"ddddd/i-jjjj,kkk\""
+          COMMA
+          CONSTANT "\"ddddd/i-ll-xxx,xxx\""
+          COMMA
+          CONSTANT "\"ddddd/i-mmm-nnnnn,ooo\""
+          COMMA
+          CONSTANT "\"cccccccccccccc/pppppp,uuu,qqq\""
+          COMMA
+          CONSTANT "\"cccccccccccccc/rrr,rrr,uuu\""
+          COMMA
+          CONSTANT "\"cccccccccccccc/bbb.ss-tttttttttt,uu,vv\""
+          COMMA
+          CONSTANT "\"cccccccccccccc/bbb.wwwww,xxx\""
+          COMMA
+          CONSTANT "\"cccccccccccccc/i-7z-eeeeeeeeee,7z,7yyy\""
+          COMMA
+          CONSTANT "\"cccccccccccccc/i-aaaaaaa,bbb\""
+          COMMA
+          CONSTANT "\"cccccccccccccc/i-ccc,ccc\""
+          COMMA
+          CONSTANT "\"cccccccccccccc/i-ddddd,ee,ddddd\""
+          COMMA
+          CONSTANT "\"cccccccccccccc/i-fffff2,fffff2,gg2\""
+          COMMA
+          CONSTANT "\"cccccccccccccc/i-hhhh,hhhh\""
+          COMMA
+          CONSTANT "\"cccccccccccccc/i-iii,iii\""
+          COMMA
+          CONSTANT "\"cccccccccccccc/jjjjjjjjjjjj,kkk\""
+          COMMA
+          CONSTANT "\"lllll/3mmm,3mm\""
+          COMMA
+          CONSTANT "\"lllll/3mmm2,3m2\""
+          COMMA
+          CONSTANT "\"lllll/nnn,nnn\""
+          COMMA
+          CONSTANT "\"lllll/oooo,ppp,oooo\""
+          COMMA
+          CONSTANT "\"lllll/qqqq,qqqq,rrr,qqqq\""
+          COMMA
+          CONSTANT "\"lllll/ss4,t4u,ss4\""
+          COMMA
+          CONSTANT "\"lllll/vvv,t2u,ss2,ss3,vvv\""
+          COMMA
+          CONSTANT "\"lllll/wwww,t2u,ss2,ss3,vvv,xxx\""
+          COMMA
+          CONSTANT "\"lllll/yyy,yyy,zzz\""
+          COMMA
+          CONSTANT "\"lllll/aaa,aaa\""
+          COMMA
+          CONSTANT "\"lllll/bbbb,cccc\""
+          COMMA
+          CONSTANT "\"lllll/i-nnn,nnn\""
+          COMMA
+          CONSTANT "\"lllll/i-oooo,ppp,oooo\""
+          COMMA
+          CONSTANT "\"lllll/i-qqqq,qqqq\""
+          COMMA
+          CONSTANT "\"lllll/i-wwww,t2u,ss2,ss3,vvv\""
+          COMMA
+          CONSTANT "\"lllll/i-rrrrrrrr,t3u\""
+          COMMA
+          CONSTANT "\"lllll/i-ll-sss,ppp,sss\""
+          COMMA
+          CONSTANT "\"lllll/i-aaa,aaa\""
+          COMMA
+          CONSTANT "\"ttttt/3mmm,3mm\""
+          COMMA
+          CONSTANT "\"ttttt/3mmm2,3m2\""
+          COMMA
+          CONSTANT "\"ttttt/ss4,t4u,ss4\""
+          COMMA
+          CONSTANT "\"ttttt/wwww,t1v,t2v,vvv,wwww,uuv\""
+          COMMA
+          CONSTANT "\"ttttt/yyy,zzz\""
+          COMMA
+          CONSTANT "\"ttttt/aaaaaaaaaa,t4u,bbb,ss4,cc\""
+          COMMA
+          CONSTANT "\"ttttt/bbbb,bbbb\""
+          COMMA
+          CONSTANT "\"ttttt/i-ddd,ddd\""
+          COMMA
+          CONSTANT "\"ttttt/i-t4v,t4v\""
+          COMMA
+          CONSTANT "\"ttttt/i-ll-eee,ppp,sss,fff\""
+          COMMA
+          CONSTANT "\"ttttt/i-ll-ggg,ggg\""
+          COMMA
+          CONSTANT "\"ttttt/i-llllllll,hhh\""
+          COMMA
+          CONSTANT "\"ttttt/ss2t,ii\""
+          COMMA
+          CONSTANT "\"jjjj/kkk,kkk\""
+          COMMA
+          CONSTANT "\"jjjj/lll,lll\""
+          COMMA
+          CONSTANT "\"cccccccccccccc/i-jjjj-lll,lll\""
+          COMMA
+          CONSTANT "\"jjjj/ssss,ssss\""
+          COMMA
+          CONSTANT "\"cccccccccccccc/jjjj-ssss,ssss\""
+          COMMA
+          CONSTANT "\"jjjj/ssss2,ssss2\""
+          RPAREN
+        }
+      }
+    }
+    SEMI
+  }
+  RBRACE
+}

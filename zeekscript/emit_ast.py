@@ -1026,14 +1026,21 @@ class Emitter:
 
     def _emit_init_expr(self, node: tree_sitter.Node,
                         type_node: tree_sitter.Node | None) -> None:
-        """Emit an initializer expression, doing brace-to-constructor transform."""
+        """Emit an initializer expression, doing brace/bracket-to-constructor transform."""
         kids = self._children(node)
-        # Brace initializer with known type → CONSTRUCTOR
-        if (kids and self._text(kids[0]) == "{"
-                and type_node is not None):
+        if kids and type_node is not None:
             type_kids = self._children(type_node)
             ctor_name = self._text(type_kids[0]) if type_kids else None
-            if ctor_name in ("table", "set", "vector"):
+            first = self._text(kids[0])
+            # Brace initializer with known type → CONSTRUCTOR
+            if first == "{" and ctor_name in ("table", "set", "vector"):
+                args = [k for k in kids if k.type == "expr_list"]
+                self._emit_constructor(
+                    ctor_name, args[0] if args else None,
+                    expr_node=node)
+                return
+            # Bracket initializer with known type → CONSTRUCTOR
+            if first == "[" and ctor_name in ("vector", "set"):
                 args = [k for k in kids if k.type == "expr_list"]
                 self._emit_constructor(
                     ctor_name, args[0] if args else None,
