@@ -959,10 +959,13 @@ static void format_preproc(const Layout& node, int& preproc_depth,
 // On success sets inline_text and returns true.
 static bool try_inline_if(const LayoutVec& nodes, size_t i,
                           const FmtContext& ctx,
-                          Formatting& inline_text)
+                          Formatting& inline_text,
+                          bool skip_break_check = false)
 	{
 	auto& node = *nodes[i];
-	if ( node.GetTag() != Tag::IfNoElse || node.MustBreakBefore() )
+	if ( node.GetTag() != Tag::IfNoElse )
+		return false;
+	if ( ! skip_break_check && node.MustBreakBefore() )
 		return false;
 
 	// Child 5 is the BODY.
@@ -1034,7 +1037,7 @@ static std::vector<Formatting> try_inline_if_run(
 		if ( nodes[j]->GetTag() != Tag::IfNoElse )
 			continue;
 		Formatting fmt;
-		if ( ! try_inline_if(nodes, j, ctx, fmt) )
+		if ( ! try_inline_if(nodes, j, ctx, fmt, j == i) )
 			return {};
 		if ( fmt.MaxLineOverflow(ctx.Col(), ctx.MaxCol()) > 0 )
 			return {};
