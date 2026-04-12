@@ -16,6 +16,7 @@ Format a Zeek script.  Reads from FILE or stdin if omitted.
 Options:
   -i            Format FILE in-place (requires a file argument)
   -r            Recursively format all .zeek files under DIR in-place
+  -v            Verbose: trace each file being processed
   -H, --help    Show this help message and exit
 EOF
     exit 0
@@ -24,11 +25,13 @@ EOF
 # ---- Option parsing ----
 INPLACE=false
 RECURSIVE=false
+VERBOSE=false
 
 while [ $# -gt 0 ]; do
     case "$1" in
         -i)        INPLACE=true ;;
         -r)        RECURSIVE=true ;;
+        -v)        VERBOSE=true ;;
         -H|--help) usage ;;
         --)        shift; break ;;
         -*)        echo "zeek-fmt.sh: unknown option: $1" >&2; exit 1 ;;
@@ -40,6 +43,7 @@ done
 # ---- Helpers ----
 format_inplace() {
     FILE="$1"
+    $VERBOSE && echo "$FILE" >&2
     TMP="${FILE}.fmt.$$"
     if "$PYTHON" "$EMITTER" "$FILE" | "$FORMATTER" /dev/stdin > "$TMP"; then
         mv "$TMP" "$FILE"
