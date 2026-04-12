@@ -2,5 +2,5 @@ export {
         type Flag: enum {
                 ControlPkt = 0x80, #< Control messages between tunnel endpoints.
         CriticalOpt = 0x40, #< Geneve header contains a critical option.
-    };
+    } &redef;
 }

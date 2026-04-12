@@ -21,6 +21,9 @@ EXPORT {
       COMMENT-TRAILING "#< Geneve header contains a critical option."
       RBRACE
     }
+    ATTR-LIST {
+      ATTR "&redef"
+    }
     SEMI
   }
   RBRACE

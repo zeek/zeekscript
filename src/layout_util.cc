@@ -734,7 +734,8 @@ static EnumValues collect_enum_values(const Layout& inner)
 // Format enum values + close brace from a node whose children
 // contain EnumValue, Comma, TrailingComma, and a closing RBrace.
 static LIPtr format_enum_body(const Layout& source,
-	const LayoutPtr& close_brace, const FmtContext& ctx)
+	const LayoutPtr& close_brace, const FmtContext& ctx,
+	const Formatting& suffix = Formatting())
 	{
 	auto ev = collect_enum_values(source);
 
@@ -755,6 +756,7 @@ static LIPtr format_enum_body(const Layout& source,
 
 		flat_body += " ";
 		flat_body += close_brace;
+		flat_body += suffix;
 
 		int flat_len = ctx.Col() + flat_body.Size();
 		if ( flat_len <= ctx.MaxCol() )
@@ -787,14 +789,24 @@ static LIPtr format_enum_body(const Layout& source,
 		}
 
 	auto close_pad = line_prefix(ctx.Indent(), ctx.Col());
-	return lit(Formatting("\n") + body + close_pad + close_brace);
+	return lit(Formatting("\n") + body + close_pad + close_brace + suffix);
 	}
 
-// Enum body + close brace.  Inner = Child(5) = TYPE-ENUM node.
+// Enum body + close brace + optional attrs.  Inner = Child(5) = TYPE-ENUM.
 LIPtr Layout::ComputeEnumBody(const FmtContext& ctx) const
 	{
 	auto inner = Child(5);
-	return format_enum_body(*inner, inner->Children().back(), ctx);
+	Formatting suffix;
+
+	auto attrs = FindOptChild(Tag::AttrList);
+	if ( attrs )
+		{
+		auto as = attrs->FormatAttrList(ctx);
+		if ( ! as.Empty() )
+			suffix = " " + as;
+		}
+
+	return format_enum_body(*inner, inner->Children().back(), ctx, suffix);
 	}
 
 // Enum body + close brace for redef enum (values are direct children).

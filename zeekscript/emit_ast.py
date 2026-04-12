@@ -1153,6 +1153,8 @@ class Emitter:
                 self._w(f'IDENTIFIER {_quote(self._text(child))}')
             elif child.type == "type" and child.is_named:
                 self._emit_type(child)
+            elif child.type == "attr_list":
+                self._emit_attr_list(child)
         self._w('SEMI')
         self._close()
 
