@@ -92,7 +92,9 @@ static void format_flat(FmtSteps& steps, const FmtContext& ctx,
 			}
 
 		if ( c.Lines() > 1 )
-			used = c.Width();
+			// Width() is an absolute column (LastLineLen).
+			// Convert to a relative offset from ctx.Col().
+			used = c.Width() - ctx.Col();
 		else
 			used += s.text.Size();
 		}
@@ -285,6 +287,13 @@ static Candidate build_split(const FmtSteps& steps, const SplitAt& sp,
 		for ( const auto& c : cs )
 			{
 			if ( c.ReluctantBreaks() > 0 )
+				continue;
+
+			// Skip multi-line candidates: using an inner
+			// break (e.g. splitting at == inside an &&
+			// operand) produces unbalanced layouts that
+			// win on spread but read poorly.
+			if ( c.Lines() > 1 )
 				continue;
 
 			Formatting alt_first;
