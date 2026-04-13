@@ -635,7 +635,7 @@ Candidates Layout::ComputeDecl(const FmtContext& ctx) const
 	else
 		decl_no_init(d, result, ctx);
 
-	if ( result[0].Ovf() > 0 )
+	if ( result[0].Ovf() > 0 || result[0].Lines() > 1 )
 		{
 		decl_type_fill(d, result, ctx);
 		decl_wrapped_attrs(d, result, ctx);
