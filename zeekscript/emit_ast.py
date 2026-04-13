@@ -655,10 +655,16 @@ class Emitter:
             # Use _iter_children so interstitial comments from the
             # parent expr are emitted in source order (before or
             # after the arg items, matching the original placement).
+            # Delay _maybe_trailing_comma until after the loop so
+            # that comments between the expr_list and ")" are
+            # emitted before the TRAILING-COMMA marker.
+            el = None
             for child in self._iter_children(expr_node):
                 if child.type == "expr_list":
                     self._emit_expr_list(child)
-                    self._maybe_trailing_comma(child)
+                    el = child
+            if el:
+                self._maybe_trailing_comma(el)
         elif args_node:
             self._emit_expr_list(args_node)
             self._maybe_trailing_comma(args_node)

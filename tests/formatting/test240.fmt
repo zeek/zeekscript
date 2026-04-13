@@ -1,0 +1,6 @@
+redef aaa_bbb = set(
+	"ccc ccc",
+	"Ddd",
+	"Eee eee",
+	"Ffff ggggg hhhh iiiii", # JJJ
+);

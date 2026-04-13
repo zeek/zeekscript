@@ -30,20 +30,23 @@ static void collect_trailing(const Layout& node,
 // preceding content - never as a standalone line.  Uses a simple
 // string search, so a duplicate comment could match the wrong
 // occurrence.
-static void warn_standalone_trailing(const std::string& output,
-                                   const LayoutVec& nodes)
+static bool check_trailing_comments(const std::string& output,
+                                    const LayoutVec& nodes)
 	{
 	std::vector<std::string> trailing;
 	for ( const auto& n : nodes )
 		collect_trailing(*n, trailing);
+
+	bool ok = true;
 
 	for ( const auto& text : trailing )
 		{
 		auto pos = output.find(text);
 		if ( pos == std::string::npos )
 			{
-			fprintf(stderr, "warning: trailing comment dropped: "
+			fprintf(stderr, "error: trailing comment dropped: "
 			        "%s\n", text.c_str());
+			ok = false;
 			continue;
 			}
 
@@ -64,6 +67,8 @@ static void warn_standalone_trailing(const std::string& output,
 			fprintf(stderr, "warning: trailing comment on its own "
 			        "line: %s\n", text.c_str());
 		}
+
+	return ok;
 	}
 
 // Post-process: shift overflowing lines left by removing leading
@@ -124,7 +129,9 @@ std::string Format(const LayoutVec& nodes, bool raw)
 	FmtContext ctx(0, 0, MAX_WIDTH);
 
 	auto result = format_stmt_list(nodes, ctx);
-	warn_standalone_trailing(result.Str(), nodes);
+
+	if ( ! check_trailing_comments(result.Str(), nodes) )
+		exit(1);
 
 	if ( raw )
 		return result.Str();
