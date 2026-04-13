@@ -429,14 +429,18 @@ class Emitter:
                     self._w(f'IDENTIFIER {_quote(first_text)}')
                 self._open('ARGS')
                 self._w('LPAREN')
-                if args:
-                    self._emit_expr_list(args[0])
-                    self._maybe_trailing_comma(args[0])
+                # Use _iter_children so interstitial comments
+                # are emitted in source order.
+                for child in self._iter_children(node):
+                    if child.type == "expr_list":
+                        self._emit_expr_list(child)
+                        self._maybe_trailing_comma(child)
+                    elif child.type == "attr_list":
+                        pass  # handled after ARGS
                 self._w('RPAREN')
                 self._close()
                 if attrs:
                     self._emit_attr_list(attrs[0])
-                self._emit_extras_in(node)
                 self._close()
                 return
 
@@ -647,10 +651,16 @@ class Emitter:
         self._w(f'KEYWORD {_quote(keyword)}')
         self._open('ARGS')
         self._w('LPAREN')
-        if args_node:
+        if expr_node:
+            # Use _iter_children so interstitial comments from the
+            # parent expr are emitted in source order (before or
+            # after the arg items, matching the original placement).
+            for child in self._iter_children(expr_node):
+                if child.type == "expr_list":
+                    self._emit_expr_list(child)
+                    self._maybe_trailing_comma(child)
+        elif args_node:
             self._emit_expr_list(args_node)
-            if expr_node:
-                self._emit_extras_in(expr_node)
             self._maybe_trailing_comma(args_node)
         self._w('RPAREN')
         self._close()
