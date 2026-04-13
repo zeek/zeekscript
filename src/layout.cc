@@ -682,10 +682,35 @@ Candidates build_layout(LayoutItems items, const FmtContext& ctx)
 
 Candidates Layout::BuildLayout(LayoutItems items, const FmtContext& ctx) const
 	{
+	// Find the first BodyText item.  Everything from that point
+	// on (body + else follow-on) is deferred: formatted separately
+	// so the body's overflow/spread don't pollute condition layout.
+	size_t body_start = items.size();
+	for ( size_t i = 0; i < items.size(); ++i )
+		if ( items[i]->kind == BodyText )
+			{
+			body_start = i;
+			break;
+			}
+
+	// Resolve all items.
 	for ( size_t i = 0; i < items.size(); ++i )
 		ResolveItem(items, i, ctx);
 
-	return build_layout(items, ctx);
+	if ( body_start == items.size() )
+		return build_layout(items, ctx);
+
+	// Split: beam items (condition) vs body items.
+	LayoutItems beam_items(items.begin(), items.begin() + body_start);
+	Formatting body;
+	for ( size_t i = body_start; i < items.size(); ++i )
+		body += items[i]->Fmt();
+
+	auto result = build_layout(beam_items, ctx);
+	for ( auto& c : result )
+		c.AppendBody(body);
+
+	return result;
 	}
 
 void Layout::ResolveItem(LayoutItems& items, size_t i,

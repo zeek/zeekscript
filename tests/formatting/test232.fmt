@@ -1,0 +1,15 @@
+function aaa_bbb_ccc_ddd_eee(c: connection, is_orig: bool)
+	{
+	if ( c$aaa?$bbb && c$aaa?$ccc &&
+	     (/\.ddd$/ in c$aaa$eee || /\.fff$/ in c$aaa$eee) )
+		{
+		if ( (c$aaa$bbb == "GGG" &&
+		      c$aaa$hhh_iii in jjj_kk_lll_mmmmmmmmm) ||
+		     (c$aaa$bbb == "NNN" &&
+		      c$aaa$hhh_iii in jjj_kk_ooo_mmmmmmmmm) )
+			{
+			ppp_qqqqqqq =
+				"Aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa. Aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa.  (Aaaa 1)";
+			}
+		}
+	}

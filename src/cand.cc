@@ -80,6 +80,17 @@ Candidate::Metrics Candidate::ComputeMetrics(const std::string& t,
 	return {max_w - min_w, max_w, rb};
 	}
 
+void Candidate::AppendBody(const Formatting& body)
+	{
+	fmt += body;
+	int nl = body.CountLines() - 1;
+	if ( nl > 0 )
+		{
+		lines += nl;
+		width = fmt.LastLineLen();
+		}
+	}
+
 bool Candidate::BetterThan(const Candidate& o) const
 	{
 	// Reluctant breaks ($-splits) are checked first so that

@@ -43,6 +43,11 @@ public:
 	Candidate In(const FmtContext& ctx) const
 		{ return Candidate(fmt, ctx); }
 
+	// Append pre-formatted body text.  Updates fmt/lines/width
+	// but preserves overflow/spread/max_line_width so the body
+	// doesn't affect candidate selection.
+	void AppendBody(const Formatting& body);
+
 	// Is this a clean single-line result?
 	bool Fits() const { return lines == 1 && overflow <= 0; }
 

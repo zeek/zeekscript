@@ -1,0 +1,182 @@
+FUNC-DECL {
+  KEYWORD "function"
+  SP
+  IDENTIFIER "aaa_bbb_ccc_ddd_eee"
+  PARAMS {
+    LPAREN
+    PARAM "c" {
+      COLON
+      TYPE-ATOM "connection"
+    }
+    COMMA
+    PARAM "is_orig" {
+      COLON
+      TYPE-ATOM "bool"
+    }
+    RPAREN
+  }
+  BODY {
+    LBRACE
+    IF-NO-ELSE {
+      KEYWORD "if"
+      SP
+      LPAREN
+      BINARY-OP "&&" {
+        HAS-FIELD {
+          BINARY-OP "&&" {
+            HAS-FIELD {
+              FIELD-ACCESS {
+                IDENTIFIER "c"
+                DOLLAR
+                IDENTIFIER "aaa"
+              }
+              OP "?$"
+              IDENTIFIER "bbb"
+            }
+            OP "&&"
+            FIELD-ACCESS {
+              IDENTIFIER "c"
+              DOLLAR
+              IDENTIFIER "aaa"
+            }
+          }
+          OP "?$"
+          IDENTIFIER "ccc"
+        }
+        OP "&&"
+        PAREN {
+          LPAREN
+          BINARY-OP "||" {
+            BINARY-OP "in" {
+              CONSTANT "/\\.ddd$/"
+              OP "in"
+              FIELD-ACCESS {
+                FIELD-ACCESS {
+                  IDENTIFIER "c"
+                  DOLLAR
+                  IDENTIFIER "aaa"
+                }
+                DOLLAR
+                IDENTIFIER "eee"
+              }
+            }
+            OP "||"
+            BINARY-OP "in" {
+              CONSTANT "/\\.fff$/"
+              OP "in"
+              FIELD-ACCESS {
+                FIELD-ACCESS {
+                  IDENTIFIER "c"
+                  DOLLAR
+                  IDENTIFIER "aaa"
+                }
+                DOLLAR
+                IDENTIFIER "eee"
+              }
+            }
+          }
+          RPAREN
+        }
+      }
+      RPAREN
+      BODY {
+        SAME-LINE
+        BLOCK {
+          LBRACE
+          IF-NO-ELSE {
+            KEYWORD "if"
+            SP
+            LPAREN
+            BINARY-OP "||" {
+              PAREN {
+                LPAREN
+                BINARY-OP "&&" {
+                  BINARY-OP "==" {
+                    FIELD-ACCESS {
+                      FIELD-ACCESS {
+                        IDENTIFIER "c"
+                        DOLLAR
+                        IDENTIFIER "aaa"
+                      }
+                      DOLLAR
+                      IDENTIFIER "bbb"
+                    }
+                    OP "=="
+                    CONSTANT "\"GGG\""
+                  }
+                  OP "&&"
+                  BINARY-OP "in" {
+                    FIELD-ACCESS {
+                      FIELD-ACCESS {
+                        IDENTIFIER "c"
+                        DOLLAR
+                        IDENTIFIER "aaa"
+                      }
+                      DOLLAR
+                      IDENTIFIER "hhh_iii"
+                    }
+                    OP "in"
+                    IDENTIFIER "jjj_kk_lll_mmmmmmmmm"
+                  }
+                }
+                RPAREN
+              }
+              OP "||"
+              PAREN {
+                LPAREN
+                BINARY-OP "&&" {
+                  BINARY-OP "==" {
+                    FIELD-ACCESS {
+                      FIELD-ACCESS {
+                        IDENTIFIER "c"
+                        DOLLAR
+                        IDENTIFIER "aaa"
+                      }
+                      DOLLAR
+                      IDENTIFIER "bbb"
+                    }
+                    OP "=="
+                    CONSTANT "\"NNN\""
+                  }
+                  OP "&&"
+                  BINARY-OP "in" {
+                    FIELD-ACCESS {
+                      FIELD-ACCESS {
+                        IDENTIFIER "c"
+                        DOLLAR
+                        IDENTIFIER "aaa"
+                      }
+                      DOLLAR
+                      IDENTIFIER "hhh_iii"
+                    }
+                    OP "in"
+                    IDENTIFIER "jjj_kk_ooo_mmmmmmmmm"
+                  }
+                }
+                RPAREN
+              }
+            }
+            RPAREN
+            BODY {
+              SAME-LINE
+              BLOCK {
+                LBRACE
+                EXPR-STMT {
+                  BINARY-OP "=" {
+                    IDENTIFIER "ppp_qqqqqqq"
+                    OP "="
+                    CONSTANT "\"Aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa. Aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa.  (Aaaa 1)\""
+                  }
+                  SEMI
+                }
+                RBRACE
+              }
+            }
+          }
+          RBRACE
+        }
+      }
+    }
+    RBRACE
+  }
+}
