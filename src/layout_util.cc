@@ -1202,8 +1202,13 @@ LIPtr Layout::ComputeElseFollowOn(const FmtContext& ctx) const
 	// ELSE-IF/ELSE-BODY: [0]=KEYWORD [1]=SP [2]=content
 	auto else_child = else_node->Child(2);
 	auto else_kw = else_node->Child(0, Tag::Keyword);
+	auto& sp = else_node->Child(1, Tag::Sp);
 
 	result += "\n" + stmt_pad + Formatting(else_kw);
+
+	// Include trailing comment on the SP after "else".
+	if ( sp->MustBreakAfter() )
+		result += Formatting(sp);
 
 	if ( else_node->GetTag() == Tag::ElseIf )
 		{

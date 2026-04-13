@@ -1419,10 +1419,10 @@ class Emitter:
             else:
                 self._open('ELSE-BODY')
             self._kw("else")
-            # Comments between else and its body are leading
-            # comments on the else branch's statement.
+            # Comments between else and its body: same-line
+            # ones become trailing on else, others leading.
             self._mark_content(else_kw)
-            self._emit_if_extras(node, else_kw, else_body)
+            self._emit_if_extras(node, else_kw, else_body, ref_node=else_kw)
             self._emit_stmt(else_body)
             self._close()
         self._close()
