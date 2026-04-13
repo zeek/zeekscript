@@ -926,23 +926,27 @@ Candidate format_args_vertical(const Formatting& open, const Formatting& close,
 // ------------------------------------------------------------------
 
 // Recompute preproc context/pad after a depth change.
-static void update_preproc_indent(int depth, int max_col,
-                                  FmtContext& ctx, std::string& pad)
+static void update_preproc_indent(int base_indent, int depth,
+                                  int max_col, FmtContext& ctx,
+                                  std::string& pad)
 	{
-	int col = depth * INDENT_WIDTH;
-	ctx = FmtContext(depth, col, max_col - col);
-	pad = line_prefix(depth, col);
+	int indent = std::max(base_indent, depth);
+	int col = indent * INDENT_WIDTH;
+	ctx = FmtContext(indent, col, max_col - col);
+	pad = line_prefix(indent, col);
 	}
 
 // Format a preprocessor directive, adjusting preproc_depth.
 static void format_preproc(const Layout& node, int& preproc_depth,
-                           int max_col, FmtContext& ctx,
+                           int base_indent, int max_col,
+                           FmtContext& ctx,
                            std::string& pad, Formatting& result)
 	{
 	if ( node.ClosesDepth() )
 		{
 		--preproc_depth;
-		update_preproc_indent(preproc_depth, max_col, ctx, pad);
+		update_preproc_indent(base_indent, preproc_depth, max_col,
+		                      ctx, pad);
 		}
 
 	if ( node.AtColumnZero() )
@@ -954,7 +958,8 @@ static void format_preproc(const Layout& node, int& preproc_depth,
 	if ( node.OpensDepth() )
 		{
 		++preproc_depth;
-		update_preproc_indent(preproc_depth, max_col, ctx, pad);
+		update_preproc_indent(base_indent, preproc_depth, max_col,
+		                      ctx, pad);
 		}
 	}
 
@@ -1085,6 +1090,7 @@ Formatting format_stmt_list(const LayoutVec& nodes, const FmtContext& ctx,
                            bool skip_leading_blanks)
 	{
 	const int max_col = ctx.MaxCol();
+	const int base_indent = ctx.Indent();
 	int preproc_depth = 0;
 	FmtContext cur_ctx = ctx;
 	auto pad = line_prefix(cur_ctx.Indent(), cur_ctx.Col());
@@ -1120,8 +1126,8 @@ Formatting format_stmt_list(const LayoutVec& nodes, const FmtContext& ctx,
 
 		if ( t == Tag::Preproc || t == Tag::PreprocCond )
 			{
-			format_preproc(node, preproc_depth, max_col,
-			               cur_ctx, pad, result);
+			format_preproc(node, preproc_depth, base_indent,
+			               max_col, cur_ctx, pad, result);
 			continue;
 			}
 

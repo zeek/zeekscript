@@ -1,0 +1,9 @@
+function foo()
+    {
+    if ( test1 )
+        {
+    @ifdef ( bar )
+        return; #@ NOT-TESTED
+    @endif
+        }
+    }
