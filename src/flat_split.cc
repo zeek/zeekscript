@@ -383,6 +383,16 @@ static void try_flat_alternates(const FmtSteps& steps, Candidates& result,
 
 			if ( alt.BetterThan(result[0]) )
 				result[0] = std::move(alt);
+
+			// When the flat form is already multi-line, a
+			// taller sub-expression variant with no worse
+			// overflow may help the parent avoid overflow
+			// on the last line.  Offer it as an additional
+			// candidate so the parent can evaluate both.
+			else if ( result[0].Lines() > 1 &&
+			          alt.Lines() > result[0].Lines() &&
+			          alt.Ovf() <= result[0].Ovf() )
+				result.push_back(std::move(alt));
 			}
 		}
 	}
