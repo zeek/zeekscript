@@ -387,7 +387,18 @@ static void decl_with_init(const DeclParts& d, Candidates& result,
 
 		auto line1 = d.head + d.type_str + " " + d.assign_op;
 		auto pad = line_prefix(cont.Indent(), cont.Col());
-		auto split = line1 + "\n" + pad + val2.Fmt() + d.suffix;
+
+		// For tall values that don't end with a closing bracket
+		// (e.g. pattern unions), put the suffix on its own line
+		// at the declaration's base indent.
+		std::string base;
+		char last = val2.Fmt().Back();
+		if ( val2.Lines() >= 3 && last != ')' &&
+		     last != ']' && last != '}' )
+			base = "\n" + line_prefix(ctx.Indent(), ctx.Col());
+
+		Formatting split = line1 + "\n" + pad + val2.Fmt() + base +
+					d.suffix;
 		int last_w = split.LastLineLen();
 		int lines = split.CountLines();
 		int ovf = split.TextOverflow(ctx.Col(), ctx.MaxCol());
@@ -1051,6 +1062,34 @@ bool Layout::AtColumnZero() const
 
 // ---- Binary operator chains -----------------------------------------------
 
+// Collect all leaf operands from a left-recursive | chain of pattern
+// constants.  Returns false if any leaf is not a /.../ pattern.
+static bool collect_pattern_chain(const Layout& node,
+                                  std::vector<std::string>& pats)
+	{
+	if ( node.GetTag() != Tag::BinaryOp || node.Arg() != "|" )
+		return false;
+
+	auto& lhs = *node.Child(0);
+	auto& rhs = *node.Child(2);
+
+	if ( rhs.GetTag() != Tag::Constant || rhs.Text().front() != '/' )
+		return false;
+
+	if ( lhs.GetTag() == Tag::BinaryOp && lhs.Arg() == "|" )
+		{
+		if ( ! collect_pattern_chain(lhs, pats) )
+			return false;
+		}
+	else if ( lhs.GetTag() == Tag::Constant && lhs.Text().front() == '/' )
+		pats.push_back(lhs.Text());
+	else
+		return false;
+
+	pats.push_back(rhs.Text());
+	return true;
+	}
+
 LIPtr Layout::ComputeBinaryOp(const FmtContext& ctx) const
 	{
 	// Count left-recursive chain depth for the same operator.
@@ -1063,6 +1102,55 @@ LIPtr Layout::ComputeBinaryOp(const FmtContext& ctx) const
 		{
 		++depth;
 		n = n->Child(0).get();
+		}
+
+	// Pattern union: a | chain where every leaf is a /.../ constant.
+	// Format one-per-line when 3+ patterns.
+	if ( op == "|" && depth >= 2 )
+		{
+		std::vector<std::string> pats;
+		if ( collect_pattern_chain(*this, pats) && pats.size() >= 3 )
+			{
+			Formatting flat;
+			for ( size_t i = 0; i < pats.size(); ++i )
+				{
+				if ( i > 0 )
+					flat += " | ";
+				flat += pats[i];
+				}
+
+			Candidates cands;
+			Candidate fc(flat, ctx);
+			if ( fc.Fits() )
+				return lit(flat);
+
+			// Only produce the vertical form at a clean indent
+			// boundary.  At arbitrary inline columns (e.g. after
+			// "name = "), the flat overflow steers the caller to
+			// re-evaluate at a lower, indented column.
+			if ( ctx.Col() == ctx.IndentCol() )
+				{
+				auto pad = line_prefix(ctx.Indent(), ctx.Col());
+				Formatting vert;
+				for ( size_t i = 0; i < pats.size(); ++i )
+					{
+					if ( i > 0 )
+						vert += " |\n" + pad;
+					vert += pats[i];
+					}
+
+				int last_w = vert.LastLineLen();
+				int lines = static_cast<int>(pats.size());
+				int ovf = vert.TextOverflow(ctx.Col(),
+							ctx.MaxCol());
+				cands.push_back({vert, last_w, lines, ovf,
+							ctx.Col()});
+				}
+			else
+				cands.push_back(fc);
+
+			return std::make_shared<LIDeclCandsR>(std::move(cands));
+			}
 		}
 
 	if ( depth <= 6 )

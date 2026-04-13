@@ -1,0 +1,46 @@
+GLOBAL-DECL {
+  KEYWORD "const"
+  SP
+  IDENTIFIER "aaa_bbb_ccc"
+  DECL-INIT {
+    ASSIGN "="
+    BINARY-OP "|" {
+      BINARY-OP "|" {
+        BINARY-OP "|" {
+          BINARY-OP "|" {
+            BINARY-OP "|" {
+              BINARY-OP "|" {
+                BINARY-OP "|" {
+                  BINARY-OP "|" {
+                    BINARY-OP "|" {
+                      CONSTANT "/aaaa\\-bbbb\\ cc\\./"
+                      OP "|"
+                      CONSTANT "/\\[dddddd\\]\\:\\:eeeeeeeeeeeeeeeee/"
+                    }
+                    OP "|"
+                    CONSTANT "/ff\\.gggggggggg\\.hhhhhhhhhh/"
+                  }
+                  OP "|"
+                  CONSTANT "/ff\\.gggggggggg\\.iiiiiiiiiiiiiiiiii\\]/"
+                }
+                OP "|"
+                CONSTANT "/ff\\.jjjjjjjjjjjj/"
+              }
+              OP "|"
+              CONSTANT "/\\.kkkkkkkkk\\(\\)\\;$/"
+            }
+            OP "|"
+            CONSTANT "/\\)\\;LLL/"
+          }
+          OP "|"
+          CONSTANT "/mmmmmmmmmmmmm/"
+        }
+        OP "|"
+        CONSTANT "/nnnnnnnnnn\\.ooo/"
+      }
+      OP "|"
+      CONSTANT "/PpppppPppppppppp/"
+    }
+  }
+  SEMI
+}

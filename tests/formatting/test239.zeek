@@ -1,0 +1,12 @@
+const aaa_bbb_ccc =
+    /aaaa\-bbbb\ cc\./ |
+    /\[dddddd\]\:\:eeeeeeeeeeeeeeeee/ |
+    /ff\.gggggggggg\.hhhhhhhhhh/ |
+    /ff\.gggggggggg\.iiiiiiiiiiiiiiiiii\]/ |
+    /ff\.jjjjjjjjjjjj/ |
+    /\.kkkkkkkkk\(\)\;$/ |
+    /\)\;LLL/ |
+    /mmmmmmmmmmmmm/ |
+    /nnnnnnnnnn\.ooo/ |
+    /PpppppPppppppppp/
+;
