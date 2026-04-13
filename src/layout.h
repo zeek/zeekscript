@@ -686,6 +686,7 @@ public:
 	LIPtr ComputeLambdaBody(const FmtContext& ctx) const;
 	LIPtr ComputeSwitchExpr(const FmtContext& ctx) const;
 	LIPtr ComputeSwitchCases(const FmtContext& ctx) const;
+	LIPtr ComputeBinaryOp(const FmtContext& ctx) const;
 	Candidates ComputeDecl(const FmtContext& ctx) const;
 
 	// Format an ATTR-LIST node as a single string.

@@ -1049,6 +1049,40 @@ bool Layout::AtColumnZero() const
 	return d == "@else" || d == "@endif";
 	}
 
+// ---- Binary operator chains -----------------------------------------------
+
+LIPtr Layout::ComputeBinaryOp(const FmtContext& ctx) const
+	{
+	// Count left-recursive chain depth for the same operator.
+	int depth = 1;
+	auto& op = Arg();
+	const Layout* n = this;
+
+	while ( n->Child(0)->GetTag() == Tag::BinaryOp &&
+	        n->Child(0)->Arg() == op )
+		{
+		++depth;
+		n = n->Child(0).get();
+		}
+
+	if ( depth <= 6 )
+		return std::make_shared<LIFlatSplitR>(
+			FmtSteps{FmtStep::E(Child(0)), FmtStep::L(" "),
+				FmtStep::L(Child(1)), FmtStep::S(),
+				FmtStep::E(Child(2))},
+			std::vector<SplitAt>{{2, SplitAt::IndentedOrSame}});
+
+	// Deep chain: pre-format LHS to prevent exponential recursion.
+	// Each level formats its LHS once (not 3x via flat/alt/split),
+	// reducing 3^N to linear.
+	auto lhs = best(format_expr(*Child(0), ctx)).Fmt();
+	return std::make_shared<LIFlatSplitR>(
+			FmtSteps{FmtStep::L(lhs), FmtStep::L(" "),
+				FmtStep::L(Child(1)), FmtStep::S(),
+				FmtStep::E(Child(2))},
+			std::vector<SplitAt>{{2, SplitAt::IndentedOrSame}});
+	}
+
 // ---- Body/block formatting -----------------------------------------------
 
 // Format a BODY or BLOCK node as a Whitesmith-style braced block.

@@ -878,6 +878,7 @@ static constexpr ComputeFn CFuncBody = &Layout::ComputeFuncBody;
 static constexpr ComputeFn CSwitchExpr = &Layout::ComputeSwitchExpr;
 static constexpr ComputeFn CSwitchCases = &Layout::ComputeSwitchCases;
 static constexpr ComputeFn CElseFollowOn = &Layout::ComputeElseFollowOn;
+static constexpr ComputeFn CBinaryOp = &Layout::ComputeBinaryOp;
 
 // Tag-to-layout table for purely declarative nodes.
 static const std::unordered_map<Tag, LayoutItems> layout_table = {
@@ -968,10 +969,7 @@ static const std::unordered_map<Tag, LayoutItems> layout_table = {
 		{FmtStep::EI(0), FmtStep::TI(1),
 		 FmtStep::S(""), FmtStep::EI(2)},
 		{{2, SplitAt::IndentedOrSame, true}})}},
-	{Tag::BinaryOp, {flat_split(
-		{FmtStep::EI(0), FmtStep::L(" "),
-		 FmtStep::TI(1), FmtStep::S(), FmtStep::EI(2)},
-		{{2, SplitAt::IndentedOrSame}})}},
+	{Tag::BinaryOp, {computed(CBinaryOp)}},
 	{Tag::Lambda, {arglist_prefix(2, CLambdaPrefix, CLambdaRet),
 		computed(CLambdaBody)}},
 	{Tag::LambdaCaptures, {arglist_prefix(3, CLambdaPrefix, CLambdaRet),

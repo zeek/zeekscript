@@ -302,9 +302,8 @@ static Candidate build_split(const FmtSteps& steps, const SplitAt& sp,
 		used += s.text.Size();
 		}
 
-	// If the split still overflows significantly, try re-formatting
-	// expr pieces with reduced width.  Small overflows (1-2 columns)
-	// are tolerated to avoid ugly sub-expression splits.
+	// If the split still overflows significantly, try
+	// re-formatting expr pieces with reduced width.
 	if ( result.Ovf() > 2 )
 		{
 		used = 0;
