@@ -1298,7 +1298,7 @@ LIPtr Layout::ComputeElseFollowOn(const FmtContext& ctx) const
 	if ( else_node->GetTag() == Tag::ElseIf )
 		{
 		int prefix_w = else_kw->Width() + 1;  // "else "
-		auto inner_cs = format_expr(*else_child, ctx.After(prefix_w));
+		auto inner_cs = else_child->Format(ctx, prefix_w);
 		result += " " + best(inner_cs).Fmt();
 		}
 

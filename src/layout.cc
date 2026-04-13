@@ -35,7 +35,7 @@ static const std::unordered_set<Tag> param_list_tags = {
 	Tag::TypeFunc, Tag::TypeFuncRet,
 };
 
-Candidates Layout::Format(const FmtContext& ctx) const
+Candidates Layout::Format(const FmtContext& ctx, int prefix_w) const
 	{
 	if ( ! layout.empty() )
 		{
@@ -43,7 +43,7 @@ Candidates Layout::Format(const FmtContext& ctx) const
 		if ( param_list_tags.count(tag) )
 			fctx.SetIsParamList();
 
-		return BuildLayout(layout, fctx);
+		return BuildLayout(layout, fctx, prefix_w);
 		}
 
 	return {Candidate(render, ctx)};
@@ -680,7 +680,8 @@ Candidates build_layout(LayoutItems items, const FmtContext& ctx)
 
 // ---- BuildLayout resolution ----------------------------------------------
 
-Candidates Layout::BuildLayout(LayoutItems items, const FmtContext& ctx) const
+Candidates Layout::BuildLayout(LayoutItems items, const FmtContext& ctx,
+                                int prefix_w) const
 	{
 	// Find the first BodyText item.  Everything from that point
 	// on (body + else follow-on) is deferred: formatted separately
@@ -693,12 +694,18 @@ Candidates Layout::BuildLayout(LayoutItems items, const FmtContext& ctx) const
 			break;
 			}
 
-	// Resolve all items.
-	for ( size_t i = 0; i < items.size(); ++i )
+	// prefix_w shifts beam items (condition) to account for an
+	// invisible prefix (e.g. "else " before "if ( ... )").
+	// Body items use the original ctx.
+	auto beam_ctx = prefix_w > 0 ? ctx.After(prefix_w) : ctx;
+
+	for ( size_t i = 0; i < body_start; ++i )
+		ResolveItem(items, i, beam_ctx);
+	for ( size_t i = body_start; i < items.size(); ++i )
 		ResolveItem(items, i, ctx);
 
 	if ( body_start == items.size() )
-		return build_layout(items, ctx);
+		return build_layout(items, beam_ctx);
 
 	// Split: beam items (condition) vs body items.
 	LayoutItems beam_items(items.begin(), items.begin() + body_start);
@@ -706,7 +713,7 @@ Candidates Layout::BuildLayout(LayoutItems items, const FmtContext& ctx) const
 	for ( size_t i = body_start; i < items.size(); ++i )
 		body += items[i]->Fmt();
 
-	auto result = build_layout(beam_items, ctx);
+	auto result = build_layout(beam_items, beam_ctx);
 	for ( auto& c : result )
 		c.AppendBody(body);
 

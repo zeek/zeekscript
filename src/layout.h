@@ -568,12 +568,14 @@ public:
 	Layout(Tag tag) : tag(tag) {}
 	Layout(Tag tag, const LayoutItems& li) : tag(tag), layout(li) {}
 
-	Candidates Format(const FmtContext& ctx) const;
+	Candidates Format(const FmtContext& ctx, int prefix_w = 0) const;
 
 	// Layout combinator: resolves LayoutItems (tokens, computed
 	// kinds, etc.) before delegating to the beam-search engine.
-	Candidates BuildLayout(LayoutItems items,
-	                       const FmtContext& ctx) const;
+	// prefix_w shifts the context for beam items only, so
+	// body/else portions use the original column.
+	Candidates BuildLayout(LayoutItems items, const FmtContext& ctx,
+	                       int prefix_w = 0) const;
 
 	// Resolve a single layout item during BuildLayout.
 	void ResolveItem(LayoutItems& items, size_t i,

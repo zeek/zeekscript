@@ -1,0 +1,70 @@
+FUNC-DECL {
+  KEYWORD "function"
+  SP
+  IDENTIFIER "xxx"
+  PARAMS {
+    LPAREN
+    RPAREN
+  }
+  BODY {
+    LBRACE
+    IF-WITH-ELSE {
+      KEYWORD "if"
+      SP
+      LPAREN
+      IDENTIFIER "xxx"
+      RPAREN
+      BODY {
+        SEMI
+      }
+      ELSE-IF {
+        KEYWORD "else"
+        SP
+        IF-WITH-ELSE {
+          KEYWORD "if"
+          SP
+          LPAREN
+          BINARY-OP "&&" {
+            BINARY-OP ">" {
+              FIELD-ACCESS {
+                IDENTIFIER "xxxxxxxxxxx"
+                DOLLAR
+                IDENTIFIER "xxx_xxx"
+              }
+              OP ">"
+              CONSTANT "0"
+            }
+            OP "&&"
+            BINARY-OP "==" {
+              BINARY-OP "-" {
+                FIELD-ACCESS {
+                  IDENTIFIER "xxxxxxxxxxx"
+                  DOLLAR
+                  IDENTIFIER "xxx_xxx"
+                }
+                OP "-"
+                CONSTANT "1"
+              }
+              OP "=="
+              FIELD-ACCESS {
+                IDENTIFIER "xxxxxxx"
+                DOLLAR
+                IDENTIFIER "xxx_xxx"
+              }
+            }
+          }
+          RPAREN
+          BODY {
+            SEMI
+          }
+          ELSE-BODY {
+            KEYWORD "else"
+            SP
+            SEMI
+          }
+        }
+      }
+    }
+    RBRACE
+  }
+}
