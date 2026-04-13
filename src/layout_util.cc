@@ -1132,12 +1132,9 @@ LIPtr Layout::ComputeBinaryOp(const FmtContext& ctx) const
 				{
 				auto pad = line_prefix(ctx.Indent(), ctx.Col());
 				Formatting vert;
-				for ( size_t i = 0; i < pats.size(); ++i )
-					{
-					if ( i > 0 )
-						vert += " |\n" + pad;
-					vert += pats[i];
-					}
+				vert += "  " + pats[0];
+				for ( size_t i = 1; i < pats.size(); ++i )
+					vert += "\n" + pad + "| " + pats[i];
 
 				int last_w = vert.LastLineLen();
 				int lines = static_cast<int>(pats.size());
