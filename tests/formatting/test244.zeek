@@ -1,0 +1,10 @@
+function xxx()
+	{
+	if ( x )
+		{
+		i$xxxxxxxxxxxxxxxxxxxxxxxxx =
+			xxxxxxxxxxxxxxx(i$xxxxxxxxxxxxxxxxxxxx,
+					|xxxxxxx| + |xx|);
+		i$xxxxxxxxxxxxxxxxxxxxxx = +|xxxxxxx| - |xx|;
+		}
+	}

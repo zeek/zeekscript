@@ -1,0 +1,90 @@
+FUNC-DECL {
+  KEYWORD "function"
+  SP
+  IDENTIFIER "xxx"
+  PARAMS {
+    LPAREN
+    RPAREN
+  }
+  BODY {
+    LBRACE
+    IF-NO-ELSE {
+      KEYWORD "if"
+      SP
+      LPAREN
+      IDENTIFIER "x"
+      RPAREN
+      BODY {
+        BLOCK {
+          LBRACE
+          EXPR-STMT {
+            BINARY-OP "=" {
+              FIELD-ACCESS {
+                IDENTIFIER "i"
+                DOLLAR
+                IDENTIFIER "xxxxxxxxxxxxxxxxxxxxxxxxx"
+              }
+              OP "="
+              CALL {
+                IDENTIFIER "xxxxxxxxxxxxxxx"
+                ARGS {
+                  LPAREN
+                  FIELD-ACCESS {
+                    IDENTIFIER "i"
+                    DOLLAR
+                    IDENTIFIER "xxxxxxxxxxxxxxxxxxxx"
+                  }
+                  COMMA
+                  BINARY-OP "+" {
+                    CARDINALITY {
+                      OP "|"
+                      IDENTIFIER "xxxxxxx"
+                      OP "|"
+                    }
+                    OP "+"
+                    CARDINALITY {
+                      OP "|"
+                      IDENTIFIER "xx"
+                      OP "|"
+                    }
+                  }
+                  RPAREN
+                }
+              }
+            }
+            SEMI
+          }
+          EXPR-STMT {
+            BINARY-OP "=" {
+              FIELD-ACCESS {
+                IDENTIFIER "i"
+                DOLLAR
+                IDENTIFIER "xxxxxxxxxxxxxxxxxxxxxx"
+              }
+              OP "="
+              BINARY-OP "-" {
+                UNARY-OP "+" {
+                  OP "+"
+                  CARDINALITY {
+                    OP "|"
+                    IDENTIFIER "xxxxxxx"
+                    OP "|"
+                  }
+                }
+                OP "-"
+                CARDINALITY {
+                  OP "|"
+                  IDENTIFIER "xx"
+                  OP "|"
+                }
+              }
+            }
+            SEMI
+          }
+          RBRACE
+        }
+      }
+    }
+    RBRACE
+  }
+}

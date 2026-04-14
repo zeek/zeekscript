@@ -53,7 +53,7 @@ _BINARY_OPS = frozenset({
     "?$",
 })
 
-_UNARY_OPS = frozenset({"!", "-", "~", "++", "--"})
+_UNARY_OPS = frozenset({"!", "-", "+", "~", "++", "--"})
 
 
 class Emitter:
