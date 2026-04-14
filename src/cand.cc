@@ -91,11 +91,15 @@ void Candidate::AppendBody(const Formatting& body)
 		}
 	}
 
+// Candidate comparison priority (highest to lowest):
+//   1. Reluctant breaks: fewer wins unless the reluctant candidate
+//      saves >= 2 lines or 1 line with strictly less overflow.
+//   2. Overflow: fewer columns past the right edge.
+//   3. Lines: fewer lines.
+//   4. Max line width: narrower widest line.
+//   5. Spread: more balanced (smaller max - min line width).
 bool Candidate::BetterThan(const Candidate& o) const
 	{
-	// Reluctant breaks ($-splits) are checked first so that
-	// small overflow reductions don't justify a $-split.
-	// Only saving >= 2 lines makes a reluctant break acceptable.
 	int rb = ReluctantBreaks(), orb = o.ReluctantBreaks();
 	if ( rb != orb )
 		{

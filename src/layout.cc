@@ -588,8 +588,9 @@ static int reluctant_breaks(const Formatting& f)
 	return count;
 	}
 
-// Prune beam to best BEAM_WIDTH using same priority as
-// Candidate::BetterThan: reluctant (saving lines) > overflow > lines.
+// Prune beam to best BEAM_WIDTH partials.  Uses the same priority order as
+// Candidate::BetterThan (see cand.cc) adapted for Partials: reluctant breaks >
+// overflow > lines.  Changes to BetterThan's priority must be mirrored here.
 static void prune_beam(Partials& beam)
 	{
 	if ( static_cast<int>(beam.size()) <= BEAM_WIDTH )
@@ -949,109 +950,171 @@ static constexpr ComputeFn CBinaryOp = &Layout::ComputeBinaryOp;
 static constexpr ComputeFn CSchedule = &Layout::ComputeSchedule;
 
 // Tag-to-layout table for purely declarative nodes.
+//
+// Child indices match the .rep node structure emitted by the Python
+// emitter.  Comments below describe the child layout for nodes whose
+// structure is not obvious.  For the common pattern
+//   [0]=KW [1]=SP [2]=( [3]=expr [4]=) [5]=BODY
+// the indices 0/2/3/4/5 map to keyword/open-paren/cond/close-paren/body.
 static const std::unordered_map<Tag, LayoutItems> layout_table = {
 	// Identifier, Constant, TypeAtom have no layout entries;
 	// Format() uses render directly.
+
+	// INTERVAL: arg(0)=value arg(1)=unit
 	{Tag::Interval, {arg(0), lit(" "), arg(1)}},
+	// CARDINALITY: [0]=| [1]=expr [2]=|
 	{Tag::Cardinality, {tok(0), expr(1), tok(2)}},
+	// NEGATION: [0]=! [1]=SP [2]=expr
 	{Tag::Negation, {tok(0), lit(" "), expr(1)}},
+	// UNARY-OP: [0]=op [1]=expr
 	{Tag::UnaryOp, {tok(0), expr(1)}},
+	// FIELD-ACCESS: [0]=expr [1]=$ [2]=field
 	{Tag::FieldAccess, {flat_split(
 		{FmtStep::EI(0), FmtStep::TI(1), FmtStep::TI(2)},
 		{{1, SplitAt::IndentedOrSame}}, false, true)}},
+	// FIELD-ASSIGN: arg(0)=$field [0]=KW [1]=ASSIGN [2]=expr
 	{Tag::FieldAssign, {tok(0), arg(0), tok(1), init_expr(2)}},
+	// HAS-FIELD: [0]=expr [1]=? [2]=$field
 	{Tag::HasField, {flat_split(
 		{FmtStep::EI(0), FmtStep::TI(1), FmtStep::TI(2)},
 		{{1, SplitAt::IndentedOrSame}}, false, true)}},
+	// PAREN: [0]=( [1]=expr [2]=)
 	{Tag::Paren, {tok(0), expr(1), tok(2)}},
 	{Tag::Schedule, {computed(CSchedule)}},
+	// PARAM: arg(0)=name [0]=COLON [1]=type [opt ATTR-LIST]
 	{Tag::Param, {arg(0), computed(CParamType)}},
+	// CALL: [0]=callee [1]=ARGS
 	{Tag::Call, {expr(0), arglist(1,
 		AL_TrailingCommaVertical | AL_VerticalUpgrade, CCallAttrs)}},
+	// CONSTRUCTOR: [0]=KW [1]=ARGS
 	{Tag::Constructor, {tok(0), arglist(1,
 		AL_TrailingCommaVertical | AL_FlatOrVertical, CCallAttrs)}},
+	// INDEX-LITERAL: [0]=SUBSCRIPTS (bracketed list)
 	{Tag::IndexLiteral, {arglist(0,
 		AL_AllCommentsVertical | AL_TrailingCommaFill)}},
+	// INDEX: [0]=expr [1]=SUBSCRIPTS
 	{Tag::Index, {expr(0), arglist(1)}},
+	// TYPE-PARAMETERIZED: arg(0)=name [0]=ARGS [opt KW type]
 	{Tag::TypeParameterized, {arg(0), arglist(0, COfType)}},
+	// TYPE-OF: arg(0)=name [0]=KW("of") [1]=SP [2]=type
 	{Tag::TypeOf, {arg(0), lit(" "), tok(0), lit(" "), expr(2)}},
+	// TYPE-FUNC: arg(0)=name [0]=PARAMS
 	{Tag::TypeFunc, {arg(0), arglist(0)}},
+	// TYPE-FUNC-RET: arg(0)=name [0]=PARAMS ... COLON RETURNS
 	{Tag::TypeFuncRet, {arg(0), arglist(0, CRetType)}},
 	{Tag::CommentLeading, {arg(0)}},
+	// EXPR-STMT: [0]=expr ... SEMI(last)
 	{Tag::ExprStmt, {expr(0), last()}},
+	// RETURN-VOID / KW-STMT: [0]=KW ... SEMI(last)
 	{Tag::ReturnVoid, {tok(0), last()}},
 	{Tag::KwStmt, {tok(0), last()}},
+	// RETURN: [0]=KW [1]=SP [2]=expr ... SEMI(last)
 	{Tag::Return, {tok(0), sp(), expr(2), last()}},
 	{Tag::Add, {tok(0), sp(), expr(2), last()}},
 	{Tag::Delete, {tok(0), sp(), expr(2), last()}},
 	{Tag::Assert, {tok(0), sp(), expr(2), last()}},
+	// PRINT: [0]=KW [1..]=args ... SEMI(last)
 	{Tag::Print, {fill_list(), last()}},
+	// EVENT-STMT: [0]=KW [1]=SP arg(0)=name [2]=ARGS [3]=SEMI
 	{Tag::EventStmt, {tok(0), lit(" "), arg(0), arglist(2), tok(3)}},
+	// EXPORT: [0]=KW [1]=SP [2]={ ... }(last)
 	{Tag::ExportDecl, {tok(0), sp(), tok(2), indent_up(),
 		stmt_body(), indent_down(), last()}},
+	// MODULE: [0]=KW [1]=SP [2]=name [3]=SEMI
 	{Tag::ModuleDecl, {tok(0), sp(), tok(2), tok(3)}},
+	// TYPEDECL-ALIAS: [0]=type [1]=SP [2]=name [3]=ASSIGN [4]=SP
+	//   [5]=type-expr [opt ATTR-LIST] SEMI
 	{Tag::TypeDeclAlias, {tok(0), sp(), tok(2), tok(3), sp(),
 		expr(5), computed(CTypeAliasSfx)}},
+	// TYPEDECL-ENUM: [0]=type [1]=SP [2]=name [3]=ASSIGN [4]=SP
+	//   [5]=TYPE-ENUM{[0]=enum [1]=SP [2]={ ... }(last)} SEMI(last)
 	{Tag::TypeDeclEnum, {tok(0), sp(), tok(2), tok(3), sp(),
 		tok(5, 0), sp(), tok(5, 2),
 		computed(CEnumBody), last()}},
+	// REDEF-ENUM: [0]=redef [1]=SP [2]=name [3]=SP [4]+=
+	//   [5]=SP [6]=enum [7]=SP [8]={ ... } SEMI(last)
 	{Tag::RedefEnum, {tok(0), sp(), tok(2), sp(), tok(4), sp(),
 		tok(5), sp(), tok(6),
 		computed(CRedefEnumBody), last()}},
+	// TYPEDECL-RECORD: same shape as TYPEDECL-ENUM but with
+	//   [5]=TYPE-RECORD{[0]=record [1]=SP [2]={ ... }}
 	{Tag::TypeDeclRecord, {tok(0), sp(), tok(2), tok(3), sp(),
 		tok(5, 0), sp(), tok(5, 2),
 		computed(CRecordBody), last()}},
+	// REDEF-RECORD: same shape as REDEF-ENUM
 	{Tag::RedefRecord, {tok(0), sp(), tok(2), sp(), tok(4), sp(),
 		tok(5), sp(), tok(6),
 		computed(CRedefRecordBody), last()}},
 	{Tag::Block, {computed(CBlock)}},
+	// KEYWORD-EXPR: [0]=KW [1]=SP [2]=expr  (hook, copy)
 	{Tag::KeywordExpr, {tok(0), lit(" "), expr(2)}},
+	// WHEN-LOCAL: arg(0)=name expr(0)=init
 	{Tag::WhenLocal, {lit("local "), arg(0), lit(" = "), expr(0)}},
+	// WHEN: [0]=when [1]=SP [2]=( [3]=cond [4]=) [5]=BODY
 	{Tag::When, {tok(0), lit(" "), tok(2), lit(" "), expr(3),
 		lit(" "), tok(4), body_text(5)}},
+	// WHEN-TIMEOUT: like WHEN + [6]=KW [7]=SP [8]=TIMEOUT
 	{Tag::WhenTimeout, {tok(0), lit(" "), tok(2), lit(" "), expr(3),
 		lit(" "), tok(4), body_text(5), computed(CWhenTimeout)}},
+	// IF-NO-ELSE: [0]=if [1]=SP [2]=( [3]=cond [4]=) [5]=BODY
 	{Tag::IfNoElse, {tok(0), lit(" "), tok(2), lit(" "), expr(3),
 		lit(" "), tok(4), body_text(5)}},
+	// IF-WITH-ELSE: like IF-NO-ELSE + ELSE-IF or ELSE-BODY child
 	{Tag::IfElse, {tok(0), lit(" "), tok(2), lit(" "), expr(3),
 		lit(" "), tok(4), body_text(5), computed(CElseFollowOn)}},
+	// WHILE: [0]=while [1]=SP [2]=( [3]=cond [4]=) [5]=BODY
 	{Tag::While, {tok(0), lit(" "), tok(2), lit(" "), expr(3),
 		lit(" "), tok(4), body_text(5)}},
+	// FOR-COND: [0]=var [1]=in [2]=iterable
 	{Tag::ForCond, {expr(0), lit(" "), tok(1), lit(" "), expr(2)}},
+	// FOR-COND-VAL: [0]=var [1]=, [2]=val [3]=in [4]=iterable
 	{Tag::ForCondVal, {expr(0), tok(1), lit(" "), expr(2), lit(" "),
 		tok(3), lit(" "), expr(4)}},
+	// FOR-COND-BRACKET: [0]=VARS [1]=in [2]=iterable
 	{Tag::ForCondBracket, {arglist(0), lit(" "), tok(1), lit(" "),
 		expr(2)}},
+	// FOR-COND-BRACKET-VAL: [0]=VARS [1]=, [2]=val [3]=in [4]=iterable
 	{Tag::ForCondBracketVal, {arglist(0), tok(1), lit(" "), expr(2),
 		lit(" "), tok(3), lit(" "), expr(4)}},
+	// FOR: [0]=for [1]=SP [2]=( [3]=FOR-COND* [4]=) [5]=BODY
 	{Tag::For, {tok(0), lit(" "), tok(2), lit(" "), expr(3),
 		lit(" "), tok(4), body_text(5)}},
+	// SLICE: [0]=v [1]=[ [2]=lo [3]=: [4]=hi [5]=]
 	{Tag::Slice, {flat_split(
 		{FmtStep::EI(0), FmtStep::TI(1), FmtStep::EI(2),
 		 FmtStep::L(" "), FmtStep::TI(3), FmtStep::S(),
 		 FmtStep::EI(4), FmtStep::TI(5)},
 		{{4, SplitAt::AlignWith, 2}}, true)}},
+	// SLICE-PARTIAL: [0]=v [1]=[ [2]=lo [3]=: [4]=hi [5]=]
 	{Tag::SlicePartial, {expr(0), tok(1), expr(2), tok(3),
 		expr(4), tok(5)}},
+	// DIV: [0]=lhs [1]=/ [2]=rhs
 	{Tag::Div, {flat_split(
 		{FmtStep::EI(0), FmtStep::TI(1),
 		 FmtStep::S(""), FmtStep::EI(2)},
 		{{2, SplitAt::IndentedOrSame, true}})}},
 	{Tag::BinaryOp, {computed(CBinaryOp)}},
+	// LAMBDA: [0]=KW [1]=SP [2]=PARAMS [opt COLON RETURNS] BODY(last)
 	{Tag::Lambda, {arglist_prefix(2, CLambdaPrefix, CLambdaRet),
 		computed(CLambdaBody)}},
+	// LAMBDA-CAPTURES: [0]=KW [1]=SP [2]=CAPTURES [3]=PARAMS [opt ...] BODY(last)
 	{Tag::LambdaCaptures, {arglist_prefix(3, CLambdaPrefix, CLambdaRet),
 		computed(CLambdaBody)}},
+	// FUNC-DECL: [0]=KW [1]=SP [2]=name [3]=PARAMS
+	//   [opt COLON RETURNS] [opt ATTR-LIST] BODY(last)
 	{Tag::FuncDecl, {tok(0), lit(" "), tok(2), arglist(3, CFuncRet),
 		soft_cont(CFuncAttrs), computed(CFuncTrail),
 		body_computed(CFuncBlock)}},
+	// FUNC-DECL-RET: same as FUNC-DECL but with explicit return type
 	{Tag::FuncDeclRet, {tok(0), lit(" "), tok(2),
 		arglist(3, CFuncRet), soft_cont(CFuncAttrs),
 		computed(CFuncTrail), body_computed(CFuncBlock)}},
+	// SWITCH: [0]=switch [1]=SP [2]=expr [3]={ ... }(last)
 	{Tag::Switch, {tok(0), lit(" "), computed(CSwitchExpr), lit(" "),
 		tok(3), computed(CSwitchCases), hard_brk(), last()}},
 	{Tag::GlobalDecl, {decl_cands()}},
 	{Tag::LocalDecl, {decl_cands()}},
+	// TERNARY: [0]=cond [1]=? [2]=true-expr [3]=: [4]=false-expr
 	{Tag::Ternary, {flat_split(
 		{FmtStep::EI(0), FmtStep::L(" "), FmtStep::TI(1),
 		 FmtStep::S(), FmtStep::EI(2), FmtStep::L(" "),

@@ -447,7 +447,10 @@ Candidate format_args_fill(const ArgItems& items, int align_col, int indent,
 	return {s.fmt, s.cur_col, s.lines, s.total_overflow};
 	}
 
-// State for brute-force break-point search.
+// State for brute-force break-point search over fill-layout break points.
+// Given N single-line args (3..16), tries all possible line break placements
+// to find the most balanced layout (smallest spread between widest and
+// narrowest lines) without exceeding the greedy line count.
 struct FillSearch
 	{
 	const std::vector<int>& arg_widths;	// arg only (no comma)
