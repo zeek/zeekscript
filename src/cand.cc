@@ -125,62 +125,62 @@ bool Candidate::BetterThan(const Candidate& o) const
 	return Spread() < o.Spread();
 	}
 
+// Partition candidates into best non-reluctant and best reluctant.
+struct BestPair {
+	const Candidate* normal;
+	const Candidate* reluctant;
+};
+
+static BestPair partition_best(const Candidates& cs)
+	{
+	const Candidate* normal = nullptr;
+	const Candidate* reluctant = nullptr;
+
+	for ( const auto& c : cs )
+		if ( c.ReluctantBreaks() > 0 )
+			{
+			if ( ! reluctant || c.BetterThan(*reluctant) )
+				reluctant = &c;
+			}
+		else if ( ! normal || c.BetterThan(*normal) )
+			normal = &c;
+
+	return {normal, reluctant};
+	}
+
+// Prefer non-reluctant candidates.  Reluctant ($-split) candidates
+// propagate through the beam for width reduction but are not chosen
+// by local best() - they would steal overflow that the outer context
+// handles at a better break.  Exception: when the best non-reluctant
+// significantly overflows and a reluctant candidate eliminates it,
+// the reluctant wins - the outer context cannot help with overflow
+// baked into a sub-expression.
 const Candidate& best(const Candidates& cs)
 	{
 	assert(! cs.empty());
+	auto [normal, reluctant] = partition_best(cs);
 
-	// Prefer non-reluctant candidates.  Reluctant ($-split)
-	// candidates propagate through the beam for width reduction
-	// but are not chosen by local best() - they would steal
-	// overflow that the outer context handles at a better break.
-	// Exception: when the best non-reluctant significantly
-	// overflows and a reluctant candidate eliminates it, the
-	// reluctant wins - the outer context cannot help with
-	// overflow baked into a sub-expression.
-	const Candidate* result = nullptr;
-	const Candidate* reluctant_best = nullptr;
+	if ( ! normal )
+		return *reluctant;
 
-	for ( const auto& c : cs )
-		if ( c.ReluctantBreaks() > 0 )
-			{
-			if ( ! reluctant_best || c.BetterThan(*reluctant_best) )
-				reluctant_best = &c;
-			}
-		else if ( ! result || c.BetterThan(*result) )
-			result = &c;
+	if ( reluctant && normal->Ovf() > 2 && reluctant->Ovf() <= 0 )
+		return *reluctant;
 
-	if ( ! result )
-		return *reluctant_best;
-
-	if ( reluctant_best && result->Ovf() > 2 && reluctant_best->Ovf() <= 0 )
-		return *reluctant_best;
-
-	return *result;
+	return *normal;
 	}
 
+// Like best() but lets reluctant candidates win when they save >= 2
+// lines (via BetterThan's built-in gate).  Used at statement level
+// where no outer context can help.
 const Candidate& best_overall(const Candidates& cs)
 	{
 	assert(! cs.empty());
+	auto [normal, reluctant] = partition_best(cs);
 
-	// Like best() but lets reluctant candidates win when they
-	// save >= 2 lines (via BetterThan's built-in gate).  Used
-	// at statement level where no outer context can help.
-	const Candidate* result = nullptr;
-	const Candidate* reluctant_best = nullptr;
+	if ( ! normal )
+		return *reluctant;
+	if ( ! reluctant )
+		return *normal;
 
-	for ( const auto& c : cs )
-		if ( c.ReluctantBreaks() > 0 )
-			{
-			if ( ! reluctant_best || c.BetterThan(*reluctant_best) )
-				reluctant_best = &c;
-			}
-		else if ( ! result || c.BetterThan(*result) )
-			result = &c;
-
-	if ( ! result )
-		return *reluctant_best;
-	if ( ! reluctant_best )
-		return *result;
-
-	return reluctant_best->BetterThan(*result) ? *reluctant_best : *result;
+	return reluctant->BetterThan(*normal) ? *reluctant : *normal;
 	}
