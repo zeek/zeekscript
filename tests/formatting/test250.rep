@@ -1,0 +1,67 @@
+FUNC-DECL {
+  KEYWORD "event"
+  SP
+  IDENTIFIER "Aaaaaaaaaaaa::xxxxxx_xxxx_xx_xx_xxxxxx_xxx"
+  PARAMS {
+    LPAREN
+    PARAM "xx_xxxxxxx" {
+      COLON
+      TYPE-PARAMETERIZED "set" {
+        SUBSCRIPTS {
+          LBRACKET
+          TYPE-ATOM "addr"
+          COMMA
+          TYPE-ATOM "bool"
+          COMMA
+          TYPE-ATOM "bool"
+          RBRACKET
+        }
+      }
+    }
+    RPAREN
+  }
+  ATTR-LIST {
+    ATTR "&is_used"
+  }
+  BODY {
+    LBRACE
+    IF-NO-ELSE {
+      KEYWORD "if"
+      SP
+      LPAREN
+      BINARY-OP "!=" {
+        IDENTIFIER "Aaaaaaa::xxxx"
+        OP "!="
+        IDENTIFIER "Aaaaaaaaaaaa::xxxxxxxxxxxxx"
+      }
+      RPAREN
+      BODY {
+        SAME-LINE
+        BLOCK {
+          LBRACE
+          EXPR-STMT {
+            CALL {
+              IDENTIFIER "xxxxxxxxxxxxxx"
+              ARGS {
+                LPAREN
+                CALL {
+                  IDENTIFIER "xxx"
+                  ARGS {
+                    LPAREN
+                    CONSTANT "\"xxxxx\""
+                    RPAREN
+                  }
+                }
+                RPAREN
+              }
+            }
+            SEMI
+          }
+          RBRACE
+        }
+      }
+    }
+    RBRACE
+  }
+  COMMENT-TRAILING "#@ NOT-TESTED"
+}

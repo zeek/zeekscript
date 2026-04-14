@@ -299,12 +299,21 @@ LIPtr Layout::ComputeWhenTimeout(const FmtContext& ctx) const
 	           body + rb_comments + brace_pad + Formatting(tk[3]));
 	}
 
-// Trailing comment + Whitesmith body block for FUNC-DECL.
-LIPtr Layout::ComputeFuncBody(const FmtContext& ctx) const
+// Trailing comment on a FUNC-DECL header (from the BODY node's
+// text, which holds any COMMENT-TRAILING attached by the parser).
+// Stays in the beam so the header accounts for its width.
+LIPtr Layout::ComputeFuncTrailing(const FmtContext&) const
 	{
-	const auto& body = Children().back();
-	return lit(Formatting(body->Text()) +
-			body->FormatWhitesmithBlock(ctx));
+	auto& text = Children().back()->Text();
+	if ( text.empty() )
+		return lit(Formatting());
+	return lit(Formatting(text));
+	}
+
+// Whitesmith body block for FUNC-DECL, decoupled from header.
+LIPtr Layout::ComputeFuncBodyBlock(const FmtContext& ctx) const
+	{
+	return lit(Children().back()->FormatWhitesmithBlock(ctx));
 	}
 
 // ---- Declaration formatting ----------------------------------------------

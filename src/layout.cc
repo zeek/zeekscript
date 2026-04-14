@@ -688,7 +688,8 @@ Candidates Layout::BuildLayout(LayoutItems items, const FmtContext& ctx,
 	// so the body's overflow/spread don't pollute condition layout.
 	size_t body_start = items.size();
 	for ( size_t i = 0; i < items.size(); ++i )
-		if ( items[i]->kind == BodyText )
+		if ( items[i]->kind == BodyText ||
+		     items[i]->kind == BodyComputed )
 			{
 			body_start = i;
 			break;
@@ -906,7 +907,8 @@ static constexpr ComputeFn CWhenTimeout = &Layout::ComputeWhenTimeout;
 static constexpr ComputeFn CFuncRet = &Layout::ComputeFuncRet;
 static constexpr ComputeFn CFuncAttrs = &Layout::ComputeFuncAttrs;
 static constexpr ComputeFn CCallAttrs = &Layout::ComputeCallAttrs;
-static constexpr ComputeFn CFuncBody = &Layout::ComputeFuncBody;
+static constexpr ComputeFn CFuncTrail = &Layout::ComputeFuncTrailing;
+static constexpr ComputeFn CFuncBlock = &Layout::ComputeFuncBodyBlock;
 static constexpr ComputeFn CSwitchExpr = &Layout::ComputeSwitchExpr;
 static constexpr ComputeFn CSwitchCases = &Layout::ComputeSwitchCases;
 static constexpr ComputeFn CElseFollowOn = &Layout::ComputeElseFollowOn;
@@ -1007,10 +1009,11 @@ static const std::unordered_map<Tag, LayoutItems> layout_table = {
 	{Tag::LambdaCaptures, {arglist_prefix(3, CLambdaPrefix, CLambdaRet),
 		computed(CLambdaBody)}},
 	{Tag::FuncDecl, {tok(0), lit(" "), tok(2), arglist(3, CFuncRet),
-		soft_cont(CFuncAttrs), computed(CFuncBody)}},
+		soft_cont(CFuncAttrs), computed(CFuncTrail),
+		body_computed(CFuncBlock)}},
 	{Tag::FuncDeclRet, {tok(0), lit(" "), tok(2),
 		arglist(3, CFuncRet), soft_cont(CFuncAttrs),
-		computed(CFuncBody)}},
+		computed(CFuncTrail), body_computed(CFuncBlock)}},
 	{Tag::Switch, {tok(0), lit(" "), computed(CSwitchExpr), lit(" "),
 		tok(3), computed(CSwitchCases), hard_brk(), last()}},
 	{Tag::GlobalDecl, {decl_cands()}},

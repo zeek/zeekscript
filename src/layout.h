@@ -79,6 +79,7 @@ enum LIKind {
 
 	StmtBody,	// format children as an indented statement list
 	BodyText,	// Whitesmith-style brace block body
+	BodyComputed,	// computed body, decoupled from header beam
 
 };
 
@@ -475,6 +476,12 @@ inline LIPtr arg(unsigned arg_index)
 inline LIPtr computed(ComputeFn fn)
 	{ return std::make_shared<LayoutItem>(Lit, fn); }
 
+// Computed body: resolved via ComputeFn like computed(), but split
+// off from the beam like BodyText so body overflow doesn't affect
+// header formatting.
+inline LIPtr body_computed(ComputeFn fn)
+	{ return std::make_shared<LayoutItem>(BodyComputed, fn); }
+
 // DeclCands returns Candidates (not LIPtr) and is resolved
 // by its own case in ResolveItem, not via ComputeFn.
 inline LIPtr decl_cands()
@@ -682,7 +689,8 @@ public:
 	LIPtr ComputeCallAttrs(const FmtContext& ctx) const;
 	LIPtr ComputeBlock(const FmtContext& ctx) const;
 	LIPtr ComputeWhenTimeout(const FmtContext& ctx) const;
-	LIPtr ComputeFuncBody(const FmtContext& ctx) const;
+	LIPtr ComputeFuncTrailing(const FmtContext& ctx) const;
+	LIPtr ComputeFuncBodyBlock(const FmtContext& ctx) const;
 	LIPtr ComputeLambdaPrefix(const FmtContext& ctx) const;
 	LIPtr ComputeLambdaRet(const FmtContext& ctx) const;
 	LIPtr ComputeLambdaBody(const FmtContext& ctx) const;
