@@ -201,12 +201,14 @@ static Candidates try_same_line_arg(const Layout& arg, int cur_col,
 	if ( tag != Tag::Call && tag != Tag::IndexLiteral )
 		return {};
 
+	int wrap_lines = 0;
 	if ( ! skip_align_check )
 		{
 		FmtContext ac(indent, align_col, max_col - align_col, trail);
 		auto wc = best(format_expr(arg, ac));
 		if ( wc.Lines() <= 1 )
 			return {};
+		wrap_lines = wc.Lines();
 		}
 
 	int same_col = cur_col + 2;
@@ -239,7 +241,14 @@ static Candidates try_same_line_arg(const Layout& arg, int cur_col,
 
 	int sb_ovf = sb.Fmt().MaxLineOverflow(same_col, effective_max);
 	if ( same_col + first_w <= effective_max && sb_ovf == 0 )
+		{
+		// Reject same-line when wrapping to align_col saves
+		// lines.  Same-line adds sb.Lines()-1 continuation
+		// lines; wrapping adds 1 (the break) + wc.Lines()-1.
+		if ( wrap_lines > 0 && sb.Lines() > wrap_lines + 1 )
+			return {};
 		return {std::move(sb)};
+		}
 
 	return {};
 	}
