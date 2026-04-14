@@ -18,11 +18,11 @@ FUNC-DECL {
         KEYWORD "default"
         COLON
         BODY {
-          BLANK
           KEYWORD "break"
           SEMI
         }
       }
+      BLANK
       CASE {
         KEYWORD "case"
         SP

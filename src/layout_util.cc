@@ -1006,6 +1006,12 @@ LIPtr Layout::ComputeSwitchCases(const FmtContext& ctx) const
 		{
 		auto tag = c->GetTag();
 
+		if ( tag == Tag::Blank )
+			{
+			result += "\n";
+			continue;
+			}
+
 		if ( tag != Tag::Case && tag != Tag::Default )
 			continue;
 

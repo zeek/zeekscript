@@ -1,0 +1,103 @@
+FUNC-DECL {
+  KEYWORD "function"
+  SP
+  IDENTIFIER "xxx"
+  PARAMS {
+    LPAREN
+    RPAREN
+  }
+  BODY {
+    LBRACE
+    SWITCH {
+      KEYWORD "switch"
+      SP
+      PAREN {
+        LPAREN
+        IDENTIFIER "x"
+        RPAREN
+      }
+      LBRACE
+      CASE {
+        KEYWORD "case"
+        SP
+        VALUES {
+          IDENTIFIER "AAAA"
+        }
+        COLON
+        BODY {
+          RETURN {
+            KEYWORD "return"
+            SP
+            CALL {
+              IDENTIFIER "xxx"
+              ARGS {
+                LPAREN
+                BINARY-OP "|" {
+                  IDENTIFIER "xxxxxxxxxx"
+                  OP "|"
+                  IDENTIFIER "xxxxxxx"
+                }
+                RPAREN
+              }
+            }
+            SEMI
+          }
+        }
+      }
+      BLANK
+      CASE {
+        KEYWORD "case"
+        SP
+        VALUES {
+          IDENTIFIER "BBBBBBB"
+        }
+        COLON
+        BODY {
+          RETURN {
+            KEYWORD "return"
+            SP
+            IDENTIFIER "xxxxxxx"
+            SEMI
+          }
+        }
+      }
+      BLANK
+      DEFAULT {
+        KEYWORD "default"
+        COLON
+        COMMENT-LEADING "#@ BEGIN-NOT-TESTED"
+        BODY {
+          EXPR-STMT {
+            CALL {
+              IDENTIFIER "xxxxxxxxxxxxxx"
+              ARGS {
+                LPAREN
+                CALL {
+                  IDENTIFIER "xxx"
+                  ARGS {
+                    LPAREN
+                    CONSTANT "\"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\""
+                    COMMA
+                    IDENTIFIER "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+                    RPAREN
+                  }
+                }
+                RPAREN
+              }
+            }
+            SEMI
+          }
+          RETURN {
+            KEYWORD "return"
+            SP
+            IDENTIFIER "xxxxxxxxxx"
+            SEMI
+          }
+        }
+      }
+      COMMENT-LEADING "#@ END-NOT-TESTED"
+      RBRACE
+    }
+    RBRACE
+  }
+}

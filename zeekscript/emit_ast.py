@@ -1636,6 +1636,7 @@ class Emitter:
     def _emit_case_list(self, node: tree_sitter.Node) -> None:
         kids = [c for c in node.children
                 if not c.is_extra or c.type != "nl"]
+
         i = 0
         while i < len(kids):
             k = kids[i]
@@ -1650,6 +1651,7 @@ class Emitter:
                 continue
             if self._text(k) == "case":
                 # Collect: case expr_list : stmt_list
+                self._maybe_blank(k)
                 i += 1
                 exprs = kids[i] if i < len(kids) and kids[i].type == "expr_list" else None
                 i += 1  # skip ':'
@@ -1664,6 +1666,8 @@ class Emitter:
                     self._emit_expr_list(exprs)
                     self._close()
                 self._w('COLON')
+                if colon:
+                    self._mark_content(colon)
                 # Collect any comment after the colon.
                 comments = []
                 while i < len(kids) and kids[i].is_extra:
@@ -1676,20 +1680,33 @@ class Emitter:
                     self._open('BODY')
                     self._emit_stmt_list(stmts)
                     self._close()
+                    self._mark_content(stmts)
                     i += 1
                 self._close()
             elif self._text(k) == "default":
-                i += 1  # skip ':'
+                self._maybe_blank(k)
+                i += 1
+                colon = None
                 if i < len(kids) and self._text(kids[i]) == ":":
+                    colon = kids[i]
                     i += 1
-                stmts = kids[i] if i < len(kids) and kids[i].type == "stmt_list" else None
                 self._open('DEFAULT')
                 self._w('KEYWORD "default"')
                 self._w('COLON')
+                if colon:
+                    self._mark_content(colon)
+                comments = []
+                while i < len(kids) and kids[i].is_extra:
+                    comments.append(kids[i])
+                    i += 1
+                stmts = kids[i] if i < len(kids) and kids[i].type == "stmt_list" else None
+                for c in comments:
+                    self._emit_comment(c, colon)
                 if stmts:
                     self._open('BODY')
                     self._emit_stmt_list(stmts)
                     self._close()
+                    self._mark_content(stmts)
                     i += 1
                 self._close()
             else:

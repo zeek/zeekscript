@@ -1,0 +1,18 @@
+function xxx()
+	{
+	switch ( x )
+		{
+		case AAAA:
+			return xxx(xxxxxxxxxx | xxxxxxx);
+
+		case BBBBBBB:
+			return xxxxxxx;
+
+		default:
+			#@ BEGIN-NOT-TESTED
+			xxxxxxxxxxxxxx(xxx("xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+				xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx));
+			return xxxxxxxxxx;
+			#@ END-NOT-TESTED
+		}
+	}
