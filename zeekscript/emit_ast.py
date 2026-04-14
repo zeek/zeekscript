@@ -141,7 +141,8 @@ class Emitter:
         for i, child in enumerate(children):
             if not child.is_extra:
                 continue
-            if child.type == "nl":
+            # _is_benign_error: WORKAROUND for tree-sitter-zeek time-unit bug.
+            if child.type == "nl" or _is_benign_error(child):
                 continue
 
             prev_content = None
@@ -164,7 +165,8 @@ class Emitter:
         saw_comment = False
         for child in node.children:
             if child.is_extra:
-                if child.type == "nl":
+                # _is_benign_error: WORKAROUND for tree-sitter-zeek time-unit bug.
+                if child.type == "nl" or _is_benign_error(child):
                     continue
                 self._emit_comment(child, last_non_extra)
                 saw_comment = True
@@ -990,6 +992,21 @@ class Emitter:
     # Declarations
     # ------------------------------------------------------------------
 
+    # WORKAROUND: tree-sitter-zeek time-unit bug (see _is_benign_error).
+    def _find_time_suffix(self, node: tree_sitter.Node) -> str:
+        """Check for a time_unit inside a benign ERROR child."""
+        for child in node.children:
+            if _is_benign_error(child):
+                return self._text(child.children[0])
+        return ""
+
+    # WORKAROUND: tree-sitter-zeek time-unit bug (see _is_benign_error).
+    def _emit_interval(self, expr_node: tree_sitter.Node,
+                       unit: str) -> None:
+        """Emit INTERVAL from a numeric expr + time unit suffix."""
+        value = self._text(expr_node)
+        self._w(f'INTERVAL {_quote(value)} {_quote(unit)}')
+
     def _emit_var_decl(self, node: tree_sitter.Node, tag: str) -> None:
         """Emit a variable declaration (global, const, option, redef, local)."""
         kids = self._children(node)
@@ -999,6 +1016,7 @@ class Emitter:
         init_expr = None
         init_op = "="
         attrs = None
+        time_suffix = self._find_time_suffix(node)  # WORKAROUND
 
         i = 1
         if i < len(kids) and kids[i].type == "id":
@@ -1031,7 +1049,10 @@ class Emitter:
         if init_expr:
             self._open('DECL-INIT')
             self._w(f'ASSIGN {_quote(init_op)}')
-            self._emit_init_expr(init_expr, typ)
+            if time_suffix:  # WORKAROUND: tree-sitter-zeek time-unit bug.
+                self._emit_interval(init_expr, time_suffix)
+            else:
+                self._emit_init_expr(init_expr, typ)
             self._close()
         if attrs:
             self._emit_attr_list(attrs)
@@ -1775,8 +1796,22 @@ class Emitter:
 # Error checking
 # ------------------------------------------------------------------
 
+# WORKAROUND: tree-sitter-zeek bug - the grammar doesn't recognize
+# integer time literals like "86400 sec", placing the time_unit in
+# an ERROR node.  Fixed in tree-sitter-zeek PR but not yet released.
+# Remove _is_benign_error, _find_time_suffix, _emit_interval, and
+# all call sites once the updated tree-sitter-zeek ships.
+def _is_benign_error(node: tree_sitter.Node) -> bool:
+    """True for ERROR nodes caused by the tree-sitter-zeek time-unit bug."""
+    if node.type != "ERROR":
+        return False
+    kids = [c for c in node.children if not c.is_extra]
+    return len(kids) == 1 and kids[0].type == "time_unit"
+
 def _has_error(node: tree_sitter.Node) -> bool:
-    if node.type == "ERROR" or node.is_missing:
+    if node.is_missing:
+        return True
+    if node.type == "ERROR" and not _is_benign_error(node):
         return True
     for child in node.children:
         if _has_error(child):

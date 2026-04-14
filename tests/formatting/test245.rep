@@ -1,0 +1,16 @@
+EXPORT {
+  KEYWORD "export"
+  SP
+  LBRACE
+  GLOBAL-DECL {
+    KEYWORD "option"
+    SP
+    IDENTIFIER "xxxxxxxxxxxxxxxxxxxxxxxxxx"
+    DECL-INIT {
+      ASSIGN "="
+      INTERVAL "86400" "sec"
+    }
+    SEMI
+  }
+  RBRACE
+}
