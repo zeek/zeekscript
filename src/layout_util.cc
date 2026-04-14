@@ -1111,6 +1111,13 @@ LIPtr Layout::ComputeSwitchCases(const FmtContext& ctx) const
 
 // ---- Preproc formatting --------------------------------------------------
 
+// @else and @endif are the directives that affect preproc indent depth.
+static bool is_depth_directive(const Layout& node)
+	{
+	const auto& d = node.Arg(0);
+	return d == "@else" || d == "@endif";
+	}
+
 bool Layout::OpensDepth() const
 	{
 	return GetTag() == Tag::PreprocCond || Arg(0) == "@else";
@@ -1118,20 +1125,12 @@ bool Layout::OpensDepth() const
 
 bool Layout::ClosesDepth() const
 	{
-	if ( GetTag() == Tag::PreprocCond )
-		return false;
-
-	const auto& d = Arg(0);
-	return d == "@else" || d == "@endif";
+	return GetTag() != Tag::PreprocCond && is_depth_directive(*this);
 	}
 
 bool Layout::AtColumnZero() const
 	{
-	if ( GetTag() == Tag::PreprocCond )
-		return true;
-
-	const auto& d = Arg(0);
-	return d == "@else" || d == "@endif";
+	return GetTag() == Tag::PreprocCond || is_depth_directive(*this);
 	}
 
 // ---- Binary operator chains -----------------------------------------------

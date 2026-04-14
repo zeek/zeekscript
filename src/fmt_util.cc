@@ -187,11 +187,11 @@ static void emit_fill_leading(const std::vector<std::string>& leading,
 		}
 	}
 
-// Try placing a multi-line bracketed arg (call, index-literal) on
-// the current line instead of wrapping.  Only suitable when the arg
-// is genuinely multi-line at the alignment column (not just squeezed
-// at the tight current position), the first line fits, and the
-// tighter position doesn't cost extra inner lines.
+// Try placing a multi-line bracketed arg (call, index-literal) on the
+// current line instead of wrapping.  Only suitable when the arg is genuinely
+// multi-line at the alignment column (not just squeezed at the tight current
+// position), the first line fits, and the tighter position doesn't cost extra
+// inner lines.
 static Candidates try_same_line_arg(const Layout& arg, int cur_col,
                                     int align_col, int indent,
                                     int max_col, int trail,
@@ -289,11 +289,14 @@ static void wrap_and_format(FillState& s, const ArgItem& it,
 			s.comma_consumed);
 	}
 
-// Emit a same-line candidate (from try_same_line_arg).
-// Returns true on success.
-static bool emit_same_line(FillState& s, const ArgItem& it,
-				const LayoutPtr& nc, const Candidates& scs)
+// Try placing a bracketed arg on the same line and emit it into
+// FillState on success.  Combines try_same_line_arg + emission.
+static bool try_emit_same_line(FillState& s, const ArgItem& it,
+				const LayoutPtr& nc, int trail = 0,
+				bool skip_align_check = false)
 	{
+	auto scs = try_same_line_arg(*it.arg, s.cur_col, s.align_col, s.indent,
+					s.max_col, trail, skip_align_check);
 	if ( scs.empty() )
 		return false;
 
@@ -387,9 +390,7 @@ Candidate format_args_fill(const ArgItems& items, int align_col, int indent,
 		          (bc.Ovf() == 0 ||
 		           it.arg->GetTag() == Tag::FieldAssign) )
 			{
-			auto scs = try_same_line_arg(*it.arg, s.cur_col,
-				align_col, indent, s.max_col, t);
-			if ( emit_same_line(s, it, nc, scs) )
+			if ( try_emit_same_line(s, it, nc, t) )
 				continue;
 			s.fmt += Formatting(it.comma);
 			wrap_and_format(s, it, nc, t);
@@ -413,14 +414,9 @@ Candidate format_args_fill(const ArgItems& items, int align_col, int indent,
 			else
 				{
 				// Try splitting an IndexLiteral on same line.
-				if ( it.arg->GetTag() == Tag::IndexLiteral )
-					{
-					auto scs = try_same_line_arg(*it.arg,
-						s.cur_col, align_col, indent,
-						s.max_col, t, true);
-					if ( emit_same_line(s, it, nc, scs) )
-						continue;
-					}
+				if ( it.arg->GetTag() == Tag::IndexLiteral &&
+				     try_emit_same_line(s, it, nc, t, true) )
+					continue;
 				s.fmt += Formatting(it.comma);
 				wrap_and_format(s, it, nc, t);
 				continue;
