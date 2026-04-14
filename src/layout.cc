@@ -346,6 +346,44 @@ Partials LIIndentDown::LayoutStep(Partials& beam, const FmtContext&, int, int) c
 	return next;
 	}
 
+// Fill candidates for an arg list: flat/fill, with optional
+// upgrade to break-after-open or vertical when every arg wraps.
+static Candidates arglist_fill_candidates(const Formatting& prefix,
+		const Formatting& open, const Formatting& close,
+		const Formatting& suffix, const ArgItems& items,
+		const LayoutPtr& child, const FmtContext& ctx,
+		bool trail_comma_fill, bool vert_upgrade, bool is_init_rhs,
+		const LayoutPtr& dangling_comma, int start_col)
+	{
+	std::string close_pfx;
+	if ( trail_comma_fill && child->FindOptChild(Tag::TrailingComma) )
+		close_pfx = ", ";
+
+	auto cs = flat_or_fill(prefix, open, close, suffix, items, ctx,
+				child->Text(), close_pfx, dangling_comma);
+
+	if ( ! vert_upgrade || items.size() < 3 || cs.size() <= 1 ||
+	     cs.back().Lines() != static_cast<int>(items.size()) )
+		return cs;
+
+	// Only offer break-after-open when the first arg
+	// overflows the call line.
+	int al = start_col + prefix.Size() + open.Size();
+	FmtContext fc(ctx.Indent(), al, ctx.MaxCol() - al);
+	auto fa = best(format_expr(*items[0].arg, fc));
+
+	if ( al + fa.Width() + 1 <= ctx.MaxCol() )
+		return cs;
+
+	if ( is_init_rhs )
+		cs.push_back(format_args_vertical(open, close, items, ctx));
+	else
+		cs.push_back(format_args_fill_break(prefix, open, close,
+						suffix, items, ctx, start_col));
+
+	return cs;
+	}
+
 Partials LIArgListR::LayoutStep(Partials& beam, const FmtContext& ctx,
                                 int trail, int soft_trail) const
 	{
@@ -431,29 +469,10 @@ Partials LIArgListR::LayoutStep(Partials& beam, const FmtContext& ctx,
 							dangling_comma));
 			}
 		else
-			{
-			std::string close_pfx;
-			if ( trail_comma_fill &&
-			     child->FindOptChild(Tag::TrailingComma) )
-				close_pfx = ", ";
-
-			cs = flat_or_fill(prefix, open, close, suffix, items,
-						sub, child->Text(), close_pfx,
-						dangling_comma);
-
-			if ( vert_upgrade && items.size() >= 3 &&
-			     cs.size() > 1 &&
-			     cs.back().Lines() == static_cast<int>(items.size()) )
-				{
-				if ( ctx.IsInitRHS() )
-					cs.push_back(format_args_vertical(
-						open, close, items, sub));
-				else
-					cs.push_back(format_args_fill_break(
-						prefix, open, close, suffix,
-						items, sub, p.col));
-				}
-			}
+			cs = arglist_fill_candidates(prefix, open, close,
+					suffix, items, child, sub,
+					trail_comma_fill, vert_upgrade,
+					ctx.IsInitRHS(), dangling_comma, p.col);
 
 		int al_col = p.col + prefix.Size() + open.Size();
 		for ( const auto& c : cs )
