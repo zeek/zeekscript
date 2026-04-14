@@ -19,8 +19,10 @@ FUNC-DECL {
       }
       RPAREN
       BODY {
-        KEYWORD "next"
-        SEMI
+        KW-STMT {
+          KEYWORD "next"
+          SEMI
+        }
       }
     }
     COMMENT-TRAILING "# skip it"

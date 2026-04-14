@@ -21,8 +21,10 @@ FUNC-DECL {
         }
         COLON
         BODY {
-          KEYWORD "break"
-          SEMI
+          KW-STMT {
+            KEYWORD "break"
+            SEMI
+          }
         }
       }
       RBRACE

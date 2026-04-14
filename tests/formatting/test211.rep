@@ -18,8 +18,10 @@ FUNC-DECL {
         KEYWORD "default"
         COLON
         BODY {
-          KEYWORD "break"
-          SEMI
+          KW-STMT {
+            KEYWORD "break"
+            SEMI
+          }
         }
       }
       BLANK

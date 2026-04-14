@@ -980,6 +980,7 @@ static const std::unordered_map<Tag, LayoutItems> layout_table = {
 	{Tag::CommentLeading, {arg(0)}},
 	{Tag::ExprStmt, {expr(0), last()}},
 	{Tag::ReturnVoid, {tok(0), last()}},
+	{Tag::KwStmt, {tok(0), last()}},
 	{Tag::Return, {tok(0), sp(), expr(2), last()}},
 	{Tag::Add, {tok(0), sp(), expr(2), last()}},
 	{Tag::Delete, {tok(0), sp(), expr(2), last()}},

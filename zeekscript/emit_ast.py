@@ -1316,8 +1316,10 @@ class Emitter:
             self._emit_assert(node)
             return
         if first_text in ("next", "break", "fallthrough"):
+            self._open('KW-STMT')
             self._w(f'KEYWORD {_quote(first_text)}')
             self._w('SEMI')
+            self._close()
             return
 
         # Brace block (standalone { stmt_list })
@@ -1626,19 +1628,6 @@ class Emitter:
         self._close()
 
     def _emit_switch(self, node: tree_sitter.Node) -> None:
-        # Collect #@ END extras between case_list and closing
-        # brace so they can be placed inside the last case body.
-        trailing_end_comments: list[tree_sitter.Node] = []
-        seen_case_list = False
-        for child in node.children:
-            if child.type == "case_list":
-                seen_case_list = True
-            elif seen_case_list and child.is_extra:
-                text = self._text(child)
-                if text.startswith("#@ END"):
-                    trailing_end_comments.append(child)
-                    self._consumed_extras.add(child.start_byte)
-
         self._open('SWITCH')
         self._kw("switch")
         for child in self._iter_children(node):
@@ -1655,11 +1644,10 @@ class Emitter:
             elif child.type == "expr":
                 self._emit_expr(child)
             elif child.type == "case_list":
-                self._emit_case_list(child, trailing_end_comments)
+                self._emit_case_list(child)
         self._close()
 
-    def _emit_case_list(self, node: tree_sitter.Node,
-                        trailing_end_comments: list | None = None) -> None:
+    def _emit_case_list(self, node: tree_sitter.Node) -> None:
         kids = [c for c in node.children
                 if not c.is_extra or c.type != "nl"]
 
@@ -1708,29 +1696,9 @@ class Emitter:
                 if stmts:
                     self._open('BODY')
                     self._emit_stmt_list(stmts)
-                    # Capture #@ END comments into the body.
-                    j = i + 1
-                    while j < len(kids) and kids[j].is_extra:
-                        text = self._text(kids[j])
-                        if not text.startswith("#@ END"):
-                            break
-                        self._w(f'COMMENT-LEADING {_quote(text)}')
-                        self._mark_content(kids[j])
-                        self._consumed_extras.add(kids[j].start_byte)
-                        j += 1
-                    # If this is the last case body, emit any
-                    # #@ END comments from the switch node.
-                    if trailing_end_comments:
-                        is_last = not any(
-                            not c.is_extra for c in kids[j:])
-                        if is_last:
-                            for c in trailing_end_comments:
-                                text = self._text(c)
-                                self._w(f'COMMENT-LEADING {_quote(text)}')
-                                self._mark_content(c)
                     self._close()
                     self._mark_content(stmts)
-                    i = j
+                    i += 1
                 self._close()
             elif self._text(k) == "default":
                 self._maybe_blank(k)
@@ -1754,29 +1722,9 @@ class Emitter:
                 if stmts:
                     self._open('BODY')
                     self._emit_stmt_list(stmts)
-                    # Capture #@ END comments into the body.
-                    j = i + 1
-                    while j < len(kids) and kids[j].is_extra:
-                        text = self._text(kids[j])
-                        if not text.startswith("#@ END"):
-                            break
-                        self._w(f'COMMENT-LEADING {_quote(text)}')
-                        self._mark_content(kids[j])
-                        self._consumed_extras.add(kids[j].start_byte)
-                        j += 1
-                    # If this is the last case body, emit any
-                    # #@ END comments from the switch node.
-                    if trailing_end_comments:
-                        is_last = not any(
-                            not c.is_extra for c in kids[j:])
-                        if is_last:
-                            for c in trailing_end_comments:
-                                text = self._text(c)
-                                self._w(f'COMMENT-LEADING {_quote(text)}')
-                                self._mark_content(c)
                     self._close()
                     self._mark_content(stmts)
-                    i = j
+                    i += 1
                 self._close()
             else:
                 i += 1

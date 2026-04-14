@@ -46,8 +46,10 @@ FUNC-DECL {
             }
             SEMI
           }
-          KEYWORD "break"
-          SEMI
+          KW-STMT {
+            KEYWORD "break"
+            SEMI
+          }
         }
       }
       COMMENT-LEADING "#@ END-NOT-TESTED"

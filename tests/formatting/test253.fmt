@@ -9,6 +9,6 @@ function foo()
 		#@ BEGIN-NOT-TESTED
 		aaa = Aaaa::BBB;
 		break;
-		#@ END-NOT-TESTED
+	#@ END-NOT-TESTED
 	}
 	}

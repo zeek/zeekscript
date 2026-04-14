@@ -69,6 +69,7 @@ enum class Tag {
 	WhenTimeout,
 	Return,
 	ReturnVoid,
+	KwStmt,
 	Print,
 	EventStmt,
 	Add,
