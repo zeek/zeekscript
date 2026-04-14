@@ -850,8 +850,9 @@ Candidate format_args_fill_break(const Formatting& prefix,
 	auto pad = line_prefix(ctx.Indent(), ac);
 	FmtContext fc(ctx.Indent(), ac, avail, ctx.HardTrail());
 
+	int cr = close.Size() + suffix.Size();
 	auto bf = format_args_fill(items, ac, ctx.Indent(), fc,
-					ctx.HardTrail(), nullptr, avail);
+					ctx.HardTrail(), nullptr, cr);
 
 	auto fmt = prefix + open + "\n" + pad + bf.Fmt() + close + suffix;
 	int w = bf.Width() + close.Size() + suffix.Size();

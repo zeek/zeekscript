@@ -2,6 +2,7 @@ function foo()
 	{
 	if ( test )
 		ProtocolAnalyzer::register_packet_handler(
-		                   ProtocolAnalyzer::ANALYZER_ROOT, DLT_EN10MB,
+		                               ProtocolAnalyzer::ANALYZER_ROOT,
+		                                          DLT_EN10MB,
 		                                          handler_tag);
 	}

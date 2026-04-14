@@ -109,7 +109,7 @@ static std::string reduce_overflow(const std::string& text, int max_col)
 			int ovf = line_end - max_col + 1;
 			int removable = std::min(ovf, n_spaces - 1);
 
-			if ( removable > 0 && removable >= ovf )
+			if ( removable > 0 && removable >= ovf - 1 )
 				line = line.substr(0, n_tabs) +
 					std::string(n_spaces - removable, ' ') +
 					line.substr(n_tabs + n_spaces);
