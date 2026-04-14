@@ -443,7 +443,18 @@ Candidates flat_or_split(FmtSteps steps, const std::vector<SplitAt>& splits,
 		{
 		if ( sp.skip_if_multiline && multiline )
 			continue;
-		result.push_back(build_split(steps, sp, ctx));
+		auto sc = build_split(steps, sp, ctx);
+
+		// Skip split when the flat is single-line, the split's
+		// last line still overflows, and the overflow savings are
+		// trivial.  The continuation is unsplittable, so the extra
+		// line break wastes a line for negligible column reduction.
+		if ( result[0].Lines() == 1 && sc.Lines() == 2 &&
+		     sc.Width() + ctx.Trail() > ctx.MaxCol() &&
+		     result[0].Ovf() - sc.Ovf() <= INDENT_WIDTH / 2 )
+			continue;
+
+		result.push_back(std::move(sc));
 		}
 
 	return result;

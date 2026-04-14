@@ -1,0 +1,28 @@
+FUNC-DECL {
+  KEYWORD "function"
+  SP
+  IDENTIFIER "foo"
+  PARAMS {
+    LPAREN
+    RPAREN
+  }
+  BODY {
+    LBRACE
+    EXPR-STMT {
+      BINARY-OP "=" {
+        IDENTIFIER "message"
+        OP "="
+        CALL {
+          IDENTIFIER "fmt"
+          ARGS {
+            LPAREN
+            CONSTANT "\"Meterpreter detected with reason=CERTIFICATE_DETECTED, protocol=HTTPS, os=ANY\""
+            RPAREN
+          }
+        }
+      }
+      SEMI
+    }
+    RBRACE
+  }
+}
