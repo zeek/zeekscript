@@ -7,11 +7,6 @@ Candidates format_expr(const Layout& node, const FmtContext& ctx)
 	return node.Format(ctx);
 	}
 
-Candidates format_node(const Layout& node, const FmtContext& ctx)
-	{
-	return node.Format(ctx);
-	}
-
 // Collect all trailing comments from node fields.
 static void collect_trailing(const Layout& node,
                             std::vector<std::string>& out)

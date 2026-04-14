@@ -896,7 +896,6 @@ static LIPtr format_record_body(const Layout& source,
 	return lit(Formatting("\n") + body + close_pad + close_brace + suffix);
 	}
 
-// Helper: build attr suffix from an optional ATTR-LIST child.
 // Record body + close brace + optional attrs.  Inner = Child(5) = TYPE-RECORD.
 LIPtr Layout::ComputeRecordBody(const FmtContext& ctx) const
 	{
@@ -928,7 +927,6 @@ static void append_case_body(const LayoutPtr& body, Formatting& result,
 	result += "\n" + text;
 	}
 
-// Switch expression: unwrap parens for Zeek-style ( expr ) spacing.
 // SCHEDULE: [0]=KEYWORD [1]=SP [2]=interval [3]={ [4]=CALL [5]=}
 // Three formats: flat, two-line (break before {), three-line
 // (break before {, before call, and before }).
@@ -983,6 +981,7 @@ LIPtr Layout::ComputeSchedule(const FmtContext& ctx) const
 	return std::make_shared<LIDeclCandsR>(std::move(cands));
 	}
 
+// Switch expression: unwrap parens for Zeek-style ( expr ) spacing.
 LIPtr Layout::ComputeSwitchExpr(const FmtContext& ctx) const
 	{
 	auto switch_expr = Child(2);
