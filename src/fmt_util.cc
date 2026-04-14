@@ -686,9 +686,8 @@ Candidates flat_or_fill(const Formatting& prefix, const Formatting& open,
 	int close_extra = static_cast<int>(close_prefix.size());
 	int suffix_w = suffix.Size();
 	int open_col = ctx.Col() + prefix_w + open_w;
-	int close_room = close_extra + close_w;
-	int inner_w =
-		ctx.MaxCol() - open_col - close_room - suffix_w;
+	int close_room = close_extra + close_w + suffix_w;
+	int inner_w = ctx.MaxCol() - open_col - close_room;
 
 	FmtContext inner_ctx(ctx.Indent(), open_col, inner_w);
 	auto cb = close_prefix + close;
