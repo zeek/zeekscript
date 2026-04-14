@@ -366,10 +366,13 @@ class Emitter:
                 return
 
             self._open(f'BINARY-OP {_quote(op)}')
-            self._emit_expr_child(kids[0])
-            self._w(f'OP {_quote(op)}')
-            self._emit_expr_child(kids[2])
-            self._emit_extras_in(node)
+            for child in self._iter_children(node):
+                if child == kids[0]:
+                    self._emit_expr_child(child)
+                elif child == kids[2]:
+                    self._emit_expr_child(child)
+                elif not child.is_named and self._text(child) == op:
+                    self._w(f'OP {_quote(op)}')
             self._close()
             return
 

@@ -1,0 +1,19 @@
+GLOBAL-DECL {
+  KEYWORD "const"
+  SP
+  IDENTIFIER "xxxxxxxxxxxxxxxxxxxxxxxx"
+  DECL-INIT {
+    ASSIGN "="
+    BINARY-OP "|" {
+      BINARY-OP "|" {
+        CONSTANT "/^\\??\\x00+$/"
+        OP "|"
+        CONSTANT "/^xxxx xxx[\\x00-\\xff]{4}\\x00*$/"
+      }
+      COMMENT-TRAILING "# AAAA"
+      OP "|"
+      CONSTANT "/^0123456789abcdefghijklmnopqrstu\\x00$/"
+    }
+  }
+  SEMI
+}
