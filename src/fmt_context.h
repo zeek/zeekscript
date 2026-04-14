@@ -79,6 +79,12 @@ public:
 	bool IsInitRHS() const { return init_rhs; }
 	void SetInitRHS() { init_rhs = true; }
 
+	// True when formatting a sub-expression inside an arg list.
+	// Suppresses fill_break so that the 0-overflow lie doesn't
+	// distort best() selection for nested calls.
+	bool InSubExpr() const { return in_sub_expr; }
+	void SetInSubExpr() { in_sub_expr = true; }
+
 private:
 	int indent;
 	int col;
@@ -87,4 +93,5 @@ private:
 	int soft_trail;	// portion of trail that can break to its own line
 	bool param_list = false;
 	bool init_rhs = false;
+	bool in_sub_expr = false;
 };

@@ -366,6 +366,12 @@ static Candidates arglist_fill_candidates(const Formatting& prefix,
 	     cs.back().Lines() != static_cast<int>(items.size()) )
 		return cs;
 
+	// Inside a sub-expression (arg of another call's flat
+	// layout), skip fill_break - its 0-overflow would distort
+	// best() into picking it over fill unnecessarily.
+	if ( ctx.InSubExpr() )
+		return cs;
+
 	// Only offer break-after-open when the first arg
 	// overflows the call line.
 	int al = start_col + prefix.Size() + open.Size();
@@ -428,6 +434,8 @@ Partials LIArgListR::LayoutStep(Partials& beam, const FmtContext& ctx,
 		FmtContext sub(ctx.Indent(), p.col, avail, trail, soft_trail);
 		if ( ctx.IsParamList() )
 			sub.SetIsParamList();
+		if ( ctx.InSubExpr() )
+			sub.SetInSubExpr();
 
 		// All-comments or trailing comma: force vertical
 		// (but not for single-item lists that fit on one line).
@@ -589,22 +597,28 @@ static void prune_beam(Partials& beam)
 
 	std::sort(beam.begin(), beam.end(),
 		[](const Partial& a, const Partial& b)
+		{
+		int ra = reluctant_breaks(a.fmt);
+		int rb = reluctant_breaks(b.fmt);
+		if ( ra != rb )
 			{
-			int ra = reluctant_breaks(a.fmt);
-			int rb = reluctant_breaks(b.fmt);
-			if ( ra != rb )
-				{
-				int ld = a.lines - b.lines;
-				if ( ra > rb && ld <= -2 ) return true;
-				if ( rb > ra && -ld <= -2 ) return false;
-				return ra < rb;
-				}
+			int ld = a.lines - b.lines;
+			if ( ra > rb && ld <= -2 ) return true;
+			if ( rb > ra && -ld <= -2 ) return false;
+			// Also let reluctant win with 1 line
+			// savings when it has less overflow.
+			if ( ra > rb && ld < 0 && a.overflow < b.overflow )
+				return true;
+			if ( rb > ra && -ld < 0 && b.overflow < a.overflow )
+				return false;
+			return ra < rb;
+			}
 
-			if ( a.overflow != b.overflow )
-				return a.overflow < b.overflow;
+		if ( a.overflow != b.overflow )
+			return a.overflow < b.overflow;
 
-			return a.lines < b.lines;
-			});
+		return a.lines < b.lines;
+		});
 
 	beam.resize(BEAM_WIDTH);
 	}

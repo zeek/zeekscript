@@ -88,7 +88,10 @@ Candidate format_args_flat(const ArgItems& items, const FmtContext& ctx)
 			w += it.comma->Width() + 1;
 			}
 
-		auto bc = best(format_expr(*it.arg, ctx.After(w)));
+		auto sub = ctx.After(w);
+		if ( ctx.InSubExpr() )
+			sub.SetInSubExpr();
+		auto bc = best(format_expr(*it.arg, sub));
 		fmt += bc.Fmt();
 		w += bc.Width();
 		}
@@ -707,6 +710,21 @@ Candidates flat_or_fill(const Formatting& prefix, const Formatting& open,
 
 		if ( items.size() <= 1 )
 			{
+			// For single-arg lists, suppress fill_break
+			// in sub-expressions.  Fill_break's 0-overflow
+			// lie wastes a line in the only candidate.
+			if ( flat_c.Lines() > 1 )
+				{
+				auto no_fb = inner_ctx;
+				no_fb.SetInSubExpr();
+				auto alt = format_args_flat(items, no_fb);
+				auto af = prefix + open + alt.Fmt() +
+					  cb + suffix;
+				Candidate ac(std::move(af), ctx);
+				if ( ac.Lines() < flat_c.Lines() )
+					flat_c = ac;
+				}
+
 			result.push_back(flat_c);
 			return result;
 			}

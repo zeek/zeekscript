@@ -1,0 +1,42 @@
+FUNC-DECL {
+  KEYWORD "function"
+  SP
+  IDENTIFIER "foo"
+  PARAMS {
+    LPAREN
+    RPAREN
+  }
+  BODY {
+    LBRACE
+    EXPR-STMT {
+      CALL {
+        IDENTIFIER "xxx_xx_xxxxxxx"
+        ARGS {
+          LPAREN
+          CALL {
+            IDENTIFIER "fmt"
+            ARGS {
+              LPAREN
+              CONSTANT "\"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\""
+              COMMA
+              IDENTIFIER "Xxxxxxx::xxxx"
+              COMMA
+              CALL {
+                IDENTIFIER "xxxxxxxxx_xxxxxxxx_xxxxxxxx_xxxxxxx"
+                ARGS {
+                  LPAREN
+                  IDENTIFIER "xxxxxxxx_xxxxxxxx_xxxxxxx"
+                  RPAREN
+                }
+              }
+              RPAREN
+            }
+          }
+          RPAREN
+        }
+      }
+      SEMI
+    }
+    RBRACE
+  }
+}

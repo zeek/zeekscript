@@ -104,6 +104,12 @@ bool Candidate::BetterThan(const Candidate& o) const
 			return true;
 		if ( orb > rb && -line_diff <= -2 )
 			return false;
+		// Also let reluctant win with 1 line savings
+		// when it has strictly less overflow.
+		if ( rb > orb && line_diff < 0 && Ovf() < o.Ovf() )
+			return true;
+		if ( orb > rb && -line_diff < 0 && o.Ovf() < Ovf() )
+			return false;
 		return rb < orb;
 		}
 
