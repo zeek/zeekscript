@@ -263,8 +263,10 @@ class Emitter:
         kids = self._children(node)
 
         if not kids:
-            self._w('UNKNOWN-EXPR')
-            return
+            loc = f"{node.start_point[0]+1}:{node.start_point[1]}"
+            print(f"error: unhandled expr at {loc}: "
+                  f"{self._text(node)!r}", file=sys.stderr)
+            sys.exit(1)
 
         # Single-child expr: unwrap
         if len(kids) == 1:
@@ -1762,17 +1764,11 @@ class Emitter:
     # ------------------------------------------------------------------
 
     def _emit_unknown(self, node: tree_sitter.Node) -> None:
-        kids = self._children(node)
-        if kids:
-            self._open(f'UNKNOWN {_quote(node.type)}')
-            for k in kids:
-                if k.is_named:
-                    self._emit(k)
-                else:
-                    self._w(f'TOKEN {_quote(self._text(k))}')
-            self._close()
-        else:
-            self._w(f'UNKNOWN {_quote(node.type)} {_quote(self._text(node))}')
+        loc = f"{node.start_point[0]+1}:{node.start_point[1]}"
+        text = self._text(node)
+        print(f"error: unhandled node type {node.type!r} "
+              f"at {loc}: {text!r}", file=sys.stderr)
+        sys.exit(1)
 
 
 # ------------------------------------------------------------------
