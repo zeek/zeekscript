@@ -923,6 +923,60 @@ static void append_case_body(const LayoutPtr& body, Formatting& result,
 	}
 
 // Switch expression: unwrap parens for Zeek-style ( expr ) spacing.
+// SCHEDULE: [0]=KEYWORD [1]=SP [2]=interval [3]={ [4]=CALL [5]=}
+// Three formats: flat, two-line (break before {), three-line
+// (break before {, before call, and before }).
+LIPtr Layout::ComputeSchedule(const FmtContext& ctx) const
+	{
+	auto kw = Formatting(Child(0));
+	auto lb = Formatting(Child(3));
+	auto rb = Formatting(Child(5));
+
+	// Format interval in the header context (after "schedule ").
+	int hdr_w = kw.Size() + 1;
+	auto iv = best(format_expr(*Child(2), ctx.After(hdr_w))).Fmt();
+
+	// Flat: schedule <expr> { <call> }
+	int flat_pre = hdr_w + iv.Size() + 1 + lb.Size() + 1;
+	int flat_trail = 1 + rb.Size();
+	auto fc = ctx.After(flat_pre).Reserve(flat_trail);
+	auto call_flat = best(format_expr(*Child(4), fc)).Fmt();
+	auto flat = kw + " " + iv + " " + lb + " " + call_flat + " " + rb;
+	Candidate flat_c(flat, ctx);
+
+	if ( flat_c.Fits() )
+		return lit(flat);
+
+	// Two-line: schedule <expr>\n<pad>{ <call> }
+	auto ind = ctx.Indented();
+	auto pad = line_prefix(ind.Indent(), ind.Col());
+	int two_pre = lb.Size() + 1;
+	int two_trail = 1 + rb.Size();
+	auto tc = ind.After(two_pre).Reserve(two_trail);
+	auto call_two = best(format_expr(*Child(4), tc)).Fmt();
+	auto two = kw + " " + iv + "\n" + pad + lb + " " + call_two + " " + rb;
+	int tw = ind.Col() + two_pre + call_two.Size() + two_trail;
+	int tl = 1 + call_two.CountLines();
+	int to = two.TextOverflow(ctx.Col(), ctx.MaxCol());
+	Candidate two_c(two, tw, tl, to, ctx.Col());
+
+	if ( two_c.Fits() )
+		return lit(two);
+
+	// Three-line: schedule <expr>\n<pad>{\n<pad><call>\n<pad>}
+	auto call_three = best(format_expr(*Child(4), ind)).Fmt();
+	auto three = kw + " " + iv + "\n" + pad + lb + "\n" +
+		     pad + call_three + "\n" + pad + rb;
+	int thr_w = ind.Col() + rb.Size();
+	int thr_l = 2 + call_three.CountLines() + 1;
+	int thr_o = three.TextOverflow(ctx.Col(), ctx.MaxCol());
+
+	Candidates cands;
+	cands.push_back(two_c);
+	cands.push_back({three, thr_w, thr_l, thr_o, ctx.Col()});
+	return std::make_shared<LIDeclCandsR>(std::move(cands));
+	}
+
 LIPtr Layout::ComputeSwitchExpr(const FmtContext& ctx) const
 	{
 	auto switch_expr = Child(2);

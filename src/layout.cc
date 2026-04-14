@@ -946,6 +946,7 @@ static constexpr ComputeFn CSwitchExpr = &Layout::ComputeSwitchExpr;
 static constexpr ComputeFn CSwitchCases = &Layout::ComputeSwitchCases;
 static constexpr ComputeFn CElseFollowOn = &Layout::ComputeElseFollowOn;
 static constexpr ComputeFn CBinaryOp = &Layout::ComputeBinaryOp;
+static constexpr ComputeFn CSchedule = &Layout::ComputeSchedule;
 
 // Tag-to-layout table for purely declarative nodes.
 static const std::unordered_map<Tag, LayoutItems> layout_table = {
@@ -963,8 +964,7 @@ static const std::unordered_map<Tag, LayoutItems> layout_table = {
 		{FmtStep::EI(0), FmtStep::TI(1), FmtStep::TI(2)},
 		{{1, SplitAt::IndentedOrSame}}, false, true)}},
 	{Tag::Paren, {tok(0), expr(1), tok(2)}},
-	{Tag::Schedule, {tok(0), sp(), expr(2), sp(), tok(3), sp(),
-		expr(4), sp(), tok(5)}},
+	{Tag::Schedule, {computed(CSchedule)}},
 	{Tag::Param, {arg(0), computed(CParamType)}},
 	{Tag::Call, {expr(0), arglist(1,
 		AL_TrailingCommaVertical | AL_VerticalUpgrade, CCallAttrs)}},
