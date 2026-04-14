@@ -1,0 +1,74 @@
+FUNC-DECL {
+  KEYWORD "function"
+  SP
+  IDENTIFIER "foo"
+  PARAMS {
+    LPAREN
+    RPAREN
+  }
+  BODY {
+    LBRACE
+    SWITCH {
+      KEYWORD "switch"
+      SP
+      PAREN {
+        LPAREN
+        INDEX {
+          IDENTIFIER "aaa"
+          SUBSCRIPTS {
+            LBRACKET
+            CONSTANT "1"
+            RBRACKET
+          }
+        }
+        RPAREN
+      }
+      LBRACE
+      CASE {
+        KEYWORD "case"
+        SP
+        VALUES {
+          CONSTANT "\"Aaaa::AAA\""
+        }
+        COLON
+        BODY {
+          EXPR-STMT {
+            BINARY-OP "=" {
+              IDENTIFIER "aaa"
+              OP "="
+              IDENTIFIER "Aaaa::AAA"
+            }
+            SEMI
+          }
+          KEYWORD "break"
+          SEMI
+        }
+      }
+      BLANK
+      CASE {
+        KEYWORD "case"
+        SP
+        VALUES {
+          CONSTANT "\"Aaaa::BBB\""
+        }
+        COLON
+        COMMENT-LEADING "#@ BEGIN-NOT-TESTED"
+        BODY {
+          EXPR-STMT {
+            BINARY-OP "=" {
+              IDENTIFIER "aaa"
+              OP "="
+              IDENTIFIER "Aaaa::BBB"
+            }
+            SEMI
+          }
+          KEYWORD "break"
+          SEMI
+          COMMENT-LEADING "#@ END-NOT-TESTED"
+        }
+      }
+      RBRACE
+    }
+    RBRACE
+  }
+}

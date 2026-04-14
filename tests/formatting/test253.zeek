@@ -1,0 +1,15 @@
+function foo()
+{
+switch ( aaa[1] )
+{
+case "Aaaa::AAA":
+aaa = Aaaa::AAA;
+break;
+
+case "Aaaa::BBB":
+#@ BEGIN-NOT-TESTED
+aaa = Aaaa::BBB;
+break;
+#@ END-NOT-TESTED
+}
+}

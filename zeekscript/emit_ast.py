@@ -63,6 +63,7 @@ class Emitter:
         self.out: list[str] = []
         self._indent = 0
         self._prev_content_end = 0  # for blank-line detection
+        self._consumed_extras: set[int] = set()  # byte offsets
 
     # ------------------------------------------------------------------
     # Output helpers
@@ -167,6 +168,8 @@ class Emitter:
             if child.is_extra:
                 # _is_benign_error: WORKAROUND for tree-sitter-zeek time-unit bug.
                 if child.type == "nl" or _is_benign_error(child):
+                    continue
+                if child.start_byte in self._consumed_extras:
                     continue
                 self._emit_comment(child, last_non_extra)
                 saw_comment = True
@@ -1365,6 +1368,8 @@ class Emitter:
                 continue
             if child.type == "nl":
                 continue
+            if child.start_byte in self._consumed_extras:
+                continue
             if (skip_trailing
                     and ref_node is not None
                     and child.start_point[0]
@@ -1412,22 +1417,29 @@ class Emitter:
                body.start_point[0] == node.start_point[0]:
                 self._w('SAME-LINE')
             self._emit_stmt(body)
-            # Capture same-line trailing comment inside BODY.
+            # Capture comments inside BODY that sit between the
+            # body and the else keyword.
             if else_kw:
                 for child in node.children:
                     if not child.is_extra:
                         continue
                     if child.type == "nl":
                         continue
-                    if child.start_point[0] != body.end_point[0]:
-                        continue
                     if child.start_byte <= body.end_byte:
                         continue
                     if child.start_byte >= else_kw.start_byte:
                         continue
                     text = self._text(child)
-                    self._w(f'COMMENT-TRAILING {_quote(text)}')
-                    self._mark_content(child)
+                    # Same-line trailing comment.
+                    if child.start_point[0] == body.end_point[0]:
+                        self._w(f'COMMENT-TRAILING {_quote(text)}')
+                        self._mark_content(child)
+                        self._consumed_extras.add(child.start_byte)
+                    # #@ END annotation belongs to the body.
+                    elif text.startswith("#@ END"):
+                        self._w(f'COMMENT-LEADING {_quote(text)}')
+                        self._mark_content(child)
+                        self._consumed_extras.add(child.start_byte)
             self._close()
 
         # Emit extras between body and else keyword, then check
@@ -1614,6 +1626,19 @@ class Emitter:
         self._close()
 
     def _emit_switch(self, node: tree_sitter.Node) -> None:
+        # Collect #@ END extras between case_list and closing
+        # brace so they can be placed inside the last case body.
+        trailing_end_comments: list[tree_sitter.Node] = []
+        seen_case_list = False
+        for child in node.children:
+            if child.type == "case_list":
+                seen_case_list = True
+            elif seen_case_list and child.is_extra:
+                text = self._text(child)
+                if text.startswith("#@ END"):
+                    trailing_end_comments.append(child)
+                    self._consumed_extras.add(child.start_byte)
+
         self._open('SWITCH')
         self._kw("switch")
         for child in self._iter_children(node):
@@ -1630,10 +1655,11 @@ class Emitter:
             elif child.type == "expr":
                 self._emit_expr(child)
             elif child.type == "case_list":
-                self._emit_case_list(child)
+                self._emit_case_list(child, trailing_end_comments)
         self._close()
 
-    def _emit_case_list(self, node: tree_sitter.Node) -> None:
+    def _emit_case_list(self, node: tree_sitter.Node,
+                        trailing_end_comments: list | None = None) -> None:
         kids = [c for c in node.children
                 if not c.is_extra or c.type != "nl"]
 
@@ -1641,6 +1667,9 @@ class Emitter:
         while i < len(kids):
             k = kids[i]
             if k.is_extra:
+                if k.start_byte in self._consumed_extras:
+                    i += 1
+                    continue
                 prev = None
                 for j in range(i - 1, -1, -1):
                     if not kids[j].is_extra:
@@ -1679,9 +1708,29 @@ class Emitter:
                 if stmts:
                     self._open('BODY')
                     self._emit_stmt_list(stmts)
+                    # Capture #@ END comments into the body.
+                    j = i + 1
+                    while j < len(kids) and kids[j].is_extra:
+                        text = self._text(kids[j])
+                        if not text.startswith("#@ END"):
+                            break
+                        self._w(f'COMMENT-LEADING {_quote(text)}')
+                        self._mark_content(kids[j])
+                        self._consumed_extras.add(kids[j].start_byte)
+                        j += 1
+                    # If this is the last case body, emit any
+                    # #@ END comments from the switch node.
+                    if trailing_end_comments:
+                        is_last = not any(
+                            not c.is_extra for c in kids[j:])
+                        if is_last:
+                            for c in trailing_end_comments:
+                                text = self._text(c)
+                                self._w(f'COMMENT-LEADING {_quote(text)}')
+                                self._mark_content(c)
                     self._close()
                     self._mark_content(stmts)
-                    i += 1
+                    i = j
                 self._close()
             elif self._text(k) == "default":
                 self._maybe_blank(k)
@@ -1705,9 +1754,29 @@ class Emitter:
                 if stmts:
                     self._open('BODY')
                     self._emit_stmt_list(stmts)
+                    # Capture #@ END comments into the body.
+                    j = i + 1
+                    while j < len(kids) and kids[j].is_extra:
+                        text = self._text(kids[j])
+                        if not text.startswith("#@ END"):
+                            break
+                        self._w(f'COMMENT-LEADING {_quote(text)}')
+                        self._mark_content(kids[j])
+                        self._consumed_extras.add(kids[j].start_byte)
+                        j += 1
+                    # If this is the last case body, emit any
+                    # #@ END comments from the switch node.
+                    if trailing_end_comments:
+                        is_last = not any(
+                            not c.is_extra for c in kids[j:])
+                        if is_last:
+                            for c in trailing_end_comments:
+                                text = self._text(c)
+                                self._w(f'COMMENT-LEADING {_quote(text)}')
+                                self._mark_content(c)
                     self._close()
                     self._mark_content(stmts)
-                    i += 1
+                    i = j
                 self._close()
             else:
                 i += 1

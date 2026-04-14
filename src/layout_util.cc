@@ -1259,8 +1259,20 @@ FmtPtr Layout::FormatBodyText(const FmtContext& ctx) const
 		return std::make_shared<Formatting>("\n" +
 					format_single_stmt_body(*this, ctx));
 
-	return std::make_shared<Formatting>(
-			content[0]->FormatWhitesmithBlock(ctx));
+	auto result = content[0]->FormatWhitesmithBlock(ctx);
+
+	// Format trailing children after the block (e.g., #@ END
+	// comments associated with the body instead of the else).
+	if ( content.size() > 1 )
+		{
+		LayoutVec trailing(content.begin() + 1, content.end());
+		auto trail = format_stmt_list(trailing, ctx);
+		if ( ! trail.Empty() && trail.Back() == '\n' )
+			trail.PopBack();
+		result += "\n" + trail;
+		}
+
+	return std::make_shared<Formatting>(result);
 	}
 
 // ---- Else follow-on ------------------------------------------------------

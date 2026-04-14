@@ -1,0 +1,12 @@
+event aaaa()
+{
+if ( test )
+{
+print "aaaa";
+}
+#@ END Aaaa::aaaa
+else
+{
+print "bbbb";
+}
+}
