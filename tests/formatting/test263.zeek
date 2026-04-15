@@ -1,0 +1,5 @@
+function foo()
+    {
+    when [bar] ( x ) print bar;
+    when [bar, baz] ( x )  { print bar; }
+    }

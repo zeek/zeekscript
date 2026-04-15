@@ -1741,7 +1741,15 @@ class Emitter:
             not c.is_named and self._text(c) == "timeout"
             for c in node.children)
         self._open('WHEN-TIMEOUT' if has_timeout else 'WHEN')
-        self._kw("when")
+
+        # Build keyword text, folding in any capture list.
+        kw = "when"
+        for child in node.children:
+            if child.type == "capture_list":
+                kw += " " + self._text(child)
+                break
+        self._kw(kw)
+
         state = "init"
         in_timeout = False
         for child in self._iter_children(node):
