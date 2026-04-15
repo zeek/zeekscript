@@ -409,7 +409,13 @@ Candidate format_args_fill(const ArgItems& items, int align_col, int indent,
 			else
 				limit += close_room;
 
-			if ( s.cur_col + 2 + aw <= limit )
+			// On the first fill line, reserve room for the next
+			// comma in case the following item wraps. Continuation
+			// lines have leading whitespace that reduce_overflow
+			// can reclaim, so they don't need this guard.
+			int nc_w = (! is_last && s.lines == 1 && nc) ?
+					nc->Width() : 0;
+			if ( s.cur_col + 2 + aw + nc_w <= limit )
 				{
 				s.fmt += Formatting(it.comma) + " " + bc.Fmt();
 				s.cur_col += 2 + aw;
