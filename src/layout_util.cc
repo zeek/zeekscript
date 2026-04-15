@@ -786,9 +786,32 @@ static Formatting attr_suffix(const Layout& node, const FmtContext& ctx)
 
 // Format enum values + close brace from a node whose children
 // contain EnumValue, Comma, TrailingComma, and a closing RBrace.
+// Check whether any pre-comment on a node contains a FORMAT directive.
+static bool has_format_directive(const Layout& node, const char* directive)
+	{
+	std::string target = "#@ FORMAT: ";
+	target += directive;
+
+	for ( const auto& pc : node.PreComments() )
+		if ( pc.find(target) != std::string::npos )
+			return true;
+
+	return false;
+	}
+
+// Emit a comma after enum value i, handling trailing-comma on the last.
+static void emit_enum_comma(const EnumValues& ev, size_t i, Formatting& body)
+	{
+	if ( i + 1 < ev.commas.size() )
+		body += ev.commas[i + 1];
+
+	else if ( ev.trailing_comma )
+		body += "," + ev.trailing_comma;
+	}
+
 static LIPtr format_enum_body(const Layout& source,
-	const LayoutPtr& close_brace, const FmtContext& ctx,
-	const Formatting& suffix = Formatting())
+		const LayoutPtr& close_brace, const FmtContext& ctx,
+		const Formatting& suffix = Formatting(), bool fill_enum = false)
 	{
 	auto ev = collect_enum_values(source);
 
@@ -816,32 +839,90 @@ static LIPtr format_enum_body(const Layout& source,
 			return lit(std::move(flat_body));
 		}
 
-	// Vertical: each value on its own line.
-	auto pad = line_prefix(ctx.Indent() + 1,
-				(ctx.Indent() + 1) * INDENT_WIDTH);
+	int indent = ctx.Indent() + 1;
+	int indent_col = indent * INDENT_WIDTH;
+	auto pad = line_prefix(indent, indent_col);
+	int max_col = ctx.MaxCol();
 	Formatting body;
-	for ( size_t i = 0; i < ev.values.size(); ++i )
+
+	if ( fill_enum && ! ev.has_init_values )
 		{
-		if ( ev.blank_before[i] )
-			body += "\n";
-		body += ev.nodes[i]->EmitPreComments(pad);
-		auto& enode = *ev.nodes[i];
-		body += pad + (enode.MustBreakAfter() ?
-				enode.Text() : ev.values[i]);
-		auto nc = (i + 1 < ev.commas.size()) ?
-					ev.commas[i + 1] : nullptr;
-		if ( nc || ev.trailing_comma )
+		// Fill: greedy-pack values per line, blank lines
+		// separate groups.
+		int col = 0;
+		for ( size_t i = 0; i < ev.values.size(); ++i )
 			{
-			if ( nc )
-				body += nc;
-			else
+			if ( ev.blank_before[i] ||
+			     ! ev.nodes[i]->PreComments().empty() )
 				{
-				body += ",";
-				body += ev.trailing_comma;
+				if ( col > 0 )
+					body += "\n";
+				col = 0;
+
+				if ( ev.blank_before[i] )
+					body += "\n";
+				else
+					body += ev.nodes[i]->EmitPreComments(pad);
+				}
+
+			// Value with trailing comment: own line.
+			if ( ev.nodes[i]->MustBreakAfter() )
+				{
+				body += pad + ev.nodes[i]->Text();
+				emit_enum_comma(ev, i, body);
+				body += "\n";
+				col = 0;
+				continue;
+				}
+
+			bool is_last = (i + 1 == ev.values.size());
+			int comma_w = is_last ? (ev.trailing_comma ? 1 : 0) : 1;
+			int size = static_cast<int>(ev.values[i].size());
+			int val_w = size + comma_w;
+
+			std::string prefix;
+			int new_col = indent_col + val_w;
+
+			if ( col == 0 )
+				prefix = pad;
+			else if ( col + 2 + val_w <= max_col )
+				{
+				prefix = " ";
+				new_col = col + 2 + val_w;
+				}
+			else
+				prefix = "\n" + pad;
+
+			body += prefix + ev.values[i];
+			emit_enum_comma(ev, i, body);
+			col = new_col;
+
+			// Trailing comment on comma forces a line break.
+			auto nc = (i + 1 < ev.commas.size()) ?
+				ev.commas[i + 1] : nullptr;
+			if ( (nc && nc->MustBreakAfter()) || is_last )
+				{
+				body += "\n";
+				col = 0;
 				}
 			}
+		}
+	else
+		{
+		// Vertical: each value on its own line.
+		for ( size_t i = 0; i < ev.values.size(); ++i )
+			{
+			if ( ev.blank_before[i] )
+				body += "\n";
+			body += ev.nodes[i]->EmitPreComments(pad);
 
-		body += "\n";
+			auto& enode = *ev.nodes[i];
+			body += pad + (enode.MustBreakAfter() ?
+					enode.Text() : ev.values[i]);
+
+			emit_enum_comma(ev, i, body);
+			body += "\n";
+			}
 		}
 
 	auto close_pad = line_prefix(ctx.Indent(), ctx.Col());
@@ -860,14 +941,17 @@ LIPtr Layout::ComputeTypeAliasSuffix(const FmtContext& ctx) const
 LIPtr Layout::ComputeEnumBody(const FmtContext& ctx) const
 	{
 	auto inner = Child(5);
+	bool fill = has_format_directive(*this, "FILL-ENUM");
 	return format_enum_body(*inner, inner->Children().back(), ctx,
-				attr_suffix(*this, ctx));
+				attr_suffix(*this, ctx), fill);
 	}
 
 // Enum body + close brace for redef enum (values are direct children).
 LIPtr Layout::ComputeRedefEnumBody(const FmtContext& ctx) const
 	{
-	return format_enum_body(*this, ChildFromEnd(1, Tag::RBrace), ctx);
+	bool fill = has_format_directive(*this, "FILL-ENUM");
+	return format_enum_body(*this, ChildFromEnd(1, Tag::RBrace), ctx,
+				Formatting(), fill);
 	}
 
 // Format record fields + close brace from a node whose children

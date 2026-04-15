@@ -1,0 +1,54 @@
+EXPORT {
+  KEYWORD "export"
+  SP
+  LBRACE
+  COMMENT-LEADING "#@ FORMAT: FILL-ENUM"
+  TYPEDECL-ENUM "Foo" {
+    KEYWORD "type"
+    SP
+    IDENTIFIER "Foo"
+    COLON
+    SP
+    TYPE-ENUM {
+      KEYWORD "enum"
+      SP
+      LBRACE
+      ENUM-VALUE "AAAA"
+      COMMA
+      ENUM-VALUE "BBBB"
+      COMMA
+      ENUM-VALUE "CCCC"
+      COMMA
+      ENUM-VALUE "DDDD"
+      COMMA
+      ENUM-VALUE "EEEE"
+      COMMA
+      ENUM-VALUE "FFFF"
+      COMMA
+      ENUM-VALUE "GGGG"
+      COMMA
+      ENUM-VALUE "HHHH"
+      COMMA
+      ENUM-VALUE "IIII"
+      COMMA
+      ENUM-VALUE "JJJJ"
+      COMMA
+      ENUM-VALUE "KKKK"
+      COMMA
+      ENUM-VALUE "LLLL"
+      COMMA
+      COMMENT-TRAILING "# trailing"
+      ENUM-VALUE "MMMM"
+      COMMA
+      BLANK
+      ENUM-VALUE "NNNN"
+      COMMA
+      ENUM-VALUE "OOOO"
+      COMMA
+      TRAILING-COMMA
+      RBRACE
+    }
+    SEMI
+  }
+  RBRACE
+}
