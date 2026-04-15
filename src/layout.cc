@@ -963,7 +963,7 @@ static const std::unordered_map<Tag, LayoutItems> layout_table = {
 	// CARDINALITY: [0]=| [1]=expr [2]=|
 	{Tag::Cardinality, {tok(0), expr(1), tok(2)}},
 	// NEGATION: [0]=! [1]=SP [2]=expr
-	{Tag::Negation, {tok(0), lit(" "), expr(1)}},
+	{Tag::Negation, {toksp(0), expr(1)}},
 	// UNARY-OP: [0]=op [1]=expr
 	{Tag::UnaryOp, {tok(0), expr(1)}},
 	// FIELD-ACCESS: [0]=expr [1]=$ [2]=field
@@ -995,7 +995,7 @@ static const std::unordered_map<Tag, LayoutItems> layout_table = {
 	// TYPE-PARAMETERIZED: arg(0)=name [0]=ARGS [opt KW type]
 	{Tag::TypeParameterized, {arg(0), arglist(0, COfType)}},
 	// TYPE-OF: arg(0)=name [0]=KW("of") [1]=SP [2]=type
-	{Tag::TypeOf, {arg(0), lit(" "), tok(0), lit(" "), expr(2)}},
+	{Tag::TypeOf, {arg(0), lit(" "), toksp(0), expr(2)}},
 	// TYPE-FUNC: arg(0)=name [0]=PARAMS
 	{Tag::TypeFunc, {arg(0), arglist(0)}},
 	// TYPE-FUNC-RET: arg(0)=name [0]=PARAMS ... COLON RETURNS
@@ -1064,16 +1064,15 @@ static const std::unordered_map<Tag, LayoutItems> layout_table = {
 	{Tag::While, {toksp(0), tok(2), lit(" "), expr(3),
 		lit(" "), tok(4), body_text(5)}},
 	// FOR-COND: [0]=var [1]=in [2]=iterable
-	{Tag::ForCond, {expr(0), lit(" "), tok(1), lit(" "), expr(2)}},
+	{Tag::ForCond, {expr(0), lit(" "), toksp(1), expr(2)}},
 	// FOR-COND-VAL: [0]=var [1]=, [2]=val [3]=in [4]=iterable
 	{Tag::ForCondVal, {expr(0), tok(1), lit(" "), expr(2), lit(" "),
-		tok(3), lit(" "), expr(4)}},
+		toksp(3), expr(4)}},
 	// FOR-COND-BRACKET: [0]=VARS [1]=in [2]=iterable
-	{Tag::ForCondBracket, {arglist(0), lit(" "), tok(1), lit(" "),
-		expr(2)}},
+	{Tag::ForCondBracket, {arglist(0), lit(" "), toksp(1), expr(2)}},
 	// FOR-COND-BRACKET-VAL: [0]=VARS [1]=, [2]=val [3]=in [4]=iterable
 	{Tag::ForCondBracketVal, {arglist(0), tok(1), lit(" "), expr(2),
-		lit(" "), tok(3), lit(" "), expr(4)}},
+		lit(" "), toksp(3), expr(4)}},
 	// FOR: [0]=for [1]=SP [2]=( [3]=FOR-COND* [4]=) [5]=BODY
 	{Tag::For, {toksp(0), tok(2), lit(" "), expr(3),
 		lit(" "), tok(4), body_text(5)}},
