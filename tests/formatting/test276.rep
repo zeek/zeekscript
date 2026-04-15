@@ -19,15 +19,21 @@ GLOBAL-DECL {
       KEYWORD "set"
       ARGS {
         LPAREN
-        IDENTIFIER "Eeee"
+        IDENTIFIER "EeeeFfff"
         COMMA
-        IDENTIFIER "Ffff"
+        IDENTIFIER "GgggHhhh"
         COMMA
-        IDENTIFIER "Gggg"
+        IDENTIFIER "IiiiJjjj"
         COMMA
-        IDENTIFIER "Hhhh"
+        IDENTIFIER "KkkkLlll"
         COMMA
-        IDENTIFIER "Iiii"
+        IDENTIFIER "MmmmNnnn"
+        COMMA
+        IDENTIFIER "OoooPppp"
+        COMMA
+        IDENTIFIER "QqqqRrrr"
+        COMMA
+        IDENTIFIER "SsssTttt"
         COMMA
         TRAILING-COMMA
         RPAREN

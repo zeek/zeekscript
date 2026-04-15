@@ -486,6 +486,9 @@ Partials LIArgListR::LayoutStep(Partials& partials, const FmtContext& ctx,
 		if ( ! force_vert && all_comments_vert && has_breaks(items) )
 			force_vert = all_items_commented(items);
 
+		if ( force_vert && fmt_options.FillSet() )
+			force_vert = false;
+
 		if ( force_vert )
 			{
 			auto c = format_args_vertical(open, close, items,
@@ -518,11 +521,13 @@ Partials LIArgListR::LayoutStep(Partials& partials, const FmtContext& ctx,
 				{
 				if ( fmt_options.FillSet() )
 					{
-					cs = arglist_fill_candidates(prefix,
-						open, close, suffix, items,
-						child, sub, trail_comma_fill,
-						false, false, dangling_comma,
-						p.col);
+					std::string cpfx;
+					if ( has_tc )
+						cpfx = ",";
+					cs = flat_or_fill(prefix, open, close,
+						suffix, items, sub,
+						child->Text(), cpfx,
+						dangling_comma);
 					fmt_options.ConsumeFillSet();
 					}
 				else
