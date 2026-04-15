@@ -741,7 +741,9 @@ static EnumValues collect_enum_values(const Layout& inner)
 				ev.has_init_values = true;
 				}
 
-			if ( ! c->PreComments().empty() )
+			if ( ! c->PreComments().empty() ||
+			     c->MustBreakAfter() ||
+			     (pending_comma && pending_comma->MustBreakAfter()) )
 				ev.has_comments = true;
 
 			ev.values.push_back(v);
@@ -816,7 +818,9 @@ static LIPtr format_enum_body(const Layout& source,
 		if ( ev.blank_before[i] )
 			body += "\n";
 		body += ev.nodes[i]->EmitPreComments(pad);
-		body += pad + ev.values[i];
+		auto& enode = *ev.nodes[i];
+		body += pad + (enode.MustBreakAfter() ?
+				enode.Text() : ev.values[i]);
 		auto nc = (i + 1 < ev.commas.size()) ?
 					ev.commas[i + 1] : nullptr;
 		if ( nc || ev.trailing_comma )
@@ -829,6 +833,7 @@ static LIPtr format_enum_body(const Layout& source,
 				body += ev.trailing_comma;
 				}
 			}
+
 		body += "\n";
 		}
 
