@@ -1,0 +1,36 @@
+FUNC-DECL {
+  KEYWORD "event"
+  SP
+  IDENTIFIER "foo"
+  PARAMS {
+    LPAREN
+    RPAREN
+  }
+  BODY {
+    LBRACE
+    EVENT-STMT "bar" {
+      KEYWORD "event"
+      SP
+      ARGS {
+        LPAREN
+        RPAREN
+      }
+      SEMI
+    }
+    EVENT-STMT "baz" {
+      KEYWORD "event"
+      SP
+      ARGS {
+        LPAREN
+        CONSTANT "1"
+        COMMA
+        CONSTANT "2"
+        COMMA
+        CONSTANT "3"
+        RPAREN
+      }
+      SEMI
+    }
+    RBRACE
+  }
+}

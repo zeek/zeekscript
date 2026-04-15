@@ -1614,6 +1614,7 @@ class Emitter:
         self._open(f'EVENT-STMT {_quote(name)}')
         self._kw("event")
         if hdr:
+            has_args = False
             for child in self._iter_children(hdr):
                 if child.type == "id":
                     pass  # already extracted for tag
@@ -1623,6 +1624,12 @@ class Emitter:
                     self._emit_expr_list(child)
                     self._w('RPAREN')
                     self._close()
+                    has_args = True
+            if not has_args:
+                self._open('ARGS')
+                self._w('LPAREN')
+                self._w('RPAREN')
+                self._close()
         self._emit_extras_in(node)
         self._w('SEMI')
         self._close()
