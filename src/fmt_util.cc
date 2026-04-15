@@ -437,8 +437,11 @@ Candidate format_args_fill(const ArgItems& items, int align_col, int indent,
 				s.comma_consumed);
 		}
 
-	int end_ovf = std::max(0, s.cur_col + trail - s.max_col);
-	s.total_overflow += end_ovf;
+	// Charge only the *additional* overflow caused by trail.
+	// The arg's own Ovf already accounts for cur_col > max_col.
+	int base_ovf = std::max(0, s.cur_col - s.max_col);
+	int with_trail = std::max(0, s.cur_col + trail - s.max_col);
+	s.total_overflow += with_trail - base_ovf;
 
 	return {s.fmt, s.cur_col, s.lines, s.total_overflow};
 	}
