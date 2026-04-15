@@ -9,6 +9,7 @@
 #include <unordered_set>
 
 #include "flat_split.h"
+#include "fmt_options.h"
 #include "fmt_util.h"
 
 // Line prefix: tabs for indent, spaces for remaining offset
@@ -514,9 +515,21 @@ Partials LIArgListR::LayoutStep(Partials& partials, const FmtContext& ctx,
 				}
 
 			if ( cs.empty() || cs.back().Ovf() > 0 )
-				cs.push_back(format_args_vertical(open, close,
-							items, sub, false,
-							dangling_comma));
+				{
+				if ( fmt_options.FillSet() )
+					{
+					cs = arglist_fill_candidates(prefix,
+						open, close, suffix, items,
+						child, sub, trail_comma_fill,
+						false, false, dangling_comma,
+						p.col);
+					fmt_options.ConsumeFillSet();
+					}
+				else
+					cs.push_back(format_args_vertical(
+						open, close, items, sub,
+						false, dangling_comma));
+				}
 			}
 		else
 			cs = arglist_fill_candidates(prefix, open, close,

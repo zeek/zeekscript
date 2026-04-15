@@ -2,6 +2,7 @@
 // helpers - declarations, types, lambdas, functions, switch, preproc,
 // body/block formatting, and else follow-on.
 
+#include "fmt_options.h"
 #include "fmt_util.h"
 
 // ---- Pre-comment emission -----------------------------------------------
@@ -786,19 +787,6 @@ static Formatting attr_suffix(const Layout& node, const FmtContext& ctx)
 
 // Format enum values + close brace from a node whose children
 // contain EnumValue, Comma, TrailingComma, and a closing RBrace.
-// Check whether any pre-comment on a node contains a FORMAT directive.
-static bool has_format_directive(const Layout& node, const char* directive)
-	{
-	std::string target = "#@ FORMAT: ";
-	target += directive;
-
-	for ( const auto& pc : node.PreComments() )
-		if ( pc.find(target) != std::string::npos )
-			return true;
-
-	return false;
-	}
-
 // Emit a comma after enum value i, handling trailing-comma on the last.
 static void emit_enum_comma(const EnumValues& ev, size_t i, Formatting& body)
 	{
@@ -941,17 +929,23 @@ LIPtr Layout::ComputeTypeAliasSuffix(const FmtContext& ctx) const
 LIPtr Layout::ComputeEnumBody(const FmtContext& ctx) const
 	{
 	auto inner = Child(5);
-	bool fill = has_format_directive(*this, "FILL-ENUM");
-	return format_enum_body(*inner, inner->Children().back(), ctx,
-				attr_suffix(*this, ctx), fill);
+	bool fill = fmt_options.FillEnum();
+	auto result = format_enum_body(*inner, inner->Children().back(), ctx,
+				       attr_suffix(*this, ctx), fill);
+	if ( fill )
+		fmt_options.ConsumeFillEnum();
+	return result;
 	}
 
 // Enum body + close brace for redef enum (values are direct children).
 LIPtr Layout::ComputeRedefEnumBody(const FmtContext& ctx) const
 	{
-	bool fill = has_format_directive(*this, "FILL-ENUM");
-	return format_enum_body(*this, ChildFromEnd(1, Tag::RBrace), ctx,
-				Formatting(), fill);
+	bool fill = fmt_options.FillEnum();
+	auto result = format_enum_body(*this, ChildFromEnd(1, Tag::RBrace),
+				       ctx, Formatting(), fill);
+	if ( fill )
+		fmt_options.ConsumeFillEnum();
+	return result;
 	}
 
 // Format record fields + close brace from a node whose children

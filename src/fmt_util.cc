@@ -1,5 +1,6 @@
 #include <algorithm>
 
+#include "fmt_options.h"
 #include "fmt_util.h"
 
 // ------------------------------------------------------------------
@@ -1161,6 +1162,9 @@ Formatting format_stmt_list(const LayoutVec& nodes, const FmtContext& ctx,
 			}
 
 		seen_content = true;
+
+		for ( const auto& pc : node.PreComments() )
+			fmt_options.ScanDirective(pc);
 
 		result += node.EmitPreComments(pad);
 
