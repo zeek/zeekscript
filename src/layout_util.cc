@@ -412,10 +412,17 @@ static void decl_with_init(const DeclParts& d, Candidates& result,
 		int lines = split.CountLines();
 		int ovf = split.TextOverflow(ctx.Col(), ctx.MaxCol());
 
-		// Skip split when the value stays single-line and
-		// still overflows significantly - the value is
-		// unsplittable, so the extra line doesn't help.
+		// Skip split when the value stays single-line and still
+		// overflows significantly - the value is unsplittable,
+		// so the extra line doesn't help.
 		if ( val2.Lines() == 1 && ovf > INDENT_WIDTH )
+			return;
+
+		// Skip split when it adds lines but barely reduces overflow -
+		// the extra line isn't worth a marginal overflow improvement.
+		auto& flat_c = result.back();
+		if ( lines > flat_c.Lines() && ovf > 0 &&
+		     flat_c.Ovf() - ovf < INDENT_WIDTH )
 			return;
 
 		result.push_back({split, last_w, lines, ovf, ctx.Col()});

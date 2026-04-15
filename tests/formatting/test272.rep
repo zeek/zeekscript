@@ -1,0 +1,77 @@
+FUNC-DECL {
+  KEYWORD "event"
+  SP
+  IDENTIFIER "foo"
+  PARAMS {
+    LPAREN
+    RPAREN
+  }
+  BODY {
+    LBRACE
+    LOCAL-DECL {
+      KEYWORD "local"
+      SP
+      IDENTIFIER "i"
+      DECL-INIT {
+        ASSIGN "="
+        CALL {
+          IDENTIFIER "DebugInfo"
+          ARGS {
+            LPAREN
+            FIELD-ASSIGN "t" {
+              DOLLAR
+              ASSIGN "="
+              CALL {
+                IDENTIFIER "network_time"
+                ARGS {
+                  LPAREN
+                  RPAREN
+                }
+              }
+            }
+            COMMA
+            FIELD-ASSIGN "node_type" {
+              DOLLAR
+              ASSIGN "="
+              CALL {
+                IDENTIFIER "node_type"
+                ARGS {
+                  LPAREN
+                  RPAREN
+                }
+              }
+            }
+            COMMA
+            FIELD-ASSIGN "event_type" {
+              DOLLAR
+              ASSIGN "="
+              CONSTANT "\"log_statistics\""
+            }
+            COMMA
+            FIELD-ASSIGN "msg" {
+              DOLLAR
+              ASSIGN "="
+              CALL {
+                IDENTIFIER "fmt"
+                ARGS {
+                  LPAREN
+                  CONSTANT "\"stepping-stones-v%d: cn=%s tps=%d trs=%d ips=%d irs=%d\""
+                  COMMA
+                  FIELD-ACCESS {
+                    IDENTIFIER "statistics_info"
+                    DOLLAR
+                    IDENTIFIER "interval_removes_seen"
+                  }
+                  RPAREN
+                }
+              }
+            }
+            RPAREN
+          }
+        }
+      }
+      SEMI
+    }
+    RBRACE
+  }
+}
