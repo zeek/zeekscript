@@ -870,6 +870,7 @@ class Emitter:
     def _emit_enum_body(self, node: tree_sitter.Node) -> None:
         """Emit enum body elements."""
         for child in self._iter_children(node):
+            self._maybe_blank(child)
             if child.type == "enum_body_elem":
                 kids = self._children(child)
                 name = ""

@@ -1,0 +1,46 @@
+EXPORT {
+  KEYWORD "export"
+  SP
+  LBRACE
+  TYPEDECL-ENUM "foo" {
+    KEYWORD "type"
+    SP
+    IDENTIFIER "foo"
+    COLON
+    SP
+    TYPE-ENUM {
+      KEYWORD "enum"
+      SP
+      LBRACE
+      ENUM-VALUE "AAAAA"
+      COMMA
+      ENUM-VALUE "BBBBB"
+      COMMA
+      ENUM-VALUE "CCCCC"
+      COMMA
+      ENUM-VALUE "DDDDD"
+      COMMA
+      ENUM-VALUE "EEEEE"
+      COMMA
+      ENUM-VALUE "FFFFF"
+      COMMA
+      ENUM-VALUE "GGGGG"
+      COMMA
+      ENUM-VALUE "HHHHH"
+      COMMA
+      ENUM-VALUE "IIIII"
+      COMMA
+      ENUM-VALUE "JJJJJ"
+      COMMA
+      ENUM-VALUE "KKKKK"
+      COMMA
+      BLANK
+      ENUM-VALUE "LLLLL"
+      COMMA
+      TRAILING-COMMA
+      RBRACE
+    }
+    SEMI
+  }
+  RBRACE
+}
