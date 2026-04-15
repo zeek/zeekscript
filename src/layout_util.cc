@@ -897,6 +897,7 @@ static LIPtr format_record_body(const Layout& source,
 			}
 		}
 
+	body += close_brace->EmitPreComments(field_pad);
 	auto close_pad = line_prefix(ctx.Indent(), ctx.Col());
 	return lit(Formatting("\n") + body + close_pad + close_brace + suffix);
 	}

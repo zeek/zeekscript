@@ -1,0 +1,30 @@
+EXPORT {
+  KEYWORD "export"
+  SP
+  LBRACE
+  REDEF-RECORD "Aaa::Aaaa" {
+    KEYWORD "redef"
+    SP
+    KEYWORD "record"
+    SP
+    IDENTIFIER "Aaa::Aaaa"
+    ASSIGN "+="
+    LBRACE
+    FIELD "aaaa_aaa" {
+      COLON
+      TYPE-ATOM "count"
+      ATTR-LIST {
+        ATTR "&default" {
+          ASSIGN "="
+          CONSTANT "0"
+        }
+      }
+      SEMI
+    }
+    BLANK
+    COMMENT-LEADING "# aaaaaaa_aaaaa: string &log &optional;"
+    RBRACE
+    SEMI
+  }
+  RBRACE
+}
