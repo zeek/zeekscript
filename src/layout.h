@@ -49,6 +49,7 @@ enum LIKind {
 	Lit,	// literal Formatting text, emitted as-is
 	FmtExpr,	// format a child as an expression (multi-candidate)
 	Sp,	// soft space: search explores both " " and newline+indent
+	TokSp,	// token + hard space: keyword " " or keyword comment \n indent
 
 	// Pre-search resolution kinds - resolved to Lit/FmtExpr before
 	// the search runs.
@@ -344,6 +345,15 @@ public:
 		int trail, int soft_trail) const override;
 };
 
+class LITokSp : public LayoutItem {
+public:
+	LITokSp(const LayoutPtr& n);
+	Partials LayoutStep(Partials& partials, const FmtContext& ctx,
+		int trail, int soft_trail) const override;
+private:
+	bool has_break;
+};
+
 class LIHardBreak : public LayoutItem {
 public:
 	LIHardBreak() : LayoutItem(HardBreak) {}
@@ -440,6 +450,12 @@ inline LIPtr lit(Formatting&& f)
 
 // Soft space: search explores both " " and newline+indent.
 inline LIPtr sp() { return std::make_shared<LISp>(); }
+
+// Token + hard space: keyword followed by " ", or by newline+indent
+// if the token has a trailing comment.  Never offers a break as an
+// alternative - the space is mandatory.
+inline LIPtr toksp(unsigned child_index)
+	{ return std::make_shared<LayoutItem>(TokSp, child_index); }
 
 // Hard break: unconditional newline + indent.
 inline LIPtr hard_brk() { return std::make_shared<LIHardBreak>(); }

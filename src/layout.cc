@@ -160,6 +160,10 @@ LIPtr tok(const LayoutPtr& n)
 	return item;
 	}
 
+LITokSp::LITokSp(const LayoutPtr& n)
+	: LayoutItem(Formatting(n)), has_break(n->MustBreakAfter())
+	{ kind = TokSp; }
+
 // Merge a Candidate into a Partial: append text, accumulate
 // overflow/lines, and advance column.
 static void merge_candidate(Partial& np, const Candidate& c)
@@ -278,6 +282,46 @@ Partials LISp::LayoutStep(Partials& partials, const FmtContext&, int, int) const
 		bp.must_break = false;
 
 		next.push_back(std::move(bp));
+		}
+
+	return next;
+	}
+
+Partials LITokSp::LayoutStep(Partials& partials, const FmtContext& ctx,
+                             int, int) const
+	{
+	Partials next;
+	for ( auto& p : partials )
+		{
+		Partial np = p;
+		const auto& f = Fmt();
+
+		np.fmt += f;
+		int nl = f.CountLines() - 1;
+		if ( nl > 0 )
+			{
+			np.lines += nl;
+			np.col = f.LastLineLen();
+			np.overflow += f.MaxLineOverflow(p.col, ctx.MaxCol());
+			}
+		else
+			np.col += f.Size();
+
+		if ( has_break )
+			{
+			// Trailing comment already emitted; add indent.
+			auto pad = line_prefix(np.indent, np.indent * INDENT_WIDTH);
+			np.fmt += pad;
+			np.col = np.indent * INDENT_WIDTH;
+			}
+		else
+			{
+			np.fmt += " ";
+			++np.col;
+			}
+
+		np.must_break = false;
+		next.push_back(std::move(np));
 		}
 
 	return next;
@@ -737,6 +781,10 @@ void Layout::ResolveItem(LayoutItems& items, size_t i,
 		break;
 		}
 
+	case TokSp:
+		item = std::make_shared<LITokSp>(Child(item->ChildIdx()));
+		break;
+
 	case ExprIdx:
 		item = std::make_shared<LIExpr>(Child(item->ChildIdx()));
 		break;
@@ -959,61 +1007,61 @@ static const std::unordered_map<Tag, LayoutItems> layout_table = {
 	{Tag::ReturnVoid, {tok(0), last()}},
 	{Tag::KwStmt, {tok(0), last()}},
 	// RETURN: [0]=KW [1]=SP [2]=expr ... SEMI(last)
-	{Tag::Return, {tok(0), sp(), expr(2), last()}},
-	{Tag::Add, {tok(0), sp(), expr(2), last()}},
-	{Tag::Delete, {tok(0), sp(), expr(2), last()}},
-	{Tag::Assert, {tok(0), sp(), expr(2), last()}},
+	{Tag::Return, {toksp(0), expr(2), last()}},
+	{Tag::Add, {toksp(0), expr(2), last()}},
+	{Tag::Delete, {toksp(0), expr(2), last()}},
+	{Tag::Assert, {toksp(0), expr(2), last()}},
 	// PRINT: [0]=KW [1..]=args ... SEMI(last)
 	{Tag::Print, {fill_list(), last()}},
 	// EVENT-STMT: [0]=KW [1]=SP arg(0)=name [2]=ARGS [3]=SEMI
-	{Tag::EventStmt, {tok(0), lit(" "), arg(0), arglist(2), tok(3)}},
+	{Tag::EventStmt, {toksp(0), arg(0), arglist(2), tok(3)}},
 	// EXPORT: [0]=KW [1]=SP [2]={ ... }(last)
 	{Tag::ExportDecl, {tok(0), sp(), tok(2), indent_up(),
 		stmt_body(), indent_down(), last()}},
 	// MODULE: [0]=KW [1]=SP [2]=name [3]=SEMI
-	{Tag::ModuleDecl, {tok(0), sp(), tok(2), tok(3)}},
+	{Tag::ModuleDecl, {toksp(0), tok(2), tok(3)}},
 	// TYPEDECL-ALIAS: [0]=type [1]=SP [2]=name [3]=ASSIGN [4]=SP
 	//   [5]=type-expr [opt ATTR-LIST] SEMI
-	{Tag::TypeDeclAlias, {tok(0), sp(), tok(2), tok(3), sp(),
+	{Tag::TypeDeclAlias, {toksp(0), tok(2), tok(3), sp(),
 		expr(5), computed(CTypeAliasSfx)}},
 	// TYPEDECL-ENUM: [0]=type [1]=SP [2]=name [3]=ASSIGN [4]=SP
 	//   [5]=TYPE-ENUM{[0]=enum [1]=SP [2]={ ... }(last)} SEMI(last)
-	{Tag::TypeDeclEnum, {tok(0), sp(), tok(2), tok(3), sp(),
+	{Tag::TypeDeclEnum, {toksp(0), tok(2), tok(3), sp(),
 		tok(5, 0), sp(), tok(5, 2),
 		computed(CEnumBody), last()}},
 	// REDEF-ENUM: [0]=redef [1]=SP [2]=name [3]=SP [4]+=
 	//   [5]=SP [6]=enum [7]=SP [8]={ ... } SEMI(last)
-	{Tag::RedefEnum, {tok(0), sp(), tok(2), sp(), tok(4), sp(),
+	{Tag::RedefEnum, {toksp(0), tok(2), sp(), tok(4), sp(),
 		tok(5), sp(), tok(6),
 		computed(CRedefEnumBody), last()}},
 	// TYPEDECL-RECORD: same shape as TYPEDECL-ENUM but with
 	//   [5]=TYPE-RECORD{[0]=record [1]=SP [2]={ ... }}
-	{Tag::TypeDeclRecord, {tok(0), sp(), tok(2), tok(3), sp(),
+	{Tag::TypeDeclRecord, {toksp(0), tok(2), tok(3), sp(),
 		tok(5, 0), sp(), tok(5, 2),
 		computed(CRecordBody), last()}},
 	// REDEF-RECORD: same shape as REDEF-ENUM
-	{Tag::RedefRecord, {tok(0), sp(), tok(2), sp(), tok(4), sp(),
+	{Tag::RedefRecord, {toksp(0), tok(2), sp(), tok(4), sp(),
 		tok(5), sp(), tok(6),
 		computed(CRedefRecordBody), last()}},
 	{Tag::Block, {computed(CBlock)}},
 	// KEYWORD-EXPR: [0]=KW [1]=SP [2]=expr  (hook, copy)
-	{Tag::KeywordExpr, {tok(0), lit(" "), expr(2)}},
+	{Tag::KeywordExpr, {toksp(0), expr(2)}},
 	// WHEN-LOCAL: arg(0)=name expr(0)=init
 	{Tag::WhenLocal, {lit("local "), arg(0), lit(" = "), expr(0)}},
 	// WHEN: [0]=when [1]=SP [2]=( [3]=cond [4]=) [5]=BODY
-	{Tag::When, {tok(0), lit(" "), tok(2), lit(" "), expr(3),
+	{Tag::When, {toksp(0), tok(2), lit(" "), expr(3),
 		lit(" "), tok(4), body_text(5)}},
 	// WHEN-TIMEOUT: like WHEN + [6]=KW [7]=SP [8]=TIMEOUT
-	{Tag::WhenTimeout, {tok(0), lit(" "), tok(2), lit(" "), expr(3),
+	{Tag::WhenTimeout, {toksp(0), tok(2), lit(" "), expr(3),
 		lit(" "), tok(4), body_text(5), computed(CWhenTimeout)}},
 	// IF-NO-ELSE: [0]=if [1]=SP [2]=( [3]=cond [4]=) [5]=BODY
-	{Tag::IfNoElse, {tok(0), lit(" "), tok(2), lit(" "), expr(3),
+	{Tag::IfNoElse, {toksp(0), tok(2), lit(" "), expr(3),
 		lit(" "), tok(4), body_text(5)}},
 	// IF-WITH-ELSE: like IF-NO-ELSE + ELSE-IF or ELSE-BODY child
-	{Tag::IfElse, {tok(0), lit(" "), tok(2), lit(" "), expr(3),
+	{Tag::IfElse, {toksp(0), tok(2), lit(" "), expr(3),
 		lit(" "), tok(4), body_text(5), computed(CElseFollowOn)}},
 	// WHILE: [0]=while [1]=SP [2]=( [3]=cond [4]=) [5]=BODY
-	{Tag::While, {tok(0), lit(" "), tok(2), lit(" "), expr(3),
+	{Tag::While, {toksp(0), tok(2), lit(" "), expr(3),
 		lit(" "), tok(4), body_text(5)}},
 	// FOR-COND: [0]=var [1]=in [2]=iterable
 	{Tag::ForCond, {expr(0), lit(" "), tok(1), lit(" "), expr(2)}},
@@ -1027,7 +1075,7 @@ static const std::unordered_map<Tag, LayoutItems> layout_table = {
 	{Tag::ForCondBracketVal, {arglist(0), tok(1), lit(" "), expr(2),
 		lit(" "), tok(3), lit(" "), expr(4)}},
 	// FOR: [0]=for [1]=SP [2]=( [3]=FOR-COND* [4]=) [5]=BODY
-	{Tag::For, {tok(0), lit(" "), tok(2), lit(" "), expr(3),
+	{Tag::For, {toksp(0), tok(2), lit(" "), expr(3),
 		lit(" "), tok(4), body_text(5)}},
 	// SLICE: [0]=v [1]=[ [2]=lo [3]=: [4]=hi [5]=]
 	{Tag::Slice, {flat_split(
@@ -1052,15 +1100,15 @@ static const std::unordered_map<Tag, LayoutItems> layout_table = {
 		computed(CLambdaBody)}},
 	// FUNC-DECL: [0]=KW [1]=SP [2]=name [3]=PARAMS
 	//   [opt COLON RETURNS] [opt ATTR-LIST] BODY(last)
-	{Tag::FuncDecl, {tok(0), lit(" "), tok(2), arglist(3, CFuncRet),
+	{Tag::FuncDecl, {toksp(0), tok(2), arglist(3, CFuncRet),
 		soft_cont(CFuncAttrs), computed(CFuncTrail),
 		body_computed(CFuncBlock)}},
 	// FUNC-DECL-RET: same as FUNC-DECL but with explicit return type
-	{Tag::FuncDeclRet, {tok(0), lit(" "), tok(2),
+	{Tag::FuncDeclRet, {toksp(0), tok(2),
 		arglist(3, CFuncRet), soft_cont(CFuncAttrs),
 		computed(CFuncTrail), body_computed(CFuncBlock)}},
 	// SWITCH: [0]=switch [1]=SP [2]=expr [3]={ ... }(last)
-	{Tag::Switch, {tok(0), lit(" "), computed(CSwitchExpr), lit(" "),
+	{Tag::Switch, {toksp(0), computed(CSwitchExpr), lit(" "),
 		tok(3), computed(CSwitchCases), hard_brk(), last()}},
 	{Tag::GlobalDecl, {decl_cands()}},
 	{Tag::LocalDecl, {decl_cands()}},

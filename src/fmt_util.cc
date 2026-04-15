@@ -730,6 +730,30 @@ Candidates flat_or_fill(const Formatting& prefix, const Formatting& open,
 
 		if ( items.size() <= 1 )
 			{
+			// The inner context doesn't include the outer trail,
+			// so the single arg may not know it needs to wrap.
+			// Re-format with trail to give it the full picture.
+			// Only retry when overflow is within the trail's
+			// magnitude and the arg fills the inner width -
+			// otherwise the outer expression should handle the
+			// wrapping.
+			int arg_trail = close_room + ctx.Trail();
+			int flat_w = flat_args.Fmt().Size();
+			if ( flat_c.Ovf() > 0 && flat_c.Ovf() <= arg_trail &&
+			     flat_w >= inner_w )
+				{
+				FmtContext trail_inner(inner_ctx.Indent(),
+						inner_ctx.Col(),
+						inner_ctx.Width(), arg_trail);
+				auto alt_args = format_args_flat(items,
+								trail_inner);
+				auto alt_fmt = prefix + open + alt_args.Fmt() +
+					       cb + suffix;
+				Candidate alt_c(std::move(alt_fmt), ctx);
+				if ( alt_c.BetterThan(flat_c) )
+					flat_c = alt_c;
+				}
+
 			// For single-arg lists, suppress fill_break
 			// in sub-expressions.  Fill_break's 0-overflow
 			// lie wastes a line in the only candidate.
@@ -741,7 +765,8 @@ Candidates flat_or_fill(const Formatting& prefix, const Formatting& open,
 				auto af = prefix + open + alt.Fmt() +
 					  cb + suffix;
 				Candidate ac(std::move(af), ctx);
-				if ( ac.Lines() < flat_c.Lines() )
+				if ( ac.Lines() < flat_c.Lines() &&
+				     ac.Ovf() <= flat_c.Ovf() )
 					flat_c = ac;
 				}
 

@@ -1,0 +1,67 @@
+FUNC-DECL {
+  KEYWORD "function"
+  SP
+  IDENTIFIER "foo"
+  PARAMS {
+    LPAREN
+    RPAREN
+  }
+  BODY {
+    LBRACE
+    IF-NO-ELSE {
+      KEYWORD "if"
+      SP
+      LPAREN
+      IDENTIFIER "aaa"
+      RPAREN
+      BODY {
+        IF-NO-ELSE {
+          KEYWORD "if"
+          SP
+          LPAREN
+          IDENTIFIER "aaa"
+          RPAREN
+          BODY {
+            IF-NO-ELSE {
+              KEYWORD "if"
+              SP
+              LPAREN
+              IDENTIFIER "aaa"
+              RPAREN
+              BODY {
+                ADD {
+                  KEYWORD "add"
+                  SP
+                  INDEX {
+                    FIELD-ACCESS {
+                      IDENTIFIER "aaa"
+                      DOLLAR
+                      IDENTIFIER "aaaaaaaaaa"
+                    }
+                    SUBSCRIPTS {
+                      LBRACKET
+                      TERNARY {
+                        BINARY-OP ">" {
+                          IDENTIFIER "aa"
+                          OP ">"
+                          INTERVAL "1.0" "sec"
+                        }
+                        QUESTION
+                        CONSTANT "\"AAA\""
+                        COLON
+                        CONSTANT "\"AAA\""
+                      }
+                      RBRACKET
+                    }
+                  }
+                  SEMI
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+    RBRACE
+  }
+}
