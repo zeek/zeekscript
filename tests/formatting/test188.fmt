@@ -1,11 +1,9 @@
 function foo()
 	{
 	switch ( n ) {
-	case 3:
-		break;
+	case 3: break;
 	#@ BEGIN-NOT-TESTED
-	case 4:
-		break;
+	case 4: break;
 	#@ END-NOT-TESTED
 	}
 	}

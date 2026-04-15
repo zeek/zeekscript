@@ -2,10 +2,8 @@
 event foo()
 	{
 	switch auth_type {
-	default:
-		break;
+	default: break;
 
-	case 3:
-		print "yep";
+	case 3: print "yep";
 	}
 	}

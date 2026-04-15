@@ -1,11 +1,9 @@
 function xxx()
 	{
 	switch ( x ) {
-	case AAAA:
-		return xxx(xxxxxxxxxx | xxxxxxx);
+	case AAAA: return xxx(xxxxxxxxxx | xxxxxxx);
 
-	case BBBBBBB:
-		return xxxxxxx;
+	case BBBBBBB: return xxxxxxx;
 
 	default:
 		#@ BEGIN-NOT-TESTED

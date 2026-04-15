@@ -919,14 +919,57 @@ LIPtr Layout::ComputeRedefRecordBody(const FmtContext& ctx) const
 
 // ---- Switch formatting ---------------------------------------------------
 
+// Try to format a case body inline after the label.  Returns true
+// (and appends to result) if the body is a single statement that
+// fits on the label line.
+static bool try_inline_case_body(const LayoutVec& stmts, Formatting& result,
+                                const FmtContext& ctx, int label_col)
+	{
+	int n_stmts = 0;
+	const Layout* single = nullptr;
+	for ( const auto& s : stmts )
+		{
+		Tag t = s->GetTag();
+		if ( t != Tag::Blank && t != Tag::SameLine )
+			{
+			single = s.get();
+			if ( ++n_stmts > 1 )
+				return false;
+			}
+		}
+
+	if ( n_stmts != 1 )
+		return false;
+
+	int col = label_col + 1;
+	FmtContext inline_ctx(ctx.Indent(), col, ctx.MaxCol() - col);
+	auto c = best(format_expr(*single, inline_ctx));
+	if ( c.Lines() == 1 && c.Ovf() == 0 )
+		{
+		result += " " + c.Fmt();
+		return true;
+		}
+
+	return false;
+	}
+
 // Switch statement: switch expr { case val: body ... }
+// label_col is the column after the "case val:" text.
+// If has_break is true, the label ends with a trailing comment
+// that forces a line break before the body.
 static void append_case_body(const LayoutPtr& body, Formatting& result,
-                           const FmtContext& ctx)
+                           const FmtContext& ctx, int label_col,
+                           bool has_break)
 	{
 	if ( ! body )
 		return;
 
-	auto text = format_stmt_list(body->Children(), ctx.Indented());
+	auto& stmts = body->Children();
+
+	if ( ! has_break && try_inline_case_body(stmts, result, ctx, label_col) )
+		return;
+
+	auto text = format_stmt_list(stmts, ctx.Indented());
 	if ( ! text.Empty() && text.Back() == '\n' )
 		text.PopBack();
 
@@ -1093,17 +1136,16 @@ LIPtr Layout::ComputeSwitchCases(const FmtContext& ctx) const
 		for ( const auto& pc : c->PreComments() )
 			result += "\n" + pad + pc;
 
-		auto& kw = c->Child(0, Tag::Keyword);
+		auto& colon = c->Child(tag == Tag::Default ? 1 : 3, Tag::Colon);
+		auto label = (tag == Tag::Default) ?
+			Formatting(c->Child(0, Tag::Keyword)) + colon :
+			format_case(*c, ctx);
 
-		if ( tag == Tag::Default )
-			{
-			result += "\n" + pad + kw + c->Child(1, Tag::Colon);
-			append_case_body(c->FindOptChild(Tag::Body), result, ctx);
-			continue;
-			}
+		result += "\n" + pad + label;
+		int label_col = ctx.Col() + label.LastLineLen();
 
-		result += "\n" + pad + format_case(*c, ctx);
-		append_case_body(c->FindOptChild(Tag::Body), result, ctx);
+		append_case_body(c->FindOptChild(Tag::Body), result, ctx,
+				label_col, colon->MustBreakAfter());
 		}
 
 	// Emit pre-comments on the closing brace (they sit after
