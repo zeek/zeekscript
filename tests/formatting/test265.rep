@@ -1,0 +1,59 @@
+EXPORT {
+  KEYWORD "export"
+  SP
+  LBRACE
+  GLOBAL-DECL {
+    KEYWORD "global"
+    SP
+    IDENTIFIER "aaaaaaaaa_aa"
+    DECL-TYPE {
+      COLON
+      TYPE-FUNC-RET "function" {
+        PARAMS {
+          LPAREN
+          PARAM "t" {
+            COLON
+            TYPE-PARAMETERIZED "table" {
+              SUBSCRIPTS {
+                LBRACKET
+                TYPE-ATOM "addr"
+                COMMA
+                TYPE-ATOM "addr"
+                RBRACKET
+              }
+              KEYWORD "of"
+              SP
+              TYPE-PARAMETERIZED "set" {
+                SUBSCRIPTS {
+                  LBRACKET
+                  TYPE-ATOM "time"
+                  COMMA
+                  TYPE-ATOM "string"
+                  RBRACKET
+                }
+              }
+            }
+          }
+          COMMA
+          PARAM "aaaa_a" {
+            COLON
+            TYPE-ATOM "addr"
+          }
+          COMMA
+          PARAM "aaaa_a" {
+            COLON
+            TYPE-ATOM "addr"
+          }
+          RPAREN
+        }
+        COLON
+        RETURNS {
+          TYPE-ATOM "interval"
+        }
+      }
+    }
+    SEMI
+  }
+  RBRACE
+}
+SEMI

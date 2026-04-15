@@ -352,7 +352,10 @@ Candidate format_args_fill(const ArgItems& items, int align_col, int indent,
 			continue;
 			}
 
-		FmtContext sub(indent, s.cur_col, s.max_col - s.cur_col, t);
+		int avail = s.max_col - s.cur_col;
+		if ( ! is_last )
+			avail += close_room;
+		FmtContext sub(indent, s.cur_col, avail, t);
 		auto bc = best(format_expr(*it.arg, sub));
 		int aw = bc.Width();
 

@@ -1,0 +1,4 @@
+export {
+    global aaaaaaaaa_aa: function(t: table[addr, addr] of set[time, string],
+                    aaaa_a: addr, aaaa_a: addr): interval;
+};
