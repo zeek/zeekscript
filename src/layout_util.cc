@@ -1206,6 +1206,13 @@ static LIPtr try_balanced_chain(const Layout& root, const std::string& op,
 			return nullptr;
 		}
 
+	// Check whether the flat form fits on one line.
+	int flat_w = 0;
+	for ( int i = 0; i < n; ++i )
+		flat_w += (i > 0 ? sep : 0) + w[i];
+	if ( ctx.Col() + flat_w <= max_t )
+		return nullptr;
+
 	// Find the latest break point with balanced lines.
 	int bp = -1;
 	for ( int b = n - 1; b >= 1; --b )
