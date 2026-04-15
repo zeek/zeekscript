@@ -20,7 +20,7 @@
 // at this level rather than causing internal wrapping.
 //
 // offer_split: always include split candidates alongside flat,
-// even when flat fits on one line.  Lets a parent beam choose
+// even when flat fits on one line.  Lets a parent search choose
 // between the flat and split forms (e.g. FieldAccess, HasField).
 // Also enables trail-aware sub-expression formatting.
 Candidates flat_or_split(FmtSteps steps, const std::vector<SplitAt>& splits,

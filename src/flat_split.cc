@@ -7,7 +7,7 @@
 // base column (ctx) rather than the accumulated position, so they
 // don't try to wrap internally - overflow is detected at this level.
 // When trail_aware is true, sub-expressions see the trailing width
-// of subsequent literal pieces, matching the beam's trail_after.
+// of subsequent literal pieces, matching the search's trail_after.
 static void format_flat(FmtSteps& steps, const FmtContext& ctx,
                         bool force_flat, bool trail_aware)
 	{
@@ -355,7 +355,7 @@ static void try_flat_alternates(const FmtSteps& steps, Candidates& result,
 				continue;
 
 			// Skip reluctant-break ($-split) candidates -
-			// they should only compete in the beam, not
+			// they should only compete in the search, not
 			// be absorbed into outer flat forms.
 			if ( c.ReluctantBreaks() > 0 )
 				continue;
@@ -421,7 +421,7 @@ Candidates flat_or_split(FmtSteps steps, const std::vector<SplitAt>& splits,
 		result.push_back(Candidate(std::move(flat), ctx));
 
 	// Single-line flat with no overflow: done unless we need to
-	// offer a split candidate to the parent beam.
+	// offer a split candidate to the parent search.
 	if ( result[0].Ovf() <= 0 && result[0].Lines() == 1 )
 		{
 		if ( ! offer_split )

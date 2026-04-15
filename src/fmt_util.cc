@@ -819,8 +819,8 @@ Candidates flat_or_fill(const Formatting& prefix, const Formatting& open,
 		return result;
 
 	// Try balanced fill.  For parameter lists, replace greedy
-	// (the beam can't distinguish them when the body dominates).
-	// For expression lists, offer both and let the beam choose.
+	// (the search can't distinguish them when the body dominates).
+	// For expression lists, offer both and let the search choose.
 	auto bcs = try_best_fill(items, open_col, ctx.Indent(), inner_ctx,
 	                         ctx.HardTrail());
 	if ( bcs.empty() )

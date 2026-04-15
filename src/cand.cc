@@ -153,7 +153,7 @@ static BestPair partition_best(const Candidates& cs)
 	}
 
 // Prefer non-reluctant candidates.  Reluctant ($-split) candidates
-// propagate through the beam for width reduction but are not chosen
+// propagate through the search for width reduction but are not chosen
 // by local best() - they would steal overflow that the outer context
 // handles at a better break.  Exception: when the best non-reluctant
 // significantly overflows and a reluctant candidate eliminates it,

@@ -301,7 +301,7 @@ LIPtr Layout::ComputeWhenTimeout(const FmtContext& ctx) const
 
 // Trailing comment on a FUNC-DECL header (from the BODY node's
 // text, which holds any COMMENT-TRAILING attached by the parser).
-// Stays in the beam so the header accounts for its width.
+// Stays in the search so the header accounts for its width.
 LIPtr Layout::ComputeFuncTrailing(const FmtContext&) const
 	{
 	auto& text = Children().back()->Text();
@@ -1168,6 +1168,110 @@ static bool collect_pattern_chain(const Layout& node,
 	return true;
 	}
 
+// For chains of 3+ same-operator terms (a OP b OP c OP d), find a balanced
+// two-line layout: the latest break point where both lines fit and line 2
+// is at least 1/3 of line 1's width.
+// Returns nullptr if no balanced break exists.
+static LIPtr try_balanced_chain(const Layout& root, const std::string& op,
+                                const FmtContext& ctx)
+	{
+	// Flatten the left-recursive chain into operands.
+	std::vector<LayoutPtr> operands;
+	const Layout* cur = &root;
+	while ( cur->Child(0)->GetTag() == Tag::BinaryOp &&
+	        cur->Child(0)->Arg() == op )
+		{
+		operands.push_back(cur->Child(2));
+		cur = cur->Child(0).get();
+		}
+
+	operands.push_back(cur->Child(2));
+	operands.push_back(cur->Child(0));
+	std::reverse(operands.begin(), operands.end());
+
+	int n = static_cast<int>(operands.size());
+	int op_w = 1 + static_cast<int>(op.size());
+	int sep = op_w + 1;  // " OP "
+	int max = ctx.MaxCol();
+	int max_t = max - ctx.Trail();
+
+	// Measure each operand's single-line width.
+	std::vector<int> w(n);
+	for ( int i = 0; i < n; ++i )
+		{
+		auto& it = operands[i];
+		auto bc = best(format_expr(*it, ctx));
+		w[i] = bc.Width();
+		if ( bc.Lines() > 1 )
+			return nullptr;
+		}
+
+	// Find the latest break point with balanced lines.
+	int bp = -1;
+	for ( int b = n - 1; b >= 1; --b )
+		{
+		int w1 = 0;
+		for ( int j = 0; j < b; ++j )
+			w1 += (j > 0 ? sep : 0) + w[j];
+
+		w1 += op_w;
+		int w2 = 0;
+		for ( int j = b; j < n; ++j )
+			{
+			w2 += (j > b ? sep : 0) + w[j];
+			if ( j < n - 1 )
+				w2 += op_w;
+			}
+
+		if ( ctx.Col() + w1 > max || ctx.Col() + w2 > max_t )
+			continue;
+
+		if ( 3 * w2 >= w1 )
+			{
+			bp = b;
+			break;
+			}
+		}
+
+	if ( bp < 1 )
+		return nullptr;
+
+	// Format the two lines.
+	auto pad = line_prefix(ctx.Indent(), ctx.Col());
+	Formatting fmt;
+	int col = ctx.Col();
+	for ( int i = 0; i < n; ++i )
+		{
+		if ( i == bp )
+			{
+			fmt += "\n" + pad;
+			col = ctx.Col();
+			}
+
+		else if ( i > 0 )
+			{
+			fmt += " ";
+			++col;
+			}
+
+		auto sub = ctx.After(col - ctx.Col());
+		auto& it = operands[i];
+		auto bc = best(format_expr(*it, sub));
+		fmt += bc.Fmt();
+		col += bc.Width();
+
+		if ( i < n - 1 )
+			{
+			fmt += " " + op;
+			col += op_w;
+			}
+		}
+
+	Candidates cands;
+	cands.push_back({fmt, col, 2, 0, ctx.Col()});
+	return std::make_shared<LIDeclCandsR>(std::move(cands));
+	}
+
 LIPtr Layout::ComputeBinaryOp(const FmtContext& ctx) const
 	{
 	// Count left-recursive chain depth for the same operator.
@@ -1226,6 +1330,14 @@ LIPtr Layout::ComputeBinaryOp(const FmtContext& ctx) const
 
 			return std::make_shared<LIDeclCandsR>(std::move(cands));
 			}
+		}
+
+	// For chains of 3+ terms, try a balanced two-line layout.
+	if ( depth >= 3 && depth <= 6 )
+		{
+		auto balanced = try_balanced_chain(*this, op, ctx);
+		if ( balanced )
+			return balanced;
 		}
 
 	if ( depth <= 6 )

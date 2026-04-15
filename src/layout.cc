@@ -1,6 +1,6 @@
-// Layout core: tree construction, Format() entry point, beam search
-// engine, and the tag-to-layout table.  Compute/format helpers that
-// the table references live in layout_util.cc.
+// Layout core: tree construction, Format() entry point, brute-force
+// search engine, and the tag-to-layout table.  Compute/format helpers
+// that the table references live in layout_util.cc.
 
 #include <algorithm>
 #include <cassert>
@@ -160,8 +160,6 @@ LIPtr tok(const LayoutPtr& n)
 	return item;
 	}
 
-static constexpr int BEAM_WIDTH = 4;
-
 // Merge a Candidate into a Partial: append text, accumulate
 // overflow/lines, and advance column.
 static void merge_candidate(Partial& np, const Candidate& c)
@@ -195,18 +193,18 @@ static bool all_items_commented(const ArgItems& items)
 	}
 
 // Default LayoutStep: asserts - resolution items must be resolved
-// before the beam runs.
+// before the search runs.
 Partials LayoutItem::LayoutStep(Partials&, const FmtContext&, int, int) const
 	{
 	assert(false);
 	return {};
 	}
 
-Partials LILit::LayoutStep(Partials& beam, const FmtContext& ctx,
+Partials LILit::LayoutStep(Partials& partials, const FmtContext& ctx,
 				int, int) const
 	{
 	Partials next;
-	for ( auto& p : beam )
+	for ( auto& p : partials )
 		{
 		Partial np = p;
 		const auto& f = Fmt();
@@ -231,11 +229,11 @@ Partials LILit::LayoutStep(Partials& beam, const FmtContext& ctx,
 	return next;
 	}
 
-Partials LIExpr::LayoutStep(Partials& beam, const FmtContext& ctx,
+Partials LIExpr::LayoutStep(Partials& partials, const FmtContext& ctx,
                              int trail, int soft_trail) const
 	{
 	Partials next;
-	for ( auto& p : beam )
+	for ( auto& p : partials )
 		{
 		int avail = ctx.MaxCol() - p.col;
 		FmtContext sub(ctx.Indent(), p.col, avail, trail, soft_trail);
@@ -253,10 +251,10 @@ Partials LIExpr::LayoutStep(Partials& beam, const FmtContext& ctx,
 	return next;
 	}
 
-Partials LISp::LayoutStep(Partials& beam, const FmtContext&, int, int) const
+Partials LISp::LayoutStep(Partials& partials, const FmtContext&, int, int) const
 	{
 	Partials next;
-	for ( auto& p : beam )
+	for ( auto& p : partials )
 		{
 		// Option 1: space (skip if preceding token forces a break).
 		if ( ! p.must_break )
@@ -285,10 +283,10 @@ Partials LISp::LayoutStep(Partials& beam, const FmtContext&, int, int) const
 	return next;
 	}
 
-Partials LIHardBreak::LayoutStep(Partials& beam, const FmtContext&, int, int) const
+Partials LIHardBreak::LayoutStep(Partials& partials, const FmtContext&, int, int) const
 	{
 	Partials next;
-	for ( auto& p : beam )
+	for ( auto& p : partials )
 		{
 		int brk_col = p.indent * INDENT_WIDTH;
 		auto pad = "\n" + line_prefix(p.indent, brk_col);
@@ -305,10 +303,10 @@ Partials LIHardBreak::LayoutStep(Partials& beam, const FmtContext&, int, int) co
 	return next;
 	}
 
-Partials LIIndentUp::LayoutStep(Partials& beam, const FmtContext&, int, int) const
+Partials LIIndentUp::LayoutStep(Partials& partials, const FmtContext&, int, int) const
 	{
 	Partials next;
-	for ( auto& p : beam )
+	for ( auto& p : partials )
 		{
 		Partial np = p;
 		++np.indent;
@@ -318,10 +316,10 @@ Partials LIIndentUp::LayoutStep(Partials& beam, const FmtContext&, int, int) con
 	return next;
 	}
 
-Partials LIIndentDown::LayoutStep(Partials& beam, const FmtContext&, int, int) const
+Partials LIIndentDown::LayoutStep(Partials& partials, const FmtContext&, int, int) const
 	{
 	Partials next;
-	for ( auto& p : beam )
+	for ( auto& p : partials )
 		{
 		Partial np = p;
 
@@ -390,7 +388,7 @@ static Candidates arglist_fill_candidates(const Formatting& prefix,
 	return cs;
 	}
 
-Partials LIArgListR::LayoutStep(Partials& beam, const FmtContext& ctx,
+Partials LIArgListR::LayoutStep(Partials& partials, const FmtContext& ctx,
                                 int trail, int soft_trail) const
 	{
 	Partials next;
@@ -405,7 +403,7 @@ Partials LIArgListR::LayoutStep(Partials& beam, const FmtContext& ctx,
 	if ( items.empty() )
 		{
 		auto empty_list = prefix + open + close + suffix;
-		for ( auto& p : beam )
+		for ( auto& p : partials )
 			{
 			Partial np = p;
 			np.fmt += empty_list;
@@ -428,7 +426,7 @@ Partials LIArgListR::LayoutStep(Partials& beam, const FmtContext& ctx,
 	bool has_tc =
 		trail_comma_vert && child->FindOptChild(Tag::TrailingComma);
 
-	for ( auto& p : beam )
+	for ( auto& p : partials )
 		{
 		int avail = ctx.MaxCol() - p.col;
 		FmtContext sub(ctx.Indent(), p.col, avail, trail, soft_trail);
@@ -495,12 +493,12 @@ Partials LIArgListR::LayoutStep(Partials& beam, const FmtContext& ctx,
 	return next;
 	}
 
-Partials LIFlatSplitR::LayoutStep(Partials& beam, const FmtContext& ctx,
+Partials LIFlatSplitR::LayoutStep(Partials& partials, const FmtContext& ctx,
                                    int trail, int) const
 	{
 	Partials next;
 
-	for ( auto& p : beam )
+	for ( auto& p : partials )
 		{
 		int avail = ctx.MaxCol() - p.col;
 		FmtContext sub(ctx.Indent(), p.col, avail, trail);
@@ -517,11 +515,11 @@ Partials LIFlatSplitR::LayoutStep(Partials& beam, const FmtContext& ctx,
 	return next;
 	}
 
-Partials LIDeclCandsR::LayoutStep(Partials& beam, const FmtContext&, int, int) const
+Partials LIDeclCandsR::LayoutStep(Partials& partials, const FmtContext&, int, int) const
 	{
 	Partials next;
 
-	for ( auto& p : beam )
+	for ( auto& p : partials )
 		for ( const auto& c : Cands() )
 			{
 			Partial np = p;
@@ -532,18 +530,18 @@ Partials LIDeclCandsR::LayoutStep(Partials& beam, const FmtContext&, int, int) c
 	return next;
 	}
 
-Partials LISoftContR::LayoutStep(Partials& beam,
+Partials LISoftContR::LayoutStep(Partials& partials,
 					const FmtContext& ctx, int, int) const
 	{
 	Partials next;
 	auto& f = Fmt();
 	if ( f.Empty() )
 		{
-		next = beam;
+		next = partials;
 		return next;
 		}
 
-	for ( auto& p : beam )
+	for ( auto& p : partials )
 		{
 		// Option 1: inline (space + content).
 		if ( ! p.must_break )
@@ -575,54 +573,7 @@ Partials LISoftContR::LayoutStep(Partials& beam,
 	return next;
 	}
 
-// ---- Beam search driver --------------------------------------------------
-
-// Count reluctant breaks ($\n) in a Formatting.
-static int reluctant_breaks(const Formatting& f)
-	{
-	auto& s = f.Str();
-	int count = 0;
-	for ( size_t i = 1; i < s.size(); ++i )
-		if ( s[i] == '\n' && s[i - 1] == '$' )
-			++count;
-	return count;
-	}
-
-// Prune beam to best BEAM_WIDTH partials.  Uses the same priority order as
-// Candidate::BetterThan (see cand.cc) adapted for Partials: reluctant breaks >
-// overflow > lines.  Changes to BetterThan's priority must be mirrored here.
-static void prune_beam(Partials& beam)
-	{
-	if ( static_cast<int>(beam.size()) <= BEAM_WIDTH )
-		return;
-
-	std::sort(beam.begin(), beam.end(),
-		[](const Partial& a, const Partial& b)
-		{
-		int ra = reluctant_breaks(a.fmt);
-		int rb = reluctant_breaks(b.fmt);
-		if ( ra != rb )
-			{
-			int ld = a.lines - b.lines;
-			if ( ra > rb && ld <= -2 ) return true;
-			if ( rb > ra && -ld <= -2 ) return false;
-			// Also let reluctant win with 1 line
-			// savings when it has less overflow.
-			if ( ra > rb && ld < 0 && a.overflow < b.overflow )
-				return true;
-			if ( rb > ra && -ld < 0 && b.overflow < a.overflow )
-				return false;
-			return ra < rb;
-			}
-
-		if ( a.overflow != b.overflow )
-			return a.overflow < b.overflow;
-
-		return a.lines < b.lines;
-		});
-
-	beam.resize(BEAM_WIDTH);
-	}
+// ---- Search driver -------------------------------------------------------
 
 // Trailing literal width after a Fmt node is automatically reserved
 // so the formatted expression accounts for what follows it.
@@ -689,20 +640,19 @@ Candidates build_layout(LayoutItems items, const FmtContext& ctx)
 		return {w, soft};
 		};
 
-	Partials beam = {{Formatting(), ctx.Col(), ctx.Indent(),
+	Partials partials = {{Formatting(), ctx.Col(), ctx.Indent(),
 	                   1, 0, false, -1}};
 
 	for ( size_t i = 0; i < items.size(); ++i )
 		{
 		auto [total, soft] = trail_after(i);
-		beam = items[i]->LayoutStep(beam, ctx, total, soft);
-		prune_beam(beam);
+		partials = items[i]->LayoutStep(partials, ctx, total, soft);
 		}
 
 	// Convert partials to Candidates.  Width is relative to the
 	// start column so callers can combine it with other text.
 	Candidates result;
-	for ( auto& p : beam )
+	for ( auto& p : partials )
 		{
 		int w = (p.lines == 1) ? p.fmt.Size() : p.col;
 		result.push_back({std::move(p.fmt), w, p.lines,
@@ -729,26 +679,26 @@ Candidates Layout::BuildLayout(LayoutItems items, const FmtContext& ctx,
 			break;
 			}
 
-	// prefix_w shifts beam items (condition) to account for an
+	// prefix_w shifts header items (condition) to account for an
 	// invisible prefix (e.g. "else " before "if ( ... )").
 	// Body items use the original ctx.
-	auto beam_ctx = prefix_w > 0 ? ctx.After(prefix_w) : ctx;
+	auto hdr_ctx = prefix_w > 0 ? ctx.After(prefix_w) : ctx;
 
 	for ( size_t i = 0; i < body_start; ++i )
-		ResolveItem(items, i, beam_ctx);
+		ResolveItem(items, i, hdr_ctx);
 	for ( size_t i = body_start; i < items.size(); ++i )
 		ResolveItem(items, i, ctx);
 
 	if ( body_start == items.size() )
-		return build_layout(items, beam_ctx);
+		return build_layout(items, hdr_ctx);
 
-	// Split: beam items (condition) vs body items.
-	LayoutItems beam_items(items.begin(), items.begin() + body_start);
+	// Split: header items (condition) vs body items.
+	LayoutItems hdr_items(items.begin(), items.begin() + body_start);
 	Formatting body;
 	for ( size_t i = body_start; i < items.size(); ++i )
 		body += items[i]->Fmt();
 
-	auto result = build_layout(beam_items, beam_ctx);
+	auto result = build_layout(hdr_items, hdr_ctx);
 	for ( auto& c : result )
 		c.AppendBody(body);
 

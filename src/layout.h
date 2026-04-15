@@ -29,7 +29,7 @@ Candidates format_expr(const Layout& node, const FmtContext& ctx);
 // *only* place tabs appear.
 std::string line_prefix(int indent, int col);
 
-// Beam search partial result.
+// Search partial result.
 struct Partial {
 	Formatting fmt;
 	int col;      // current column (end of last line)
@@ -48,17 +48,17 @@ using Partials = std::vector<Partial>;
 enum LIKind {
 	Lit,	// literal Formatting text, emitted as-is
 	FmtExpr,	// format a child as an expression (multi-candidate)
-	Sp,	// soft space: beam explores both " " and newline+indent
+	Sp,	// soft space: search explores both " " and newline+indent
 
-	// Pre-beam resolution kinds - resolved to Lit/FmtExpr before
-	// the beam search runs.
+	// Pre-search resolution kinds - resolved to Lit/FmtExpr before
+	// the search runs.
 	Tok,	// child token by index, resolved to Lit
 	ExprIdx,	// child expression by index, resolved to FmtExpr
 	InitExprIdx,	// like ExprIdx but sets init_rhs flag
 	LastTok,	// last child token, resolved to Lit
 	ArgIdx,	// numbered Arg() string, resolved to Lit
 
-	// Composite kinds - resolved or handled specially by the beam.
+	// Composite kinds - resolved or handled specially by the search.
 	ArgList,	// parenthesized arg list: flat/fill/vertical
 	FillList,	// keyword + args as fill (e.g. "print a, b, c")
 	FlatSplit,	// flat-or-split binary/ternary expression
@@ -76,7 +76,7 @@ enum LIKind {
 
 	StmtBody,	// format children as an indented statement list
 	BodyText,	// Whitesmith-style brace block body
-	BodyComputed,	// computed body, decoupled from header beam
+	BodyComputed,	// computed body, decoupled from header search
 
 };
 
@@ -158,7 +158,7 @@ enum SBFlag {
 };
 
 // Base class for layout items.  Resolution items (Tok, ExprIdx,
-// computed kinds, etc.) use the base class directly.  Beam items
+// computed kinds, etc.) use the base class directly.  Search items
 // (Lit, Sp, ArgList, etc.) are subclasses that override LayoutStep.
 class LayoutItem
 	{
@@ -166,10 +166,10 @@ public:
 	LIKind kind;
 	virtual ~LayoutItem() = default;
 
-	// Beam search step: process this item against the current beam.
+	// Search step: process this item against the current partials.
 	// Default asserts - resolution items must be resolved before
-	// the beam runs.
-	virtual Partials LayoutStep(Partials& beam,
+	// the search runs.
+	virtual Partials LayoutStep(Partials& partials,
 		const FmtContext& ctx, int trail,
 		int soft_trail = 0) const;
 
@@ -236,7 +236,7 @@ public:
 		: kind(k), fmt(std::move(suffix)), node(n),
 		  sb_flags(fl), must_break(false) {}
 
-	// Flat-or-split: steps + split points, resolved in the beam.
+	// Flat-or-split: steps + split points, resolved in the search.
 	LayoutItem(FmtSteps s, std::vector<SplitAt> sp,
 	           bool ff = false, bool as = false)
 		: kind(FlatSplit), steps(std::move(s)),
@@ -315,15 +315,15 @@ protected:
 
 using LayoutItems = std::vector<LIPtr>;
 
-// ---- Beam item subclasses ------------------------------------------------
-// Each overrides LayoutStep to implement its beam search behavior.
+// ---- Search item subclasses ----------------------------------------------
+// Each overrides LayoutStep to implement its search behavior.
 // Implementations are in layout.cc.
 
 class LILit : public LayoutItem {
 public:
 	LILit(const Formatting& f) : LayoutItem(f) {}
 	LILit(Formatting&& f) : LayoutItem(std::move(f)) {}
-	Partials LayoutStep(Partials& beam, const FmtContext& ctx,
+	Partials LayoutStep(Partials& partials, const FmtContext& ctx,
 		int trail, int soft_trail) const override;
 };
 
@@ -331,7 +331,7 @@ class LIExpr : public LayoutItem {
 public:
 	LIExpr(const LayoutPtr& n, bool ir = false)
 		: LayoutItem(n), is_init_rhs(ir) {}
-	Partials LayoutStep(Partials& beam, const FmtContext& ctx,
+	Partials LayoutStep(Partials& partials, const FmtContext& ctx,
 		int trail, int soft_trail) const override;
 private:
 	bool is_init_rhs;
@@ -340,21 +340,21 @@ private:
 class LISp : public LayoutItem {
 public:
 	LISp() : LayoutItem(Sp) {}
-	Partials LayoutStep(Partials& beam, const FmtContext& ctx,
+	Partials LayoutStep(Partials& partials, const FmtContext& ctx,
 		int trail, int soft_trail) const override;
 };
 
 class LIHardBreak : public LayoutItem {
 public:
 	LIHardBreak() : LayoutItem(HardBreak) {}
-	Partials LayoutStep(Partials& beam, const FmtContext& ctx,
+	Partials LayoutStep(Partials& partials, const FmtContext& ctx,
 		int trail, int soft_trail) const override;
 };
 
 class LIIndentUp : public LayoutItem {
 public:
 	LIIndentUp() : LayoutItem(IndentUp) {}
-	Partials LayoutStep(Partials& beam, const FmtContext& ctx,
+	Partials LayoutStep(Partials& partials, const FmtContext& ctx,
 		int trail, int soft_trail) const override;
 };
 
@@ -363,7 +363,7 @@ public:
 	LIIndentDown() : LayoutItem(IndentDown) {}
 	LIIndentDown(const LayoutPtr& n)
 		: LayoutItem(IndentDown, n, Formatting()) {}
-	Partials LayoutStep(Partials& beam, const FmtContext& ctx,
+	Partials LayoutStep(Partials& partials, const FmtContext& ctx,
 		int trail, int soft_trail) const override;
 };
 
@@ -385,7 +385,7 @@ public:
 	           Formatting suffix, int fl)
 		: LayoutItem(ArgList, n, std::move(prefix),
 			std::move(suffix), fl) {}
-	Partials LayoutStep(Partials& beam, const FmtContext& ctx,
+	Partials LayoutStep(Partials& partials, const FmtContext& ctx,
 		int trail, int soft_trail) const override;
 };
 
@@ -394,7 +394,7 @@ public:
 	LIFlatSplitR(FmtSteps s, std::vector<SplitAt> sp,
 	             bool ff = false, bool as = false)
 		: LayoutItem(std::move(s), std::move(sp), ff, as) {}
-	Partials LayoutStep(Partials& beam, const FmtContext& ctx,
+	Partials LayoutStep(Partials& partials, const FmtContext& ctx,
 		int trail, int soft_trail) const override;
 };
 
@@ -402,14 +402,14 @@ class LIDeclCandsR : public LayoutItem {
 public:
 	LIDeclCandsR(Candidates cs)
 		: LayoutItem(DeclCands, std::move(cs)) {}
-	Partials LayoutStep(Partials& beam, const FmtContext& ctx,
+	Partials LayoutStep(Partials& partials, const FmtContext& ctx,
 		int trail, int soft_trail) const override;
 };
 
 class LISoftContR : public LayoutItem {
 public:
 	LISoftContR(Formatting f) : LayoutItem(SoftCont, std::move(f)) {}
-	Partials LayoutStep(Partials& beam, const FmtContext& ctx,
+	Partials LayoutStep(Partials& partials, const FmtContext& ctx,
 		int trail, int soft_trail) const override;
 };
 
@@ -438,7 +438,7 @@ inline LIPtr lit(const Formatting& f) { return std::make_shared<LILit>(f); }
 inline LIPtr lit(Formatting&& f)
 	{ return std::make_shared<LILit>(std::move(f)); }
 
-// Soft space: beam explores both " " and newline+indent.
+// Soft space: search explores both " " and newline+indent.
 inline LIPtr sp() { return std::make_shared<LISp>(); }
 
 // Hard break: unconditional newline + indent.
@@ -474,7 +474,7 @@ inline LIPtr computed(ComputeFn fn)
 	{ return std::make_shared<LayoutItem>(Lit, fn); }
 
 // Computed body: resolved via ComputeFn like computed(), but split
-// off from the beam like BodyText so body overflow doesn't affect
+// off from the search like BodyText so body overflow doesn't affect
 // header formatting.
 inline LIPtr body_computed(ComputeFn fn)
 	{ return std::make_shared<LayoutItem>(BodyComputed, fn); }
@@ -486,7 +486,7 @@ inline LIPtr decl_cands()
 
 // Bracketed argument list: child at child_index is expected to have
 // open/close brackets as first/last children.  Resolved by BuildLayout
-// and handled in the beam via flat_or_fill.  Optional suffix is
+// and handled in the search via flat_or_fill.  Optional suffix is
 // appended after the close bracket (e.g. return type).
 inline LIPtr arglist(unsigned child_index)
 	{ return std::make_shared<LayoutItem>(ArgList, child_index); }
@@ -534,7 +534,7 @@ inline LIPtr body_text(unsigned child_index)
 
 // Soft continuation: content is placed inline (space + content)
 // or on a continuation line (break + indent + content).  Both
-// options enter the beam; the best is selected by pruning.
+// options enter the search; the best is selected at the end.
 // Empty content is a no-op.
 inline LIPtr soft_cont(ComputeFn op)
 	{ return std::make_shared<LayoutItem>(SoftCont, 0U, op); }
@@ -548,9 +548,9 @@ inline LIPtr flat_split(FmtSteps s, std::vector<SplitAt> sp,
 	}
 
 // Build layout candidates from a sequence of components using
-// beam search.  At each Fmt node, all of its candidates are tried;
-// at each soft_sp, both "space" and "break + indent" are tried.
-// The beam is pruned to the best candidates at each step.
+// brute-force search.  At each Fmt node, all of its candidates
+// are tried; at each soft_sp, both "space" and "break + indent"
+// are tried.
 Candidates build_layout(LayoutItems items, const FmtContext& ctx);
 
 // A node in the representation tree.  Each node has:
@@ -564,7 +564,7 @@ Candidates build_layout(LayoutItems items, const FmtContext& ctx);
 // Bare markers like  SEMI  or  BLANK  have neither.
 //
 // Nodes with a layout specification are formatted declaratively
-// via BuildLayout + beam search.  Other nodes (tokens, markers,
+// via BuildLayout + brute-force search.  Other nodes (tokens, markers,
 // preproc) use the default fallback.
 
 class Layout {
@@ -575,8 +575,8 @@ public:
 	Candidates Format(const FmtContext& ctx, int prefix_w = 0) const;
 
 	// Layout combinator: resolves LayoutItems (tokens, computed
-	// kinds, etc.) before delegating to the beam-search engine.
-	// prefix_w shifts the context for beam items only, so
+	// kinds, etc.) before delegating to the search engine.
+	// prefix_w shifts the context for search items only, so
 	// body/else portions use the original column.
 	Candidates BuildLayout(LayoutItems items, const FmtContext& ctx,
 	                       int prefix_w = 0) const;
