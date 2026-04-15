@@ -1,5 +1,5 @@
 CXX ?= c++
-CXXFLAGS ?= -std=c++17 -Wall -Wextra -g
+CXXFLAGS ?= -std=c++17 -Wall -Wextra -O3
 TARGET = clz-format
 
 SRCS = main.cc parser.cc tag.cc formatting.cc cand.cc \
