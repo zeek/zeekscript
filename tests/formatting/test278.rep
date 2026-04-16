@@ -1,0 +1,42 @@
+EXPORT {
+  KEYWORD "export"
+  SP
+  LBRACE
+  GLOBAL-DECL {
+    KEYWORD "option"
+    SP
+    IDENTIFIER "aaa_aaaa"
+    DECL-TYPE {
+      COLON
+      TYPE-ATOM "pattern"
+    }
+    DECL-INIT {
+      ASSIGN "="
+      BINARY-OP "|" {
+        BINARY-OP "|" {
+          BINARY-OP "|" {
+            BINARY-OP "|" {
+              BINARY-OP "|" {
+                CONSTANT "/\\/bbb\\%0a/"
+                OP "|"
+                CONSTANT "/\\/bbb\\x0a/"
+              }
+              OP "|"
+              CONSTANT "/\\/bbb\\;/"
+            }
+            OP "|"
+            CONSTANT "/\\/cccc\\/ddddd\\.eee\\/\\.\\.\\;/"
+          }
+          OP "|"
+          CONSTANT "/\\.\\.\\;\\/cccc\\/ffffffff\\//"
+        }
+        COMMENT-LEADING "# | /\\/cccc\\/ddddd\\.eee\\/\\.\\.\\;\\/cccc\\/ffffffff\\// # Ggg, hhh iiiiiiiiiii jj kkk llllllll 2 mmmmmmmm"
+        OP "|"
+        CONSTANT "/\\/cccc\\/ddddd\\.eee\\/\\.\\.\\;\\/ddddd\\.eee/"
+      }
+    }
+    COMMENT-TRAILING "# nnnnnnnnnn oo pppp://qqqqqqq.r5.sss/ttt/uuuuuuu/V12345678"
+    SEMI
+  }
+  RBRACE
+}

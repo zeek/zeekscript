@@ -327,6 +327,7 @@ struct DeclParts {
 	Formatting type_str;	// ": type" or ""
 	Formatting suffix;	// " &attr1 &attr2;" or ";" or ""
 	Formatting assign_op;	// "=", "+=", or ""
+	std::string init_comment;	// trailing comment on DeclInit
 	LayoutPtr type_node;	// direct type child (after COLON)
 	LayoutPtr colon_node;	// COLON before type
 	LayoutPtr init_val;		// direct init value (after ASSIGN)
@@ -407,8 +408,8 @@ static void decl_with_init(const DeclParts& d, Candidates& result,
 		     last != ']' && last != '}' )
 			base = "\n" + line_prefix(ctx.Indent(), ctx.Col());
 
-		Formatting split = line1 + "\n" + pad + val2.Fmt() + base +
-					d.suffix;
+		Formatting split = line1 + "\n" + pad + val2.Fmt() +
+					d.init_comment + base + d.suffix;
 		int last_w = split.LastLineLen();
 		int lines = split.CountLines();
 		int ovf = split.TextOverflow(ctx.Col(), ctx.MaxCol());
@@ -651,6 +652,11 @@ Candidates Layout::ComputeDecl(const FmtContext& ctx) const
 		auto cc = di->ContentChildren();
 		if ( ! cc.empty() )
 			d.init_val = cc[0];
+
+		// DeclInit may carry a trailing comment that the parser
+		// couldn't push to a leaf (hasLayout is false).
+		if ( di->MustBreakAfter() && ! di->Text().empty() )
+			d.init_comment = di->Text();
 		}
 
 	if ( d.type_node )
@@ -1264,13 +1270,19 @@ bool Layout::AtColumnZero() const
 
 // Collect all leaf operands from a left-recursive | chain of pattern
 // constants.  Returns false if any leaf is not a /.../ pattern.
+struct PatEntry {
+	std::string leading;	// pre-comment before this entry's "|"
+	std::string pat;	// pattern text (may include trailing comment)
+};
+
 static bool collect_pattern_chain(const Layout& node,
-                                  std::vector<std::string>& pats)
+                                  std::vector<PatEntry>& pats)
 	{
 	if ( node.GetTag() != Tag::BinaryOp || node.Arg() != "|" )
 		return false;
 
 	auto& lhs = *node.Child(0);
+	auto& op_node = *node.Child(1);
 	auto& rhs = *node.Child(2);
 
 	if ( rhs.GetTag() != Tag::Constant || rhs.Text().front() != '/' )
@@ -1282,11 +1294,21 @@ static bool collect_pattern_chain(const Layout& node,
 			return false;
 		}
 	else if ( lhs.GetTag() == Tag::Constant && lhs.Text().front() == '/' )
-		pats.push_back(lhs.Text());
+		pats.push_back({"", lhs.Text()});
 	else
 		return false;
 
-	pats.push_back(rhs.Text());
+	// Collect any pre-comment on the OP node (e.g. a commented-out
+	// alternative that precedes this "|").
+	std::string leading;
+	for ( const auto& pc : op_node.PreComments() )
+		{
+		if ( ! leading.empty() )
+			leading += "\n";
+		leading += pc;
+		}
+
+	pats.push_back({leading, rhs.Text()});
 	return true;
 	}
 
@@ -1419,44 +1441,61 @@ LIPtr Layout::ComputeBinaryOp(const FmtContext& ctx) const
 	// Format one-per-line when 3+ patterns.
 	if ( op == "|" && depth >= 2 )
 		{
-		std::vector<std::string> pats;
+		std::vector<PatEntry> pats;
 		if ( collect_pattern_chain(*this, pats) && pats.size() >= 3 )
 			{
+			bool has_comments = false;
+			for ( auto& pe : pats )
+				if ( ! pe.leading.empty() )
+					{ has_comments = true; break; }
+
+			// Try flat (without comments - they only appear
+			// in the vertical form).
 			Formatting flat;
 			for ( size_t i = 0; i < pats.size(); ++i )
 				{
 				if ( i > 0 )
 					flat += " | ";
-				flat += pats[i];
+				flat += pats[i].pat;
 				}
 
-			Candidates cands;
 			Candidate fc(flat, ctx);
-			if ( fc.Fits() )
+			if ( ! has_comments && fc.Fits() )
 				return lit(flat);
 
-			// Only produce the vertical form at a clean indent
-			// boundary.  At arbitrary inline columns (e.g. after
-			// "name = "), the flat overflow steers the caller to
-			// re-evaluate at a lower, indented column.
+			// Vertical form at a clean indent boundary. At
+			// arbitrary inline columns the flat overflow steers
+			// the caller to re-evaluate at a lower indented column.
 			if ( ctx.Col() == ctx.IndentCol() )
 				{
 				auto pad = line_prefix(ctx.Indent(), ctx.Col());
 				Formatting vert;
-				vert += "  " + pats[0];
+				vert += "  " + pats[0].pat;
+				int lines = 1;
 				for ( size_t i = 1; i < pats.size(); ++i )
-					vert += "\n" + pad + "| " + pats[i];
+					{
+					if ( ! pats[i].leading.empty() )
+						{
+						vert += "\n" + pad +
+							pats[i].leading;
+						++lines;
+						}
+					vert += "\n" + pad + "| " + pats[i].pat;
+					++lines;
+					}
 
 				int last_w = vert.LastLineLen();
-				int lines = static_cast<int>(pats.size());
 				int ovf = vert.TextOverflow(ctx.Col(),
 							ctx.MaxCol());
+				Candidates cands;
 				cands.push_back({vert, last_w, lines, ovf,
 							ctx.Col()});
+				return std::make_shared<LIDeclCandsR>(
+					std::move(cands));
 				}
-			else
-				cands.push_back(fc);
 
+			Candidates cands;
+			cands.push_back(fc);
 			return std::make_shared<LIDeclCandsR>(std::move(cands));
 			}
 		}
