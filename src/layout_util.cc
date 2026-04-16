@@ -930,22 +930,16 @@ LIPtr Layout::ComputeEnumBody(const FmtContext& ctx) const
 	{
 	auto inner = Child(5);
 	bool fill = fmt_options.FillEnum();
-	auto result = format_enum_body(*inner, inner->Children().back(), ctx,
-				       attr_suffix(*this, ctx), fill);
-	if ( fill )
-		fmt_options.ConsumeFillEnum();
-	return result;
+	return format_enum_body(*inner, inner->Children().back(), ctx,
+				attr_suffix(*this, ctx), fill);
 	}
 
 // Enum body + close brace for redef enum (values are direct children).
 LIPtr Layout::ComputeRedefEnumBody(const FmtContext& ctx) const
 	{
 	bool fill = fmt_options.FillEnum();
-	auto result = format_enum_body(*this, ChildFromEnd(1, Tag::RBrace),
-				       ctx, Formatting(), fill);
-	if ( fill )
-		fmt_options.ConsumeFillEnum();
-	return result;
+	return format_enum_body(*this, ChildFromEnd(1, Tag::RBrace),
+				ctx, Formatting(), fill);
 	}
 
 // Format record fields + close brace from a node whose children

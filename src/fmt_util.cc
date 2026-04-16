@@ -403,20 +403,27 @@ Candidate format_args_fill(const ArgItems& items, int align_col, int indent,
 
 		else
 			{
-			// Inline if it fits.
+			// Inline if it fits.  Non-last items can borrow
+			// close_room (the space reserved for closing
+			// material that will appear on a later line).
 			int limit = s.max_col;
 			if ( is_last )
 				limit -= trail;
 			else
 				limit += close_room;
 
-			// On the first fill line, reserve room for the next
-			// comma in case the following item wraps. Continuation
-			// lines have leading whitespace that reduce_overflow
-			// can reclaim, so they don't need this guard.
-			int nc_w = (! is_last && s.lines == 1 && nc) ?
-					nc->Width() : 0;
-			if ( s.cur_col + 2 + aw + nc_w <= limit )
+			// If the successor wraps, this item's comma stays
+			// on the current line.  On the first fill line there
+			// is no leading whitespace to reclaim, so always
+			// reserve nc_w.  On continuation lines, reserve nc_w
+			// only when close_room > nc_w, since that means the
+			// item can extend far enough past max_col for the
+			// comma to overflow.
+			int nc_w = (! is_last && nc) ? nc->Width() : 0;
+			if ( nc_w > 0 && (s.lines == 1 || close_room > nc_w) )
+				if ( s.cur_col + 2 + aw + nc_w > limit )
+					limit -= nc_w;
+			if ( s.cur_col + 2 + aw <= limit )
 				{
 				s.fmt += Formatting(it.comma) + " " + bc.Fmt();
 				s.cur_col += 2 + aw;
@@ -1190,6 +1197,7 @@ Formatting format_stmt_list(const LayoutVec& nodes, const FmtContext& ctx,
 			}
 
 		format_stmt(node, nodes, i, cur_ctx, pad, result);
+		fmt_options.ConsumeAll();
 		}
 
 	return result;

@@ -15,10 +15,8 @@ public:
 	bool FillEnum() const { return fill_enum; }
 	bool FillSet() const { return fill_set; }
 
-	// Mark a directive as consumed after formatting the construct
-	// it targeted.
-	void ConsumeFillEnum() { fill_enum = false; }
-	void ConsumeFillSet() { fill_set = false; }
+	// Clear all active directives after formatting a statement.
+	void ConsumeAll() { fill_enum = false; fill_set = false; }
 
 	// Scan a pre-comment for FORMAT directives and activate them.
 	void ScanDirective(const std::string& comment);

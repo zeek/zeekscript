@@ -471,6 +471,8 @@ Partials LIArgListR::LayoutStep(Partials& partials, const FmtContext& ctx,
 	bool has_tc =
 		trail_comma_vert && child->FindOptChild(Tag::TrailingComma);
 
+	bool fill_set = flat_or_vert && fmt_options.FillSet();
+
 	for ( auto& p : partials )
 		{
 		int avail = ctx.MaxCol() - p.col;
@@ -486,7 +488,7 @@ Partials LIArgListR::LayoutStep(Partials& partials, const FmtContext& ctx,
 		if ( ! force_vert && all_comments_vert && has_breaks(items) )
 			force_vert = all_items_commented(items);
 
-		if ( force_vert && fmt_options.FillSet() )
+		if ( force_vert && fill_set )
 			force_vert = false;
 
 		if ( force_vert )
@@ -519,7 +521,7 @@ Partials LIArgListR::LayoutStep(Partials& partials, const FmtContext& ctx,
 
 			if ( cs.empty() || cs.back().Ovf() > 0 )
 				{
-				if ( fmt_options.FillSet() )
+				if ( fill_set )
 					{
 					std::string cpfx;
 					if ( has_tc )
@@ -528,7 +530,6 @@ Partials LIArgListR::LayoutStep(Partials& partials, const FmtContext& ctx,
 						suffix, items, sub,
 						child->Text(), cpfx,
 						dangling_comma);
-					fmt_options.ConsumeFillSet();
 					}
 				else
 					cs.push_back(format_args_vertical(
