@@ -34,7 +34,7 @@ while [ $# -gt 0 ]; do
         -v)        VERBOSE=true ;;
         -H|--help) usage ;;
         --)        shift; break ;;
-        -*)        echo "zeek-fmt.sh: unknown option: $1" >&2; exit 1 ;;
+        -*)        echo "zeek-fmt.sh: unknown option: $1" >&2; exit 255 ;;
         *)         break ;;
     esac
     shift
@@ -58,7 +58,7 @@ format_inplace() {
     ERR="${FILE}.err.$$"
     if ! emit_rep "$FILE" "$REP" "$ERR"; then
         rm -f "$REP" "$TMP" "$ERR"
-        return 1
+        return 255
     fi
     if "$FORMATTER" "$REP" > "$TMP" 2>"$ERR"; then
         mv "$TMP" "$FILE"
@@ -66,7 +66,7 @@ format_inplace() {
         sed "s|^|$FILE: |" "$ERR" >&2
         rm -f "$TMP"
         rm -f "$REP" "$ERR"
-        return 1
+        return 255
     fi
     rm -f "$REP" "$ERR"
 }
@@ -77,7 +77,7 @@ INPUT="${1:--}"
 if $RECURSIVE; then
     if [ "$INPUT" = "-" ] || [ ! -d "$INPUT" ]; then
         echo "zeek-fmt.sh: -r requires a directory argument" >&2
-        exit 1
+        exit 255
     fi
     ERRORS=0
     while IFS= read -r f; do
@@ -85,12 +85,12 @@ if $RECURSIVE; then
     done <<EOF
 $(find "$INPUT" -name '*.zeek' -type f)
 EOF
-    [ $ERRORS -gt 0 ] && exit 1
+    [ $ERRORS -gt 0 ] && exit 255
     exit 0
 elif $INPLACE; then
     if [ "$INPUT" = "-" ]; then
         echo "zeek-fmt.sh: -i requires a file argument" >&2
-        exit 1
+        exit 255
     fi
     format_inplace "$INPUT"
 else
@@ -98,12 +98,12 @@ else
     ERR=$(mktemp)
     if ! emit_rep "$INPUT" "$REP" "$ERR"; then
         rm -f "$REP" "$ERR"
-        exit 1
+        exit 255
     fi
     if ! "$FORMATTER" "$REP" 2>"$ERR"; then
         sed "s|^|$INPUT: |" "$ERR" >&2
         rm -f "$REP" "$ERR"
-        exit 1
+        exit 255
     fi
     rm -f "$REP" "$ERR"
 fi
