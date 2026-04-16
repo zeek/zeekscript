@@ -1,8 +1,4 @@
 # Lambda expressions: as first arg, non-first arg, with captures, nested bodies.
-# test092.zeek
-# test093.zeek
-# test094.zeek
-# test213.zeek
 
 event zeek_init()
     {

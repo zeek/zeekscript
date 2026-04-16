@@ -1,22 +1,4 @@
 # Function/event signatures: formal arg wrapping, &group, &is_used, nested function-type params, semicolon separator, global function types.
-# test003.zeek
-# test008.zeek
-# test047.zeek
-# test048.zeek
-# test049.zeek
-# test050.zeek
-# test051.zeek
-# test058.zeek
-# test063.zeek
-# test194.zeek
-# test201.zeek
-# test208.zeek
-# test221.zeek
-# test238.zeek
-# test249.zeek
-# test265.zeek
-# test266.zeek
-# test282.zeek
 
 event some_handler(c: connection, is_orig: bool,
                    payload: string) #@ NOT-TESTED

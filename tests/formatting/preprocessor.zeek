@@ -1,14 +1,4 @@
 # Preprocessor directives: @if/@else/@endif, @ifdef/@ifndef, @load, nesting inside function bodies, with trailing comments and annotations.
-# test028.zeek
-# test029.zeek
-# test031.zeek
-# test066.zeek
-# test112.zeek
-# test113.zeek
-# test114.zeek
-# test115.zeek
-# test116.zeek
-# test182.zeek
 
 # Some comment.
 #@ BEGIN-SKIP-TESTING

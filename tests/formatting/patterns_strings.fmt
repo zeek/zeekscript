@@ -1,12 +1,4 @@
 # Patterns and strings: long patterns, multi-line pattern alternation, long strings, string concatenation, fmt with special chars, pattern in conditions.
-# test100.zeek
-# test139.zeek
-# test141.zeek
-# test231.zeek
-# test239.zeek
-# test243.zeek
-# test258.zeek
-# test259.zeek
 
 const some_long_pattern_name = /\x4c\x00\x6f\x00\x67\x00\x69\x00\x6e\x00\x20\x00\x66\x00\x61\x00\x69\x00\x6c\x00\x65\x00\x64\x00\x20\x00\x66\x00\x6f\x00\x72\x00\x20\x00\x75\x00\x73\x00\x65\x00\x72\x00/;
 

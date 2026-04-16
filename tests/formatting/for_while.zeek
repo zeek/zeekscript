@@ -1,12 +1,4 @@
 # For/while loops: single/multiple loop vars, nested for, trailing comments, long while conditions, empty while body, while in if/else.
-# test011.zeek
-# test060.zeek
-# test117.zeek
-# test154.zeek
-# test158.zeek
-# test163.zeek
-# test260.zeek
-# test267.zeek
 
 function foo()
 	{

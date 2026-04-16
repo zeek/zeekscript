@@ -1,13 +1,4 @@
 # Expressions and operators: arithmetic, assignment, compound assignment, bitwise, in/!in, as/is, field access, return expressions, &-intersection.
-# test002.zeek
-# test012.zeek
-# test013.zeek
-# test033.zeek
-# test067.zeek
-# test068.zeek
-# test087.zeek
-# test178.zeek
-# test183.zeek
 
 event some_evt()
     {

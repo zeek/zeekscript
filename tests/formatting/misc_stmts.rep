@@ -1,17 +1,4 @@
 COMMENT-LEADING "# Miscellaneous statements: add, delete, assert, hook, when/timeout, schedule, copy, ++/--, event statement, return, print, bare block, #@ BEGIN marker, #@ BEGIN-SKIP-TESTING, #@ END comment on else."
-COMMENT-LEADING "# test018.zeek"
-COMMENT-LEADING "# test069.zeek"
-COMMENT-LEADING "# test106.zeek"
-COMMENT-LEADING "# test135.zeek"
-COMMENT-LEADING "# test140.zeek"
-COMMENT-LEADING "# test203.zeek"
-COMMENT-LEADING "# test204.zeek"
-COMMENT-LEADING "# test250.zeek"
-COMMENT-LEADING "# test252.zeek"
-COMMENT-LEADING "# test255.zeek"
-COMMENT-LEADING "# test256.zeek"
-COMMENT-LEADING "# test261.zeek"
-COMMENT-LEADING "# test263.zeek"
 BLANK
 COMMENT-LEADING "#@ BEGIN-SKIP-TESTING"
 BLANK

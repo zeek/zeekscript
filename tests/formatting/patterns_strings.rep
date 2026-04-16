@@ -1,12 +1,4 @@
 COMMENT-LEADING "# Patterns and strings: long patterns, multi-line pattern alternation, long strings, string concatenation, fmt with special chars, pattern in conditions."
-COMMENT-LEADING "# test100.zeek"
-COMMENT-LEADING "# test139.zeek"
-COMMENT-LEADING "# test141.zeek"
-COMMENT-LEADING "# test231.zeek"
-COMMENT-LEADING "# test239.zeek"
-COMMENT-LEADING "# test243.zeek"
-COMMENT-LEADING "# test258.zeek"
-COMMENT-LEADING "# test259.zeek"
 BLANK
 GLOBAL-DECL {
   KEYWORD "const"

@@ -1,39 +1,4 @@
 # Constructor calls: record constructors ($field=), Log::write, Log::create_stream, NOTICE, Input::add_event, nested constructors with fmt().
-# test010.zeek
-# test014.zeek
-# test026.zeek
-# test027.zeek
-# test091.zeek
-# test099.zeek
-# test102.zeek
-# test103.zeek
-# test118.zeek
-# test119.zeek
-# test120.zeek
-# test122.zeek
-# test123.zeek
-# test124.zeek
-# test125.zeek
-# test126.zeek
-# test127.zeek
-# test128.zeek
-# test129.zeek
-# test130.zeek
-# test132.zeek
-# test185.zeek
-# test189.zeek
-# test190.zeek
-# test191.zeek
-# test200.zeek
-# test205.zeek
-# test207.zeek
-# test219.zeek
-# test220.zeek
-# test227.zeek
-# test244.zeek
-# test257.zeek
-# test264.zeek
-# test272.zeek
 
 function some_func(): SomeModule::SomeType
 	{

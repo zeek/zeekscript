@@ -1,14 +1,4 @@
 COMMENT-LEADING "# Slice expressions: all variants of [start:end] with expressions, empty bounds, and function calls."
-COMMENT-LEADING "# test070.zeek"
-COMMENT-LEADING "# test071.zeek"
-COMMENT-LEADING "# test072.zeek"
-COMMENT-LEADING "# test073.zeek"
-COMMENT-LEADING "# test074.zeek"
-COMMENT-LEADING "# test075.zeek"
-COMMENT-LEADING "# test076.zeek"
-COMMENT-LEADING "# test077.zeek"
-COMMENT-LEADING "# test078.zeek"
-COMMENT-LEADING "# test101.zeek"
 BLANK
 FUNC-DECL {
   KEYWORD "function"

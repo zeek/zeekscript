@@ -1,7 +1,4 @@
 # Time interval literals: space/no-space before unit, floating point.
-# test088.zeek
-# test089.zeek
-# test090.zeek
 
 1 sec;
 

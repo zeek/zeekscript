@@ -1,14 +1,4 @@
 # Slice expressions: all variants of [start:end] with expressions, empty bounds, and function calls.
-# test070.zeek
-# test071.zeek
-# test072.zeek
-# test073.zeek
-# test074.zeek
-# test075.zeek
-# test076.zeek
-# test077.zeek
-# test078.zeek
-# test101.zeek
 
 function some_func()
 	{

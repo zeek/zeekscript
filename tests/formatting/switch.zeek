@@ -1,15 +1,4 @@
 # Switch statements: one-liner expansion, case/default/break, multi-value cases, comments in switch, brace styles, #@ END comments.
-# test025.zeek
-# test142.zeek
-# test143.zeek
-# test144.zeek
-# test186.zeek
-# test188.zeek
-# test209.zeek
-# test211.zeek
-# test246.zeek
-# test253.zeek
-# test271.zeek
 
 function f() { switch tag_type { case "some_analyzer_udp", "some_analyzer_udp_hmac_md5", "some_analyzer_udp_hmac_sha1", "some_analyzer_udp_hmac_sha256": break; } }
 

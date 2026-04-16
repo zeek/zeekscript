@@ -1,8 +1,4 @@
 COMMENT-LEADING "# Lambda expressions: as first arg, non-first arg, with captures, nested bodies."
-COMMENT-LEADING "# test092.zeek"
-COMMENT-LEADING "# test093.zeek"
-COMMENT-LEADING "# test094.zeek"
-COMMENT-LEADING "# test213.zeek"
 BLANK
 FUNC-DECL {
   KEYWORD "event"

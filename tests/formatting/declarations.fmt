@@ -1,23 +1,4 @@
 # Declarations: global, local, const, option with types, attributes, wrapping.
-# test006.zeek
-# test007.zeek
-# test015.zeek
-# test054.zeek
-# test061.zeek
-# test064.zeek
-# test104.zeek
-# test134.zeek
-# test145.zeek
-# test147.zeek
-# test162.zeek
-# test164.zeek
-# test165.zeek
-# test168.zeek
-# test173.zeek
-# test181.zeek
-# test225.zeek
-# test228.zeek
-# test248.zeek
 
 global some_table: table[string] of count
                     &default=some_long_default_expression_here &redef;

@@ -1,30 +1,4 @@
 # Set/table/vector constructors: set(), table(), anonymous {}/[], trailing commas, fill-set format, subnets, comments in elements, default function.
-# test036.zeek
-# test037.zeek
-# test038.zeek
-# test040.zeek
-# test041.zeek
-# test079.zeek
-# test080.zeek
-# test081.zeek
-# test082.zeek
-# test083.zeek
-# test084.zeek
-# test085.zeek
-# test086.zeek
-# test095.zeek
-# test096.zeek
-# test136.zeek
-# test137.zeek
-# test146.zeek
-# test169.zeek
-# test170.zeek
-# test171.zeek
-# test212.zeek
-# test240.zeek
-# test275.zeek
-# test276.zeek
-# test277.zeek
 
 const some_lookup: table[string] of string = table(
 	["some-key-aa"] = "val-aa",

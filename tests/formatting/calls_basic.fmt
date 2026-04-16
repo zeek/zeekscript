@@ -1,25 +1,4 @@
 # Basic call wrapping: simple calls, nested calls, fill layout balancing, consistent wrapping, comment after open-paren.
-# test001.zeek
-# test005.zeek
-# test023.zeek
-# test024.zeek
-# test042.zeek
-# test052.zeek
-# test059.zeek
-# test097.zeek
-# test098.zeek
-# test105.zeek
-# test108.zeek
-# test138.zeek
-# test148.zeek
-# test197.zeek
-# test198.zeek
-# test206.zeek
-# test222.zeek
-# test229.zeek
-# test251.zeek
-# test254.zeek
-# test281.zeek
 
 function some_func(val: string)
 	{

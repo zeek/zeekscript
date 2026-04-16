@@ -1,16 +1,4 @@
 COMMENT-LEADING "# Export blocks: const/option/global declarations, wrapped attributes, events, doc-comments, division workaround, pattern alternation."
-COMMENT-LEADING "# test035.zeek"
-COMMENT-LEADING "# test039.zeek"
-COMMENT-LEADING "# test053.zeek"
-COMMENT-LEADING "# test055.zeek"
-COMMENT-LEADING "# test167.zeek"
-COMMENT-LEADING "# test180.zeek"
-COMMENT-LEADING "# test215.zeek"
-COMMENT-LEADING "# test230.zeek"
-COMMENT-LEADING "# test234.zeek"
-COMMENT-LEADING "# test245.zeek"
-COMMENT-LEADING "# test278.zeek"
-COMMENT-LEADING "# test280.zeek"
 BLANK
 EXPORT {
   KEYWORD "export"

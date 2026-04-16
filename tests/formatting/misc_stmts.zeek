@@ -1,17 +1,4 @@
 # Miscellaneous statements: add, delete, assert, hook, when/timeout, schedule, copy, ++/--, event statement, return, print, bare block, #@ BEGIN marker, #@ BEGIN-SKIP-TESTING, #@ END comment on else.
-# test018.zeek
-# test069.zeek
-# test106.zeek
-# test135.zeek
-# test140.zeek
-# test203.zeek
-# test204.zeek
-# test250.zeek
-# test252.zeek
-# test255.zeek
-# test256.zeek
-# test261.zeek
-# test263.zeek
 
 #@ BEGIN-SKIP-TESTING
 

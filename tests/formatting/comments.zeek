@@ -1,19 +1,4 @@
 # Comments: trailing on various statement types, pre-comments, doc-comments, comment-only file, comment after close, #@ annotations, bare block with comment, pattern table with interleaved comments.
-# test032.zeek
-# test062.zeek
-# test152.zeek
-# test153.zeek
-# test155.zeek
-# test156.zeek
-# test157.zeek
-# test159.zeek
-# test160.zeek
-# test161.zeek
-# test192.zeek
-# test193.zeek
-# test195.zeek
-# test202.zeek
-# test214.zeek
 
 event zeek_init() {}
 # Comment on next line.

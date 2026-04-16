@@ -1,16 +1,4 @@
 # Export blocks: const/option/global declarations, wrapped attributes, events, doc-comments, division workaround, pattern alternation.
-# test035.zeek
-# test039.zeek
-# test053.zeek
-# test055.zeek
-# test167.zeek
-# test180.zeek
-# test215.zeek
-# test230.zeek
-# test234.zeek
-# test245.zeek
-# test278.zeek
-# test280.zeek
 
 export {
 	const cert_hygiene_server_wl_source =

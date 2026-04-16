@@ -1,7 +1,4 @@
 # Ternary expressions: long condition, long branches, wrapping variants.
-# test149.zeek
-# test150.zeek
-# test151.zeek
 
 event some_event_abc(host: addr, svc: string, region: string)
     {

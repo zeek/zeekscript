@@ -1,33 +1,4 @@
 # Complex if/else: long &&/|| chains, nested ifs, multi-line conditions, comment before else, @ifdef inside if, empty-statement bodies, else-if chains.
-# test004.zeek
-# test009.zeek
-# test016.zeek
-# test017.zeek
-# test019.zeek
-# test020.zeek
-# test021.zeek
-# test022.zeek
-# test030.zeek
-# test043.zeek
-# test065.zeek
-# test107.zeek
-# test172.zeek
-# test174.zeek
-# test187.zeek
-# test199.zeek
-# test216.zeek
-# test217.zeek
-# test218.zeek
-# test232.zeek
-# test233.zeek
-# test235.zeek
-# test236.zeek
-# test237.zeek
-# test241.zeek
-# test242.zeek
-# test247.zeek
-# test270.zeek
-# test279.zeek
 
 event some_event(some_arg: string)
 	{

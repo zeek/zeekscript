@@ -1,21 +1,4 @@
 # Record and enum types: fields with attributes, doc-comments, trailing comments, one-liner/multi-line enums, fill-enum, redef record/enum.
-# test044.zeek
-# test045.zeek
-# test046.zeek
-# test121.zeek
-# test131.zeek
-# test133.zeek
-# test166.zeek
-# test175.zeek
-# test177.zeek
-# test179.zeek
-# test184.zeek
-# test223.zeek
-# test224.zeek
-# test262.zeek
-# test269.zeek
-# test273.zeek
-# test274.zeek
 
 export {
 	type AnomalyTypes: enum {

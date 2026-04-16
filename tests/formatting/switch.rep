@@ -1,15 +1,4 @@
 COMMENT-LEADING "# Switch statements: one-liner expansion, case/default/break, multi-value cases, comments in switch, brace styles, #@ END comments."
-COMMENT-LEADING "# test025.zeek"
-COMMENT-LEADING "# test142.zeek"
-COMMENT-LEADING "# test143.zeek"
-COMMENT-LEADING "# test144.zeek"
-COMMENT-LEADING "# test186.zeek"
-COMMENT-LEADING "# test188.zeek"
-COMMENT-LEADING "# test209.zeek"
-COMMENT-LEADING "# test211.zeek"
-COMMENT-LEADING "# test246.zeek"
-COMMENT-LEADING "# test253.zeek"
-COMMENT-LEADING "# test271.zeek"
 BLANK
 FUNC-DECL {
   KEYWORD "function"

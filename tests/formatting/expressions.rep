@@ -1,13 +1,4 @@
 COMMENT-LEADING "# Expressions and operators: arithmetic, assignment, compound assignment, bitwise, in/!in, as/is, field access, return expressions, &-intersection."
-COMMENT-LEADING "# test002.zeek"
-COMMENT-LEADING "# test012.zeek"
-COMMENT-LEADING "# test013.zeek"
-COMMENT-LEADING "# test033.zeek"
-COMMENT-LEADING "# test067.zeek"
-COMMENT-LEADING "# test068.zeek"
-COMMENT-LEADING "# test087.zeek"
-COMMENT-LEADING "# test178.zeek"
-COMMENT-LEADING "# test183.zeek"
 BLANK
 FUNC-DECL {
   KEYWORD "event"

@@ -1,14 +1,4 @@
 COMMENT-LEADING "# Simple if/else: one-liners, inline if sequences, !in, negated conditions, empty bodies, else with comment."
-COMMENT-LEADING "# test034.zeek"
-COMMENT-LEADING "# test056.zeek"
-COMMENT-LEADING "# test057.zeek"
-COMMENT-LEADING "# test109.zeek"
-COMMENT-LEADING "# test110.zeek"
-COMMENT-LEADING "# test111.zeek"
-COMMENT-LEADING "# test196.zeek"
-COMMENT-LEADING "# test210.zeek"
-COMMENT-LEADING "# test226.zeek"
-COMMENT-LEADING "# test268.zeek"
 BLANK
 FUNC-DECL {
   KEYWORD "function"

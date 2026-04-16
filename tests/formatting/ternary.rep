@@ -1,7 +1,4 @@
 COMMENT-LEADING "# Ternary expressions: long condition, long branches, wrapping variants."
-COMMENT-LEADING "# test149.zeek"
-COMMENT-LEADING "# test150.zeek"
-COMMENT-LEADING "# test151.zeek"
 BLANK
 FUNC-DECL {
   KEYWORD "event"

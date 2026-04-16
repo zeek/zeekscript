@@ -1,12 +1,4 @@
 COMMENT-LEADING "# For/while loops: single/multiple loop vars, nested for, trailing comments, long while conditions, empty while body, while in if/else."
-COMMENT-LEADING "# test011.zeek"
-COMMENT-LEADING "# test060.zeek"
-COMMENT-LEADING "# test117.zeek"
-COMMENT-LEADING "# test154.zeek"
-COMMENT-LEADING "# test158.zeek"
-COMMENT-LEADING "# test163.zeek"
-COMMENT-LEADING "# test260.zeek"
-COMMENT-LEADING "# test267.zeek"
 BLANK
 FUNC-DECL {
   KEYWORD "function"

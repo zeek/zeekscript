@@ -1,14 +1,4 @@
 # Simple if/else: one-liners, inline if sequences, !in, negated conditions, empty bodies, else with comment.
-# test034.zeek
-# test056.zeek
-# test057.zeek
-# test109.zeek
-# test110.zeek
-# test111.zeek
-# test196.zeek
-# test210.zeek
-# test226.zeek
-# test268.zeek
 
 function some_func()
 	{
