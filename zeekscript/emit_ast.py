@@ -441,6 +441,23 @@ class Emitter:
                         attrs[0] if attrs else None, node)
                     return
 
+                # Pre-consume comments between "(" and
+                # the first arg so they attach to the CALL
+                # rather than appearing inside ARGS.
+                paren_comments = []
+                saw_open = False
+                for rc in node.children:
+                    if not rc.is_extra:
+                        if not rc.is_named and self._text(rc) == "(":
+                            saw_open = True
+                            continue
+                        if saw_open:
+                            break
+                        continue
+                    if saw_open and rc.type not in ("nl",):
+                        paren_comments.append(rc)
+                        self._consumed_extras.add(rc.start_byte)
+
                 self._open('CALL')
                 if kids[0].is_named:
                     self._emit_expr_child(kids[0])
@@ -458,6 +475,9 @@ class Emitter:
                         pass  # handled after ARGS
                 self._w('RPAREN')
                 self._close()
+                for pc in paren_comments:
+                    self._w(f'COMMENT-TRAILING {_quote(self._text(pc))}')
+                    self._mark_content(pc)
                 if attrs:
                     self._emit_attr_list(attrs[0])
                 self._close()
@@ -650,7 +670,12 @@ class Emitter:
                 self._w(f'INTERVAL {_quote(num)} {_quote(unit)}')
             elif kids and kids[0].type == "subnet":
                 # WORKAROUND: tree-sitter-zeek division bug.
-                self._emit_subnet_as_div(kids[0])
+                # Real subnets have no trailing floatp ERROR.
+                div_suffix = self._find_div_suffix(node)
+                if div_suffix:
+                    self._emit_subnet_as_div(kids[0], div_suffix)
+                else:
+                    self._w(f'CONSTANT {_quote(self._text(node))}')
             else:
                 self._w(f'CONSTANT {_quote(self._text(node))}')
         elif node.type == "pattern":
@@ -1041,13 +1066,13 @@ class Emitter:
         return ""
 
     # WORKAROUND: tree-sitter-zeek division bug (see _is_benign_error).
-    def _emit_subnet_as_div(self, subnet: tree_sitter.Node) -> None:
+    def _emit_subnet_as_div(self, subnet: tree_sitter.Node,
+                            suffix: str) -> None:
         """Emit a misparked subnet as BINARY-OP "/"."""
         kids = self._children(subnet)
         # subnet: ipv4, "/", integer
         lhs = self._text(kids[0])  # e.g. "100.0"
         rhs = self._text(kids[2])  # e.g. "8"
-        suffix = self._find_div_suffix(subnet.parent)  # e.g. ".0"
         self._open('BINARY-OP "/"')
         self._w(f'CONSTANT {_quote(lhs)}')
         self._w('OP "/"')

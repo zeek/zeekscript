@@ -28,13 +28,15 @@ fmt_util.o: cand.h fmt_context.h fmt_options.h fmt_util.h layout.h formatting.h 
 top.o: cand.h fmt_context.h fmt_util.h layout.h formatting.h tag.h
 
 SHELL = /bin/bash
+PYTHON ?= python3.11
+EMITTER ?= ../zeekscript/emit_ast.py
 
 test: $(TARGET)
 	@pass=0; fail=0; \
-	for f in ../tests/formatting/test*.rep; do \
-		name=$$(basename "$$f" .rep); \
+	for f in ../tests/formatting/test*.zeek; do \
+		name=$$(basename "$$f" .zeek); \
 		expected="../tests/formatting/$${name}.fmt"; \
-		if diff -q <(./$(TARGET) "$$f") "$$expected" \
+		if diff -q <($(PYTHON) $(EMITTER) "$$f" | ./$(TARGET) -) "$$expected" \
 		    >/dev/null 2>&1; then \
 			pass=$$((pass + 1)); \
 		else \
@@ -45,9 +47,9 @@ test: $(TARGET)
 	echo "$$pass pass, $$fail fail"
 
 new: $(TARGET)
-	@for f in ../tests/formatting/test*.rep; do \
-		name=$$(basename "$$f" .rep); \
-		./$(TARGET) "$$f" > "../tests/formatting/$${name}.new"; \
+	@for f in ../tests/formatting/test*.zeek; do \
+		name=$$(basename "$$f" .zeek); \
+		$(PYTHON) $(EMITTER) "$$f" | ./$(TARGET) - > "../tests/formatting/$${name}.new"; \
 	done; \
 	echo "wrote .new files for $$(ls ../tests/formatting/test*.new | wc -l | tr -d ' ') tests"
 
