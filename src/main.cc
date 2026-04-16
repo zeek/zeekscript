@@ -53,7 +53,7 @@ int main(int argc, char** argv)
 	else
 		input = ReadStdin();
 
-	auto [nodes, parse_err] = Parser::Parse(input);
+	auto [nodes, parse_err] = Parser::Parse(input, file);
 
 	if ( parse_err )
 		return 1;
