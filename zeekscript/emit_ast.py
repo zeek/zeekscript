@@ -946,7 +946,7 @@ class Emitter:
         for child in self._iter_children(node):
             if child.type == "formal_arg":
                 self._emit_formal_arg(child)
-            elif not child.is_named and self._text(child) == ",":
+            elif not child.is_named and self._text(child) in (",", ";"):
                 self._w('COMMA')
 
     def _emit_formal_arg(self, node: tree_sitter.Node) -> None:

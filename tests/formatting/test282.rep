@@ -1,0 +1,98 @@
+FUNC-DECL {
+  KEYWORD "function"
+  SP
+  IDENTIFIER "aaa_bbb_ccc_ddd_eeeee"
+  PARAMS {
+    LPAREN
+    PARAM "ff" {
+      COLON
+      TYPE-FUNC "event" {
+        PARAMS {
+          LPAREN
+          PARAM "ggg_hhh_iiis" {
+            COLON
+            TYPE-OF "vector" {
+              KEYWORD "of"
+              SP
+              TYPE-ATOM "time"
+            }
+          }
+          COMMA
+          PARAM "jjj_kkkk" {
+            COLON
+            TYPE-OF "vector" {
+              KEYWORD "of"
+              SP
+              TYPE-ATOM "string"
+            }
+          }
+          COMMA
+          PARAM "lll_mmm" {
+            COLON
+            TYPE-OF "vector" {
+              KEYWORD "of"
+              SP
+              TYPE-ATOM "conn_id"
+            }
+          }
+          COMMA
+          PARAM "nnn_ooo_pp" {
+            COLON
+            TYPE-ATOM "time"
+          }
+          COMMA
+          PARAM "qqqqqqqqq" {
+            COLON
+            TYPE-ATOM "string"
+          }
+          COMMA
+          PARAM "rrrrr_ssssss" {
+            COLON
+            TYPE-ATOM "string"
+          }
+          COMMA
+          PARAM "tttt" {
+            COLON
+            TYPE-ATOM "string"
+          }
+          COMMA
+          PARAM "uuuuuu" {
+            COLON
+            TYPE-ATOM "string"
+          }
+          COMMA
+          PARAM "vvvv_wwww" {
+            COLON
+            TYPE-ATOM "string"
+          }
+          COMMA
+          PARAM "xxx" {
+            COLON
+            TYPE-ATOM "string"
+          }
+          COMMA
+          PARAM "yyy" {
+            COLON
+            TYPE-ATOM "string"
+          }
+          COMMA
+          PARAM "zzzzzz" {
+            COLON
+            TYPE-ATOM "string"
+          }
+          RPAREN
+        }
+      }
+    }
+    COMMA
+    PARAM "zzzzzz" {
+      COLON
+      TYPE-ATOM "string"
+    }
+    RPAREN
+  }
+  BODY {
+    LBRACE
+    RBRACE
+  }
+}
