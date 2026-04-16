@@ -1,0 +1,333 @@
+COMMENT-LEADING "# Expressions and operators: arithmetic, assignment, compound assignment, bitwise, in/!in, as/is, field access, return expressions, &-intersection."
+COMMENT-LEADING "# test002.zeek"
+COMMENT-LEADING "# test012.zeek"
+COMMENT-LEADING "# test013.zeek"
+COMMENT-LEADING "# test033.zeek"
+COMMENT-LEADING "# test067.zeek"
+COMMENT-LEADING "# test068.zeek"
+COMMENT-LEADING "# test087.zeek"
+COMMENT-LEADING "# test178.zeek"
+COMMENT-LEADING "# test183.zeek"
+BLANK
+FUNC-DECL {
+  KEYWORD "event"
+  SP
+  IDENTIFIER "some_evt"
+  PARAMS {
+    LPAREN
+    RPAREN
+  }
+  BODY {
+    LBRACE
+    EXPR-STMT {
+      BINARY-OP "=" {
+        FIELD-ACCESS {
+          IDENTIFIER "si"
+          DOLLAR
+          IDENTIFIER "successful_entities"
+        }
+        OP "="
+        BINARY-OP "|" {
+          FIELD-ACCESS {
+            IDENTIFIER "si"
+            DOLLAR
+            IDENTIFIER "successful_entities"
+          }
+          OP "|"
+          FIELD-ACCESS {
+            IDENTIFIER "worker_si"
+            DOLLAR
+            IDENTIFIER "successful_entities"
+          }
+        }
+      }
+      SEMI
+    }
+    RBRACE
+  }
+}
+BLANK
+FUNC-DECL {
+  KEYWORD "event"
+  SP
+  IDENTIFIER "some_evt"
+  PARAMS {
+    LPAREN
+    RPAREN
+  }
+  BODY {
+    LBRACE
+    LOCAL-DECL {
+      KEYWORD "local"
+      SP
+      IDENTIFIER "some_services"
+      DECL-INIT {
+        ASSIGN "="
+        BINARY-OP "|" {
+          FIELD-ACCESS {
+            IDENTIFIER "worker_si"
+            DOLLAR
+            IDENTIFIER "some_entities"
+          }
+          OP "|"
+          FIELD-ACCESS {
+            IDENTIFIER "worker_si"
+            DOLLAR
+            IDENTIFIER "other_entities"
+          }
+        }
+      }
+      SEMI
+    }
+    RBRACE
+  }
+}
+BLANK
+FUNC-DECL {
+  KEYWORD "function"
+  SP
+  IDENTIFIER "f"
+  PARAMS {
+    LPAREN
+    PARAM "c" {
+      COLON
+      TYPE-ATOM "connection"
+    }
+    RPAREN
+  }
+  BODY {
+    LBRACE
+    IF-NO-ELSE {
+      KEYWORD "if"
+      SP
+      LPAREN
+      BINARY-OP "&&" {
+        HAS-FIELD {
+          FIELD-ACCESS {
+            IDENTIFIER "x"
+            DOLLAR
+            IDENTIFIER "y"
+          }
+          OP "?$"
+          IDENTIFIER "z"
+        }
+        OP "&&"
+        BINARY-OP ">" {
+          CARDINALITY {
+            OP "|"
+            BINARY-OP "&" {
+              FIELD-ACCESS {
+                FIELD-ACCESS {
+                  IDENTIFIER "x"
+                  DOLLAR
+                  IDENTIFIER "y"
+                }
+                DOLLAR
+                IDENTIFIER "z"
+              }
+              OP "&"
+              IDENTIFIER "s"
+            }
+            OP "|"
+          }
+          OP ">"
+          CONSTANT "0"
+        }
+      }
+      RPAREN
+      BODY {
+        RETURN {
+          KEYWORD "return"
+          SP
+          CONSTANT "T"
+          SEMI
+        }
+      }
+    }
+    COMMENT-TRAILING "#@ NOT-TESTED"
+    RBRACE
+  }
+}
+BLANK
+LOCAL-DECL {
+  KEYWORD "local"
+  SP
+  IDENTIFIER "recs"
+  DECL-INIT {
+    ASSIGN "="
+    BINARY-OP "as" {
+      FIELD-ACCESS {
+        IDENTIFIER "aaa"
+        DOLLAR
+        IDENTIFIER "bbb"
+      }
+      OP "as"
+      TYPE-ATOM "SomeType"
+    }
+  }
+  SEMI
+}
+LOCAL-DECL {
+  KEYWORD "local"
+  SP
+  IDENTIFIER "x"
+  DECL-INIT {
+    ASSIGN "="
+    BINARY-OP "is" {
+      IDENTIFIER "yyy"
+      OP "is"
+      TYPE-ATOM "count"
+    }
+  }
+  SEMI
+}
+BLANK
+EXPR-STMT {
+  BINARY-OP "=" {
+    IDENTIFIER "age_d"
+    OP "="
+    DIV {
+      CALL {
+        IDENTIFIER "interval_to_double"
+        ARGS {
+          LPAREN
+          BINARY-OP "-" {
+            CALL {
+              IDENTIFIER "network_time"
+              ARGS {
+                LPAREN
+                RPAREN
+              }
+            }
+            OP "-"
+            FIELD-ACCESS {
+              IDENTIFIER "cert"
+              DOLLAR
+              IDENTIFIER "not_valid_before"
+            }
+          }
+          RPAREN
+        }
+      }
+      OP "/"
+      CONSTANT "86400.0"
+    }
+  }
+  SEMI
+}
+COMMENT-TRAILING "#@ annotation"
+BLANK
+EXPR-STMT {
+  BINARY-OP "=" {
+    IDENTIFIER "age_d"
+    OP "="
+    DIV {
+      CALL {
+        IDENTIFIER "interval_to_double"
+        ARGS {
+          LPAREN
+          BINARY-OP "-" {
+            CALL {
+              IDENTIFIER "network_time"
+              ARGS {
+                LPAREN
+                RPAREN
+              }
+            }
+            OP "-"
+            FIELD-ACCESS {
+              IDENTIFIER "cert"
+              DOLLAR
+              IDENTIFIER "not_valid_before"
+            }
+          }
+          RPAREN
+        }
+      }
+      OP "/"
+      CONSTANT "86400.0"
+    }
+  }
+  SEMI
+}
+BLANK
+EXPR-STMT {
+  BINARY-OP "=" {
+    IDENTIFIER "age_d"
+    OP "="
+    DIV {
+      CALL {
+        IDENTIFIER "interval_to_double"
+        ARGS {
+          LPAREN
+          BINARY-OP "-" {
+            CALL {
+              IDENTIFIER "network_time"
+              ARGS {
+                LPAREN
+                RPAREN
+              }
+            }
+            OP "-"
+            FIELD-ACCESS {
+              IDENTIFIER "cert"
+              DOLLAR
+              IDENTIFIER "not_valid_before"
+            }
+          }
+          RPAREN
+        }
+      }
+      OP "/"
+      CONSTANT "86400.0"
+    }
+  }
+  SEMI
+}
+COMMENT-TRAILING "# This is a comment that makes the line very long"
+BLANK
+RETURN {
+  KEYWORD "return"
+  SP
+  BINARY-OP "&&" {
+    BINARY-OP "&&" {
+      BINARY-OP "in" {
+        IDENTIFIER "a_long_var_name"
+        OP "in"
+        IDENTIFIER "subj"
+      }
+      OP "&&"
+      BINARY-OP "!in" {
+        IDENTIFIER "b_long_var_name"
+        OP "!in"
+        IDENTIFIER "subj"
+      }
+    }
+    OP "&&"
+    BINARY-OP "!in" {
+      IDENTIFIER "c_long_var_name"
+      OP "!in"
+      IDENTIFIER "subj"
+    }
+  }
+  SEMI
+}
+BLANK
+RETURN {
+  KEYWORD "return"
+  SP
+  BINARY-OP "&&" {
+    BINARY-OP "in" {
+      IDENTIFIER "some_very_long_variable_name"
+      OP "in"
+      IDENTIFIER "some_other_very_long_variable_name"
+    }
+    OP "&&"
+    BINARY-OP "in" {
+      IDENTIFIER "another_thing"
+      OP "in"
+      IDENTIFIER "yet_another_thing"
+    }
+  }
+  SEMI
+}

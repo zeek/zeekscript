@@ -1,0 +1,259 @@
+COMMENT-LEADING "# Preprocessor directives: @if/@else/@endif, @ifdef/@ifndef, @load, nesting inside function bodies, with trailing comments and annotations."
+COMMENT-LEADING "# test028.zeek"
+COMMENT-LEADING "# test029.zeek"
+COMMENT-LEADING "# test031.zeek"
+COMMENT-LEADING "# test066.zeek"
+COMMENT-LEADING "# test112.zeek"
+COMMENT-LEADING "# test113.zeek"
+COMMENT-LEADING "# test114.zeek"
+COMMENT-LEADING "# test115.zeek"
+COMMENT-LEADING "# test116.zeek"
+COMMENT-LEADING "# test182.zeek"
+BLANK
+COMMENT-LEADING "# Some comment."
+COMMENT-LEADING "#@ BEGIN-SKIP-TESTING"
+PREPROC-COND "@if" "some_func(\"/some/path\") > 0" {
+  LPAREN
+  RPAREN
+}
+PREPROC "@load" "/some/path"
+PREPROC "@else"
+PREPROC "@load" "packages/some-pkg"
+PREPROC "@endif"
+COMMENT-LEADING "#@ END-SKIP-TESTING"
+BLANK
+PREPROC-COND "@ifdef" "SOME_FEATURE" {
+  LPAREN
+  RPAREN
+}
+BLANK
+FUNC-DECL {
+  KEYWORD "event"
+  SP
+  IDENTIFIER "zeek_init"
+  PARAMS {
+    LPAREN
+    RPAREN
+  }
+  BODY {
+    LBRACE
+    PRINT {
+      KEYWORD "print"
+      SP
+      IDENTIFIER "some_var"
+      SEMI
+    }
+    RBRACE
+  }
+}
+BLANK
+COMMENT-LEADING "# Fallback path below."
+PREPROC "@else"
+BLANK
+FUNC-DECL {
+  KEYWORD "event"
+  SP
+  IDENTIFIER "zeek_init"
+  PARAMS {
+    LPAREN
+    RPAREN
+  }
+  BODY {
+    LBRACE
+    PRINT {
+      KEYWORD "print"
+      SP
+      CONSTANT "\"other\""
+      SEMI
+    }
+    RBRACE
+  }
+}
+BLANK
+PREPROC "@endif"
+BLANK
+PREPROC-COND "@ifdef" "SOME_FEATURE" {
+  LPAREN
+  RPAREN
+}
+BLANK
+FUNC-DECL {
+  KEYWORD "event"
+  SP
+  IDENTIFIER "zeek_init"
+  PARAMS {
+    LPAREN
+    RPAREN
+  }
+  BODY {
+    LBRACE
+    PRINT {
+      KEYWORD "print"
+      SP
+      IDENTIFIER "some_var"
+      SEMI
+    }
+    RBRACE
+  }
+}
+BLANK
+COMMENT-LEADING "# Note: This comment belongs inside the ifdef block."
+COMMENT-LEADING "# It should be tab-indented."
+PREPROC "@endif"
+BLANK
+PREPROC-COND "@ifdef" "SOME_FEATURE" {
+  LPAREN
+  RPAREN
+}
+FUNC-DECL {
+  KEYWORD "event"
+  SP
+  IDENTIFIER "SomeModule::some_esp_message"
+  PARAMS {
+    LPAREN
+    PARAM "c" {
+      COLON
+      TYPE-ATOM "connection"
+    }
+    COMMA
+    PARAM "is_orig" {
+      COLON
+      TYPE-ATOM "bool"
+    }
+    COMMA
+    PARAM "msg" {
+      COLON
+      TYPE-ATOM "SomeModule::SomeEspMsg"
+    }
+    RPAREN
+  }
+  ATTR-LIST {
+    ATTR "&group" {
+      ASSIGN "="
+      IDENTIFIER "MyPkg_SomeEvtGroup"
+    }
+  }
+  BODY {
+    LBRACE
+    EXPR-STMT {
+      CALL {
+        IDENTIFIER "shuntit"
+        ARGS {
+          LPAREN
+          IDENTIFIER "c"
+          RPAREN
+        }
+      }
+      SEMI
+    }
+    RBRACE
+  }
+}
+PREPROC "@endif"
+BLANK
+MODULE "SomeMod" {
+  KEYWORD "module"
+  SP
+  IDENTIFIER "SomeMod"
+  SEMI
+}
+BLANK
+PREPROC "@load" "./const"
+BLANK
+PREPROC-COND "@if" "FOO" {
+  LPAREN
+  RPAREN
+}
+PREPROC "@load" "foo"
+PREPROC "@else"
+PREPROC "@load" "bar"
+PREPROC "@endif"
+BLANK
+PREPROC-COND "@ifdef" "SomeFeature" {
+  LPAREN
+  RPAREN
+}
+BLANK
+MODULE "SomeMod" {
+  KEYWORD "module"
+  SP
+  IDENTIFIER "SomeMod"
+  SEMI
+}
+BLANK
+GLOBAL-DECL {
+  KEYWORD "const"
+  SP
+  IDENTIFIER "some_var"
+  DECL-INIT {
+    ASSIGN "="
+    CONSTANT "\"some-value\""
+  }
+  SEMI
+}
+BLANK
+FUNC-DECL {
+  KEYWORD "event"
+  SP
+  IDENTIFIER "zeek_init"
+  PARAMS {
+    LPAREN
+    RPAREN
+  }
+  BODY {
+    LBRACE
+    PRINT {
+      KEYWORD "print"
+      SP
+      IDENTIFIER "some_var"
+      SEMI
+    }
+    RBRACE
+  }
+}
+PREPROC "@endif"
+BLANK
+PREPROC-COND "@ifndef" "Some::validated_items" {
+  LPAREN
+  RPAREN
+}
+COMMENT-TRAILING "#@ FALSE-NOT-TESTED"
+PREPROC "@load" "policy/protocols/some/validate-items"
+PREPROC "@endif"
+BLANK
+FUNC-DECL {
+  KEYWORD "function"
+  SP
+  IDENTIFIER "foo"
+  PARAMS {
+    LPAREN
+    RPAREN
+  }
+  BODY {
+    LBRACE
+    PREPROC-COND "@if" "FOO" {
+      LPAREN
+      RPAREN
+    }
+    PRINT {
+      KEYWORD "print"
+      SP
+      CONSTANT "1"
+      SEMI
+    }
+    PREPROC "@endif"
+    RBRACE
+  }
+}
+BLANK
+PREPROC-COND "@if" "FOO" {
+  LPAREN
+  RPAREN
+}
+PRINT {
+  KEYWORD "print"
+  SP
+  CONSTANT "1"
+  SEMI
+}
+PREPROC "@endif"

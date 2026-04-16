@@ -1,0 +1,2127 @@
+COMMENT-LEADING "# Complex if/else: long &&/|| chains, nested ifs, multi-line conditions, comment before else, @ifdef inside if, empty-statement bodies, else-if chains."
+COMMENT-LEADING "# test004.zeek"
+COMMENT-LEADING "# test009.zeek"
+COMMENT-LEADING "# test016.zeek"
+COMMENT-LEADING "# test017.zeek"
+COMMENT-LEADING "# test019.zeek"
+COMMENT-LEADING "# test020.zeek"
+COMMENT-LEADING "# test021.zeek"
+COMMENT-LEADING "# test022.zeek"
+COMMENT-LEADING "# test030.zeek"
+COMMENT-LEADING "# test043.zeek"
+COMMENT-LEADING "# test065.zeek"
+COMMENT-LEADING "# test107.zeek"
+COMMENT-LEADING "# test172.zeek"
+COMMENT-LEADING "# test174.zeek"
+COMMENT-LEADING "# test187.zeek"
+COMMENT-LEADING "# test199.zeek"
+COMMENT-LEADING "# test216.zeek"
+COMMENT-LEADING "# test217.zeek"
+COMMENT-LEADING "# test218.zeek"
+COMMENT-LEADING "# test232.zeek"
+COMMENT-LEADING "# test233.zeek"
+COMMENT-LEADING "# test235.zeek"
+COMMENT-LEADING "# test236.zeek"
+COMMENT-LEADING "# test237.zeek"
+COMMENT-LEADING "# test241.zeek"
+COMMENT-LEADING "# test242.zeek"
+COMMENT-LEADING "# test247.zeek"
+COMMENT-LEADING "# test270.zeek"
+COMMENT-LEADING "# test279.zeek"
+BLANK
+FUNC-DECL {
+  KEYWORD "event"
+  SP
+  IDENTIFIER "some_event"
+  PARAMS {
+    LPAREN
+    PARAM "some_arg" {
+      COLON
+      TYPE-ATOM "string"
+    }
+    RPAREN
+  }
+  BODY {
+    LBRACE
+    IF-NO-ELSE {
+      KEYWORD "if"
+      SP
+      LPAREN
+      CONSTANT "T"
+      RPAREN
+      BODY {
+        BLOCK {
+          LBRACE
+          IF-NO-ELSE {
+            KEYWORD "if"
+            SP
+            LPAREN
+            CONSTANT "T"
+            RPAREN
+            BODY {
+              BLOCK {
+                LBRACE
+                LOCAL-DECL {
+                  KEYWORD "local"
+                  SP
+                  IDENTIFIER "some_long_name"
+                  DECL-INIT {
+                    ASSIGN "="
+                    CALL {
+                      IDENTIFIER "SomeModule::some_function"
+                      ARGS {
+                        LPAREN
+                        IDENTIFIER "some_really_long_argument"
+                        RPAREN
+                      }
+                    }
+                  }
+                  SEMI
+                }
+                RBRACE
+              }
+            }
+          }
+          RBRACE
+        }
+      }
+    }
+    RBRACE
+  }
+}
+BLANK
+FUNC-DECL {
+  KEYWORD "function"
+  SP
+  IDENTIFIER "some_func"
+  PARAMS {
+    LPAREN
+    PARAM "c" {
+      COLON
+      TYPE-ATOM "connection"
+    }
+    COMMA
+    PARAM "name" {
+      COLON
+      TYPE-ATOM "string"
+    }
+    COMMA
+    PARAM "value" {
+      COLON
+      TYPE-ATOM "string"
+    }
+    COMMA
+    PARAM "prefix" {
+      COLON
+      TYPE-ATOM "string"
+    }
+    RPAREN
+  }
+  BODY {
+    LBRACE
+    IF-WITH-ELSE {
+      KEYWORD "if"
+      SP
+      LPAREN
+      BINARY-OP "==" {
+        IDENTIFIER "name"
+        OP "=="
+        CONSTANT "\"some-type\""
+      }
+      RPAREN
+      BODY {
+        EXPR-STMT {
+          CALL {
+            IDENTIFIER "some_handler"
+            ARGS {
+              LPAREN
+              IDENTIFIER "c"
+              COMMA
+              IDENTIFIER "value"
+              COMMA
+              BINARY-OP "+" {
+                IDENTIFIER "prefix"
+                OP "+"
+                CONSTANT "\"-sfx\""
+              }
+              RPAREN
+            }
+          }
+          SEMI
+        }
+        COMMENT-TRAILING "#@ NOT-TESTED"
+      }
+      BLANK
+      ELSE-IF {
+        KEYWORD "else"
+        SP
+        IF-NO-ELSE {
+          KEYWORD "if"
+          SP
+          LPAREN
+          BINARY-OP "==" {
+            IDENTIFIER "name"
+            OP "=="
+            CONSTANT "\"other-type\""
+          }
+          RPAREN
+          BODY {
+            EXPR-STMT {
+              CALL {
+                IDENTIFIER "other_handler"
+                ARGS {
+                  LPAREN
+                  IDENTIFIER "c"
+                  COMMA
+                  IDENTIFIER "value"
+                  COMMA
+                  BINARY-OP "+" {
+                    IDENTIFIER "prefix"
+                    OP "+"
+                    CONSTANT "\"-sfx\""
+                  }
+                  RPAREN
+                }
+              }
+              SEMI
+            }
+          }
+        }
+      }
+    }
+    RBRACE
+  }
+}
+BLANK
+FUNC-DECL {
+  KEYWORD "function"
+  SP
+  IDENTIFIER "some_func"
+  PARAMS {
+    LPAREN
+    PARAM "val" {
+      COLON
+      TYPE-ATOM "string"
+    }
+    RPAREN
+  }
+  BODY {
+    LBRACE
+    IF-WITH-ELSE {
+      KEYWORD "if"
+      SP
+      LPAREN
+      BINARY-OP "==" {
+        IDENTIFIER "some_pattern"
+        OP "=="
+        IDENTIFIER "val"
+      }
+      RPAREN
+      BODY {
+        EXPR-STMT {
+          BINARY-OP "=" {
+            IDENTIFIER "result"
+            OP "="
+            CONSTANT "\"found\""
+          }
+          SEMI
+        }
+      }
+      BLANK
+      ELSE-BODY {
+        KEYWORD "else"
+        SP
+        EXPR-STMT {
+          BINARY-OP "=" {
+            IDENTIFIER "result"
+            OP "="
+            CONSTANT "\"default\""
+          }
+          SEMI
+        }
+      }
+    }
+    RBRACE
+  }
+}
+BLANK
+FUNC-DECL {
+  KEYWORD "event"
+  SP
+  IDENTIFIER "zeek_init"
+  PARAMS {
+    LPAREN
+    RPAREN
+  }
+  BODY {
+    LBRACE
+    IF-NO-ELSE {
+      KEYWORD "if"
+      SP
+      LPAREN
+      BINARY-OP "&&" {
+        BINARY-OP "&&" {
+          BINARY-OP "&&" {
+            BINARY-OP "&&" {
+              BINARY-OP "&&" {
+                BINARY-OP ">" {
+                  IDENTIFIER "alpha_val"
+                  OP ">"
+                  IDENTIFIER "threshold"
+                }
+                OP "&&"
+                BINARY-OP ">" {
+                  IDENTIFIER "beta_val"
+                  OP ">"
+                  IDENTIFIER "threshold"
+                }
+              }
+              OP "&&"
+              BINARY-OP ">" {
+                IDENTIFIER "gamma_val"
+                OP ">"
+                IDENTIFIER "threshold"
+              }
+            }
+            OP "&&"
+            BINARY-OP ">" {
+              IDENTIFIER "delta_val"
+              OP ">"
+              IDENTIFIER "threshold"
+            }
+          }
+          OP "&&"
+          BINARY-OP ">" {
+            IDENTIFIER "epsilon_val"
+            OP ">"
+            IDENTIFIER "threshold"
+          }
+        }
+        OP "&&"
+        BINARY-OP ">" {
+          IDENTIFIER "zeta_val"
+          OP ">"
+          IDENTIFIER "threshold"
+        }
+      }
+      RPAREN
+      BODY {
+        PRINT {
+          KEYWORD "print"
+          SP
+          CONSTANT "\"yes\""
+          SEMI
+        }
+      }
+    }
+    RBRACE
+  }
+}
+BLANK
+FUNC-DECL {
+  KEYWORD "event"
+  SP
+  IDENTIFIER "some_evt"
+  PARAMS {
+    LPAREN
+    PARAM "si" {
+      COLON
+      TYPE-ATOM "SomeInfo"
+    }
+    RPAREN
+  }
+  BODY {
+    LBRACE
+    IF-NO-ELSE {
+      KEYWORD "if"
+      SP
+      LPAREN
+      BINARY-OP "&&" {
+        BINARY-OP "&&" {
+          BINARY-OP ">" {
+            IDENTIFIER "coal_max_entries"
+            OP ">"
+            CONSTANT "0"
+          }
+          OP "&&"
+          BINARY-OP ">=" {
+            CARDINALITY {
+              OP "|"
+              IDENTIFIER "coalesced_state"
+              OP "|"
+            }
+            OP ">="
+            IDENTIFIER "coal_max_entries"
+          }
+        }
+        OP "&&"
+        BINARY-OP "!in" {
+          INDEX-LITERAL {
+            ARGS {
+              LBRACKET
+              IDENTIFIER "server_name"
+              COMMA
+              IDENTIFIER "server_subj"
+              COMMA
+              IDENTIFIER "server_issuer"
+              COMMA
+              IDENTIFIER "client_subj"
+              COMMA
+              IDENTIFIER "client_issuer"
+              COMMA
+              IDENTIFIER "ja3"
+              RBRACKET
+            }
+          }
+          OP "!in"
+          IDENTIFIER "coalesced_state"
+        }
+      }
+      RPAREN
+      BODY {
+        RETURN-VOID {
+          KEYWORD "return"
+          SP
+          SEMI
+        }
+      }
+    }
+    RBRACE
+  }
+}
+BLANK
+FUNC-DECL-RET {
+  KEYWORD "function"
+  SP
+  IDENTIFIER "some_function_name_aa"
+  PARAMS {
+    LPAREN
+    PARAM "c" {
+      COLON
+      TYPE-ATOM "connection"
+    }
+    RPAREN
+  }
+  COLON
+  RETURNS {
+    TYPE-ATOM "string"
+  }
+  BODY {
+    LBRACE
+    IF-NO-ELSE {
+      KEYWORD "if"
+      SP
+      LPAREN
+      BINARY-OP "&&" {
+        BINARY-OP "&&" {
+          HAS-FIELD {
+            IDENTIFIER "c"
+            OP "?$"
+            IDENTIFIER "tunnel"
+          }
+          OP "&&"
+          BINARY-OP ">=" {
+            CARDINALITY {
+              OP "|"
+              FIELD-ACCESS {
+                IDENTIFIER "c"
+                DOLLAR
+                IDENTIFIER "tunnel"
+              }
+              OP "|"
+            }
+            OP ">="
+            CONSTANT "2"
+          }
+        }
+        OP "&&"
+        BINARY-OP "==" {
+          FIELD-ACCESS {
+            INDEX {
+              FIELD-ACCESS {
+                IDENTIFIER "c"
+                DOLLAR
+                IDENTIFIER "tunnel"
+              }
+              SUBSCRIPTS {
+                LBRACKET
+                BINARY-OP "-" {
+                  CARDINALITY {
+                    OP "|"
+                    FIELD-ACCESS {
+                      IDENTIFIER "c"
+                      DOLLAR
+                      IDENTIFIER "tunnel"
+                    }
+                    OP "|"
+                  }
+                  OP "-"
+                  CONSTANT "1"
+                }
+                RBRACKET
+              }
+            }
+            DOLLAR
+            IDENTIFIER "tunnel_type"
+          }
+          OP "=="
+          IDENTIFIER "Tunnel::VXLAN"
+        }
+      }
+      RPAREN
+      BODY {
+        PRINT {
+          KEYWORD "print"
+          SP
+          CONSTANT "\"yep\""
+          SEMI
+        }
+      }
+    }
+    RBRACE
+  }
+}
+BLANK
+FUNC-DECL {
+  KEYWORD "event"
+  SP
+  IDENTIFIER "some_handler"
+  PARAMS {
+    LPAREN
+    PARAM "rec" {
+      COLON
+      TYPE-ATOM "SomeModule::Info"
+    }
+    RPAREN
+  }
+  BODY {
+    LBRACE
+    IF-NO-ELSE {
+      KEYWORD "if"
+      SP
+      LPAREN
+      BINARY-OP "in" {
+        INDEX-LITERAL {
+          ARGS {
+            LBRACKET
+            IDENTIFIER "aaa"
+            COMMA
+            IDENTIFIER "bbb"
+            COMMA
+            IDENTIFIER "ccc"
+            COMMA
+            FIELD-ACCESS {
+              IDENTIFIER "rec"
+              DOLLAR
+              IDENTIFIER "source_field"
+            }
+            COMMA
+            FIELD-ACCESS {
+              IDENTIFIER "rec"
+              DOLLAR
+              IDENTIFIER "type_field"
+            }
+            COMMA
+            FIELD-ACCESS {
+              IDENTIFIER "rec"
+              DOLLAR
+              IDENTIFIER "name_field"
+            }
+            COMMA
+            FIELD-ACCESS {
+              IDENTIFIER "rec"
+              DOLLAR
+              IDENTIFIER "orig_flag"
+            }
+            COMMA
+            FIELD-ACCESS {
+              IDENTIFIER "rec"
+              DOLLAR
+              IDENTIFIER "byte_count"
+            }
+            RBRACKET
+          }
+        }
+        OP "in"
+        IDENTIFIER "some_long_cache_name"
+      }
+      RPAREN
+      BODY {
+        RETURN-VOID {
+          KEYWORD "return"
+          SP
+          SEMI
+        }
+      }
+    }
+    RBRACE
+  }
+}
+BLANK
+FUNC-DECL {
+  KEYWORD "function"
+  SP
+  IDENTIFIER "some_func"
+  PARAMS {
+    LPAREN
+    PARAM "val" {
+      COLON
+      TYPE-ATOM "string"
+    }
+    RPAREN
+  }
+  BODY {
+    LBRACE
+    IF-WITH-ELSE {
+      KEYWORD "if"
+      SP
+      LPAREN
+      BINARY-OP "==" {
+        IDENTIFIER "some_pattern"
+        OP "=="
+        IDENTIFIER "val"
+      }
+      RPAREN
+      BODY {
+        EXPR-STMT {
+          BINARY-OP "=" {
+            IDENTIFIER "result"
+            OP "="
+            CONSTANT "\"found\""
+          }
+          SEMI
+        }
+      }
+      BLANK
+      COMMENT-LEADING "# This handles the fallback case."
+      COMMENT-LEADING "# Check secondary pattern too."
+      ELSE-IF {
+        KEYWORD "else"
+        SP
+        IF-NO-ELSE {
+          KEYWORD "if"
+          SP
+          LPAREN
+          BINARY-OP "==" {
+            IDENTIFIER "other_pattern"
+            OP "=="
+            IDENTIFIER "val"
+          }
+          RPAREN
+          BODY {
+            EXPR-STMT {
+              BINARY-OP "=" {
+                IDENTIFIER "result"
+                OP "="
+                SLICE-PARTIAL {
+                  IDENTIFIER "val"
+                  LBRACKET
+                  BINARY-OP "+" {
+                    IDENTIFIER "idx"
+                    OP "+"
+                    CONSTANT "1"
+                  }
+                  COLON
+                  CONSTANT ""
+                  RBRACKET
+                }
+              }
+              SEMI
+            }
+          }
+        }
+      }
+    }
+    RBRACE
+  }
+}
+BLANK
+FUNC-DECL {
+  KEYWORD "function"
+  SP
+  IDENTIFIER "some_handler"
+  PARAMS {
+    LPAREN
+    PARAM "c" {
+      COLON
+      TYPE-ATOM "connection"
+    }
+    RPAREN
+  }
+  BODY {
+    LBRACE
+    IF-NO-ELSE {
+      KEYWORD "if"
+      SP
+      LPAREN
+      IDENTIFIER "foo"
+      RPAREN
+      BODY {
+        BLOCK {
+          LBRACE
+          IF-NO-ELSE {
+            KEYWORD "if"
+            SP
+            LPAREN
+            IDENTIFIER "bar"
+            RPAREN
+            BODY {
+              BLOCK {
+                LBRACE
+                IF-NO-ELSE {
+                  KEYWORD "if"
+                  SP
+                  LPAREN
+                  IDENTIFIER "bletch"
+                  RPAREN
+                  BODY {
+                    EXPR-STMT {
+                      CALL {
+                        IDENTIFIER "other_function_abc"
+                        ARGS {
+                          LPAREN
+                          CONSTANT "\"Some kind of status message\""
+                          RPAREN
+                        }
+                      }
+                      SEMI
+                    }
+                  }
+                }
+                COMMENT-TRAILING "#@ NOT-TESTED"
+                RBRACE
+              }
+            }
+          }
+          RBRACE
+        }
+      }
+    }
+    RBRACE
+  }
+}
+BLANK
+FUNC-DECL-RET {
+  KEYWORD "function"
+  SP
+  IDENTIFIER "some_func"
+  PARAMS {
+    LPAREN
+    PARAM "c" {
+      COLON
+      TYPE-ATOM "connection"
+    }
+    RPAREN
+  }
+  COLON
+  RETURNS {
+    TYPE-ATOM "SomeInfo"
+  }
+  BODY {
+    LBRACE
+    LOCAL-DECL {
+      KEYWORD "local"
+      SP
+      IDENTIFIER "rec"
+      DECL-INIT {
+        ASSIGN "="
+        FIELD-ACCESS {
+          IDENTIFIER "c"
+          DOLLAR
+          IDENTIFIER "some_rec"
+        }
+      }
+      SEMI
+    }
+    IF-NO-ELSE {
+      KEYWORD "if"
+      SP
+      LPAREN
+      HAS-FIELD {
+        BINARY-OP "||" {
+          BINARY-OP "||" {
+            HAS-FIELD {
+              NEGATION {
+                OP "!"
+                IDENTIFIER "rec"
+              }
+              OP "?$"
+              IDENTIFIER "some_field"
+            }
+            OP "||"
+            BINARY-OP "==" {
+              CARDINALITY {
+                OP "|"
+                FIELD-ACCESS {
+                  IDENTIFIER "rec"
+                  DOLLAR
+                  IDENTIFIER "some_field"
+                }
+                OP "|"
+              }
+              OP "=="
+              CONSTANT "0"
+            }
+          }
+          OP "||"
+          NEGATION {
+            OP "!"
+            INDEX {
+              FIELD-ACCESS {
+                IDENTIFIER "rec"
+                DOLLAR
+                IDENTIFIER "some_field"
+              }
+              SUBSCRIPTS {
+                LBRACKET
+                CONSTANT "0"
+                RBRACKET
+              }
+            }
+          }
+        }
+        OP "?$"
+        IDENTIFIER "some_val"
+      }
+      RPAREN
+      BODY {
+        RETURN {
+          KEYWORD "return"
+          SP
+          IDENTIFIER "ci"
+          SEMI
+        }
+      }
+    }
+    RBRACE
+  }
+}
+BLANK
+FUNC-DECL {
+  KEYWORD "function"
+  SP
+  IDENTIFIER "some_func"
+  PARAMS {
+    LPAREN
+    PARAM "val" {
+      COLON
+      TYPE-ATOM "string"
+    }
+    RPAREN
+  }
+  BODY {
+    LBRACE
+    IF-WITH-ELSE {
+      KEYWORD "if"
+      SP
+      LPAREN
+      BINARY-OP "==" {
+        IDENTIFIER "some_pattern"
+        OP "=="
+        IDENTIFIER "val"
+      }
+      RPAREN
+      BODY {
+        EXPR-STMT {
+          BINARY-OP "=" {
+            IDENTIFIER "result"
+            OP "="
+            CONSTANT "\"found\""
+          }
+          SEMI
+        }
+      }
+      ELSE-BODY {
+        KEYWORD "else"
+        SP
+        EXPR-STMT {
+          BINARY-OP "=" {
+            IDENTIFIER "result"
+            OP "="
+            CONSTANT "\"default\""
+          }
+          SEMI
+        }
+      }
+    }
+    RBRACE
+  }
+}
+BLANK
+FUNC-DECL {
+  KEYWORD "function"
+  SP
+  IDENTIFIER "f"
+  PARAMS {
+    LPAREN
+    RPAREN
+  }
+  BODY {
+    LBRACE
+    IF-NO-ELSE {
+      KEYWORD "if"
+      SP
+      LPAREN
+      IDENTIFIER "x"
+      RPAREN
+      COMMENT-LEADING "# comment before body"
+      BODY {
+        PRINT {
+          KEYWORD "print"
+          SP
+          CONSTANT "\"done\""
+          SEMI
+        }
+      }
+    }
+    RBRACE
+  }
+}
+BLANK
+FUNC-DECL {
+  KEYWORD "event"
+  SP
+  IDENTIFIER "test_fn"
+  PARAMS {
+    LPAREN
+    RPAREN
+  }
+  BODY {
+    LBRACE
+    IF-NO-ELSE {
+      KEYWORD "if"
+      SP
+      LPAREN
+      IDENTIFIER "some_condition"
+      RPAREN
+      BODY {
+        SAME-LINE
+        BLOCK {
+          LBRACE
+          IF-NO-ELSE {
+            KEYWORD "if"
+            SP
+            LPAREN
+            BINARY-OP "in" {
+              INDEX-LITERAL {
+                ARGS {
+                  LBRACKET
+                  IDENTIFIER "date"
+                  COMMA
+                  IDENTIFIER "ip_mask"
+                  COMMA
+                  IDENTIFIER "resp_p"
+                  COMMA
+                  IDENTIFIER "p"
+                  COMMA
+                  IDENTIFIER "corrected_services"
+                  COMMA
+                  IDENTIFIER "is_server"
+                  RBRACKET
+                }
+              }
+              OP "in"
+              IDENTIFIER "ns_svc_cache"
+            }
+            RPAREN
+            BODY {
+              RETURN-VOID {
+                KEYWORD "return"
+                SP
+                SEMI
+              }
+            }
+          }
+          RBRACE
+        }
+      }
+    }
+    RBRACE
+  }
+}
+BLANK
+COMMENT-LEADING "# Comment before else body stays with the else branch."
+FUNC-DECL {
+  KEYWORD "function"
+  SP
+  IDENTIFIER "foo"
+  PARAMS {
+    LPAREN
+    RPAREN
+  }
+  BODY {
+    LBRACE
+    IF-WITH-ELSE {
+      KEYWORD "if"
+      SP
+      LPAREN
+      HAS-FIELD {
+        IDENTIFIER "c"
+        OP "?$"
+        IDENTIFIER "vpce_id"
+      }
+      RPAREN
+      BODY {
+        EXPR-STMT {
+          BINARY-OP "=" {
+            IDENTIFIER "vpce_id"
+            OP "="
+            FIELD-ACCESS {
+              IDENTIFIER "c"
+              DOLLAR
+              IDENTIFIER "vpce_id"
+            }
+          }
+          SEMI
+        }
+      }
+      ELSE-BODY {
+        KEYWORD "else"
+        SP
+        COMMENT-LEADING "# No VPC endpoint found, cannot enrich."
+        RETURN {
+          KEYWORD "return"
+          SP
+          CONSTANT "\"\""
+          SEMI
+        }
+      }
+    }
+    RBRACE
+  }
+}
+BLANK
+FUNC-DECL {
+  KEYWORD "event"
+  SP
+  IDENTIFIER "zeek_init"
+  PARAMS {
+    LPAREN
+    RPAREN
+  }
+  BODY {
+    LBRACE
+    IF-NO-ELSE {
+      KEYWORD "if"
+      SP
+      LPAREN
+      BINARY-OP "&&" {
+        BINARY-OP "&&" {
+          BINARY-OP "&&" {
+            BINARY-OP ">" {
+              IDENTIFIER "alpha_val"
+              OP ">"
+              IDENTIFIER "threshold"
+            }
+            OP "&&"
+            BINARY-OP ">" {
+              IDENTIFIER "beta_val"
+              OP ">"
+              IDENTIFIER "threshold"
+            }
+          }
+          OP "&&"
+          BINARY-OP ">" {
+            IDENTIFIER "gamma_val"
+            OP ">"
+            IDENTIFIER "threshold"
+          }
+        }
+        OP "&&"
+        BINARY-OP ">" {
+          IDENTIFIER "delta_val"
+          OP ">"
+          IDENTIFIER "threshold"
+        }
+      }
+      RPAREN
+      BODY {
+        PRINT {
+          KEYWORD "print"
+          SP
+          CONSTANT "\"yes\""
+          SEMI
+        }
+      }
+    }
+    RBRACE
+  }
+}
+BLANK
+FUNC-DECL {
+  KEYWORD "function"
+  SP
+  IDENTIFIER "foo"
+  PARAMS {
+    LPAREN
+    RPAREN
+  }
+  BODY {
+    LBRACE
+    IF-NO-ELSE {
+      KEYWORD "if"
+      SP
+      LPAREN
+      BINARY-OP "&&" {
+        HAS-FIELD {
+          BINARY-OP "&&" {
+            BINARY-OP "&&" {
+              IDENTIFIER "ssl_cache_intermediate_ca"
+              OP "&&"
+              BINARY-OP "==" {
+                FIELD-ACCESS {
+                  IDENTIFIER "result"
+                  DOLLAR
+                  IDENTIFIER "result_string"
+                }
+                OP "=="
+                CONSTANT "\"ok\""
+              }
+            }
+            OP "&&"
+            IDENTIFIER "result"
+          }
+          OP "?$"
+          IDENTIFIER "chain_certs"
+        }
+        OP "&&"
+        BINARY-OP ">" {
+          CARDINALITY {
+            OP "|"
+            FIELD-ACCESS {
+              IDENTIFIER "result"
+              DOLLAR
+              IDENTIFIER "chain_certs"
+            }
+            OP "|"
+          }
+          OP ">"
+          CONSTANT "2"
+        }
+      }
+      RPAREN
+      BODY {
+        EXPR-STMT {
+          CALL {
+            IDENTIFIER "bar"
+            ARGS {
+              LPAREN
+              RPAREN
+            }
+          }
+          SEMI
+        }
+      }
+    }
+    RBRACE
+  }
+}
+BLANK
+FUNC-DECL {
+  KEYWORD "function"
+  SP
+  IDENTIFIER "foo"
+  PARAMS {
+    LPAREN
+    RPAREN
+  }
+  BODY {
+    LBRACE
+    IF-NO-ELSE {
+      KEYWORD "if"
+      SP
+      LPAREN
+      BINARY-OP "&&" {
+        BINARY-OP "in" {
+          IDENTIFIER "stream"
+          OP "in"
+          FIELD-ACCESS {
+            FIELD-ACCESS {
+              IDENTIFIER "c"
+              DOLLAR
+              IDENTIFIER "http2_streams"
+            }
+            DOLLAR
+            IDENTIFIER "has_data"
+          }
+        }
+        OP "&&"
+        BINARY-OP "in" {
+          IDENTIFIER "stream"
+          OP "in"
+          FIELD-ACCESS {
+            FIELD-ACCESS {
+              IDENTIFIER "c"
+              DOLLAR
+              IDENTIFIER "http2_streams"
+            }
+            DOLLAR
+            IDENTIFIER "streams"
+          }
+        }
+      }
+      RPAREN
+      BODY {
+        BLOCK {
+          LBRACE
+          EXPR-STMT {
+            CALL {
+              IDENTIFIER "Intel::seen"
+              ARGS {
+                LPAREN
+                INDEX-LITERAL {
+                  ARGS {
+                    LBRACKET
+                    FIELD-ASSIGN "indicator" {
+                      DOLLAR
+                      ASSIGN "="
+                      CALL {
+                        IDENTIFIER "HTTP2::build_url"
+                        ARGS {
+                          LPAREN
+                          INDEX {
+                            FIELD-ACCESS {
+                              FIELD-ACCESS {
+                                IDENTIFIER "c"
+                                DOLLAR
+                                IDENTIFIER "http2_streams"
+                              }
+                              DOLLAR
+                              IDENTIFIER "streams"
+                            }
+                            SUBSCRIPTS {
+                              LBRACKET
+                              IDENTIFIER "stream"
+                              RBRACKET
+                            }
+                          }
+                          RPAREN
+                        }
+                      }
+                    }
+                    COMMA
+                    FIELD-ASSIGN "indicator_type" {
+                      DOLLAR
+                      ASSIGN "="
+                      IDENTIFIER "Intel::URL"
+                    }
+                    COMMA
+                    FIELD-ASSIGN "conn" {
+                      DOLLAR
+                      ASSIGN "="
+                      IDENTIFIER "c"
+                    }
+                    COMMA
+                    FIELD-ASSIGN "where" {
+                      DOLLAR
+                      ASSIGN "="
+                      IDENTIFIER "HTTP2::IN_URL"
+                    }
+                    RBRACKET
+                  }
+                }
+                RPAREN
+              }
+            }
+            SEMI
+          }
+          RBRACE
+        }
+      }
+    }
+    RBRACE
+  }
+}
+BLANK
+FUNC-DECL {
+  KEYWORD "function"
+  SP
+  IDENTIFIER "aaa_bbb_ccc_ddd_eee"
+  PARAMS {
+    LPAREN
+    PARAM "c" {
+      COLON
+      TYPE-ATOM "connection"
+    }
+    COMMA
+    PARAM "is_orig" {
+      COLON
+      TYPE-ATOM "bool"
+    }
+    RPAREN
+  }
+  BODY {
+    LBRACE
+    IF-NO-ELSE {
+      KEYWORD "if"
+      SP
+      LPAREN
+      BINARY-OP "&&" {
+        HAS-FIELD {
+          BINARY-OP "&&" {
+            HAS-FIELD {
+              FIELD-ACCESS {
+                IDENTIFIER "c"
+                DOLLAR
+                IDENTIFIER "aaa"
+              }
+              OP "?$"
+              IDENTIFIER "bbb"
+            }
+            OP "&&"
+            FIELD-ACCESS {
+              IDENTIFIER "c"
+              DOLLAR
+              IDENTIFIER "aaa"
+            }
+          }
+          OP "?$"
+          IDENTIFIER "ccc"
+        }
+        OP "&&"
+        PAREN {
+          LPAREN
+          BINARY-OP "||" {
+            BINARY-OP "in" {
+              CONSTANT "/\\.ddd$/"
+              OP "in"
+              FIELD-ACCESS {
+                FIELD-ACCESS {
+                  IDENTIFIER "c"
+                  DOLLAR
+                  IDENTIFIER "aaa"
+                }
+                DOLLAR
+                IDENTIFIER "eee"
+              }
+            }
+            OP "||"
+            BINARY-OP "in" {
+              CONSTANT "/\\.fff$/"
+              OP "in"
+              FIELD-ACCESS {
+                FIELD-ACCESS {
+                  IDENTIFIER "c"
+                  DOLLAR
+                  IDENTIFIER "aaa"
+                }
+                DOLLAR
+                IDENTIFIER "eee"
+              }
+            }
+          }
+          RPAREN
+        }
+      }
+      RPAREN
+      BODY {
+        SAME-LINE
+        BLOCK {
+          LBRACE
+          IF-NO-ELSE {
+            KEYWORD "if"
+            SP
+            LPAREN
+            BINARY-OP "||" {
+              PAREN {
+                LPAREN
+                BINARY-OP "&&" {
+                  BINARY-OP "==" {
+                    FIELD-ACCESS {
+                      FIELD-ACCESS {
+                        IDENTIFIER "c"
+                        DOLLAR
+                        IDENTIFIER "aaa"
+                      }
+                      DOLLAR
+                      IDENTIFIER "bbb"
+                    }
+                    OP "=="
+                    CONSTANT "\"GGG\""
+                  }
+                  OP "&&"
+                  BINARY-OP "in" {
+                    FIELD-ACCESS {
+                      FIELD-ACCESS {
+                        IDENTIFIER "c"
+                        DOLLAR
+                        IDENTIFIER "aaa"
+                      }
+                      DOLLAR
+                      IDENTIFIER "hhh_iii"
+                    }
+                    OP "in"
+                    IDENTIFIER "jjj_kk_lll_mmmmmmmmm"
+                  }
+                }
+                RPAREN
+              }
+              OP "||"
+              PAREN {
+                LPAREN
+                BINARY-OP "&&" {
+                  BINARY-OP "==" {
+                    FIELD-ACCESS {
+                      FIELD-ACCESS {
+                        IDENTIFIER "c"
+                        DOLLAR
+                        IDENTIFIER "aaa"
+                      }
+                      DOLLAR
+                      IDENTIFIER "bbb"
+                    }
+                    OP "=="
+                    CONSTANT "\"NNN\""
+                  }
+                  OP "&&"
+                  BINARY-OP "in" {
+                    FIELD-ACCESS {
+                      FIELD-ACCESS {
+                        IDENTIFIER "c"
+                        DOLLAR
+                        IDENTIFIER "aaa"
+                      }
+                      DOLLAR
+                      IDENTIFIER "hhh_iii"
+                    }
+                    OP "in"
+                    IDENTIFIER "jjj_kk_ooo_mmmmmmmmm"
+                  }
+                }
+                RPAREN
+              }
+            }
+            RPAREN
+            BODY {
+              SAME-LINE
+              BLOCK {
+                LBRACE
+                EXPR-STMT {
+                  BINARY-OP "=" {
+                    IDENTIFIER "ppp_qqqqqqq"
+                    OP "="
+                    CONSTANT "\"Aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa. Aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa.  (Aaaa 1)\""
+                  }
+                  SEMI
+                }
+                RBRACE
+              }
+            }
+          }
+          RBRACE
+        }
+      }
+    }
+    RBRACE
+  }
+}
+BLANK
+FUNC-DECL {
+  KEYWORD "event"
+  SP
+  IDENTIFIER "aaa"
+  PARAMS {
+    LPAREN
+    RPAREN
+  }
+  BODY {
+    LBRACE
+    IF-NO-ELSE {
+      KEYWORD "if"
+      SP
+      LPAREN
+      IDENTIFIER "bbb"
+      RPAREN
+      BODY {
+        SAME-LINE
+        BLOCK {
+          LBRACE
+          IF-NO-ELSE {
+            KEYWORD "if"
+            SP
+            LPAREN
+            BINARY-OP "&&" {
+              BINARY-OP "&&" {
+                BINARY-OP "==" {
+                  IDENTIFIER "ccccc_ddddd_eeeeeeeeee"
+                  OP "=="
+                  CONSTANT "1"
+                }
+                OP "&&"
+                BINARY-OP "==" {
+                  FIELD-ACCESS {
+                    INDEX {
+                      IDENTIFIER "fffff"
+                      SUBSCRIPTS {
+                        LBRACKET
+                        IDENTIFIER "g"
+                        RBRACKET
+                      }
+                    }
+                    DOLLAR
+                    IDENTIFIER "hhhh"
+                  }
+                  OP "=="
+                  CONSTANT "\"IIIII-JJJJJJJ\""
+                }
+              }
+              OP "&&"
+              BINARY-OP "==" {
+                FIELD-ACCESS {
+                  INDEX {
+                    IDENTIFIER "fffff"
+                    SUBSCRIPTS {
+                      LBRACKET
+                      IDENTIFIER "g"
+                      RBRACKET
+                    }
+                  }
+                  DOLLAR
+                  IDENTIFIER "kkkkk"
+                }
+                OP "=="
+                CONSTANT "/ll-mmmmm, nn-ooooo, pppp-qqqqqqqqqq/i"
+              }
+            }
+            RPAREN
+            BODY {
+              EXPR-STMT {
+                BINARY-OP "=" {
+                  IDENTIFIER "ccccc_ddddd_eeeeeeeeee"
+                  OP "="
+                  CONSTANT "2"
+                }
+                SEMI
+              }
+            }
+          }
+          RBRACE
+        }
+      }
+    }
+    RBRACE
+  }
+}
+BLANK
+FUNC-DECL {
+  KEYWORD "event"
+  SP
+  IDENTIFIER "aaa_bbbbbbb"
+  PARAMS {
+    LPAREN
+    PARAM "a" {
+      COLON
+      TYPE-ATOM "aaaaaaaaaa"
+    }
+    COMMA
+    PARAM "bbb_ccc" {
+      COLON
+      TYPE-ATOM "bool"
+    }
+    COMMA
+    PARAM "dddd" {
+      COLON
+      TYPE-ATOM "string"
+    }
+    COMMA
+    PARAM "eeeee" {
+      COLON
+      TYPE-ATOM "string"
+    }
+    RPAREN
+  }
+  BODY {
+    LBRACE
+    IF-NO-ELSE {
+      KEYWORD "if"
+      SP
+      LPAREN
+      BINARY-OP "||" {
+        HAS-FIELD {
+          BINARY-OP "||" {
+            PAREN {
+              LPAREN
+              BINARY-OP "&&" {
+                BINARY-OP "==" {
+                  FIELD-ACCESS {
+                    FIELD-ACCESS {
+                      IDENTIFIER "a"
+                      DOLLAR
+                      IDENTIFIER "bbbb"
+                    }
+                    DOLLAR
+                    IDENTIFIER "aaaaaa_bbbbbbbbb_cccccc_ddddd1"
+                  }
+                  OP "=="
+                  CONSTANT "2"
+                }
+                OP "&&"
+                BINARY-OP "==" {
+                  FIELD-ACCESS {
+                    FIELD-ACCESS {
+                      IDENTIFIER "a"
+                      DOLLAR
+                      IDENTIFIER "bbbb"
+                    }
+                    DOLLAR
+                    IDENTIFIER "aaaaaa_bbbbbbbbb_cccccc_ddddd2"
+                  }
+                  OP "=="
+                  CONSTANT "2"
+                }
+              }
+              RPAREN
+            }
+            OP "||"
+            NEGATION {
+              OP "!"
+              FIELD-ACCESS {
+                IDENTIFIER "a"
+                DOLLAR
+                IDENTIFIER "bbbb"
+              }
+            }
+          }
+          OP "?$"
+          IDENTIFIER "ffffff"
+        }
+        OP "||"
+        BINARY-OP "!=" {
+          FIELD-ACCESS {
+            FIELD-ACCESS {
+              IDENTIFIER "a"
+              DOLLAR
+              IDENTIFIER "bbbb"
+            }
+            DOLLAR
+            IDENTIFIER "ffffff"
+          }
+          OP "!="
+          CONSTANT "\"AAAA\""
+        }
+      }
+      RPAREN
+      BODY {
+        BLOCK {
+          LBRACE
+          RETURN-VOID {
+            KEYWORD "return"
+            SP
+            SEMI
+          }
+          COMMENT-TRAILING "#@ NOT-TESTED"
+          RBRACE
+        }
+      }
+    }
+    RBRACE
+  }
+}
+BLANK
+FUNC-DECL {
+  KEYWORD "function"
+  SP
+  IDENTIFIER "foo"
+  PARAMS {
+    LPAREN
+    RPAREN
+  }
+  BODY {
+    LBRACE
+    IF-NO-ELSE {
+      KEYWORD "if"
+      SP
+      LPAREN
+      IDENTIFIER "test1"
+      RPAREN
+      BODY {
+        BLOCK {
+          LBRACE
+          PREPROC-COND "@ifdef" "bar" {
+            LPAREN
+            RPAREN
+          }
+          RETURN-VOID {
+            KEYWORD "return"
+            SP
+            SEMI
+          }
+          COMMENT-TRAILING "#@ NOT-TESTED"
+          PREPROC "@endif"
+          RBRACE
+        }
+      }
+    }
+    RBRACE
+  }
+}
+BLANK
+FUNC-DECL {
+  KEYWORD "function"
+  SP
+  IDENTIFIER "foo"
+  PARAMS {
+    LPAREN
+    RPAREN
+  }
+  BODY {
+    LBRACE
+    IF-WITH-ELSE {
+      KEYWORD "if"
+      SP
+      LPAREN
+      IDENTIFIER "test1"
+      RPAREN
+      BODY {
+        BLOCK {
+          LBRACE
+          RBRACE
+        }
+      }
+      ELSE-BODY {
+        KEYWORD "else"
+        SP
+        COMMENT-TRAILING "# aaaa bb bbb cccc"
+        BLOCK {
+          LBRACE
+          EXPR-STMT {
+            CALL {
+              IDENTIFIER "bar"
+              ARGS {
+                LPAREN
+                RPAREN
+              }
+            }
+            SEMI
+          }
+          RBRACE
+        }
+      }
+    }
+    RBRACE
+  }
+}
+BLANK
+FUNC-DECL {
+  KEYWORD "function"
+  SP
+  IDENTIFIER "xxx"
+  PARAMS {
+    LPAREN
+    RPAREN
+  }
+  BODY {
+    LBRACE
+    IF-WITH-ELSE {
+      KEYWORD "if"
+      SP
+      LPAREN
+      IDENTIFIER "xxx"
+      RPAREN
+      BODY {
+        SEMI
+      }
+      ELSE-IF {
+        KEYWORD "else"
+        SP
+        IF-NO-ELSE {
+          KEYWORD "if"
+          SP
+          LPAREN
+          BINARY-OP "&&" {
+            BINARY-OP ">" {
+              FIELD-ACCESS {
+                IDENTIFIER "xxxxxxxxxxx"
+                DOLLAR
+                IDENTIFIER "xxx_xxx"
+              }
+              OP ">"
+              CONSTANT "0"
+            }
+            OP "&&"
+            BINARY-OP "==" {
+              BINARY-OP "-" {
+                FIELD-ACCESS {
+                  IDENTIFIER "xxxxxxxxxxx"
+                  DOLLAR
+                  IDENTIFIER "xxx_xxx"
+                }
+                OP "-"
+                CONSTANT "1"
+              }
+              OP "=="
+              FIELD-ACCESS {
+                IDENTIFIER "xxxxxxx"
+                DOLLAR
+                IDENTIFIER "xxx_xxx"
+              }
+            }
+          }
+          RPAREN
+          BODY {
+            SEMI
+          }
+        }
+      }
+    }
+    RBRACE
+  }
+}
+BLANK
+FUNC-DECL {
+  KEYWORD "function"
+  SP
+  IDENTIFIER "xxx"
+  PARAMS {
+    LPAREN
+    RPAREN
+  }
+  BODY {
+    LBRACE
+    IF-WITH-ELSE {
+      KEYWORD "if"
+      SP
+      LPAREN
+      IDENTIFIER "xxx"
+      RPAREN
+      BODY {
+        SEMI
+      }
+      ELSE-IF {
+        KEYWORD "else"
+        SP
+        IF-WITH-ELSE {
+          KEYWORD "if"
+          SP
+          LPAREN
+          BINARY-OP "&&" {
+            BINARY-OP ">" {
+              FIELD-ACCESS {
+                IDENTIFIER "xxxxxxxxxxx"
+                DOLLAR
+                IDENTIFIER "xxx_xxx"
+              }
+              OP ">"
+              CONSTANT "0"
+            }
+            OP "&&"
+            BINARY-OP "==" {
+              BINARY-OP "-" {
+                FIELD-ACCESS {
+                  IDENTIFIER "xxxxxxxxxxx"
+                  DOLLAR
+                  IDENTIFIER "xxx_xxx"
+                }
+                OP "-"
+                CONSTANT "1"
+              }
+              OP "=="
+              FIELD-ACCESS {
+                IDENTIFIER "xxxxxxx"
+                DOLLAR
+                IDENTIFIER "xxx_xxx"
+              }
+            }
+          }
+          RPAREN
+          BODY {
+            SEMI
+          }
+          ELSE-BODY {
+            KEYWORD "else"
+            SP
+            SEMI
+          }
+        }
+      }
+    }
+    RBRACE
+  }
+}
+BLANK
+FUNC-DECL {
+  KEYWORD "function"
+  SP
+  IDENTIFIER "xxx"
+  PARAMS {
+    LPAREN
+    RPAREN
+  }
+  BODY {
+    LBRACE
+    IF-NO-ELSE {
+      KEYWORD "if"
+      SP
+      LPAREN
+      IDENTIFIER "x"
+      RPAREN
+      BODY {
+        BLOCK {
+          LBRACE
+          IF-NO-ELSE {
+            KEYWORD "if"
+            SP
+            LPAREN
+            IDENTIFIER "x"
+            RPAREN
+            BODY {
+              BLOCK {
+                LBRACE
+                EXPR-STMT {
+                  CALL {
+                    IDENTIFIER "Xxx::xxxxxxxxx"
+                    ARGS {
+                      LPAREN
+                      CONSTANT "\"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\""
+                      COMMA
+                      IDENTIFIER "X"
+                      COMMA
+                      CONSTANT "\"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\""
+                      RPAREN
+                    }
+                  }
+                  SEMI
+                }
+                EXPR-STMT {
+                  CALL {
+                    IDENTIFIER "Xxx::xxxxxxxxx"
+                    ARGS {
+                      LPAREN
+                      CONSTANT "\"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\""
+                      COMMA
+                      IDENTIFIER "Xxxxxxxxxx::XXX"
+                      COMMA
+                      CONSTANT "\"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\""
+                      RPAREN
+                    }
+                  }
+                  SEMI
+                }
+                RBRACE
+              }
+            }
+          }
+          RBRACE
+        }
+      }
+    }
+    RBRACE
+  }
+}
+BLANK
+FUNC-DECL {
+  KEYWORD "function"
+  SP
+  IDENTIFIER "foo"
+  PARAMS {
+    LPAREN
+    RPAREN
+  }
+  BODY {
+    LBRACE
+    IF-NO-ELSE {
+      KEYWORD "if"
+      SP
+      LPAREN
+      IDENTIFIER "aaa"
+      RPAREN
+      BODY {
+        IF-NO-ELSE {
+          KEYWORD "if"
+          SP
+          LPAREN
+          IDENTIFIER "aaa"
+          RPAREN
+          BODY {
+            IF-NO-ELSE {
+              KEYWORD "if"
+              SP
+              LPAREN
+              IDENTIFIER "aaa"
+              RPAREN
+              BODY {
+                ADD {
+                  KEYWORD "add"
+                  SP
+                  INDEX {
+                    FIELD-ACCESS {
+                      IDENTIFIER "aaa"
+                      DOLLAR
+                      IDENTIFIER "aaaaaaaaaa"
+                    }
+                    SUBSCRIPTS {
+                      LBRACKET
+                      TERNARY {
+                        BINARY-OP ">" {
+                          IDENTIFIER "aa"
+                          OP ">"
+                          INTERVAL "1.0" "sec"
+                        }
+                        QUESTION
+                        CONSTANT "\"AAA\""
+                        COLON
+                        CONSTANT "\"AAA\""
+                      }
+                      RBRACKET
+                    }
+                  }
+                  SEMI
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+    RBRACE
+  }
+}
+BLANK
+FUNC-DECL {
+  KEYWORD "function"
+  SP
+  IDENTIFIER "foo"
+  PARAMS {
+    LPAREN
+    RPAREN
+  }
+  BODY {
+    LBRACE
+    IF-WITH-ELSE {
+      KEYWORD "if"
+      SP
+      LPAREN
+      BINARY-OP "&&" {
+        BINARY-OP "in" {
+          IDENTIFIER "aaa"
+          OP "in"
+          IDENTIFIER "bbb"
+        }
+        OP "&&"
+        BINARY-OP "==" {
+          IDENTIFIER "ccc"
+          OP "=="
+          INDEX {
+            IDENTIFIER "ddd"
+            SUBSCRIPTS {
+              LBRACKET
+              IDENTIFIER "aaa"
+              RBRACKET
+            }
+          }
+        }
+      }
+      RPAREN
+      COMMENT-LEADING "# eee fff ggg"
+      BODY {
+        SEMI
+        COMMENT-TRAILING "#@ NOT-TESTED"
+      }
+      ELSE-IF {
+        KEYWORD "else"
+        SP
+        IF-WITH-ELSE {
+          KEYWORD "if"
+          SP
+          LPAREN
+          BINARY-OP "&&" {
+            BINARY-OP "in" {
+              CONSTANT "/^hhh/"
+              OP "in"
+              IDENTIFIER "aaa"
+            }
+            OP "&&"
+            BINARY-OP "==" {
+              IDENTIFIER "iii"
+              OP "=="
+              CONSTANT "443/tcp"
+            }
+          }
+          RPAREN
+          COMMENT-LEADING "# jjj - kkk lll mmm nnn ooo ppp 2 qqq"
+          BODY {
+            SEMI
+            COMMENT-TRAILING "#@ NOT-TESTED"
+          }
+          ELSE-BODY {
+            KEYWORD "else"
+            SP
+            EXPR-STMT {
+              CALL {
+                IDENTIFIER "rrr"
+                ARGS {
+                  LPAREN
+                  RPAREN
+                }
+              }
+              SEMI
+            }
+          }
+        }
+      }
+    }
+    RBRACE
+  }
+}
+BLANK
+IF-NO-ELSE {
+  KEYWORD "if"
+  SP
+  LPAREN
+  IDENTIFIER "condition"
+  RPAREN
+  BODY {
+    BLOCK {
+      LBRACE
+      COMMENT-LEADING "# Fill this in sometime"
+      RBRACE
+    }
+  }
+}
+BLANK
+IF-NO-ELSE {
+  KEYWORD "if"
+  SP
+  LPAREN
+  BINARY-OP ">=" {
+    IDENTIFIER "age"
+    OP ">="
+    INTERVAL "1" "day"
+  }
+  RPAREN
+  BODY {
+    EXPR-STMT {
+      BINARY-OP "=" {
+        IDENTIFIER "age_d"
+        OP "="
+        DIV {
+          CALL {
+            IDENTIFIER "interval_to_double"
+            ARGS {
+              LPAREN
+              BINARY-OP "-" {
+                CALL {
+                  IDENTIFIER "network_time"
+                  ARGS {
+                    LPAREN
+                    RPAREN
+                  }
+                }
+                OP "-"
+                FIELD-ACCESS {
+                  IDENTIFIER "cert"
+                  DOLLAR
+                  IDENTIFIER "not_valid_before"
+                }
+              }
+              RPAREN
+            }
+          }
+          OP "/"
+          CONSTANT "86400.0"
+        }
+      }
+      SEMI
+    }
+  }
+}

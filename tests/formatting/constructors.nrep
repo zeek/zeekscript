@@ -1,0 +1,1555 @@
+COMMENT-LEADING "# Set/table/vector constructors: set(), table(), anonymous {}/[], trailing commas, fill-set format, subnets, comments in elements, default function."
+COMMENT-LEADING "# test036.zeek"
+COMMENT-LEADING "# test037.zeek"
+COMMENT-LEADING "# test038.zeek"
+COMMENT-LEADING "# test040.zeek"
+COMMENT-LEADING "# test041.zeek"
+COMMENT-LEADING "# test079.zeek"
+COMMENT-LEADING "# test080.zeek"
+COMMENT-LEADING "# test081.zeek"
+COMMENT-LEADING "# test082.zeek"
+COMMENT-LEADING "# test083.zeek"
+COMMENT-LEADING "# test084.zeek"
+COMMENT-LEADING "# test085.zeek"
+COMMENT-LEADING "# test086.zeek"
+COMMENT-LEADING "# test095.zeek"
+COMMENT-LEADING "# test096.zeek"
+COMMENT-LEADING "# test136.zeek"
+COMMENT-LEADING "# test137.zeek"
+COMMENT-LEADING "# test146.zeek"
+COMMENT-LEADING "# test169.zeek"
+COMMENT-LEADING "# test170.zeek"
+COMMENT-LEADING "# test171.zeek"
+COMMENT-LEADING "# test212.zeek"
+COMMENT-LEADING "# test240.zeek"
+COMMENT-LEADING "# test275.zeek"
+COMMENT-LEADING "# test276.zeek"
+COMMENT-LEADING "# test277.zeek"
+BLANK
+GLOBAL-DECL {
+  KEYWORD "const"
+  SP
+  IDENTIFIER "some_lookup"
+  DECL-TYPE {
+    COLON
+    TYPE-PARAMETERIZED "table" {
+      SUBSCRIPTS {
+        LBRACKET
+        TYPE-ATOM "string"
+        RBRACKET
+      }
+      KEYWORD "of"
+      SP
+      TYPE-ATOM "string"
+    }
+  }
+  DECL-INIT {
+    ASSIGN "="
+    CONSTRUCTOR {
+      KEYWORD "table"
+      ARGS {
+        LPAREN
+        BINARY-OP "=" {
+          INDEX-LITERAL {
+            ARGS {
+              LBRACKET
+              CONSTANT "\"some-key-aa\""
+              RBRACKET
+            }
+          }
+          OP "="
+          CONSTANT "\"val-aa\""
+        }
+        COMMA
+        BINARY-OP "=" {
+          INDEX-LITERAL {
+            ARGS {
+              LBRACKET
+              CONSTANT "\"some-key-bb\""
+              RBRACKET
+            }
+          }
+          OP "="
+          CONSTANT "\"val-bb\""
+        }
+        COMMA
+        BINARY-OP "=" {
+          INDEX-LITERAL {
+            ARGS {
+              LBRACKET
+              CONSTANT "\"some-key-cc\""
+              RBRACKET
+            }
+          }
+          OP "="
+          CONSTANT "\"val-cc\""
+        }
+        COMMA
+        BINARY-OP "=" {
+          INDEX-LITERAL {
+            ARGS {
+              LBRACKET
+              CONSTANT "\"some-key-dd\""
+              RBRACKET
+            }
+          }
+          OP "="
+          CONSTANT "\"val-dd\""
+        }
+        COMMA
+        TRAILING-COMMA
+        RPAREN
+      }
+    }
+  }
+  ATTR-LIST {
+    ATTR "&default" {
+      ASSIGN "="
+      LAMBDA {
+        KEYWORD "function"
+        SP
+        PARAMS {
+          LPAREN
+          PARAM "n" {
+            COLON
+            TYPE-ATOM "string"
+          }
+          RPAREN
+        }
+        COLON
+        RETURNS {
+          TYPE-ATOM "string"
+        }
+        BODY {
+          LBRACE
+          RETURN {
+            KEYWORD "return"
+            SP
+            CALL {
+              IDENTIFIER "fmt"
+              ARGS {
+                LPAREN
+                CONSTANT "\"fixme-%s\""
+                COMMA
+                IDENTIFIER "n"
+                RPAREN
+              }
+            }
+            SEMI
+          }
+          RBRACE
+        }
+      }
+    }
+  }
+  SEMI
+}
+BLANK
+GLOBAL-DECL {
+  KEYWORD "redef"
+  SP
+  IDENTIFIER "foo"
+  DECL-INIT {
+    ASSIGN "+="
+    CONSTRUCTOR {
+      KEYWORD "set"
+      ARGS {
+        LPAREN
+        CONSTANT "\"a\""
+        COMMA
+        CONSTANT "\"b\""
+        COMMA
+        CONSTANT "\"c\""
+        RPAREN
+      }
+    }
+  }
+  SEMI
+}
+BLANK
+GLOBAL-DECL {
+  KEYWORD "redef"
+  SP
+  IDENTIFIER "some_hosts"
+  DECL-INIT {
+    ASSIGN "+="
+    CONSTRUCTOR {
+      KEYWORD "set"
+      ARGS {
+        LPAREN
+        CONSTANT "\"some.host.example.com\""
+        COMMA
+        CONSTANT "\"another.longer.hostname.example.org\""
+        COMMA
+        CONSTANT "\"yet.another.host.example.net\""
+        COMMA
+        TRAILING-COMMA
+        RPAREN
+      }
+    }
+  }
+  SEMI
+}
+BLANK
+GLOBAL-DECL {
+  KEYWORD "global"
+  SP
+  IDENTIFIER "x"
+  DECL-INIT {
+    ASSIGN "="
+    CONSTRUCTOR {
+      KEYWORD "table"
+      ARGS {
+        LPAREN
+        BINARY-OP "=" {
+          INDEX-LITERAL {
+            ARGS {
+              LBRACKET
+              CONSTANT "1"
+              RBRACKET
+            }
+          }
+          OP "="
+          CONSTANT "\"one\""
+        }
+        RPAREN
+      }
+    }
+  }
+  SEMI
+}
+BLANK
+GLOBAL-DECL {
+  KEYWORD "global"
+  SP
+  IDENTIFIER "x"
+  DECL-INIT {
+    ASSIGN "="
+    INDEX-LITERAL {
+      ARGS {
+        LBRACKET
+        CONSTANT "1"
+        COMMA
+        COMMENT-TRAILING "# Comment one"
+        CONSTANT "2"
+        COMMENT-TRAILING "# Comment two"
+        RBRACKET
+      }
+    }
+  }
+  SEMI
+}
+BLANK
+GLOBAL-DECL {
+  KEYWORD "const"
+  SP
+  IDENTIFIER "ss"
+  DECL-TYPE {
+    COLON
+    TYPE-PARAMETERIZED "set" {
+      SUBSCRIPTS {
+        LBRACKET
+        TYPE-ATOM "addr"
+        RBRACKET
+      }
+    }
+  }
+  DECL-INIT {
+    ASSIGN "="
+    CONSTRUCTOR {
+      KEYWORD "set"
+      ARGS {
+        LPAREN
+        CONSTANT "1.2.3.4"
+        COMMA
+        CONSTANT "5.6.7.8"
+        RPAREN
+      }
+    }
+  }
+  SEMI
+}
+BLANK
+GLOBAL-DECL {
+  KEYWORD "const"
+  SP
+  IDENTIFIER "ss"
+  DECL-INIT {
+    ASSIGN "="
+    CONSTRUCTOR {
+      KEYWORD "set"
+      ARGS {
+        LPAREN
+        CONSTANT "1.2.3.4"
+        COMMA
+        CONSTANT "5.6.7.8"
+        RPAREN
+      }
+    }
+  }
+  SEMI
+}
+BLANK
+GLOBAL-DECL {
+  KEYWORD "const"
+  SP
+  IDENTIFIER "tbl"
+  DECL-TYPE {
+    COLON
+    TYPE-PARAMETERIZED "table" {
+      SUBSCRIPTS {
+        LBRACKET
+        TYPE-ATOM "count"
+        RBRACKET
+      }
+      KEYWORD "of"
+      SP
+      TYPE-ATOM "string"
+    }
+  }
+  DECL-INIT {
+    ASSIGN "="
+    CONSTRUCTOR {
+      KEYWORD "table"
+      ARGS {
+        LPAREN
+        BINARY-OP "=" {
+          INDEX-LITERAL {
+            ARGS {
+              LBRACKET
+              CONSTANT "0x00"
+              RBRACKET
+            }
+          }
+          OP "="
+          CONSTANT "\"AAAA\""
+        }
+        COMMA
+        BINARY-OP "=" {
+          INDEX-LITERAL {
+            ARGS {
+              LBRACKET
+              CONSTANT "0x01"
+              RBRACKET
+            }
+          }
+          OP "="
+          CONSTANT "\"BBBB\""
+        }
+        COMMA
+        BINARY-OP "=" {
+          INDEX-LITERAL {
+            ARGS {
+              LBRACKET
+              CONSTANT "0x02"
+              RBRACKET
+            }
+          }
+          OP "="
+          CONSTANT "\"CCCC\""
+        }
+        COMMA
+        BINARY-OP "=" {
+          INDEX-LITERAL {
+            ARGS {
+              LBRACKET
+              CONSTANT "0x03"
+              RBRACKET
+            }
+          }
+          OP "="
+          CONSTANT "\"DDDD\""
+        }
+        COMMA
+        BINARY-OP "=" {
+          INDEX-LITERAL {
+            ARGS {
+              LBRACKET
+              CONSTANT "0x04"
+              RBRACKET
+            }
+          }
+          OP "="
+          CONSTANT "\"EEEE\""
+        }
+        COMMA
+        BINARY-OP "=" {
+          INDEX-LITERAL {
+            ARGS {
+              LBRACKET
+              CONSTANT "0x05"
+              RBRACKET
+            }
+          }
+          OP "="
+          CONSTANT "\"FFFF\""
+        }
+        RPAREN
+      }
+    }
+  }
+  SEMI
+}
+BLANK
+GLOBAL-DECL {
+  KEYWORD "const"
+  SP
+  IDENTIFIER "xs"
+  DECL-TYPE {
+    COLON
+    TYPE-OF "vector" {
+      KEYWORD "of"
+      SP
+      TYPE-ATOM "count"
+    }
+  }
+  DECL-INIT {
+    ASSIGN "="
+    CONSTRUCTOR {
+      KEYWORD "vector"
+      ARGS {
+        LPAREN
+        CONSTANT "1"
+        COMMA
+        CONSTANT "2"
+        COMMA
+        CONSTANT "3"
+        RPAREN
+      }
+    }
+  }
+  SEMI
+}
+BLANK
+GLOBAL-DECL {
+  KEYWORD "const"
+  SP
+  IDENTIFIER "xs"
+  DECL-TYPE {
+    COLON
+    TYPE-OF "vector" {
+      KEYWORD "of"
+      SP
+      TYPE-ATOM "double"
+    }
+  }
+  DECL-INIT {
+    ASSIGN "="
+    CONSTRUCTOR {
+      KEYWORD "vector"
+      ARGS {
+        LPAREN
+        CONSTANT "0.01"
+        COMMA
+        CONSTANT "0.02"
+        COMMA
+        COMMENT-TRAILING "# a note"
+        CONSTANT "0.03"
+        COMMA
+        CONSTANT "0.04"
+        RPAREN
+      }
+    }
+  }
+  SEMI
+}
+BLANK
+GLOBAL-DECL {
+  KEYWORD "const"
+  SP
+  IDENTIFIER "xs"
+  DECL-TYPE {
+    COLON
+    TYPE-OF "vector" {
+      KEYWORD "of"
+      SP
+      TYPE-ATOM "double"
+    }
+  }
+  DECL-INIT {
+    ASSIGN "="
+    CONSTRUCTOR {
+      KEYWORD "vector"
+      ARGS {
+        LPAREN
+        CONSTANT "0.01"
+        COMMA
+        CONSTANT "0.02"
+        COMMA
+        COMMENT-TRAILING "# note"
+        CONSTANT "0.03"
+        RPAREN
+      }
+    }
+  }
+  SEMI
+}
+BLANK
+COMMENT-LEADING "# Trailing comma with single element: should flatten."
+GLOBAL-DECL {
+  KEYWORD "global"
+  SP
+  IDENTIFIER "s1"
+  DECL-INIT {
+    ASSIGN "="
+    CONSTRUCTOR {
+      KEYWORD "set"
+      ARGS {
+        LPAREN
+        CONSTANT "3"
+        RPAREN
+      }
+    }
+  }
+  SEMI
+}
+GLOBAL-DECL {
+  KEYWORD "global"
+  SP
+  IDENTIFIER "s2"
+  DECL-INIT {
+    ASSIGN "="
+    CONSTRUCTOR {
+      KEYWORD "set"
+      ARGS {
+        LPAREN
+        CONSTANT "3"
+        COMMA
+        TRAILING-COMMA
+        RPAREN
+      }
+    }
+  }
+  SEMI
+}
+BLANK
+GLOBAL-DECL {
+  KEYWORD "redef"
+  SP
+  IDENTIFIER "aaa_bbb"
+  DECL-INIT {
+    ASSIGN "="
+    CONSTRUCTOR {
+      KEYWORD "set"
+      ARGS {
+        LPAREN
+        CONSTANT "\"ccc ccc\""
+        COMMA
+        CONSTANT "\"Ddd\""
+        COMMA
+        CONSTANT "\"Eee eee\""
+        COMMA
+        CONSTANT "\"Ffff ggggg hhhh iiiii\""
+        COMMA
+        COMMENT-TRAILING "# JJJ"
+        TRAILING-COMMA
+        RPAREN
+      }
+    }
+  }
+  SEMI
+}
+BLANK
+COMMENT-LEADING "#@ FORMAT: FILL-SET"
+GLOBAL-DECL {
+  KEYWORD "const"
+  SP
+  IDENTIFIER "aaaa_bb"
+  DECL-TYPE {
+    COLON
+    TYPE-PARAMETERIZED "set" {
+      SUBSCRIPTS {
+        LBRACKET
+        TYPE-ATOM "CcDd"
+        RBRACKET
+      }
+    }
+  }
+  DECL-INIT {
+    ASSIGN "="
+    CONSTRUCTOR {
+      KEYWORD "set"
+      ARGS {
+        LPAREN
+        IDENTIFIER "Eeee"
+        COMMA
+        IDENTIFIER "Ffff"
+        COMMA
+        IDENTIFIER "Gggg"
+        COMMA
+        IDENTIFIER "Hhhh"
+        COMMA
+        IDENTIFIER "Iiii"
+        COMMA
+        TRAILING-COMMA
+        RPAREN
+      }
+    }
+  }
+  SEMI
+}
+BLANK
+COMMENT-LEADING "#@ FORMAT: FILL-SET"
+GLOBAL-DECL {
+  KEYWORD "const"
+  SP
+  IDENTIFIER "aaaa_bb"
+  DECL-TYPE {
+    COLON
+    TYPE-PARAMETERIZED "set" {
+      SUBSCRIPTS {
+        LBRACKET
+        TYPE-ATOM "CcDd"
+        RBRACKET
+      }
+    }
+  }
+  DECL-INIT {
+    ASSIGN "="
+    CONSTRUCTOR {
+      KEYWORD "set"
+      ARGS {
+        LPAREN
+        IDENTIFIER "EeeeFfff"
+        COMMA
+        IDENTIFIER "GgggHhhh"
+        COMMA
+        IDENTIFIER "IiiiJjjj"
+        COMMA
+        IDENTIFIER "KkkkLlll"
+        COMMA
+        IDENTIFIER "MmmmNnnn"
+        COMMA
+        IDENTIFIER "OoooPppp"
+        COMMA
+        IDENTIFIER "QqqqRrrr"
+        COMMA
+        IDENTIFIER "SsssTttt"
+        COMMA
+        TRAILING-COMMA
+        RPAREN
+      }
+    }
+  }
+  SEMI
+}
+BLANK
+COMMENT-LEADING "#@ FORMAT: FILL-SET"
+GLOBAL-DECL {
+  KEYWORD "const"
+  SP
+  IDENTIFIER "aaaa_bb"
+  DECL-TYPE {
+    COLON
+    TYPE-PARAMETERIZED "set" {
+      SUBSCRIPTS {
+        LBRACKET
+        TYPE-ATOM "CcDd"
+        RBRACKET
+      }
+    }
+  }
+  DECL-INIT {
+    ASSIGN "="
+    CONSTRUCTOR {
+      KEYWORD "set"
+      ARGS {
+        LPAREN
+        IDENTIFIER "Udaxihhexdvxrcsnba"
+        COMMA
+        IDENTIFIER "Cghqta"
+        COMMA
+        IDENTIFIER "Rgwuwrn"
+        COMMA
+        IDENTIFIER "Hosizayzf"
+        COMMA
+        IDENTIFIER "Wnkiegykdc"
+        COMMA
+        IDENTIFIER "Mdlltizbxor"
+        COMMA
+        IDENTIFIER "Dmcrju"
+        COMMA
+        IDENTIFIER "Tlsgwcbvhy"
+        COMMA
+        IDENTIFIER "Jchdmioulf"
+        COMMA
+        IDENTIFIER "Llgviwvuctuf"
+        COMMA
+        IDENTIFIER "Rxhfomiuwrhv"
+        COMMA
+        IDENTIFIER "Kyybhb"
+        COMMA
+        IDENTIFIER "Zkmicgswk"
+        COMMA
+        IDENTIFIER "Gupmuo"
+        COMMA
+        IDENTIFIER "Eiehxrrixs"
+        COMMA
+        IDENTIFIER "Nsmlheqpcybd"
+        COMMA
+        IDENTIFIER "Eufzvntcmmt"
+        COMMA
+        IDENTIFIER "Oqirav"
+        COMMA
+        IDENTIFIER "Xdvryiyukdjnfoax"
+        COMMA
+        IDENTIFIER "Xiqyfqdujuq"
+        COMMA
+        IDENTIFIER "Tgelyfr"
+        COMMA
+        IDENTIFIER "Yqatkpadlz"
+        COMMA
+        IDENTIFIER "Jhbhsccxpc"
+        COMMA
+        IDENTIFIER "Yryeevpr"
+        COMMA
+        IDENTIFIER "Fiqtngr"
+        COMMA
+        IDENTIFIER "Yxwgwjmv"
+        COMMA
+        IDENTIFIER "Uloqodhh"
+        COMMA
+        IDENTIFIER "Ckasrhsh"
+        COMMA
+        IDENTIFIER "Acwubhcb"
+        COMMA
+        IDENTIFIER "Kcqhivpg"
+        COMMA
+        IDENTIFIER "Rexssphzp"
+        COMMA
+        IDENTIFIER "Zngddvnlnnox"
+        COMMA
+        IDENTIFIER "Bvuudbmxk"
+        COMMA
+        IDENTIFIER "Zdhggro"
+        COMMA
+        IDENTIFIER "Enfiohco"
+        COMMA
+        IDENTIFIER "Zrdburacyhfnppg"
+        COMMA
+        IDENTIFIER "Mbfmami"
+        COMMA
+        IDENTIFIER "Zzojnwxzrvwpe"
+        COMMA
+        IDENTIFIER "Gjgbsxrb"
+        COMMA
+        IDENTIFIER "Xkbbspqqfb"
+        COMMA
+        IDENTIFIER "Qcfctcvhmd"
+        COMMA
+        IDENTIFIER "Shstbtcnv"
+        COMMA
+        IDENTIFIER "Ssqkigv"
+        COMMA
+        IDENTIFIER "Wkhimevuj"
+        COMMA
+        IDENTIFIER "Okycaotsdcr"
+        COMMA
+        IDENTIFIER "Gqielchljfo"
+        COMMA
+        IDENTIFIER "Rwjtzuqav"
+        COMMA
+        IDENTIFIER "Rjvdei"
+        COMMA
+        IDENTIFIER "Ddxre"
+        COMMA
+        IDENTIFIER "Ijtgwkgvui"
+        COMMA
+        IDENTIFIER "Qpibcun"
+        COMMA
+        IDENTIFIER "Ibakyeuifx"
+        COMMA
+        IDENTIFIER "Orwnradc"
+        COMMA
+        IDENTIFIER "Werblsrenebjlzblg"
+        COMMA
+        IDENTIFIER "Vhvdlyrntxeh"
+        COMMA
+        IDENTIFIER "Fzzfnafxkzn"
+        COMMA
+        IDENTIFIER "Zvxzhifz"
+        COMMA
+        IDENTIFIER "Wdmbphgolj"
+        COMMA
+        IDENTIFIER "Zhhavgmkic"
+        COMMA
+        IDENTIFIER "Yiluqmvrka"
+        COMMA
+        IDENTIFIER "Difsibdtnlxzkn"
+        COMMA
+        IDENTIFIER "Tqdms"
+        COMMA
+        IDENTIFIER "Gibwnaqzrvxxx"
+        COMMA
+        IDENTIFIER "Vglncvkt"
+        COMMA
+        IDENTIFIER "Kvdxjqjvnk"
+        COMMA
+        IDENTIFIER "Mwjreg"
+        COMMA
+        IDENTIFIER "Nvmvxftsjmrajjg"
+        COMMA
+        IDENTIFIER "Nzstuk"
+        COMMA
+        IDENTIFIER "Ooovgqpzz"
+        COMMA
+        IDENTIFIER "Xfvcjqvu"
+        COMMA
+        IDENTIFIER "Tkcyhvjhz"
+        COMMA
+        IDENTIFIER "Geabhptyconus"
+        COMMA
+        IDENTIFIER "Gwwmpmhe"
+        COMMA
+        IDENTIFIER "Uwayydynhfzwq"
+        COMMA
+        IDENTIFIER "Obrhdoe"
+        COMMA
+        IDENTIFIER "Zovqrtky"
+        COMMA
+        IDENTIFIER "Otxqnrofx"
+        COMMA
+        IDENTIFIER "Poiyhuiyyqp"
+        COMMA
+        IDENTIFIER "Uhiocwjhik"
+        COMMA
+        IDENTIFIER "Krceehmw"
+        COMMA
+        IDENTIFIER "Ewgcnnkr"
+        COMMA
+        IDENTIFIER "Onbgnmy"
+        COMMA
+        IDENTIFIER "Swaysmpalj"
+        COMMA
+        IDENTIFIER "Ymnrxxrzt"
+        COMMA
+        IDENTIFIER "Hphinpamkvv"
+        COMMA
+        IDENTIFIER "Zmxfoet"
+        COMMA
+        IDENTIFIER "Ramssvacun"
+        COMMA
+        IDENTIFIER "Eofbi"
+        COMMA
+        IDENTIFIER "Mkgokky"
+        COMMA
+        IDENTIFIER "Miynicpaxrbl"
+        COMMA
+        IDENTIFIER "Hucyubya"
+        COMMA
+        IDENTIFIER "Hgatehe"
+        COMMA
+        IDENTIFIER "Pvdsgo"
+        COMMA
+        IDENTIFIER "Wiylfttxw"
+        COMMA
+        IDENTIFIER "Dyfjdsajs"
+        COMMA
+        IDENTIFIER "Vmmwgcswuhd"
+        COMMA
+        IDENTIFIER "Wyjvtzdzsz"
+        COMMA
+        IDENTIFIER "Blrnvlc"
+        COMMA
+        IDENTIFIER "Qukanpdnluo"
+        COMMA
+        IDENTIFIER "Wenfxqui"
+        COMMA
+        IDENTIFIER "Tzryponx"
+        COMMA
+        IDENTIFIER "Sikh"
+        COMMA
+        IDENTIFIER "Ciohyostvmk"
+        COMMA
+        IDENTIFIER "Apkfpgl"
+        COMMA
+        IDENTIFIER "Zikitwiraq"
+        COMMA
+        IDENTIFIER "Gchxnpryhwpu"
+        COMMA
+        IDENTIFIER "Wpozacjhmwh"
+        COMMA
+        IDENTIFIER "Jvslprq"
+        COMMA
+        IDENTIFIER "Lnxrklwo"
+        COMMA
+        IDENTIFIER "Ijihdxgkdx"
+        COMMA
+        IDENTIFIER "Rywfgg"
+        COMMA
+        IDENTIFIER "Xpixsyqtjdgjhl"
+        COMMA
+        IDENTIFIER "Fjawreibbrj"
+        COMMA
+        IDENTIFIER "Weuypda"
+        COMMA
+        IDENTIFIER "Sjppokfbi"
+        COMMA
+        IDENTIFIER "Pdcmpcsuvb"
+        COMMA
+        IDENTIFIER "Eezsjc"
+        COMMA
+        IDENTIFIER "Hdrynttzthyqm"
+        COMMA
+        IDENTIFIER "Oojsnj"
+        COMMA
+        IDENTIFIER "Stbtxdy"
+        COMMA
+        IDENTIFIER "Gugivcfhf"
+        COMMA
+        IDENTIFIER "Rcfanowtpjbhj"
+        COMMA
+        IDENTIFIER "Wjwocv"
+        COMMA
+        IDENTIFIER "Hizzusv"
+        COMMA
+        IDENTIFIER "Zgndrhueiecbfzjtxs"
+        COMMA
+        IDENTIFIER "Jodowjwmiqr"
+        COMMA
+        IDENTIFIER "Poctbnxk"
+        COMMA
+        IDENTIFIER "Tiachvss"
+        COMMA
+        IDENTIFIER "Ayvisbyyfp"
+        COMMA
+        IDENTIFIER "Quoifs"
+        COMMA
+        IDENTIFIER "Nupcplnkkvd"
+        COMMA
+        IDENTIFIER "Fknwpjvm"
+        COMMA
+        IDENTIFIER "Yrbockik"
+        COMMA
+        IDENTIFIER "Dymqavronbgql"
+        COMMA
+        IDENTIFIER "Typuo"
+        COMMA
+        IDENTIFIER "Ybgirejo"
+        COMMA
+        IDENTIFIER "Wpdaut"
+        COMMA
+        IDENTIFIER "Zhwfjrarn"
+        COMMA
+        IDENTIFIER "Chdod"
+        COMMA
+        IDENTIFIER "Uepwjqwinp"
+        COMMA
+        IDENTIFIER "Phoremgtqxe"
+        COMMA
+        IDENTIFIER "Ciyznkz"
+        COMMA
+        IDENTIFIER "Qiajx"
+        COMMA
+        IDENTIFIER "Jssvpeor"
+        COMMA
+        IDENTIFIER "Plkryrm"
+        COMMA
+        IDENTIFIER "Okgwhsm"
+        COMMA
+        IDENTIFIER "Hynbkxpwzmmvz"
+        COMMA
+        IDENTIFIER "Uepbeqs"
+        COMMA
+        IDENTIFIER "Kdodqoa"
+        COMMA
+        IDENTIFIER "Xenuec"
+        COMMA
+        IDENTIFIER "Pziktw"
+        COMMA
+        IDENTIFIER "Muckvrmku"
+        COMMA
+        IDENTIFIER "Wyprbtchuv"
+        COMMA
+        IDENTIFIER "Jhxcndy"
+        COMMA
+        IDENTIFIER "Uwdofwjab"
+        COMMA
+        IDENTIFIER "Kzbjl"
+        COMMA
+        IDENTIFIER "Lnehqnsvzfffc"
+        COMMA
+        IDENTIFIER "Tmtvhpsehoui"
+        COMMA
+        IDENTIFIER "Oivazoj"
+        COMMA
+        IDENTIFIER "Vrfcols"
+        COMMA
+        IDENTIFIER "Junwiojgm"
+        COMMA
+        IDENTIFIER "Pdhmslsj"
+        COMMA
+        IDENTIFIER "Wjavmia"
+        COMMA
+        IDENTIFIER "Svyxbtxpjyzht"
+        COMMA
+        IDENTIFIER "Zlhugti"
+        COMMA
+        IDENTIFIER "Vyxyvveuduub"
+        COMMA
+        IDENTIFIER "Jzobsl"
+        COMMA
+        IDENTIFIER "Xecjkx"
+        COMMA
+        IDENTIFIER "Nfgezrlq"
+        COMMA
+        IDENTIFIER "Qifipzj"
+        COMMA
+        IDENTIFIER "Xkzdoceyh"
+        COMMA
+        IDENTIFIER "Vxvmzrlc"
+        COMMA
+        IDENTIFIER "Zmai"
+        COMMA
+        IDENTIFIER "Rdolvxvism"
+        COMMA
+        IDENTIFIER "Uldvh"
+        COMMA
+        IDENTIFIER "Patrkth"
+        COMMA
+        IDENTIFIER "Ucuowjun"
+        COMMA
+        IDENTIFIER "Debbjpddh"
+        COMMA
+        IDENTIFIER "Remolvxwrn"
+        COMMA
+        IDENTIFIER "Sxxenudptnibwlgoo"
+        COMMA
+        IDENTIFIER "Hldvlrul"
+        COMMA
+        IDENTIFIER "Bmigdocvgu"
+        COMMA
+        IDENTIFIER "Utabz"
+        COMMA
+        IDENTIFIER "Khezsgcyrgsg"
+        COMMA
+        IDENTIFIER "Hkyezta"
+        COMMA
+        IDENTIFIER "Ieeri"
+        COMMA
+        IDENTIFIER "Zfdvaea"
+        COMMA
+        IDENTIFIER "Lzzhskafib"
+        COMMA
+        IDENTIFIER "Exnqdxc"
+        COMMA
+        IDENTIFIER "Poylqsdoqht"
+        COMMA
+        IDENTIFIER "Bxzvqjoua"
+        COMMA
+        IDENTIFIER "Bpmnvdpw"
+        COMMA
+        IDENTIFIER "Occktece"
+        COMMA
+        IDENTIFIER "Itusrwkmt"
+        COMMA
+        IDENTIFIER "Qjoqtnd"
+        COMMA
+        IDENTIFIER "Zwduuyr"
+        COMMA
+        IDENTIFIER "Xgnohnkomnxd"
+        COMMA
+        IDENTIFIER "Knkv"
+        COMMA
+        IDENTIFIER "Ilevpcccc"
+        COMMA
+        IDENTIFIER "Ndxxlze"
+        COMMA
+        IDENTIFIER "Rbsrrkvdnlvynxbjt"
+        COMMA
+        IDENTIFIER "Jldsqge"
+        COMMA
+        IDENTIFIER "Vphdlrldyis"
+        COMMA
+        IDENTIFIER "Hznryttvur"
+        COMMA
+        IDENTIFIER "Atvwiafiwyjk"
+        COMMA
+        IDENTIFIER "Lafesv"
+        COMMA
+        IDENTIFIER "Mcexuac"
+        COMMA
+        IDENTIFIER "Xqgmnokfljx"
+        COMMA
+        IDENTIFIER "Kystcbefyt"
+        COMMA
+        IDENTIFIER "Bvciovnpto"
+        COMMA
+        IDENTIFIER "Nigy"
+        COMMA
+        IDENTIFIER "Qdlndj"
+        COMMA
+        IDENTIFIER "Vvspqv"
+        COMMA
+        IDENTIFIER "Jbhmtbagjgye"
+        COMMA
+        IDENTIFIER "Yijkdapxnfem"
+        COMMA
+        IDENTIFIER "Rwhqrvzl"
+        COMMA
+        IDENTIFIER "Cmxbnaoc"
+        COMMA
+        IDENTIFIER "Ksnsmwun"
+        COMMA
+        IDENTIFIER "Jdmakfztowlcndhns"
+        COMMA
+        IDENTIFIER "Mqcmjxkhkyfcqu"
+        COMMA
+        IDENTIFIER "Dqqgyllxueh"
+        COMMA
+        IDENTIFIER "Deigf"
+        COMMA
+        IDENTIFIER "Teyyucfyupoysy"
+        COMMA
+        IDENTIFIER "Sovsuutku"
+        COMMA
+        IDENTIFIER "Keo"
+        COMMA
+        IDENTIFIER "Cpoujzisb"
+        COMMA
+        IDENTIFIER "Lqcjoob"
+        COMMA
+        IDENTIFIER "Bljcuctt"
+        COMMA
+        IDENTIFIER "Qmosrzxbozsug"
+        COMMA
+        IDENTIFIER "Ktpqebodzk"
+        COMMA
+        IDENTIFIER "Wcqufbhwooqqtfll"
+        COMMA
+        IDENTIFIER "Jmnykvtbzu"
+        COMMA
+        IDENTIFIER "Ukckdrvmjixvte"
+        COMMA
+        IDENTIFIER "Kcsveljuw"
+        COMMA
+        IDENTIFIER "Vmetwcjrmuzk"
+        COMMA
+        IDENTIFIER "Evwxvqcuv"
+        COMMA
+        IDENTIFIER "Nqlaljfgkypg"
+        COMMA
+        IDENTIFIER "Heecjzdqy"
+        COMMA
+        IDENTIFIER "Rxqbvkyte"
+        COMMA
+        IDENTIFIER "Tmeffw"
+        COMMA
+        IDENTIFIER "Ytzfxobnl"
+        COMMA
+        IDENTIFIER "Vxhotjyxz"
+        COMMA
+        IDENTIFIER "Ohrhjzzpg"
+        COMMA
+        IDENTIFIER "Lvsooyjymqqn"
+        COMMA
+        IDENTIFIER "Fgzteibup"
+        COMMA
+        IDENTIFIER "Lrdwqdjcyfi"
+        COMMA
+        IDENTIFIER "Oqencho"
+        COMMA
+        IDENTIFIER "Lanbmqlhmclh"
+        COMMA
+        IDENTIFIER "Akdwukz"
+        COMMA
+        IDENTIFIER "Eebjpwe"
+        COMMA
+        IDENTIFIER "Ywpotacaige"
+        COMMA
+        IDENTIFIER "Rxtqndyj"
+        COMMA
+        IDENTIFIER "Hjdbhnuz"
+        COMMA
+        IDENTIFIER "Tocdptrauq"
+        COMMA
+        IDENTIFIER "Shwejnatlhs"
+        COMMA
+        IDENTIFIER "Nfvvcqlcqr"
+        COMMA
+        IDENTIFIER "Qzqrampb"
+        COMMA
+        IDENTIFIER "Umlixa"
+        COMMA
+        IDENTIFIER "Lzclhxvudy"
+        COMMA
+        IDENTIFIER "Sxykeblrku"
+        COMMA
+        IDENTIFIER "Fyvowpufz"
+        COMMA
+        IDENTIFIER "Ecwyobjgb"
+        COMMA
+        IDENTIFIER "Zgbkjqmrp"
+        COMMA
+        IDENTIFIER "Ibyugjlybu"
+        COMMA
+        IDENTIFIER "Kidzlnm"
+        COMMA
+        IDENTIFIER "Xomkfpwpl"
+        COMMA
+        IDENTIFIER "Zqizcxncntfrjk"
+        COMMA
+        IDENTIFIER "Dckvjjotwnfw"
+        COMMA
+        IDENTIFIER "Olobxltniuzb"
+        COMMA
+        IDENTIFIER "Cvumlqzx"
+        COMMA
+        IDENTIFIER "Vfaetv"
+        COMMA
+        IDENTIFIER "Zobechyu"
+        COMMA
+        IDENTIFIER "Llmsbtevol"
+        COMMA
+        IDENTIFIER "Loycseql"
+        COMMA
+        IDENTIFIER "Mkuihdaxfpqm"
+        COMMA
+        IDENTIFIER "Rdiyiwog"
+        COMMA
+        IDENTIFIER "Tjwpgdec"
+        COMMA
+        IDENTIFIER "Ofwoczvk"
+        COMMA
+        IDENTIFIER "Vlwcrrj"
+        COMMA
+        IDENTIFIER "Jfwwwufzl"
+        COMMA
+        IDENTIFIER "Qhdgzehzpalrsloz"
+        COMMA
+        IDENTIFIER "Retccjmwxpqny"
+        COMMA
+        IDENTIFIER "Nscekucoovq"
+        COMMA
+        IDENTIFIER "Leyrusfy"
+        COMMA
+        IDENTIFIER "Enqbdqejffk"
+        COMMA
+        IDENTIFIER "Whlqjciguri"
+        COMMA
+        IDENTIFIER "Eujtrcq"
+        COMMA
+        IDENTIFIER "Ufssefvt"
+        COMMA
+        IDENTIFIER "Xtksbacb"
+        COMMA
+        IDENTIFIER "Uysiugy"
+        COMMA
+        IDENTIFIER "Sntuap"
+        COMMA
+        IDENTIFIER "Urjujphzz"
+        COMMA
+        IDENTIFIER "Vmjocwb"
+        COMMA
+        IDENTIFIER "Fonpogktekw"
+        COMMA
+        IDENTIFIER "Kxlmeylqrdk"
+        COMMA
+        IDENTIFIER "Hodiohedbjm"
+        COMMA
+        IDENTIFIER "Tnhfksxkg"
+        COMMA
+        IDENTIFIER "Yfpqopjpacmqo"
+        COMMA
+        IDENTIFIER "Hgslbbjpt"
+        COMMA
+        IDENTIFIER "Uvpjradneix"
+        COMMA
+        IDENTIFIER "Lymlbmbsr"
+        COMMA
+        IDENTIFIER "Glrjcmq"
+        COMMA
+        IDENTIFIER "Oyritvtded"
+        COMMA
+        IDENTIFIER "Mlzkrlye"
+        COMMA
+        IDENTIFIER "Gtqmqbbbewkzp"
+        COMMA
+        IDENTIFIER "Qoetqektk"
+        COMMA
+        IDENTIFIER "Fmtxjskq"
+        COMMA
+        IDENTIFIER "Qrpwsj"
+        COMMA
+        IDENTIFIER "Palk"
+        COMMA
+        IDENTIFIER "Vdnsjzxwuatpiuz"
+        COMMA
+        IDENTIFIER "Ysshxb"
+        COMMA
+        IDENTIFIER "Spfqux"
+        COMMA
+        IDENTIFIER "Tymevhbsw"
+        COMMA
+        IDENTIFIER "Dgaokn"
+        COMMA
+        IDENTIFIER "Enwgnqyt"
+        COMMA
+        IDENTIFIER "Pxxbweqgrkvp"
+        COMMA
+        IDENTIFIER "Qmkforkrlvy"
+        COMMA
+        IDENTIFIER "Xvuzwitpghirj"
+        COMMA
+        IDENTIFIER "Hjyjwgwwpk"
+        COMMA
+        IDENTIFIER "Plrzxijd"
+        COMMA
+        IDENTIFIER "Svrmmlyze"
+        COMMA
+        IDENTIFIER "Jbjwcl"
+        COMMA
+        IDENTIFIER "Ouixpgg"
+        COMMA
+        IDENTIFIER "Rirwiedt"
+        COMMA
+        IDENTIFIER "Xshhbvqh"
+        COMMA
+        IDENTIFIER "Uhbdnkwpdvy"
+        COMMA
+        IDENTIFIER "Earfn"
+        COMMA
+        IDENTIFIER "Uppugyjkju"
+        COMMA
+        IDENTIFIER "Bycushrxxb"
+        COMMA
+        IDENTIFIER "Fnfbmzpf"
+        COMMA
+        IDENTIFIER "Xjbajstdkjou"
+        COMMA
+        IDENTIFIER "Rqpeqoigzd"
+        COMMA
+        IDENTIFIER "Kfxouiwfaxkzj"
+        COMMA
+        IDENTIFIER "Svygftum"
+        COMMA
+        IDENTIFIER "Nqkcmvdfepkh"
+        COMMA
+        IDENTIFIER "Aimhoyik"
+        COMMA
+        IDENTIFIER "Jsxsai"
+        COMMA
+        IDENTIFIER "Ulwhbvdojfmv"
+        COMMA
+        IDENTIFIER "Qwyjwduj"
+        COMMA
+        IDENTIFIER "Lthhepeoxtlnwrpy"
+        COMMA
+        IDENTIFIER "Rzvgyhvy"
+        COMMA
+        IDENTIFIER "Tzcqoqwlcsdb"
+        COMMA
+        IDENTIFIER "Rqgsrefk"
+        COMMA
+        IDENTIFIER "Qodvgwsp"
+        COMMA
+        IDENTIFIER "Cqoz"
+        COMMA
+        IDENTIFIER "Boeqnosbrov"
+        COMMA
+        IDENTIFIER "Zjxamiax"
+        COMMA
+        IDENTIFIER "Gscbnlwcr"
+        COMMA
+        IDENTIFIER "Bcpbjnfyeyuxunl"
+        COMMA
+        IDENTIFIER "Mommcvvre"
+        COMMA
+        TRAILING-COMMA
+        RPAREN
+      }
+    }
+  }
+  SEMI
+}
+BLANK
+LOCAL-DECL {
+  KEYWORD "local"
+  SP
+  IDENTIFIER "x"
+  DECL-INIT {
+    ASSIGN "="
+    CONSTRUCTOR {
+      KEYWORD "set"
+      ARGS {
+        LPAREN
+        CONSTANT "\"a\""
+        COMMA
+        CONSTANT "\"b\""
+        COMMA
+        CONSTANT "\"c\""
+        COMMA
+        CONSTANT "\"d\""
+        COMMA
+        CONSTANT "\"e\""
+        RPAREN
+      }
+    }
+  }
+  SEMI
+}
+BLANK
+LOCAL-DECL {
+  KEYWORD "local"
+  SP
+  IDENTIFIER "x"
+  DECL-INIT {
+    ASSIGN "="
+    CONSTRUCTOR {
+      KEYWORD "set"
+      ARGS {
+        LPAREN
+        CONSTANT "\"a\""
+        COMMA
+        CONSTANT "\"b\""
+        COMMA
+        CONSTANT "\"c\""
+        COMMA
+        CONSTANT "\"d\""
+        COMMA
+        CONSTANT "\"e\""
+        RPAREN
+      }
+    }
+  }
+  SEMI
+}
+BLANK
+EXPR-STMT {
+  INDEX-LITERAL {
+    ARGS {
+      LBRACKET
+      RBRACKET
+    }
+  }
+  SEMI
+}
+BLANK
+EXPR-STMT {
+  INDEX-LITERAL {
+    ARGS {
+      LBRACKET
+      CONSTANT "1"
+      RBRACKET
+    }
+  }
+  SEMI
+}
+BLANK
+EXPR-STMT {
+  INDEX-LITERAL {
+    ARGS {
+      LBRACKET
+      CONSTANT "1"
+      COMMA
+      CONSTANT "2"
+      RBRACKET
+    }
+  }
+  SEMI
+}
+BLANK
+EXPR-STMT {
+  INDEX-LITERAL {
+    ARGS {
+      LBRACKET
+      CONSTANT "1"
+      COMMA
+      TRAILING-COMMA
+      RBRACKET
+    }
+  }
+  SEMI
+}
+BLANK
+EXPR-STMT {
+  INDEX-LITERAL {
+    ARGS {
+      LBRACKET
+      CONSTANT "1"
+      COMMA
+      CONSTANT "2"
+      COMMA
+      TRAILING-COMMA
+      RBRACKET
+    }
+  }
+  SEMI
+}
+BLANK
+LOCAL-DECL {
+  KEYWORD "local"
+  SP
+  IDENTIFIER "x"
+  DECL-INIT {
+    ASSIGN "="
+    CONSTRUCTOR {
+      KEYWORD "set"
+      ARGS {
+        LPAREN
+        RPAREN
+      }
+    }
+  }
+  SEMI
+}
+BLANK
+LOCAL-DECL {
+  KEYWORD "local"
+  SP
+  IDENTIFIER "x"
+  DECL-INIT {
+    ASSIGN "="
+    CONSTRUCTOR {
+      KEYWORD "set"
+      ARGS {
+        LPAREN
+        CONSTANT "1.0.0.2/31"
+        COMMA
+        CONSTANT "1.1.1.2/31"
+        COMMA
+        CONSTANT "3.7.176.123/32"
+        COMMA
+        CONSTANT "5.1.66.255/32"
+        COMMA
+        CONSTANT "5.2.75.75/32"
+        COMMA
+        CONSTANT "5.45.107.88/32"
+        COMMA
+        CONSTANT "8.8.4.4/32"
+        RPAREN
+      }
+    }
+  }
+  SEMI
+}
+BLANK
+LOCAL-DECL {
+  KEYWORD "local"
+  SP
+  IDENTIFIER "x"
+  DECL-INIT {
+    ASSIGN "="
+    CONSTRUCTOR {
+      KEYWORD "set"
+      ARGS {
+        LPAREN
+        CONSTANT "1.0.0.2/31"
+        COMMA
+        CONSTANT "1.1.1.2/31"
+        COMMA
+        CONSTANT "3.7.176.123/32"
+        COMMA
+        CONSTANT "5.1.66.255/32"
+        COMMA
+        CONSTANT "5.2.75.75/32"
+        COMMA
+        CONSTANT "5.45.107.88/32"
+        COMMA
+        CONSTANT "8.8.4.4/32"
+        RPAREN
+      }
+    }
+  }
+  SEMI
+}

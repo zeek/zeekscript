@@ -1,0 +1,41 @@
+# Expressions and operators: arithmetic, assignment, compound assignment, bitwise, in/!in, as/is, field access, return expressions, &-intersection.
+# test002.zeek
+# test012.zeek
+# test013.zeek
+# test033.zeek
+# test067.zeek
+# test068.zeek
+# test087.zeek
+# test178.zeek
+# test183.zeek
+
+event some_evt()
+    {
+    si$successful_entities = si$successful_entities |
+                             worker_si$successful_entities;
+    }
+
+event some_evt()
+    {
+    local some_services = worker_si$some_entities |
+                          worker_si$other_entities;
+    }
+
+function f(c: connection)
+    {
+    if ( x$y?$z && |x$y$z & s| > 0 )
+        return T; #@ NOT-TESTED
+    }
+
+local recs = aaa$bbb as SomeType;
+local x = yyy is count;
+
+age_d = interval_to_double(network_time() - cert$not_valid_before) / 86400.0; #@ annotation
+
+age_d = interval_to_double(network_time() - cert$not_valid_before) / 86400.0;
+
+age_d = interval_to_double(network_time() - cert$not_valid_before) / 86400.0; # This is a comment that makes the line very long
+
+return a_long_var_name in subj && b_long_var_name !in subj && c_long_var_name !in subj;
+
+return some_very_long_variable_name in some_other_very_long_variable_name && another_thing in yet_another_thing;

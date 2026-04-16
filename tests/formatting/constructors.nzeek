@@ -1,0 +1,496 @@
+# Set/table/vector constructors: set(), table(), anonymous {}/[], trailing commas, fill-set format, subnets, comments in elements, default function.
+# test036.zeek
+# test037.zeek
+# test038.zeek
+# test040.zeek
+# test041.zeek
+# test079.zeek
+# test080.zeek
+# test081.zeek
+# test082.zeek
+# test083.zeek
+# test084.zeek
+# test085.zeek
+# test086.zeek
+# test095.zeek
+# test096.zeek
+# test136.zeek
+# test137.zeek
+# test146.zeek
+# test169.zeek
+# test170.zeek
+# test171.zeek
+# test212.zeek
+# test240.zeek
+# test275.zeek
+# test276.zeek
+# test277.zeek
+
+const some_lookup: table[string] of string = {
+    ["some-key-aa"] = "val-aa",
+    ["some-key-bb"] = "val-bb",
+    ["some-key-cc"] = "val-cc",
+    ["some-key-dd"] = "val-dd",
+} &default = function(n: string): string
+    {
+    return fmt("fixme-%s", n);
+    };
+
+redef foo += set("a", "b", "c");
+
+redef some_hosts += set(
+	"some.host.example.com",
+	"another.longer.hostname.example.org",
+	"yet.another.host.example.net",
+);
+
+global x = { [ 1 ] = "one" };
+
+global x = [1, # Comment one
+2 # Comment two
+];
+
+const ss: set[addr] = {1.2.3.4, 5.6.7.8};
+
+const ss = {1.2.3.4, 5.6.7.8};
+
+const tbl: table[count] of string = {
+	[0x00] = "AAAA",
+	[0x01] = "BBBB",
+	[0x02] = "CCCC",
+	[0x03] = "DDDD",
+	[0x04] = "EEEE",
+	[0x05] = "FFFF"
+};
+
+const xs: vector of count = {1, 2, 3};
+
+const xs: vector of double = {
+	0.01,
+	0.02, # a note
+	0.03,
+	0.04
+};
+
+const xs: vector of double = {
+	0.01,
+	0.02, # note
+	0.03
+};
+
+# Trailing comma with single element: should flatten.
+global s1 = set(3);
+global s2 = set(3,);
+
+redef aaa_bbb = set(
+    "ccc ccc",
+    "Ddd",
+    "Eee eee",
+    "Ffff ggggg hhhh iiiii", # JJJ
+);
+
+#@ FORMAT: FILL-SET
+const aaaa_bb: set[CcDd] = set(
+       Eeee,
+       Ffff,
+       Gggg,
+       Hhhh,
+       Iiii,
+);
+
+#@ FORMAT: FILL-SET
+const aaaa_bb: set[CcDd] = set(
+       EeeeFfff,
+       GgggHhhh,
+       IiiiJjjj,
+       KkkkLlll,
+       MmmmNnnn,
+       OoooPppp,
+       QqqqRrrr,
+       SsssTttt,
+);
+
+#@ FORMAT: FILL-SET
+const aaaa_bb:
+    set[CcDd] = set(
+        Udaxihhexdvxrcsnba,
+        Cghqta,
+        Rgwuwrn,
+        Hosizayzf,
+        Wnkiegykdc,
+        Mdlltizbxor,
+        Dmcrju,
+        Tlsgwcbvhy,
+        Jchdmioulf,
+        Llgviwvuctuf,
+        Rxhfomiuwrhv,
+        Kyybhb,
+        Zkmicgswk,
+        Gupmuo,
+        Eiehxrrixs,
+        Nsmlheqpcybd,
+        Eufzvntcmmt,
+        Oqirav,
+        Xdvryiyukdjnfoax,
+        Xiqyfqdujuq,
+        Tgelyfr,
+        Yqatkpadlz,
+        Jhbhsccxpc,
+        Yryeevpr,
+        Fiqtngr,
+        Yxwgwjmv,
+        Uloqodhh,
+        Ckasrhsh,
+        Acwubhcb,
+        Kcqhivpg,
+        Rexssphzp,
+        Zngddvnlnnox,
+        Bvuudbmxk,
+        Zdhggro,
+        Enfiohco,
+        Zrdburacyhfnppg,
+        Mbfmami,
+        Zzojnwxzrvwpe,
+        Gjgbsxrb,
+        Xkbbspqqfb,
+        Qcfctcvhmd,
+        Shstbtcnv,
+        Ssqkigv,
+        Wkhimevuj,
+        Okycaotsdcr,
+        Gqielchljfo,
+        Rwjtzuqav,
+        Rjvdei,
+        Ddxre,
+        Ijtgwkgvui,
+        Qpibcun,
+        Ibakyeuifx,
+        Orwnradc,
+        Werblsrenebjlzblg,
+        Vhvdlyrntxeh,
+        Fzzfnafxkzn,
+        Zvxzhifz,
+        Wdmbphgolj,
+        Zhhavgmkic,
+        Yiluqmvrka,
+        Difsibdtnlxzkn,
+        Tqdms,
+        Gibwnaqzrvxxx,
+        Vglncvkt,
+        Kvdxjqjvnk,
+        Mwjreg,
+        Nvmvxftsjmrajjg,
+        Nzstuk,
+        Ooovgqpzz,
+        Xfvcjqvu,
+        Tkcyhvjhz,
+        Geabhptyconus,
+        Gwwmpmhe,
+        Uwayydynhfzwq,
+        Obrhdoe,
+        Zovqrtky,
+        Otxqnrofx,
+        Poiyhuiyyqp,
+        Uhiocwjhik,
+        Krceehmw,
+        Ewgcnnkr,
+        Onbgnmy,
+        Swaysmpalj,
+        Ymnrxxrzt,
+        Hphinpamkvv,
+        Zmxfoet,
+        Ramssvacun,
+        Eofbi,
+        Mkgokky,
+        Miynicpaxrbl,
+        Hucyubya,
+        Hgatehe,
+        Pvdsgo,
+        Wiylfttxw,
+        Dyfjdsajs,
+        Vmmwgcswuhd,
+        Wyjvtzdzsz,
+        Blrnvlc,
+        Qukanpdnluo,
+        Wenfxqui,
+        Tzryponx,
+        Sikh,
+        Ciohyostvmk,
+        Apkfpgl,
+        Zikitwiraq,
+        Gchxnpryhwpu,
+        Wpozacjhmwh,
+        Jvslprq,
+        Lnxrklwo,
+        Ijihdxgkdx,
+        Rywfgg,
+        Xpixsyqtjdgjhl,
+        Fjawreibbrj,
+        Weuypda,
+        Sjppokfbi,
+        Pdcmpcsuvb,
+        Eezsjc,
+        Hdrynttzthyqm,
+        Oojsnj,
+        Stbtxdy,
+        Gugivcfhf,
+        Rcfanowtpjbhj,
+        Wjwocv,
+        Hizzusv,
+        Zgndrhueiecbfzjtxs,
+        Jodowjwmiqr,
+        Poctbnxk,
+        Tiachvss,
+        Ayvisbyyfp,
+        Quoifs,
+        Nupcplnkkvd,
+        Fknwpjvm,
+        Yrbockik,
+        Dymqavronbgql,
+        Typuo,
+        Ybgirejo,
+        Wpdaut,
+        Zhwfjrarn,
+        Chdod,
+        Uepwjqwinp,
+        Phoremgtqxe,
+        Ciyznkz,
+        Qiajx,
+        Jssvpeor,
+        Plkryrm,
+        Okgwhsm,
+        Hynbkxpwzmmvz,
+        Uepbeqs,
+        Kdodqoa,
+        Xenuec,
+        Pziktw,
+        Muckvrmku,
+        Wyprbtchuv,
+        Jhxcndy,
+        Uwdofwjab,
+        Kzbjl,
+        Lnehqnsvzfffc,
+        Tmtvhpsehoui,
+        Oivazoj,
+        Vrfcols,
+        Junwiojgm,
+        Pdhmslsj,
+        Wjavmia,
+        Svyxbtxpjyzht,
+        Zlhugti,
+        Vyxyvveuduub,
+        Jzobsl,
+        Xecjkx,
+        Nfgezrlq,
+        Qifipzj,
+        Xkzdoceyh,
+        Vxvmzrlc,
+        Zmai,
+        Rdolvxvism,
+        Uldvh,
+        Patrkth,
+        Ucuowjun,
+        Debbjpddh,
+        Remolvxwrn,
+        Sxxenudptnibwlgoo,
+        Hldvlrul,
+        Bmigdocvgu,
+        Utabz,
+        Khezsgcyrgsg,
+        Hkyezta,
+        Ieeri,
+        Zfdvaea,
+        Lzzhskafib,
+        Exnqdxc,
+        Poylqsdoqht,
+        Bxzvqjoua,
+        Bpmnvdpw,
+        Occktece,
+        Itusrwkmt,
+        Qjoqtnd,
+        Zwduuyr,
+        Xgnohnkomnxd,
+        Knkv,
+        Ilevpcccc,
+        Ndxxlze,
+        Rbsrrkvdnlvynxbjt,
+        Jldsqge,
+        Vphdlrldyis,
+        Hznryttvur,
+        Atvwiafiwyjk,
+        Lafesv,
+        Mcexuac,
+        Xqgmnokfljx,
+        Kystcbefyt,
+        Bvciovnpto,
+        Nigy,
+        Qdlndj,
+        Vvspqv,
+        Jbhmtbagjgye,
+        Yijkdapxnfem,
+        Rwhqrvzl,
+        Cmxbnaoc,
+        Ksnsmwun,
+        Jdmakfztowlcndhns,
+        Mqcmjxkhkyfcqu,
+        Dqqgyllxueh,
+        Deigf,
+        Teyyucfyupoysy,
+        Sovsuutku,
+        Keo,
+        Cpoujzisb,
+        Lqcjoob,
+        Bljcuctt,
+        Qmosrzxbozsug,
+        Ktpqebodzk,
+        Wcqufbhwooqqtfll,
+        Jmnykvtbzu,
+        Ukckdrvmjixvte,
+        Kcsveljuw,
+        Vmetwcjrmuzk,
+        Evwxvqcuv,
+        Nqlaljfgkypg,
+        Heecjzdqy,
+        Rxqbvkyte,
+        Tmeffw,
+        Ytzfxobnl,
+        Vxhotjyxz,
+        Ohrhjzzpg,
+        Lvsooyjymqqn,
+        Fgzteibup,
+        Lrdwqdjcyfi,
+        Oqencho,
+        Lanbmqlhmclh,
+        Akdwukz,
+        Eebjpwe,
+        Ywpotacaige,
+        Rxtqndyj,
+        Hjdbhnuz,
+        Tocdptrauq,
+        Shwejnatlhs,
+        Nfvvcqlcqr,
+        Qzqrampb,
+        Umlixa,
+        Lzclhxvudy,
+        Sxykeblrku,
+        Fyvowpufz,
+        Ecwyobjgb,
+        Zgbkjqmrp,
+        Ibyugjlybu,
+        Kidzlnm,
+        Xomkfpwpl,
+        Zqizcxncntfrjk,
+        Dckvjjotwnfw,
+        Olobxltniuzb,
+        Cvumlqzx,
+        Vfaetv,
+        Zobechyu,
+        Llmsbtevol,
+        Loycseql,
+        Mkuihdaxfpqm,
+        Rdiyiwog,
+        Tjwpgdec,
+        Ofwoczvk,
+        Vlwcrrj,
+        Jfwwwufzl,
+        Qhdgzehzpalrsloz,
+        Retccjmwxpqny,
+        Nscekucoovq,
+        Leyrusfy,
+        Enqbdqejffk,
+        Whlqjciguri,
+        Eujtrcq,
+        Ufssefvt,
+        Xtksbacb,
+        Uysiugy,
+        Sntuap,
+        Urjujphzz,
+        Vmjocwb,
+        Fonpogktekw,
+        Kxlmeylqrdk,
+        Hodiohedbjm,
+        Tnhfksxkg,
+        Yfpqopjpacmqo,
+        Hgslbbjpt,
+        Uvpjradneix,
+        Lymlbmbsr,
+        Glrjcmq,
+        Oyritvtded,
+        Mlzkrlye,
+        Gtqmqbbbewkzp,
+        Qoetqektk,
+        Fmtxjskq,
+        Qrpwsj,
+        Palk,
+        Vdnsjzxwuatpiuz,
+        Ysshxb,
+        Spfqux,
+        Tymevhbsw,
+        Dgaokn,
+        Enwgnqyt,
+        Pxxbweqgrkvp,
+        Qmkforkrlvy,
+        Xvuzwitpghirj,
+        Hjyjwgwwpk,
+        Plrzxijd,
+        Svrmmlyze,
+        Jbjwcl,
+        Ouixpgg,
+        Rirwiedt,
+        Xshhbvqh,
+        Uhbdnkwpdvy,
+        Earfn,
+        Uppugyjkju,
+        Bycushrxxb,
+        Fnfbmzpf,
+        Xjbajstdkjou,
+        Rqpeqoigzd,
+        Kfxouiwfaxkzj,
+        Svygftum,
+        Nqkcmvdfepkh,
+        Aimhoyik,
+        Jsxsai,
+        Ulwhbvdojfmv,
+        Qwyjwduj,
+        Lthhepeoxtlnwrpy,
+        Rzvgyhvy,
+        Tzcqoqwlcsdb,
+        Rqgsrefk,
+        Qodvgwsp,
+        Cqoz,
+        Boeqnosbrov,
+        Zjxamiax,
+        Gscbnlwcr,
+        Bcpbjnfyeyuxunl,
+        Mommcvvre,
+);
+
+local x = set("a", "b", "c", "d", "e");
+
+local x = set("a",
+"b",
+"c",
+"d",
+"e");
+
+[ ];
+
+[ 1 ];
+
+[ 1 , 2 ];
+
+[ 1 , ];
+
+[ 1 , 2 , ];
+
+local x = {};
+
+local x = set(1.0.0.2/31, 1.1.1.2/31, 3.7.176.123/32, 5.1.66.255/32, 5.2.75.75/32, 5.45.107.88/32, 8.8.4.4/32);
+
+local x = set(1.0.0.2/31,
+1.1.1.2/31,
+3.7.176.123/32,
+5.1.66.255/32,
+5.2.75.75/32,
+5.45.107.88/32,
+8.8.4.4/32);

@@ -1,0 +1,645 @@
+COMMENT-LEADING "# Miscellaneous statements: add, delete, assert, hook, when/timeout, schedule, copy, ++/--, event statement, return, print, bare block, #@ BEGIN marker, #@ BEGIN-SKIP-TESTING, #@ END comment on else."
+COMMENT-LEADING "# test018.zeek"
+COMMENT-LEADING "# test069.zeek"
+COMMENT-LEADING "# test106.zeek"
+COMMENT-LEADING "# test135.zeek"
+COMMENT-LEADING "# test140.zeek"
+COMMENT-LEADING "# test203.zeek"
+COMMENT-LEADING "# test204.zeek"
+COMMENT-LEADING "# test250.zeek"
+COMMENT-LEADING "# test252.zeek"
+COMMENT-LEADING "# test255.zeek"
+COMMENT-LEADING "# test256.zeek"
+COMMENT-LEADING "# test261.zeek"
+COMMENT-LEADING "# test263.zeek"
+BLANK
+COMMENT-LEADING "#@ BEGIN-SKIP-TESTING"
+BLANK
+FUNC-DECL {
+  KEYWORD "function"
+  SP
+  IDENTIFIER "some_func"
+  PARAMS {
+    LPAREN
+    PARAM "val" {
+      COLON
+      TYPE-ATOM "string"
+    }
+    RPAREN
+  }
+  BODY {
+    LBRACE
+    EXPR-STMT {
+      CALL {
+        IDENTIFIER "some_call"
+        ARGS {
+          LPAREN
+          IDENTIFIER "val"
+          RPAREN
+        }
+      }
+      SEMI
+    }
+    RBRACE
+  }
+}
+BLANK
+COMMENT-LEADING "#@ END-SKIP-TESTING"
+BLANK
+FUNC-DECL {
+  KEYWORD "event"
+  SP
+  IDENTIFIER "some_handler"
+  PARAMS {
+    LPAREN
+    PARAM "rec" {
+      COLON
+      TYPE-ATOM "SomeModule::Info"
+    }
+    RPAREN
+  }
+  BODY {
+    LBRACE
+    ADD {
+      KEYWORD "add"
+      SP
+      INDEX {
+        IDENTIFIER "some_long_cache"
+        SUBSCRIPTS {
+          LBRACKET
+          IDENTIFIER "aaa"
+          COMMA
+          IDENTIFIER "bbb"
+          COMMA
+          IDENTIFIER "ccc"
+          COMMA
+          FIELD-ACCESS {
+            IDENTIFIER "rec"
+            DOLLAR
+            IDENTIFIER "source_field"
+          }
+          COMMA
+          FIELD-ACCESS {
+            IDENTIFIER "rec"
+            DOLLAR
+            IDENTIFIER "type_field"
+          }
+          COMMA
+          FIELD-ACCESS {
+            IDENTIFIER "rec"
+            DOLLAR
+            IDENTIFIER "name_field"
+          }
+          COMMA
+          FIELD-ACCESS {
+            IDENTIFIER "rec"
+            DOLLAR
+            IDENTIFIER "orig_flag"
+          }
+          COMMA
+          FIELD-ACCESS {
+            IDENTIFIER "rec"
+            DOLLAR
+            IDENTIFIER "byte_count"
+          }
+          RBRACKET
+        }
+      }
+      SEMI
+    }
+    RBRACE
+  }
+}
+BLANK
+FUNC-DECL {
+  KEYWORD "function"
+  SP
+  IDENTIFIER "some_func"
+  PARAMS {
+    LPAREN
+    PARAM "a" {
+      COLON
+      TYPE-ATOM "count"
+    }
+    COMMA
+    PARAM "b" {
+      COLON
+      TYPE-ATOM "string"
+    }
+    COMMA
+    PARAM "rec" {
+      COLON
+      TYPE-ATOM "SomeRec"
+    }
+    RPAREN
+  }
+  BODY {
+    LBRACE
+    COMMENT-LEADING "#@ BEGIN-SKIP-TESTING"
+    IF-NO-ELSE {
+      KEYWORD "if"
+      SP
+      LPAREN
+      BINARY-OP "in" {
+        IDENTIFIER "rec"
+        OP "in"
+        IDENTIFIER "did_check"
+      }
+      RPAREN
+      BODY {
+        RETURN-VOID {
+          KEYWORD "return"
+          SP
+          SEMI
+        }
+      }
+    }
+    COMMENT-LEADING "#@ END-SKIP-TESTING"
+    BLANK
+    EXPR-STMT {
+      CALL {
+        IDENTIFIER "next_thing"
+        ARGS {
+          LPAREN
+          RPAREN
+        }
+      }
+      SEMI
+    }
+    RBRACE
+  }
+}
+BLANK
+FUNC-DECL {
+  KEYWORD "function"
+  SP
+  IDENTIFIER "f"
+  PARAMS {
+    LPAREN
+    RPAREN
+  }
+  BODY {
+    LBRACE
+    EXPR-STMT {
+      SCHEDULE {
+        KEYWORD "schedule"
+        SP
+        IDENTIFIER "some_time_interval"
+        LBRACE
+        CALL {
+          IDENTIFIER "SomeModule::some_very_long_event_name"
+          ARGS {
+            LPAREN
+            RPAREN
+          }
+        }
+        RBRACE
+      }
+      SEMI
+    }
+    RBRACE
+  }
+}
+BLANK
+COMMENT-LEADING "#@ BEGIN"
+FUNC-DECL {
+  KEYWORD "function"
+  SP
+  IDENTIFIER "foo"
+  PARAMS {
+    LPAREN
+    RPAREN
+  }
+  BODY {
+    LBRACE
+    EXPR-STMT {
+      CALL {
+        IDENTIFIER "bar"
+        ARGS {
+          LPAREN
+          RPAREN
+        }
+      }
+      SEMI
+    }
+    RBRACE
+  }
+}
+COMMENT-LEADING "#@ END"
+BLANK
+FUNC-DECL {
+  KEYWORD "event"
+  SP
+  IDENTIFIER "foo"
+  PARAMS {
+    LPAREN
+    RPAREN
+  }
+  BODY {
+    LBRACE
+    EXPR-STMT {
+      KEYWORD-EXPR "hook" {
+        KEYWORD "hook"
+        SP
+        CALL {
+          IDENTIFIER "my_hook"
+          ARGS {
+            LPAREN
+            IDENTIFIER "x"
+            COMMA
+            IDENTIFIER "y"
+            RPAREN
+          }
+        }
+      }
+      SEMI
+    }
+    BLANK
+    WHEN {
+      KEYWORD "when"
+      SP
+      LPAREN
+      CALL {
+        IDENTIFIER "some_cond"
+        ARGS {
+          LPAREN
+          RPAREN
+        }
+      }
+      RPAREN
+      BODY {
+        BLOCK {
+          LBRACE
+          PRINT {
+            KEYWORD "print"
+            SP
+            CONSTANT "\"yes\""
+            SEMI
+          }
+          RBRACE
+        }
+      }
+    }
+    BLANK
+    WHEN-TIMEOUT {
+      KEYWORD "when"
+      SP
+      LPAREN
+      WHEN-LOCAL "result" {
+        CALL {
+          IDENTIFIER "do_lookup"
+          ARGS {
+            LPAREN
+            IDENTIFIER "host"
+            RPAREN
+          }
+        }
+      }
+      RPAREN
+      BODY {
+        BLOCK {
+          LBRACE
+          PRINT {
+            KEYWORD "print"
+            SP
+            IDENTIFIER "result"
+            SEMI
+          }
+          RBRACE
+        }
+      }
+      KEYWORD "timeout"
+      SP
+      TIMEOUT {
+        INTERVAL "10" "secs"
+        LBRACE
+        BODY {
+          PRINT {
+            KEYWORD "print"
+            SP
+            CONSTANT "\"timeout\""
+            SEMI
+          }
+        }
+        RBRACE
+      }
+    }
+    RBRACE
+  }
+}
+BLANK
+FUNC-DECL {
+  KEYWORD "event"
+  SP
+  IDENTIFIER "foo"
+  PARAMS {
+    LPAREN
+    RPAREN
+  }
+  BODY {
+    LBRACE
+    LOCAL-DECL {
+      KEYWORD "local"
+      SP
+      IDENTIFIER "x"
+      DECL-INIT {
+        ASSIGN "="
+        CALL {
+          IDENTIFIER "copy"
+          ARGS {
+            LPAREN
+            IDENTIFIER "some_val"
+            RPAREN
+          }
+        }
+      }
+      SEMI
+    }
+    EXPR-STMT {
+      UNARY-OP "++" {
+        OP "++"
+        IDENTIFIER "x"
+      }
+      SEMI
+    }
+    EXPR-STMT {
+      UNARY-OP "--" {
+        OP "--"
+        IDENTIFIER "x"
+      }
+      SEMI
+    }
+    RBRACE
+  }
+}
+BLANK
+FUNC-DECL {
+  KEYWORD "event"
+  SP
+  IDENTIFIER "Aaaaaaaaaaaa::xxxxxx_xxxx_xx_xx_xxxxxx_xxx"
+  PARAMS {
+    LPAREN
+    PARAM "xx_xxxxxxx" {
+      COLON
+      TYPE-PARAMETERIZED "set" {
+        SUBSCRIPTS {
+          LBRACKET
+          TYPE-ATOM "addr"
+          COMMA
+          TYPE-ATOM "bool"
+          COMMA
+          TYPE-ATOM "bool"
+          RBRACKET
+        }
+      }
+    }
+    RPAREN
+  }
+  ATTR-LIST {
+    ATTR "&is_used"
+  }
+  BODY {
+    LBRACE
+    IF-NO-ELSE {
+      KEYWORD "if"
+      SP
+      LPAREN
+      BINARY-OP "!=" {
+        IDENTIFIER "Aaaaaaa::xxxx"
+        OP "!="
+        IDENTIFIER "Aaaaaaaaaaaa::xxxxxxxxxxxxx"
+      }
+      RPAREN
+      BODY {
+        SAME-LINE
+        BLOCK {
+          LBRACE
+          EXPR-STMT {
+            CALL {
+              IDENTIFIER "xxxxxxxxxxxxxx"
+              ARGS {
+                LPAREN
+                CALL {
+                  IDENTIFIER "xxx"
+                  ARGS {
+                    LPAREN
+                    CONSTANT "\"xxxxx\""
+                    RPAREN
+                  }
+                }
+                RPAREN
+              }
+            }
+            SEMI
+          }
+          RBRACE
+        }
+      }
+    }
+    RBRACE
+  }
+  COMMENT-TRAILING "#@ NOT-TESTED"
+}
+BLANK
+FUNC-DECL {
+  KEYWORD "event"
+  SP
+  IDENTIFIER "aaaa"
+  PARAMS {
+    LPAREN
+    RPAREN
+  }
+  BODY {
+    LBRACE
+    IF-WITH-ELSE {
+      KEYWORD "if"
+      SP
+      LPAREN
+      IDENTIFIER "test"
+      RPAREN
+      BODY {
+        BLOCK {
+          LBRACE
+          PRINT {
+            KEYWORD "print"
+            SP
+            CONSTANT "\"aaaa\""
+            SEMI
+          }
+          RBRACE
+        }
+        COMMENT-LEADING "#@ END Aaaa::aaaa"
+      }
+      BLANK
+      ELSE-BODY {
+        KEYWORD "else"
+        SP
+        BLOCK {
+          LBRACE
+          PRINT {
+            KEYWORD "print"
+            SP
+            CONSTANT "\"bbbb\""
+            SEMI
+          }
+          RBRACE
+        }
+      }
+    }
+    RBRACE
+  }
+}
+BLANK
+FUNC-DECL {
+  KEYWORD "function"
+  SP
+  IDENTIFIER "foo"
+  PARAMS {
+    LPAREN
+    RPAREN
+  }
+  BODY {
+    LBRACE
+    EXPR-STMT {
+      SCHEDULE {
+        KEYWORD "schedule"
+        SP
+        INTERVAL "10" "secs"
+        LBRACE
+        CALL {
+          IDENTIFIER "Xxxxxxxxxxxx::xxx_xxxxxxx_xxxxx_xxxxxxxxx_xxx_xxxxxxxxx"
+          ARGS {
+            LPAREN
+            RPAREN
+          }
+        }
+        RBRACE
+      }
+      SEMI
+    }
+    RBRACE
+  }
+}
+BLANK
+FUNC-DECL {
+  KEYWORD "function"
+  SP
+  IDENTIFIER "foo"
+  PARAMS {
+    LPAREN
+    RPAREN
+  }
+  BODY {
+    LBRACE
+    EXPR-STMT {
+      SCHEDULE {
+        KEYWORD "schedule"
+        SP
+        IDENTIFIER "xxxx_xxxxxx_xxxx_xxxxxxxx"
+        LBRACE
+        CALL {
+          IDENTIFIER "XxxxXxxxxxxXxxxXxxxx::xxxx_xxxx_xxxxx_xxxx_xxxx"
+          ARGS {
+            LPAREN
+            IDENTIFIER "xxxxxxxx_xxx"
+            COMMA
+            IDENTIFIER "xxxxxxxx_xxx"
+            COMMA
+            IDENTIFIER "xxxxxxxx_xxxxx"
+            RPAREN
+          }
+        }
+        RBRACE
+      }
+      SEMI
+    }
+    RBRACE
+  }
+}
+BLANK
+FUNC-DECL {
+  KEYWORD "event"
+  SP
+  IDENTIFIER "foo"
+  PARAMS {
+    LPAREN
+    RPAREN
+  }
+  BODY {
+    LBRACE
+    EVENT-STMT "bar" {
+      KEYWORD "event"
+      SP
+      ARGS {
+        LPAREN
+        RPAREN
+      }
+      SEMI
+    }
+    EVENT-STMT "baz" {
+      KEYWORD "event"
+      SP
+      ARGS {
+        LPAREN
+        CONSTANT "1"
+        COMMA
+        CONSTANT "2"
+        COMMA
+        CONSTANT "3"
+        RPAREN
+      }
+      SEMI
+    }
+    RBRACE
+  }
+}
+BLANK
+FUNC-DECL {
+  KEYWORD "function"
+  SP
+  IDENTIFIER "foo"
+  PARAMS {
+    LPAREN
+    RPAREN
+  }
+  BODY {
+    LBRACE
+    WHEN {
+      KEYWORD "when [bar]"
+      SP
+      LPAREN
+      IDENTIFIER "x"
+      RPAREN
+      BODY {
+        PRINT {
+          KEYWORD "print"
+          SP
+          IDENTIFIER "bar"
+          SEMI
+        }
+      }
+    }
+    WHEN {
+      KEYWORD "when [bar, baz]"
+      SP
+      LPAREN
+      IDENTIFIER "x"
+      RPAREN
+      BODY {
+        BLOCK {
+          LBRACE
+          PRINT {
+            KEYWORD "print"
+            SP
+            IDENTIFIER "bar"
+            SEMI
+          }
+          RBRACE
+        }
+      }
+    }
+    RBRACE
+  }
+}
+BLANK
+COMMENT-LEADING "# A final comment."

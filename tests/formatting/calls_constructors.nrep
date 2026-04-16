@@ -1,0 +1,2432 @@
+COMMENT-LEADING "# Constructor calls: record constructors ($field=), Log::write, Log::create_stream, NOTICE, Input::add_event, nested constructors with fmt()."
+COMMENT-LEADING "# test010.zeek"
+COMMENT-LEADING "# test014.zeek"
+COMMENT-LEADING "# test026.zeek"
+COMMENT-LEADING "# test027.zeek"
+COMMENT-LEADING "# test091.zeek"
+COMMENT-LEADING "# test099.zeek"
+COMMENT-LEADING "# test102.zeek"
+COMMENT-LEADING "# test103.zeek"
+COMMENT-LEADING "# test118.zeek"
+COMMENT-LEADING "# test119.zeek"
+COMMENT-LEADING "# test120.zeek"
+COMMENT-LEADING "# test122.zeek"
+COMMENT-LEADING "# test123.zeek"
+COMMENT-LEADING "# test124.zeek"
+COMMENT-LEADING "# test125.zeek"
+COMMENT-LEADING "# test126.zeek"
+COMMENT-LEADING "# test127.zeek"
+COMMENT-LEADING "# test128.zeek"
+COMMENT-LEADING "# test129.zeek"
+COMMENT-LEADING "# test130.zeek"
+COMMENT-LEADING "# test132.zeek"
+COMMENT-LEADING "# test185.zeek"
+COMMENT-LEADING "# test189.zeek"
+COMMENT-LEADING "# test190.zeek"
+COMMENT-LEADING "# test191.zeek"
+COMMENT-LEADING "# test200.zeek"
+COMMENT-LEADING "# test205.zeek"
+COMMENT-LEADING "# test207.zeek"
+COMMENT-LEADING "# test219.zeek"
+COMMENT-LEADING "# test220.zeek"
+COMMENT-LEADING "# test227.zeek"
+COMMENT-LEADING "# test244.zeek"
+COMMENT-LEADING "# test257.zeek"
+COMMENT-LEADING "# test264.zeek"
+COMMENT-LEADING "# test272.zeek"
+BLANK
+FUNC-DECL-RET {
+  KEYWORD "function"
+  SP
+  IDENTIFIER "some_func"
+  PARAMS {
+    LPAREN
+    RPAREN
+  }
+  COLON
+  RETURNS {
+    TYPE-ATOM "SomeModule::SomeType"
+  }
+  BODY {
+    LBRACE
+    IF-NO-ELSE {
+      KEYWORD "if"
+      SP
+      LPAREN
+      BINARY-OP "&&" {
+        IDENTIFIER "some_condition"
+        OP "&&"
+        IDENTIFIER "some_other_condition"
+      }
+      RPAREN
+      BODY {
+        EXPR-STMT {
+          BINARY-OP "=" {
+            INDEX {
+              IDENTIFIER "some_long_variable_name"
+              SUBSCRIPTS {
+                LBRACKET
+                IDENTIFIER "some_id"
+                RBRACKET
+              }
+            }
+            OP "="
+            CALL {
+              IDENTIFIER "SomeModule::SomeType"
+              ARGS {
+                LPAREN
+                FIELD-ASSIGN "aa" {
+                  DOLLAR
+                  ASSIGN "="
+                  FIELD-ACCESS {
+                    IDENTIFIER "result"
+                    DOLLAR
+                    IDENTIFIER "aa"
+                  }
+                }
+                COMMA
+                FIELD-ASSIGN "bb_string" {
+                  DOLLAR
+                  ASSIGN "="
+                  FIELD-ACCESS {
+                    IDENTIFIER "result"
+                    DOLLAR
+                    IDENTIFIER "bb_string"
+                  }
+                }
+                RPAREN
+              }
+            }
+          }
+          SEMI
+        }
+      }
+    }
+    RBRACE
+  }
+}
+BLANK
+FUNC-DECL {
+  KEYWORD "event"
+  SP
+  IDENTIFIER "zeek_init"
+  PARAMS {
+    LPAREN
+    RPAREN
+  }
+  BODY {
+    LBRACE
+    EXPR-STMT {
+      CALL {
+        IDENTIFIER "SomeModule::some_register_fn"
+        ARGS {
+          LPAREN
+          IDENTIFIER "SomeModule::SOME_ANALYZER"
+          COMMA
+          INDEX-LITERAL {
+            ARGS {
+              LBRACKET
+              FIELD-ASSIGN "get_handle" {
+                DOLLAR
+                ASSIGN "="
+                IDENTIFIER "SomeModule::get_handle"
+              }
+              COMMA
+              FIELD-ASSIGN "describe" {
+                DOLLAR
+                ASSIGN "="
+                IDENTIFIER "SomeModule::describe_it"
+              }
+              RBRACKET
+            }
+          }
+          RPAREN
+        }
+      }
+      SEMI
+    }
+    RBRACE
+  }
+}
+BLANK
+FUNC-DECL {
+  KEYWORD "event"
+  SP
+  IDENTIFIER "foo"
+  PARAMS {
+    LPAREN
+    RPAREN
+  }
+  BODY {
+    LBRACE
+    EXPR-STMT {
+      CALL {
+        IDENTIFIER "SomeModule::seen"
+        ARGS {
+          LPAREN
+          INDEX-LITERAL {
+            ARGS {
+              LBRACKET
+              FIELD-ASSIGN "some_field" {
+                DOLLAR
+                ASSIGN "="
+                CALL {
+                  IDENTIFIER "SomeModule::build_value"
+                  ARGS {
+                    LPAREN
+                    INDEX {
+                      FIELD-ACCESS {
+                        FIELD-ACCESS {
+                          IDENTIFIER "c"
+                          DOLLAR
+                          IDENTIFIER "some_data"
+                        }
+                        DOLLAR
+                        IDENTIFIER "items"
+                      }
+                      SUBSCRIPTS {
+                        LBRACKET
+                        IDENTIFIER "stream"
+                        RBRACKET
+                      }
+                    }
+                    RPAREN
+                  }
+                }
+              }
+              COMMA
+              FIELD-ASSIGN "some_type" {
+                DOLLAR
+                ASSIGN "="
+                IDENTIFIER "SomeModule::URL"
+              }
+              COMMA
+              FIELD-ASSIGN "conn" {
+                DOLLAR
+                ASSIGN "="
+                IDENTIFIER "c"
+              }
+              COMMA
+              FIELD-ASSIGN "where" {
+                DOLLAR
+                ASSIGN "="
+                IDENTIFIER "SomeModule::IN_URL"
+              }
+              RBRACKET
+            }
+          }
+          RPAREN
+        }
+      }
+      SEMI
+    }
+    RBRACE
+  }
+}
+BLANK
+FUNC-DECL {
+  KEYWORD "function"
+  SP
+  IDENTIFIER "some_func"
+  PARAMS {
+    LPAREN
+    RPAREN
+  }
+  BODY {
+    LBRACE
+    IF-NO-ELSE {
+      KEYWORD "if"
+      SP
+      LPAREN
+      IDENTIFIER "test"
+      RPAREN
+      BODY {
+        BLOCK {
+          LBRACE
+          LOCAL-DECL {
+            KEYWORD "local"
+            SP
+            IDENTIFIER "some_val"
+            DECL-INIT {
+              ASSIGN "="
+              CALL {
+                IDENTIFIER "some_long_func_name"
+                ARGS {
+                  LPAREN
+                  INDEX {
+                    IDENTIFIER "result_chain"
+                    SUBSCRIPTS {
+                      LBRACKET
+                      CONSTANT "1"
+                      RBRACKET
+                    }
+                  }
+                  COMMA
+                  CONSTANT "4"
+                  RPAREN
+                }
+              }
+            }
+            SEMI
+          }
+          COMMENT-TRAILING "# HASH"
+          RBRACE
+        }
+      }
+    }
+    RBRACE
+  }
+}
+BLANK
+FUNC-DECL {
+  KEYWORD "event"
+  SP
+  IDENTIFIER "zeek_init"
+  PARAMS {
+    LPAREN
+    RPAREN
+  }
+  BODY {
+    LBRACE
+    LOCAL-DECL {
+      KEYWORD "local"
+      SP
+      IDENTIFIER "filter"
+      DECL-INIT {
+        ASSIGN "="
+        CALL {
+          IDENTIFIER "Log::Filter"
+          ARGS {
+            LPAREN
+            FIELD-ASSIGN "name" {
+              DOLLAR
+              ASSIGN "="
+              CONSTANT "\"log-name\""
+            }
+            COMMA
+            FIELD-ASSIGN "path" {
+              DOLLAR
+              ASSIGN "="
+              CONSTANT "\"log_path\""
+            }
+            COMMA
+            FIELD-ASSIGN "include" {
+              DOLLAR
+              ASSIGN "="
+              CALL {
+                IDENTIFIER "set"
+                ARGS {
+                  LPAREN
+                  CONSTANT "\"id.orig_h\""
+                  COMMA
+                  CONSTANT "\"id.orig_p\""
+                  COMMA
+                  CONSTANT "\"id.resp_h\""
+                  COMMA
+                  CONSTANT "\"id.resp_p\""
+                  COMMA
+                  CONSTANT "\"app\""
+                  RPAREN
+                }
+              }
+            }
+            COMMA
+            FIELD-ASSIGN "policy" {
+              DOLLAR
+              ASSIGN "="
+              IDENTIFIER "some_policy_fn"
+            }
+            RPAREN
+          }
+        }
+      }
+      SEMI
+    }
+    RBRACE
+  }
+}
+BLANK
+FUNC-DECL {
+  KEYWORD "function"
+  SP
+  IDENTIFIER "some_fn"
+  PARAMS {
+    LPAREN
+    RPAREN
+  }
+  BODY {
+    LBRACE
+    IF-NO-ELSE {
+      KEYWORD "if"
+      SP
+      LPAREN
+      IDENTIFIER "some_condition"
+      RPAREN
+      BODY {
+        BLOCK {
+          LBRACE
+          LOCAL-DECL {
+            KEYWORD "local"
+            SP
+            IDENTIFIER "info"
+            DECL-INIT {
+              ASSIGN "="
+              CALL {
+                IDENTIFIER "SomeLongModule::SomeFn"
+                ARGS {
+                  LPAREN
+                  FIELD-ASSIGN "ts" {
+                    DOLLAR
+                    ASSIGN "="
+                    IDENTIFIER "ts"
+                  }
+                  COMMA
+                  FIELD-ASSIGN "uid" {
+                    DOLLAR
+                    ASSIGN "="
+                    IDENTIFIER "uid"
+                  }
+                  COMMA
+                  FIELD-ASSIGN "use_case" {
+                    DOLLAR
+                    ASSIGN "="
+                    IDENTIFIER "usecase"
+                  }
+                  COMMA
+                  FIELD-ASSIGN "use_case_description" {
+                    DOLLAR
+                    ASSIGN "="
+                    IDENTIFIER "usecase_desc"
+                  }
+                  COMMA
+                  FIELD-ASSIGN "entity_training_items" {
+                    DOLLAR
+                    ASSIGN "="
+                    IDENTIFIER "entity_training_items"
+                  }
+                  COMMA
+                  FIELD-ASSIGN "entity" {
+                    DOLLAR
+                    ASSIGN "="
+                    IDENTIFIER "entity"
+                  }
+                  COMMA
+                  FIELD-ASSIGN "original_entity" {
+                    DOLLAR
+                    ASSIGN "="
+                    IDENTIFIER "original_entity"
+                  }
+                  COMMA
+                  FIELD-ASSIGN "item" {
+                    DOLLAR
+                    ASSIGN "="
+                    IDENTIFIER "item"
+                  }
+                  COMMA
+                  FIELD-ASSIGN "first_seen_type" {
+                    DOLLAR
+                    ASSIGN "="
+                    INDEX {
+                      IDENTIFIER "some_enum_map"
+                      SUBSCRIPTS {
+                        LBRACKET
+                        IDENTIFIER "some_type"
+                        RBRACKET
+                      }
+                    }
+                  }
+                  COMMA
+                  FIELD-ASSIGN "history_days" {
+                    DOLLAR
+                    ASSIGN "="
+                    IDENTIFIER "history_days"
+                  }
+                  COMMA
+                  FIELD-ASSIGN "history" {
+                    DOLLAR
+                    ASSIGN "="
+                    IDENTIFIER "history"
+                  }
+                  RPAREN
+                }
+              }
+            }
+            SEMI
+          }
+          RBRACE
+        }
+      }
+    }
+    RBRACE
+  }
+}
+BLANK
+FUNC-DECL {
+  KEYWORD "function"
+  SP
+  IDENTIFIER "some_fn"
+  PARAMS {
+    LPAREN
+    RPAREN
+  }
+  BODY {
+    LBRACE
+    LOCAL-DECL {
+      KEYWORD "local"
+      SP
+      IDENTIFIER "info"
+      DECL-INIT {
+        ASSIGN "="
+        CALL {
+          IDENTIFIER "SomeModule::SomeFn"
+          ARGS {
+            LPAREN
+            FIELD-ASSIGN "note" {
+              DOLLAR
+              ASSIGN "="
+              IDENTIFIER "Found"
+            }
+            COMMA
+            FIELD-ASSIGN "uid" {
+              DOLLAR
+              ASSIGN "="
+              IDENTIFIER "uid"
+            }
+            COMMA
+            FIELD-ASSIGN "msg" {
+              DOLLAR
+              ASSIGN "="
+              CALL {
+                IDENTIFIER "fmt"
+                ARGS {
+                  LPAREN
+                  CONSTANT "\"%s found on %s entity using %s item.\""
+                  COMMA
+                  IDENTIFIER "usecase_desc"
+                  COMMA
+                  IDENTIFIER "orig_entity"
+                  COMMA
+                  IDENTIFIER "item"
+                  RPAREN
+                }
+              }
+            }
+            COMMA
+            FIELD-ASSIGN "sub" {
+              DOLLAR
+              ASSIGN "="
+              CALL {
+                IDENTIFIER "fmt"
+                ARGS {
+                  LPAREN
+                  CONSTANT "\"Score: %s. Days: %s\""
+                  COMMA
+                  IDENTIFIER "item_score"
+                  COMMA
+                  IDENTIFIER "history_days"
+                  RPAREN
+                }
+              }
+            }
+            COMMA
+            FIELD-ASSIGN "identifier" {
+              DOLLAR
+              ASSIGN "="
+              CALL {
+                IDENTIFIER "cat"
+                ARGS {
+                  LPAREN
+                  IDENTIFIER "orig_entity"
+                  COMMA
+                  IDENTIFIER "usecase"
+                  COMMA
+                  IDENTIFIER "item"
+                  RPAREN
+                }
+              }
+            }
+            RPAREN
+          }
+        }
+      }
+      SEMI
+    }
+    RBRACE
+  }
+}
+BLANK
+FUNC-DECL {
+  KEYWORD "event"
+  SP
+  IDENTIFIER "zeek_init"
+  PARAMS {
+    LPAREN
+    RPAREN
+  }
+  BODY {
+    LBRACE
+    EXPR-STMT {
+      CALL {
+        IDENTIFIER "Log::create_stream"
+        ARGS {
+          LPAREN
+          IDENTIFIER "SOME_LOG"
+          COMMA
+          INDEX-LITERAL {
+            ARGS {
+              LBRACKET
+              FIELD-ASSIGN "columns" {
+                DOLLAR
+                ASSIGN "="
+                IDENTIFIER "SomeInfo"
+              }
+              COMMA
+              FIELD-ASSIGN "path" {
+                DOLLAR
+                ASSIGN "="
+                CONSTANT "\"some_log_path\""
+              }
+              COMMA
+              FIELD-ASSIGN "policy" {
+                DOLLAR
+                ASSIGN "="
+                IDENTIFIER "some_log_policy"
+              }
+              RBRACKET
+            }
+          }
+          RPAREN
+        }
+      }
+      SEMI
+    }
+    RBRACE
+  }
+}
+BLANK
+FUNC-DECL {
+  KEYWORD "event"
+  SP
+  IDENTIFIER "some_evt"
+  PARAMS {
+    LPAREN
+    RPAREN
+  }
+  BODY {
+    LBRACE
+    EXPR-STMT {
+      CALL {
+        IDENTIFIER "SomeModule::setup_stream"
+        ARGS {
+          LPAREN
+          IDENTIFIER "SOME_STREAM_LOG"
+          COMMA
+          INDEX-LITERAL {
+            ARGS {
+              LBRACKET
+              FIELD-ASSIGN "columns" {
+                DOLLAR
+                ASSIGN "="
+                IDENTIFIER "SomeStreamInfo"
+              }
+              COMMA
+              FIELD-ASSIGN "path" {
+                DOLLAR
+                ASSIGN "="
+                CONSTANT "\"some_long_module_stream_path\""
+              }
+              COMMA
+              FIELD-ASSIGN "policy" {
+                DOLLAR
+                ASSIGN "="
+                IDENTIFIER "some_stream_log_policy"
+              }
+              RBRACKET
+            }
+          }
+          RPAREN
+        }
+      }
+      SEMI
+    }
+    RBRACE
+  }
+}
+BLANK
+FUNC-DECL {
+  KEYWORD "event"
+  SP
+  IDENTIFIER "some_evt"
+  PARAMS {
+    LPAREN
+    PARAM "c" {
+      COLON
+      TYPE-ATOM "connection"
+    }
+    RPAREN
+  }
+  BODY {
+    LBRACE
+    EXPR-STMT {
+      CALL {
+        IDENTIFIER "NOTICE"
+        ARGS {
+          LPAREN
+          INDEX-LITERAL {
+            ARGS {
+              LBRACKET
+              FIELD-ASSIGN "note" {
+                DOLLAR
+                ASSIGN "="
+                IDENTIFIER "Some_Notice"
+              }
+              COMMA
+              FIELD-ASSIGN "conn" {
+                DOLLAR
+                ASSIGN "="
+                IDENTIFIER "c"
+              }
+              COMMA
+              COMMENT-LEADING "# This is a comment about the next field."
+              COMMENT-LEADING "# Another comment line."
+              FIELD-ASSIGN "identifier" {
+                DOLLAR
+                ASSIGN "="
+                CALL {
+                  IDENTIFIER "cat"
+                  ARGS {
+                    LPAREN
+                    FIELD-ACCESS {
+                      IDENTIFIER "id"
+                      DOLLAR
+                      IDENTIFIER "orig_h"
+                    }
+                    COMMA
+                    FIELD-ACCESS {
+                      IDENTIFIER "id"
+                      DOLLAR
+                      IDENTIFIER "resp_h"
+                    }
+                    RPAREN
+                  }
+                }
+              }
+              RBRACKET
+            }
+          }
+          RPAREN
+        }
+      }
+      SEMI
+    }
+    RBRACE
+  }
+}
+BLANK
+FUNC-DECL {
+  KEYWORD "event"
+  SP
+  IDENTIFIER "some_evt"
+  PARAMS {
+    LPAREN
+    RPAREN
+  }
+  BODY {
+    LBRACE
+    EXPR-STMT {
+      CALL {
+        IDENTIFIER "some_func"
+        ARGS {
+          LPAREN
+          INDEX-LITERAL {
+            ARGS {
+              LBRACKET
+              FIELD-ASSIGN "aa" {
+                DOLLAR
+                ASSIGN "="
+                IDENTIFIER "BB"
+              }
+              COMMA
+              FIELD-ASSIGN "cc" {
+                DOLLAR
+                ASSIGN "="
+                CALL {
+                  IDENTIFIER "fmt"
+                  ARGS {
+                    LPAREN
+                    CONSTANT "\"Host uses a weak certificate with %d bits\""
+                    COMMA
+                    IDENTIFIER "key_len"
+                    RPAREN
+                  }
+                }
+              }
+              COMMA
+              FIELD-ASSIGN "dd" {
+                DOLLAR
+                ASSIGN "="
+                IDENTIFIER "e"
+              }
+              COMMA
+              FIELD-ASSIGN "ff" {
+                DOLLAR
+                ASSIGN "="
+                IDENTIFIER "SSL::some_suppression_interval"
+              }
+              COMMA
+              FIELD-ASSIGN "gg" {
+                DOLLAR
+                ASSIGN "="
+                CALL {
+                  IDENTIFIER "cat"
+                  ARGS {
+                    LPAREN
+                    IDENTIFIER "resp_h"
+                    COMMA
+                    FIELD-ACCESS {
+                      FIELD-ACCESS {
+                        IDENTIFIER "c"
+                        DOLLAR
+                        IDENTIFIER "id"
+                      }
+                      DOLLAR
+                      IDENTIFIER "resp_p"
+                    }
+                    COMMA
+                    IDENTIFIER "hash"
+                    COMMA
+                    IDENTIFIER "key_len"
+                    RPAREN
+                  }
+                }
+              }
+              RBRACKET
+            }
+          }
+          RPAREN
+        }
+      }
+      SEMI
+    }
+    RBRACE
+  }
+}
+BLANK
+FUNC-DECL {
+  KEYWORD "event"
+  SP
+  IDENTIFIER "some_event"
+  PARAMS {
+    LPAREN
+    RPAREN
+  }
+  BODY {
+    LBRACE
+    EXPR-STMT {
+      CALL {
+        IDENTIFIER "some_func"
+        ARGS {
+          LPAREN
+          INDEX-LITERAL {
+            ARGS {
+              LBRACKET
+              FIELD-ASSIGN "aa" {
+                DOLLAR
+                ASSIGN "="
+                IDENTIFIER "BB"
+              }
+              COMMA
+              FIELD-ASSIGN "cc" {
+                DOLLAR
+                ASSIGN "="
+                IDENTIFIER "dd"
+              }
+              COMMA
+              COMMENT-TRAILING "#@ SOME-TAG"
+              FIELD-ASSIGN "ee" {
+                DOLLAR
+                ASSIGN "="
+                IDENTIFIER "ff"
+              }
+              RBRACKET
+            }
+          }
+          RPAREN
+        }
+      }
+      SEMI
+    }
+    RBRACE
+  }
+}
+BLANK
+FUNC-DECL {
+  KEYWORD "event"
+  SP
+  IDENTIFIER "zeek_init"
+  PARAMS {
+    LPAREN
+    RPAREN
+  }
+  BODY {
+    LBRACE
+    EXPR-STMT {
+      CALL {
+        IDENTIFIER "Log::create_stream"
+        ARGS {
+          LPAREN
+          IDENTIFIER "LOG"
+          COMMA
+          INDEX-LITERAL {
+            ARGS {
+              LBRACKET
+              FIELD-ASSIGN "columns" {
+                DOLLAR
+                ASSIGN "="
+                IDENTIFIER "Conn::Info"
+              }
+              COMMA
+              FIELD-ASSIGN "path" {
+                DOLLAR
+                ASSIGN "="
+                IDENTIFIER "path"
+              }
+              COMMA
+              FIELD-ASSIGN "policy" {
+                DOLLAR
+                ASSIGN "="
+                IDENTIFIER "Conn::log_policy"
+              }
+              RBRACKET
+            }
+          }
+          RPAREN
+        }
+      }
+      SEMI
+    }
+    RBRACE
+  }
+}
+BLANK
+FUNC-DECL {
+  KEYWORD "event"
+  SP
+  IDENTIFIER "zeek_init"
+  PARAMS {
+    LPAREN
+    RPAREN
+  }
+  BODY {
+    LBRACE
+    EXPR-STMT {
+      CALL {
+        IDENTIFIER "Some::create_stream"
+        ARGS {
+          LPAREN
+          IDENTIFIER "SOME::LOG"
+          COMMA
+          INDEX-LITERAL {
+            ARGS {
+              LBRACKET
+              FIELD-ASSIGN "columns" {
+                DOLLAR
+                ASSIGN "="
+                IDENTIFIER "Info"
+              }
+              COMMA
+              FIELD-ASSIGN "path" {
+                DOLLAR
+                ASSIGN "="
+                CONSTANT "\"some_path\""
+              }
+              COMMA
+              FIELD-ASSIGN "policy" {
+                DOLLAR
+                ASSIGN "="
+                IDENTIFIER "log_policy"
+              }
+              RBRACKET
+            }
+          }
+          RPAREN
+        }
+      }
+      SEMI
+    }
+    RBRACE
+  }
+}
+BLANK
+FUNC-DECL {
+  KEYWORD "function"
+  SP
+  IDENTIFIER "some_func"
+  PARAMS {
+    LPAREN
+    RPAREN
+  }
+  BODY {
+    LBRACE
+    EXPR-STMT {
+      CALL {
+        IDENTIFIER "SOME_CALL"
+        ARGS {
+          LPAREN
+          INDEX-LITERAL {
+            ARGS {
+              LBRACKET
+              FIELD-ASSIGN "field_a" {
+                DOLLAR
+                ASSIGN "="
+                IDENTIFIER "Some_Enum_Val"
+              }
+              COMMA
+              FIELD-ASSIGN "field_b" {
+                DOLLAR
+                ASSIGN "="
+                CALL {
+                  IDENTIFIER "fmt"
+                  ARGS {
+                    LPAREN
+                    CONSTANT "\"total items: %d, associated ids: %s\""
+                    COMMA
+                    IDENTIFIER "total_items"
+                    COMMA
+                    IDENTIFIER "conn_ids"
+                    RPAREN
+                  }
+                }
+              }
+              COMMA
+              FIELD-ASSIGN "field_c" {
+                DOLLAR
+                ASSIGN "="
+                IDENTIFIER "src_host"
+              }
+              COMMA
+              FIELD-ASSIGN "field_d" {
+                DOLLAR
+                ASSIGN "="
+                CALL {
+                  IDENTIFIER "cat"
+                  ARGS {
+                    LPAREN
+                    IDENTIFIER "src_host"
+                    COMMA
+                    IDENTIFIER "bucket"
+                    RPAREN
+                  }
+                }
+              }
+              RBRACKET
+            }
+          }
+          RPAREN
+        }
+      }
+      SEMI
+    }
+    RBRACE
+  }
+}
+BLANK
+FUNC-DECL {
+  KEYWORD "event"
+  SP
+  IDENTIFIER "some_evt"
+  PARAMS {
+    LPAREN
+    RPAREN
+  }
+  BODY {
+    LBRACE
+    EXPR-STMT {
+      CALL {
+        IDENTIFIER "SOME_CALL"
+        ARGS {
+          LPAREN
+          INDEX-LITERAL {
+            ARGS {
+              LBRACKET
+              FIELD-ASSIGN "field_a" {
+                DOLLAR
+                ASSIGN "="
+                IDENTIFIER "Some_Enum_Val"
+              }
+              COMMA
+              FIELD-ASSIGN "field_b" {
+                DOLLAR
+                ASSIGN "="
+                CALL {
+                  IDENTIFIER "fmt"
+                  ARGS {
+                    LPAREN
+                    CONSTANT "\"some format string with several placeholders %d items across %d groups within %s window\""
+                    COMMA
+                    IDENTIFIER "val_one"
+                    COMMA
+                    IDENTIFIER "val_two"
+                    COMMA
+                    IDENTIFIER "val_three"
+                    RPAREN
+                  }
+                }
+              }
+              COMMA
+              FIELD-ASSIGN "field_c" {
+                DOLLAR
+                ASSIGN "="
+                IDENTIFIER "endpoints"
+              }
+              COMMA
+              FIELD-ASSIGN "field_d" {
+                DOLLAR
+                ASSIGN "="
+                IDENTIFIER "src_host"
+              }
+              COMMA
+              FIELD-ASSIGN "field_e" {
+                DOLLAR
+                ASSIGN "="
+                CALL {
+                  IDENTIFIER "cat"
+                  ARGS {
+                    LPAREN
+                    IDENTIFIER "src_host"
+                    RPAREN
+                  }
+                }
+              }
+              RBRACKET
+            }
+          }
+          RPAREN
+        }
+      }
+      SEMI
+    }
+    RBRACE
+  }
+}
+BLANK
+FUNC-DECL {
+  KEYWORD "function"
+  SP
+  IDENTIFIER "f"
+  PARAMS {
+    LPAREN
+    RPAREN
+  }
+  BODY {
+    LBRACE
+    IF-NO-ELSE {
+      KEYWORD "if"
+      SP
+      LPAREN
+      IDENTIFIER "x"
+      RPAREN
+      BODY {
+        EXPR-STMT {
+          CALL {
+            IDENTIFIER "Input::add_event"
+            ARGS {
+              LPAREN
+              INDEX-LITERAL {
+                ARGS {
+                  LBRACKET
+                  FIELD-ASSIGN "source" {
+                    DOLLAR
+                    ASSIGN "="
+                    IDENTIFIER "some_config_source_setting"
+                  }
+                  COMMA
+                  FIELD-ASSIGN "name" {
+                    DOLLAR
+                    ASSIGN "="
+                    IDENTIFIER "some_config_name_setting"
+                  }
+                  COMMA
+                  FIELD-ASSIGN "fields" {
+                    DOLLAR
+                    ASSIGN "="
+                    IDENTIFIER "SomeConfigRecord"
+                  }
+                  COMMA
+                  FIELD-ASSIGN "mode" {
+                    DOLLAR
+                    ASSIGN "="
+                    IDENTIFIER "Input::REREAD"
+                  }
+                  COMMA
+                  FIELD-ASSIGN "want_record" {
+                    DOLLAR
+                    ASSIGN "="
+                    CONSTANT "F"
+                  }
+                  COMMA
+                  FIELD-ASSIGN "ev" {
+                    DOLLAR
+                    ASSIGN "="
+                    IDENTIFIER "some_config_event_added"
+                  }
+                  RBRACKET
+                }
+              }
+              RPAREN
+            }
+          }
+          SEMI
+        }
+      }
+    }
+    RBRACE
+  }
+}
+BLANK
+FUNC-DECL {
+  KEYWORD "function"
+  SP
+  IDENTIFIER "foo"
+  PARAMS {
+    LPAREN
+    RPAREN
+  }
+  BODY {
+    LBRACE
+    EXPR-STMT {
+      CALL {
+        IDENTIFIER "Log::write"
+        ARGS {
+          LPAREN
+          IDENTIFIER "VPN_TYPE_LOG"
+          COMMA
+          CALL {
+            IDENTIFIER "VPNType"
+            ARGS {
+              LPAREN
+              FIELD-ASSIGN "date" {
+                DOLLAR
+                ASSIGN "="
+                IDENTIFIER "date"
+              }
+              COMMA
+              FIELD-ASSIGN "orig_subnet" {
+                DOLLAR
+                ASSIGN "="
+                IDENTIFIER "o_s"
+              }
+              COMMA
+              FIELD-ASSIGN "resp_subnet" {
+                DOLLAR
+                ASSIGN "="
+                IDENTIFIER "r_s"
+              }
+              COMMA
+              FIELD-ASSIGN "proto" {
+                DOLLAR
+                ASSIGN "="
+                IDENTIFIER "proto_str"
+              }
+              COMMA
+              FIELD-ASSIGN "vpn_type" {
+                DOLLAR
+                ASSIGN "="
+                IDENTIFIER "vtype_str"
+              }
+              COMMA
+              FIELD-ASSIGN "uid" {
+                DOLLAR
+                ASSIGN "="
+                FIELD-ACCESS {
+                  IDENTIFIER "rec"
+                  DOLLAR
+                  IDENTIFIER "uid"
+                }
+              }
+              RPAREN
+            }
+          }
+          RPAREN
+        }
+      }
+      SEMI
+    }
+    RBRACE
+  }
+}
+BLANK
+FUNC-DECL {
+  KEYWORD "function"
+  SP
+  IDENTIFIER "foo"
+  PARAMS {
+    LPAREN
+    RPAREN
+  }
+  BODY {
+    LBRACE
+    EXPR-STMT {
+      CALL {
+        IDENTIFIER "Log::write"
+        ARGS {
+          LPAREN
+          IDENTIFIER "NS_LOG"
+          COMMA
+          CALL {
+            IDENTIFIER "NS_ServersService"
+            ARGS {
+              LPAREN
+              FIELD-ASSIGN "date" {
+                DOLLAR
+                ASSIGN "="
+                IDENTIFIER "date"
+              }
+              COMMA
+              FIELD-ASSIGN "ip_mask" {
+                DOLLAR
+                ASSIGN "="
+                IDENTIFIER "ip_mask"
+              }
+              COMMA
+              FIELD-ASSIGN "resp_p" {
+                DOLLAR
+                ASSIGN "="
+                IDENTIFIER "resp_p"
+              }
+              COMMA
+              FIELD-ASSIGN "proto" {
+                DOLLAR
+                ASSIGN "="
+                IDENTIFIER "p"
+              }
+              COMMA
+              FIELD-ASSIGN "service" {
+                DOLLAR
+                ASSIGN "="
+                IDENTIFIER "corrected_services"
+              }
+              COMMA
+              FIELD-ASSIGN "is_server" {
+                DOLLAR
+                ASSIGN "="
+                IDENTIFIER "is_server"
+              }
+              COMMA
+              FIELD-ASSIGN "uid" {
+                DOLLAR
+                ASSIGN "="
+                FIELD-ACCESS {
+                  IDENTIFIER "c"
+                  DOLLAR
+                  IDENTIFIER "uid"
+                }
+              }
+              RPAREN
+            }
+          }
+          RPAREN
+        }
+      }
+      SEMI
+    }
+    RBRACE
+  }
+}
+BLANK
+FUNC-DECL {
+  KEYWORD "function"
+  SP
+  IDENTIFIER "foo"
+  PARAMS {
+    LPAREN
+    RPAREN
+  }
+  BODY {
+    LBRACE
+    EXPR-STMT {
+      CALL {
+        IDENTIFIER "Log::write"
+        ARGS {
+          LPAREN
+          IDENTIFIER "EW_LOG"
+          COMMA
+          CALL {
+            IDENTIFIER "EW_ServersService"
+            ARGS {
+              LPAREN
+              FIELD-ASSIGN "date" {
+                DOLLAR
+                ASSIGN "="
+                IDENTIFIER "date"
+              }
+              COMMA
+              FIELD-ASSIGN "orig_subnet" {
+                DOLLAR
+                ASSIGN "="
+                IDENTIFIER "o_s"
+              }
+              COMMA
+              FIELD-ASSIGN "resp_subnet" {
+                DOLLAR
+                ASSIGN "="
+                IDENTIFIER "r_s"
+              }
+              COMMA
+              FIELD-ASSIGN "service" {
+                DOLLAR
+                ASSIGN "="
+                FIELD-ACCESS {
+                  IDENTIFIER "conn"
+                  DOLLAR
+                  IDENTIFIER "service"
+                }
+              }
+              COMMA
+              FIELD-ASSIGN "uid" {
+                DOLLAR
+                ASSIGN "="
+                FIELD-ACCESS {
+                  IDENTIFIER "c"
+                  DOLLAR
+                  IDENTIFIER "uid"
+                }
+              }
+              RPAREN
+            }
+          }
+          RPAREN
+        }
+      }
+      SEMI
+    }
+    RBRACE
+  }
+}
+BLANK
+FUNC-DECL {
+  KEYWORD "function"
+  SP
+  IDENTIFIER "foo"
+  PARAMS {
+    LPAREN
+    RPAREN
+  }
+  BODY {
+    LBRACE
+    EXPR-STMT {
+      CALL {
+        IDENTIFIER "Log::write"
+        ARGS {
+          LPAREN
+          IDENTIFIER "FTP_LOG"
+          COMMA
+          CALL {
+            IDENTIFIER "FTPConnections"
+            ARGS {
+              LPAREN
+              FIELD-ASSIGN "date" {
+                DOLLAR
+                ASSIGN "="
+                IDENTIFIER "date"
+              }
+              COMMA
+              FIELD-ASSIGN "orig_subnet" {
+                DOLLAR
+                ASSIGN "="
+                IDENTIFIER "orig_subnet"
+              }
+              COMMA
+              FIELD-ASSIGN "resp_subnet" {
+                DOLLAR
+                ASSIGN "="
+                IDENTIFIER "resp_subnet"
+              }
+              COMMA
+              FIELD-ASSIGN "uid" {
+                DOLLAR
+                ASSIGN "="
+                FIELD-ACCESS {
+                  IDENTIFIER "c"
+                  DOLLAR
+                  IDENTIFIER "uid"
+                }
+              }
+              RPAREN
+            }
+          }
+          RPAREN
+        }
+      }
+      SEMI
+    }
+    RBRACE
+  }
+}
+BLANK
+FUNC-DECL {
+  KEYWORD "function"
+  SP
+  IDENTIFIER "some_func"
+  PARAMS {
+    LPAREN
+    PARAM "src_host" {
+      COLON
+      TYPE-ATOM "addr"
+    }
+    COMMA
+    PARAM "services" {
+      COLON
+      TYPE-ATOM "int"
+    }
+    COMMA
+    PARAM "regions" {
+      COLON
+      TYPE-ATOM "int"
+    }
+    COMMA
+    PARAM "endpoints" {
+      COLON
+      TYPE-ATOM "string"
+    }
+    RPAREN
+  }
+  BODY {
+    LBRACE
+    EXPR-STMT {
+      CALL {
+        IDENTIFIER "NOTICE"
+        ARGS {
+          LPAREN
+          INDEX-LITERAL {
+            ARGS {
+              LBRACKET
+              FIELD-ASSIGN "note" {
+                DOLLAR
+                ASSIGN "="
+                IDENTIFIER "Some_Notice_Type"
+              }
+              COMMA
+              FIELD-ASSIGN "msg" {
+                DOLLAR
+                ASSIGN "="
+                CALL {
+                  IDENTIFIER "fmt"
+                  ARGS {
+                    LPAREN
+                    CONSTANT "\"Some long format string describing something with multiple parameters (%d items across %d groups within the last %s).\""
+                    COMMA
+                    IDENTIFIER "services"
+                    COMMA
+                    IDENTIFIER "regions"
+                    COMMA
+                    IDENTIFIER "some_window"
+                    RPAREN
+                  }
+                }
+              }
+              COMMA
+              FIELD-ASSIGN "sub" {
+                DOLLAR
+                ASSIGN "="
+                IDENTIFIER "endpoints"
+              }
+              COMMA
+              FIELD-ASSIGN "src" {
+                DOLLAR
+                ASSIGN "="
+                IDENTIFIER "src_host"
+              }
+              COMMA
+              FIELD-ASSIGN "identifier" {
+                DOLLAR
+                ASSIGN "="
+                CALL {
+                  IDENTIFIER "cat"
+                  ARGS {
+                    LPAREN
+                    IDENTIFIER "src_host"
+                    RPAREN
+                  }
+                }
+              }
+              RBRACKET
+            }
+          }
+          RPAREN
+        }
+      }
+      SEMI
+    }
+    RBRACE
+  }
+}
+BLANK
+FUNC-DECL {
+  KEYWORD "function"
+  SP
+  IDENTIFIER "foo"
+  PARAMS {
+    LPAREN
+    RPAREN
+  }
+  BODY {
+    LBRACE
+    EXPR-STMT {
+      CALL {
+        IDENTIFIER "NOTICE"
+        ARGS {
+          LPAREN
+          INDEX-LITERAL {
+            ARGS {
+              LBRACKET
+              FIELD-ASSIGN "note" {
+                DOLLAR
+                ASSIGN "="
+                IDENTIFIER "Some::Note"
+              }
+              COMMA
+              FIELD-ASSIGN "msg" {
+                DOLLAR
+                ASSIGN "="
+                CALL {
+                  IDENTIFIER "fmt"
+                  ARGS {
+                    LPAREN
+                    CONSTANT "\"%s made %d connections to %s (%s)\""
+                    COMMA
+                    IDENTIFIER "src_host"
+                    COMMA
+                    IDENTIFIER "total_conns"
+                    COMMA
+                    IDENTIFIER "total_bytes"
+                    COMMA
+                    IDENTIFIER "conns"
+                    RPAREN
+                  }
+                }
+              }
+              COMMA
+              FIELD-ASSIGN "src" {
+                DOLLAR
+                ASSIGN "="
+                IDENTIFIER "src_host"
+              }
+              COMMA
+              FIELD-ASSIGN "identifier" {
+                DOLLAR
+                ASSIGN "="
+                CALL {
+                  IDENTIFIER "cat"
+                  ARGS {
+                    LPAREN
+                    IDENTIFIER "src_host"
+                    COMMA
+                    IDENTIFIER "bucket"
+                    RPAREN
+                  }
+                }
+              }
+              RBRACKET
+            }
+          }
+          RPAREN
+        }
+      }
+      SEMI
+    }
+    RBRACE
+  }
+}
+BLANK
+FUNC-DECL {
+  KEYWORD "function"
+  SP
+  IDENTIFIER "foo"
+  PARAMS {
+    LPAREN
+    RPAREN
+  }
+  BODY {
+    LBRACE
+    LOCAL-DECL {
+      KEYWORD "local"
+      SP
+      IDENTIFIER "u"
+      DECL-INIT {
+        ASSIGN "="
+        CALL {
+          IDENTIFIER "Bar"
+          ARGS {
+            LPAREN
+            FIELD-ASSIGN "aaa" {
+              DOLLAR
+              ASSIGN "="
+              CALL {
+                IDENTIFIER "table"
+                ARGS {
+                  LPAREN
+                  RPAREN
+                }
+                ATTR-LIST {
+                  ATTR "&create_expire" {
+                    ASSIGN "="
+                    IDENTIFIER "window"
+                  }
+                }
+              }
+            }
+            COMMA
+            FIELD-ASSIGN "bbb" {
+              DOLLAR
+              ASSIGN "="
+              CALL {
+                IDENTIFIER "table"
+                ARGS {
+                  LPAREN
+                  RPAREN
+                }
+                ATTR-LIST {
+                  ATTR "&create_expire" {
+                    ASSIGN "="
+                    IDENTIFIER "window"
+                  }
+                }
+              }
+            }
+            COMMA
+            FIELD-ASSIGN "ccc" {
+              DOLLAR
+              ASSIGN "="
+              IDENTIFIER "notice"
+            }
+            RPAREN
+          }
+        }
+      }
+      SEMI
+    }
+    RBRACE
+  }
+}
+BLANK
+FUNC-DECL {
+  KEYWORD "function"
+  SP
+  IDENTIFIER "foo"
+  PARAMS {
+    LPAREN
+    RPAREN
+  }
+  BODY {
+    LBRACE
+    IF-NO-ELSE {
+      KEYWORD "if"
+      SP
+      LPAREN
+      BINARY-OP "&&" {
+        IDENTIFIER "ssl_cache_intermediate_ca"
+        OP "&&"
+        BINARY-OP "in" {
+          IDENTIFIER "issuer_name_hash"
+          OP "in"
+          IDENTIFIER "intermediate_cache"
+        }
+      }
+      RPAREN
+      BODY {
+        BLOCK {
+          LBRACE
+          EXPR-STMT {
+            CALL {
+              IDENTIFIER "Intel::seen"
+              ARGS {
+                LPAREN
+                INDEX-LITERAL {
+                  ARGS {
+                    LBRACKET
+                    FIELD-ASSIGN "indicator" {
+                      DOLLAR
+                      ASSIGN "="
+                      CALL {
+                        IDENTIFIER "HTTP2::build_url"
+                        ARGS {
+                          LPAREN
+                          INDEX {
+                            FIELD-ACCESS {
+                              FIELD-ACCESS {
+                                IDENTIFIER "c"
+                                DOLLAR
+                                IDENTIFIER "http2_streams"
+                              }
+                              DOLLAR
+                              IDENTIFIER "streams"
+                            }
+                            SUBSCRIPTS {
+                              LBRACKET
+                              IDENTIFIER "stream"
+                              RBRACKET
+                            }
+                          }
+                          RPAREN
+                        }
+                      }
+                    }
+                    COMMA
+                    FIELD-ASSIGN "indicator_type" {
+                      DOLLAR
+                      ASSIGN "="
+                      IDENTIFIER "Intel::URL"
+                    }
+                    COMMA
+                    FIELD-ASSIGN "conn" {
+                      DOLLAR
+                      ASSIGN "="
+                      IDENTIFIER "c"
+                    }
+                    COMMA
+                    FIELD-ASSIGN "where" {
+                      DOLLAR
+                      ASSIGN "="
+                      IDENTIFIER "HTTP2::IN_URL"
+                    }
+                    RBRACKET
+                  }
+                }
+                RPAREN
+              }
+            }
+            SEMI
+          }
+          RBRACE
+        }
+      }
+    }
+    RBRACE
+  }
+}
+BLANK
+FUNC-DECL {
+  KEYWORD "function"
+  SP
+  IDENTIFIER "foo"
+  PARAMS {
+    LPAREN
+    RPAREN
+  }
+  BODY {
+    LBRACE
+    IF-NO-ELSE {
+      KEYWORD "if"
+      SP
+      LPAREN
+      IDENTIFIER "test"
+      RPAREN
+      BODY {
+        BLOCK {
+          LBRACE
+          EXPR-STMT {
+            CALL {
+              IDENTIFIER "NOTICE"
+              ARGS {
+                LPAREN
+                INDEX-LITERAL {
+                  ARGS {
+                    LBRACKET
+                    FIELD-ASSIGN "note" {
+                      DOLLAR
+                      ASSIGN "="
+                      IDENTIFIER "Weak_Cipher"
+                    }
+                    COMMA
+                    FIELD-ASSIGN "msg" {
+                      DOLLAR
+                      ASSIGN "="
+                      CALL {
+                        IDENTIFIER "fmt"
+                        ARGS {
+                          LPAREN
+                          CONSTANT "\"Host established connection using unsafe ciper suite %s\""
+                          COMMA
+                          FIELD-ACCESS {
+                            FIELD-ACCESS {
+                              IDENTIFIER "c"
+                              DOLLAR
+                              IDENTIFIER "ssl"
+                            }
+                            DOLLAR
+                            IDENTIFIER "cipher"
+                          }
+                          RPAREN
+                        }
+                      }
+                    }
+                    COMMA
+                    FIELD-ASSIGN "conn" {
+                      DOLLAR
+                      ASSIGN "="
+                      IDENTIFIER "c"
+                    }
+                    COMMA
+                    FIELD-ASSIGN "suppress_for" {
+                      DOLLAR
+                      ASSIGN "="
+                      IDENTIFIER "SSL::notice_suppression_interval"
+                    }
+                    COMMA
+                    FIELD-ASSIGN "identifier" {
+                      DOLLAR
+                      ASSIGN "="
+                      CALL {
+                        IDENTIFIER "cat"
+                        ARGS {
+                          LPAREN
+                          IDENTIFIER "resp_h"
+                          COMMA
+                          FIELD-ACCESS {
+                            FIELD-ACCESS {
+                              IDENTIFIER "c"
+                              DOLLAR
+                              IDENTIFIER "id"
+                            }
+                            DOLLAR
+                            IDENTIFIER "resp_p"
+                          }
+                          COMMA
+                          FIELD-ACCESS {
+                            FIELD-ACCESS {
+                              IDENTIFIER "c"
+                              DOLLAR
+                              IDENTIFIER "ssl"
+                            }
+                            DOLLAR
+                            IDENTIFIER "cipher"
+                          }
+                          RPAREN
+                        }
+                      }
+                    }
+                    RBRACKET
+                  }
+                }
+                RPAREN
+              }
+            }
+            SEMI
+          }
+          RBRACE
+        }
+      }
+    }
+    RBRACE
+  }
+}
+BLANK
+FUNC-DECL {
+  KEYWORD "function"
+  SP
+  IDENTIFIER "foo"
+  PARAMS {
+    LPAREN
+    RPAREN
+  }
+  BODY {
+    LBRACE
+    COMMENT-LEADING "# Create stream for our alternative, coalesced files.log-like log."
+    EXPR-STMT {
+      CALL {
+        IDENTIFIER "Log::create_stream"
+        ARGS {
+          LPAREN
+          IDENTIFIER "LOG"
+          COMMA
+          INDEX-LITERAL {
+            ARGS {
+              LBRACKET
+              FIELD-ASSIGN "columns" {
+                DOLLAR
+                ASSIGN "="
+                IDENTIFIER "Info"
+              }
+              COMMA
+              FIELD-ASSIGN "path" {
+                DOLLAR
+                ASSIGN "="
+                IDENTIFIER "path"
+              }
+              COMMA
+              FIELD-ASSIGN "policy" {
+                DOLLAR
+                ASSIGN "="
+                IDENTIFIER "log_policy"
+              }
+              RBRACKET
+            }
+          }
+          RPAREN
+        }
+      }
+      SEMI
+    }
+    RBRACE
+  }
+}
+BLANK
+FUNC-DECL {
+  KEYWORD "function"
+  SP
+  IDENTIFIER "xxx"
+  PARAMS {
+    LPAREN
+    RPAREN
+  }
+  BODY {
+    LBRACE
+    IF-NO-ELSE {
+      KEYWORD "if"
+      SP
+      LPAREN
+      IDENTIFIER "x"
+      RPAREN
+      BODY {
+        BLOCK {
+          LBRACE
+          EXPR-STMT {
+            BINARY-OP "=" {
+              FIELD-ACCESS {
+                IDENTIFIER "i"
+                DOLLAR
+                IDENTIFIER "xxxxxxxxxxxxxxxxxxxxxxxxx"
+              }
+              OP "="
+              CALL {
+                IDENTIFIER "xxxxxxxxxxxxxxx"
+                ARGS {
+                  LPAREN
+                  FIELD-ACCESS {
+                    IDENTIFIER "i"
+                    DOLLAR
+                    IDENTIFIER "xxxxxxxxxxxxxxxxxxxx"
+                  }
+                  COMMA
+                  BINARY-OP "+" {
+                    CARDINALITY {
+                      OP "|"
+                      IDENTIFIER "xxxxxxx"
+                      OP "|"
+                    }
+                    OP "+"
+                    CARDINALITY {
+                      OP "|"
+                      IDENTIFIER "xx"
+                      OP "|"
+                    }
+                  }
+                  RPAREN
+                }
+              }
+            }
+            SEMI
+          }
+          EXPR-STMT {
+            BINARY-OP "=" {
+              FIELD-ACCESS {
+                IDENTIFIER "i"
+                DOLLAR
+                IDENTIFIER "xxxxxxxxxxxxxxxxxxxxxx"
+              }
+              OP "="
+              BINARY-OP "-" {
+                UNARY-OP "+" {
+                  OP "+"
+                  CARDINALITY {
+                    OP "|"
+                    IDENTIFIER "xxxxxxx"
+                    OP "|"
+                  }
+                }
+                OP "-"
+                CARDINALITY {
+                  OP "|"
+                  IDENTIFIER "xx"
+                  OP "|"
+                }
+              }
+            }
+            SEMI
+          }
+          RBRACE
+        }
+      }
+    }
+    RBRACE
+  }
+}
+BLANK
+FUNC-DECL {
+  KEYWORD "function"
+  SP
+  IDENTIFIER "foo"
+  PARAMS {
+    LPAREN
+    RPAREN
+  }
+  BODY {
+    LBRACE
+    EXPR-STMT {
+      CALL {
+        IDENTIFIER "Log::write"
+        ARGS {
+          LPAREN
+          IDENTIFIER "SSH_CONN_LOG"
+          COMMA
+          CALL {
+            IDENTIFIER "SSHConnections"
+            ARGS {
+              LPAREN
+              FIELD-ASSIGN "date" {
+                DOLLAR
+                ASSIGN "="
+                IDENTIFIER "date"
+              }
+              COMMA
+              FIELD-ASSIGN "orig_subnet" {
+                DOLLAR
+                ASSIGN "="
+                IDENTIFIER "orig_subnet"
+              }
+              COMMA
+              FIELD-ASSIGN "resp_subnet" {
+                DOLLAR
+                ASSIGN "="
+                IDENTIFIER "resp_subnet"
+              }
+              COMMA
+              FIELD-ASSIGN "uid" {
+                DOLLAR
+                ASSIGN "="
+                FIELD-ACCESS {
+                  IDENTIFIER "rec"
+                  DOLLAR
+                  IDENTIFIER "uid"
+                }
+              }
+              RPAREN
+            }
+          }
+          RPAREN
+        }
+      }
+      SEMI
+    }
+    RBRACE
+  }
+}
+BLANK
+FUNC-DECL {
+  KEYWORD "function"
+  SP
+  IDENTIFIER "foo"
+  PARAMS {
+    LPAREN
+    RPAREN
+  }
+  BODY {
+    LBRACE
+    EXPR-STMT {
+      CALL {
+        IDENTIFIER "NOTICE"
+        ARGS {
+          LPAREN
+          INDEX-LITERAL {
+            ARGS {
+              LBRACKET
+              FIELD-ASSIGN "aaa" {
+                DOLLAR
+                ASSIGN "="
+                IDENTIFIER "Xxxxxxxxx::XXXX"
+              }
+              COMMA
+              FIELD-ASSIGN "bbb" {
+                DOLLAR
+                ASSIGN "="
+                IDENTIFIER "c"
+              }
+              COMMA
+              FIELD-ASSIGN "ccc" {
+                DOLLAR
+                ASSIGN "="
+                CONSTANT "\"Potential Responder/Pretender MitM HTTP server headers detected. Refer https://attack.mitre.org/software/S0174/\""
+              }
+              RBRACKET
+            }
+          }
+          RPAREN
+        }
+      }
+      SEMI
+    }
+    RBRACE
+  }
+}
+BLANK
+FUNC-DECL {
+  KEYWORD "event"
+  SP
+  IDENTIFIER "foo"
+  PARAMS {
+    LPAREN
+    RPAREN
+  }
+  BODY {
+    LBRACE
+    LOCAL-DECL {
+      KEYWORD "local"
+      SP
+      IDENTIFIER "i"
+      DECL-INIT {
+        ASSIGN "="
+        CALL {
+          IDENTIFIER "DebugInfo"
+          ARGS {
+            LPAREN
+            FIELD-ASSIGN "t" {
+              DOLLAR
+              ASSIGN "="
+              CALL {
+                IDENTIFIER "network_time"
+                ARGS {
+                  LPAREN
+                  RPAREN
+                }
+              }
+            }
+            COMMA
+            FIELD-ASSIGN "node_type" {
+              DOLLAR
+              ASSIGN "="
+              CALL {
+                IDENTIFIER "node_type"
+                ARGS {
+                  LPAREN
+                  RPAREN
+                }
+              }
+            }
+            COMMA
+            FIELD-ASSIGN "event_type" {
+              DOLLAR
+              ASSIGN "="
+              CONSTANT "\"log_statistics\""
+            }
+            COMMA
+            FIELD-ASSIGN "msg" {
+              DOLLAR
+              ASSIGN "="
+              CALL {
+                IDENTIFIER "fmt"
+                ARGS {
+                  LPAREN
+                  CONSTANT "\"stepping-stones-v%d: cn=%s tps=%d trs=%d ips=%d irs=%d\""
+                  COMMA
+                  FIELD-ACCESS {
+                    IDENTIFIER "statistics_info"
+                    DOLLAR
+                    IDENTIFIER "interval_removes_seen"
+                  }
+                  RPAREN
+                }
+              }
+            }
+            RPAREN
+          }
+        }
+      }
+      SEMI
+    }
+    RBRACE
+  }
+}
+BLANK
+EXPR-STMT {
+  BINARY-OP "=" {
+    INDEX {
+      IDENTIFIER "some_table_variable_name"
+      SUBSCRIPTS {
+        LBRACKET
+        IDENTIFIER "some_key"
+        RBRACKET
+      }
+    }
+    OP "="
+    CALL {
+      IDENTIFIER "X509::Result"
+      ARGS {
+        LPAREN
+        FIELD-ASSIGN "result" {
+          DOLLAR
+          ASSIGN "="
+          FIELD-ACCESS {
+            IDENTIFIER "result"
+            DOLLAR
+            IDENTIFIER "result"
+          }
+        }
+        COMMA
+        FIELD-ASSIGN "result_string" {
+          DOLLAR
+          ASSIGN "="
+          FIELD-ACCESS {
+            IDENTIFIER "result"
+            DOLLAR
+            IDENTIFIER "result_string"
+          }
+        }
+        RPAREN
+      }
+    }
+  }
+  SEMI
+}
+BLANK
+LOCAL-DECL {
+  KEYWORD "local"
+  SP
+  IDENTIFIER "x"
+  DECL-INIT {
+    ASSIGN "="
+    INDEX-LITERAL {
+      ARGS {
+        LBRACKET
+        FIELD-ASSIGN "msg" {
+          DOLLAR
+          ASSIGN "="
+          CALL {
+            IDENTIFIER "fmt"
+            ARGS {
+              LPAREN
+              CONSTANT "\"Host uses protocol version %s which is lower than the safe minimum %s\""
+              COMMA
+              IDENTIFIER "some_string"
+              COMMA
+              IDENTIFIER "other_string_a"
+              RPAREN
+            }
+          }
+        }
+        RBRACKET
+      }
+    }
+  }
+  SEMI
+}
+BLANK
+LOCAL-DECL {
+  KEYWORD "local"
+  SP
+  IDENTIFIER "filter"
+  DECL-INIT {
+    ASSIGN "="
+    CALL {
+      IDENTIFIER "Log::Filter"
+      ARGS {
+        LPAREN
+        FIELD-ASSIGN "name" {
+          DOLLAR
+          ASSIGN "="
+          CONSTANT "\"log-name\""
+        }
+        COMMA
+        FIELD-ASSIGN "path" {
+          DOLLAR
+          ASSIGN "="
+          CONSTANT "\"log_path\""
+        }
+        COMMA
+        FIELD-ASSIGN "include" {
+          DOLLAR
+          ASSIGN "="
+          CALL {
+            IDENTIFIER "set"
+            ARGS {
+              LPAREN
+              CONSTANT "\"id.orig_h\""
+              COMMA
+              CONSTANT "\"id.orig_p\""
+              COMMA
+              CONSTANT "\"id.resp_h\""
+              COMMA
+              CONSTANT "\"id.resp_p\""
+              COMMA
+              CONSTANT "\"app\""
+              RPAREN
+            }
+          }
+        }
+        COMMA
+        FIELD-ASSIGN "policy" {
+          DOLLAR
+          ASSIGN "="
+          IDENTIFIER "some_policy_fn"
+        }
+        RPAREN
+      }
+    }
+  }
+  SEMI
+}
+BLANK
+LOCAL-DECL {
+  KEYWORD "local"
+  SP
+  IDENTIFIER "filter"
+  DECL-INIT {
+    ASSIGN "="
+    CALL {
+      IDENTIFIER "Log::Filter"
+      ARGS {
+        LPAREN
+        FIELD-ASSIGN "name" {
+          DOLLAR
+          ASSIGN "="
+          CONSTANT "\"log-name\""
+        }
+        COMMA
+        FIELD-ASSIGN "path" {
+          DOLLAR
+          ASSIGN "="
+          CONSTANT "\"log_path\""
+        }
+        COMMA
+        FIELD-ASSIGN "include" {
+          DOLLAR
+          ASSIGN "="
+          CALL {
+            IDENTIFIER "set"
+            ARGS {
+              LPAREN
+              CONSTANT "\"id.orig_h\""
+              COMMA
+              CONSTANT "\"id.orig_p\""
+              COMMA
+              CONSTANT "\"id.resp_h\""
+              COMMA
+              CONSTANT "\"id.resp_p\""
+              COMMA
+              CONSTANT "\"app\""
+              RPAREN
+            }
+          }
+        }
+        COMMA
+        FIELD-ASSIGN "policy" {
+          DOLLAR
+          ASSIGN "="
+          IDENTIFIER "some_policy_fn"
+        }
+        RPAREN
+      }
+    }
+  }
+  SEMI
+}

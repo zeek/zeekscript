@@ -1,0 +1,304 @@
+COMMENT-LEADING "# Lambda expressions: as first arg, non-first arg, with captures, nested bodies."
+COMMENT-LEADING "# test092.zeek"
+COMMENT-LEADING "# test093.zeek"
+COMMENT-LEADING "# test094.zeek"
+COMMENT-LEADING "# test213.zeek"
+BLANK
+FUNC-DECL {
+  KEYWORD "event"
+  SP
+  IDENTIFIER "zeek_init"
+  PARAMS {
+    LPAREN
+    RPAREN
+  }
+  BODY {
+    LBRACE
+    EXPR-STMT {
+      CALL {
+        IDENTIFIER "register_handler"
+        ARGS {
+          LPAREN
+          IDENTIFIER "some_usecase"
+          COMMA
+          LAMBDA {
+            KEYWORD "function"
+            SP
+            PARAMS {
+              LPAREN
+              PARAM "h" {
+                COLON
+                TYPE-ATOM "addr"
+              }
+              COMMA
+              PARAM "si" {
+                COLON
+                TYPE-ATOM "SomeInfo"
+              }
+              RPAREN
+            }
+            BODY {
+              LBRACE
+              PRINT {
+                KEYWORD "print"
+                SP
+                IDENTIFIER "h"
+                SEMI
+              }
+              RBRACE
+            }
+          }
+          COMMA
+          CONSTANT "6.0"
+          RPAREN
+        }
+      }
+      SEMI
+    }
+    RBRACE
+  }
+}
+BLANK
+FUNC-DECL {
+  KEYWORD "event"
+  SP
+  IDENTIFIER "zeek_init"
+  PARAMS {
+    LPAREN
+    RPAREN
+  }
+  BODY {
+    LBRACE
+    EXPR-STMT {
+      CALL {
+        IDENTIFIER "register_handler"
+        ARGS {
+          LPAREN
+          LAMBDA {
+            KEYWORD "function"
+            SP
+            PARAMS {
+              LPAREN
+              PARAM "h" {
+                COLON
+                TYPE-ATOM "addr"
+              }
+              COMMA
+              PARAM "si" {
+                COLON
+                TYPE-ATOM "SomeInfo"
+              }
+              RPAREN
+            }
+            BODY {
+              LBRACE
+              PRINT {
+                KEYWORD "print"
+                SP
+                IDENTIFIER "h"
+                SEMI
+              }
+              RBRACE
+            }
+          }
+          COMMA
+          CONSTANT "6.0"
+          RPAREN
+        }
+      }
+      SEMI
+    }
+    RBRACE
+  }
+}
+BLANK
+FUNC-DECL {
+  KEYWORD "function"
+  SP
+  IDENTIFIER "foo"
+  PARAMS {
+    LPAREN
+    RPAREN
+  }
+  BODY {
+    LBRACE
+    EXPR-STMT {
+      CALL {
+        IDENTIFIER "some_handler"
+        ARGS {
+          LPAREN
+          IDENTIFIER "opt_id"
+          COMMA
+          LAMBDA-CAPTURES {
+            KEYWORD "function"
+            SP
+            CAPTURES {
+              LBRACKET
+              IDENTIFIER "evt_grp"
+              RBRACKET
+            }
+            PARAMS {
+              LPAREN
+              PARAM "id" {
+                COLON
+                TYPE-ATOM "string"
+              }
+              COMMA
+              PARAM "val" {
+                COLON
+                TYPE-ATOM "bool"
+              }
+              RPAREN
+            }
+            COLON
+            RETURNS {
+              TYPE-ATOM "bool"
+            }
+            BODY {
+              LBRACE
+              RETURN {
+                KEYWORD "return"
+                SP
+                IDENTIFIER "val"
+                SEMI
+              }
+              RBRACE
+            }
+          }
+          RPAREN
+        }
+      }
+      SEMI
+    }
+    RBRACE
+  }
+}
+BLANK
+COMMENT-LEADING "# Non-first lambda arg gets a line break before it."
+FUNC-DECL {
+  KEYWORD "event"
+  SP
+  IDENTIFIER "zeek_init"
+  PARAMS {
+    LPAREN
+    RPAREN
+  }
+  BODY {
+    LBRACE
+    EXPR-STMT {
+      CALL {
+        IDENTIFIER "register_use_case"
+        ARGS {
+          LPAREN
+          IDENTIFIER "http_basic_usecase"
+          COMMA
+          LAMBDA {
+            KEYWORD "function"
+            SP
+            PARAMS {
+              LPAREN
+              PARAM "o_h" {
+                COLON
+                TYPE-ATOM "addr"
+              }
+              COMMA
+              PARAM "si" {
+                COLON
+                TYPE-ATOM "ProxySourceInfo"
+              }
+              RPAREN
+            }
+            BODY {
+              LBRACE
+              EXPR-STMT {
+                CALL {
+                  IDENTIFIER "NOTICE"
+                  ARGS {
+                    LPAREN
+                    INDEX-LITERAL {
+                      ARGS {
+                        LBRACKET
+                        FIELD-ASSIGN "note" {
+                          DOLLAR
+                          ASSIGN "="
+                          IDENTIFIER "HTTP_Basic_Auth"
+                        }
+                        COMMA
+                        FIELD-ASSIGN "msg" {
+                          DOLLAR
+                          ASSIGN "="
+                          CONSTANT "\"HTTP basic authentication bruteforce attempt.\""
+                        }
+                        COMMA
+                        FIELD-ASSIGN "identifier" {
+                          DOLLAR
+                          ASSIGN "="
+                          CALL {
+                            IDENTIFIER "cat"
+                            ARGS {
+                              LPAREN
+                              IDENTIFIER "o_h"
+                              RPAREN
+                            }
+                          }
+                        }
+                        COMMA
+                        FIELD-ASSIGN "src" {
+                          DOLLAR
+                          ASSIGN "="
+                          IDENTIFIER "o_h"
+                        }
+                        COMMA
+                        FIELD-ASSIGN "sub" {
+                          DOLLAR
+                          ASSIGN "="
+                          CALL {
+                            IDENTIFIER "fmt"
+                            ARGS {
+                              LPAREN
+                              CONSTANT "\"Saw %d failed and %d successful HTTP authentication attempts.\""
+                              COMMA
+                              CARDINALITY {
+                                OP "|"
+                                FIELD-ACCESS {
+                                  IDENTIFIER "si"
+                                  DOLLAR
+                                  IDENTIFIER "failed_entities"
+                                }
+                                OP "|"
+                              }
+                              COMMA
+                              CARDINALITY {
+                                OP "|"
+                                FIELD-ACCESS {
+                                  IDENTIFIER "si"
+                                  DOLLAR
+                                  IDENTIFIER "successful_entities"
+                                }
+                                OP "|"
+                              }
+                              RPAREN
+                            }
+                          }
+                        }
+                        RBRACKET
+                      }
+                    }
+                    RPAREN
+                  }
+                }
+                SEMI
+              }
+              RBRACE
+            }
+          }
+          COMMA
+          CONSTANT "250.0"
+          RPAREN
+        }
+      }
+      SEMI
+    }
+    RBRACE
+  }
+}

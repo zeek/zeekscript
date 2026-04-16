@@ -1,0 +1,1211 @@
+COMMENT-LEADING "# Basic call wrapping: simple calls, nested calls, fill layout balancing, consistent wrapping, comment after open-paren."
+COMMENT-LEADING "# test001.zeek"
+COMMENT-LEADING "# test005.zeek"
+COMMENT-LEADING "# test023.zeek"
+COMMENT-LEADING "# test024.zeek"
+COMMENT-LEADING "# test042.zeek"
+COMMENT-LEADING "# test052.zeek"
+COMMENT-LEADING "# test059.zeek"
+COMMENT-LEADING "# test097.zeek"
+COMMENT-LEADING "# test098.zeek"
+COMMENT-LEADING "# test105.zeek"
+COMMENT-LEADING "# test108.zeek"
+COMMENT-LEADING "# test138.zeek"
+COMMENT-LEADING "# test148.zeek"
+COMMENT-LEADING "# test197.zeek"
+COMMENT-LEADING "# test198.zeek"
+COMMENT-LEADING "# test206.zeek"
+COMMENT-LEADING "# test222.zeek"
+COMMENT-LEADING "# test229.zeek"
+COMMENT-LEADING "# test251.zeek"
+COMMENT-LEADING "# test254.zeek"
+COMMENT-LEADING "# test281.zeek"
+BLANK
+FUNC-DECL {
+  KEYWORD "function"
+  SP
+  IDENTIFIER "some_func"
+  PARAMS {
+    LPAREN
+    PARAM "val" {
+      COLON
+      TYPE-ATOM "string"
+    }
+    RPAREN
+  }
+  BODY {
+    LBRACE
+    IF-NO-ELSE {
+      KEYWORD "if"
+      SP
+      LPAREN
+      CALL {
+        IDENTIFIER "SomeModule::check_ready"
+        ARGS {
+          LPAREN
+          RPAREN
+        }
+      }
+      RPAREN
+      BODY {
+        EXPR-STMT {
+          CALL {
+            IDENTIFIER "SomeModule::send_msg"
+            ARGS {
+              LPAREN
+              IDENTIFIER "pt"
+              COMMA
+              IDENTIFIER "some_long_handler"
+              COMMA
+              CALL {
+                IDENTIFIER "to_addr"
+                ARGS {
+                  LPAREN
+                  FIELD-ACCESS {
+                    IDENTIFIER "rec"
+                    DOLLAR
+                    IDENTIFIER "some_field"
+                  }
+                  RPAREN
+                }
+              }
+              COMMA
+              IDENTIFIER "p"
+              RPAREN
+            }
+          }
+          SEMI
+        }
+      }
+    }
+    RBRACE
+  }
+}
+BLANK
+FUNC-DECL {
+  KEYWORD "function"
+  SP
+  IDENTIFIER "foo"
+  PARAMS {
+    LPAREN
+    RPAREN
+  }
+  BODY {
+    LBRACE
+    EXPR-STMT {
+      CALL {
+        IDENTIFIER "call"
+        ARGS {
+          LPAREN
+          IDENTIFIER "arg1"
+          COMMA
+          IDENTIFIER "arg2"
+          RPAREN
+        }
+        COMMENT-TRAILING "# with a comment"
+      }
+      SEMI
+    }
+    RBRACE
+  }
+}
+BLANK
+FUNC-DECL {
+  KEYWORD "function"
+  SP
+  IDENTIFIER "foo"
+  PARAMS {
+    LPAREN
+    RPAREN
+  }
+  BODY {
+    LBRACE
+    IF-NO-ELSE {
+      KEYWORD "if"
+      SP
+      LPAREN
+      CALL {
+        IDENTIFIER "some_condition"
+        ARGS {
+          LPAREN
+          RPAREN
+        }
+      }
+      RPAREN
+      BODY {
+        BLOCK {
+          LBRACE
+          LOCAL-DECL {
+            KEYWORD "local"
+            SP
+            IDENTIFIER "published"
+            DECL-INIT {
+              ASSIGN "="
+              CALL {
+                IDENTIFIER "Some::long_func_name"
+                ARGS {
+                  LPAREN
+                  IDENTIFIER "proxy_pool"
+                  COMMA
+                  CALL {
+                    IDENTIFIER "cat"
+                    ARGS {
+                      LPAREN
+                      FIELD-ACCESS {
+                        FIELD-ACCESS {
+                          IDENTIFIER "c"
+                          DOLLAR
+                          IDENTIFIER "id"
+                        }
+                        DOLLAR
+                        IDENTIFIER "orig_h"
+                      }
+                      COMMA
+                      IDENTIFIER "fqdn"
+                      RPAREN
+                    }
+                  }
+                  COMMA
+                  IDENTIFIER "SomeModule::some_handler"
+                  COMMA
+                  FIELD-ACCESS {
+                    FIELD-ACCESS {
+                      IDENTIFIER "c"
+                      DOLLAR
+                      IDENTIFIER "id"
+                    }
+                    DOLLAR
+                    IDENTIFIER "orig_h"
+                  }
+                  COMMA
+                  FIELD-ACCESS {
+                    IDENTIFIER "c"
+                    DOLLAR
+                    IDENTIFIER "uid"
+                  }
+                  COMMA
+                  IDENTIFIER "fqdn"
+                  COMMA
+                  FIELD-ACCESS {
+                    IDENTIFIER "conn"
+                    DOLLAR
+                    IDENTIFIER "orig_bytes"
+                  }
+                  RPAREN
+                }
+              }
+            }
+            SEMI
+          }
+          RBRACE
+        }
+      }
+    }
+    RBRACE
+  }
+}
+BLANK
+FUNC-DECL {
+  KEYWORD "function"
+  SP
+  IDENTIFIER "some_func_a"
+  PARAMS {
+    LPAREN
+    RPAREN
+  }
+  BODY {
+    LBRACE
+    IF-NO-ELSE {
+      KEYWORD "if"
+      SP
+      LPAREN
+      IDENTIFIER "foo"
+      RPAREN
+      BODY {
+        SAME-LINE
+        EVENT-STMT "SomeModule::some_raised_evt" {
+          KEYWORD "event"
+          SP
+          ARGS {
+            LPAREN
+            IDENTIFIER "o"
+            COMMA
+            IDENTIFIER "label"
+            COMMA
+            IDENTIFIER "conf"
+            COMMA
+            IDENTIFIER "source"
+            COMMA
+            IDENTIFIER "caller"
+            RPAREN
+          }
+          SEMI
+        }
+      }
+    }
+    RBRACE
+  }
+}
+BLANK
+FUNC-DECL {
+  KEYWORD "event"
+  SP
+  IDENTIFIER "some_event"
+  PARAMS {
+    LPAREN
+    RPAREN
+  }
+  BODY {
+    LBRACE
+    IF-NO-ELSE {
+      KEYWORD "if"
+      SP
+      LPAREN
+      IDENTIFIER "some_condition"
+      RPAREN
+      BODY {
+        EXPR-STMT {
+          CALL {
+            IDENTIFIER "SomeModule::some_long_call"
+            ARGS {
+              LPAREN
+              IDENTIFIER "some_first_arg"
+              COMMA
+              CALL {
+                IDENTIFIER "some_func"
+                ARGS {
+                  LPAREN
+                  FIELD-ACCESS {
+                    IDENTIFIER "aa"
+                    DOLLAR
+                    IDENTIFIER "xx"
+                  }
+                  COMMA
+                  FIELD-ACCESS {
+                    IDENTIFIER "aa"
+                    DOLLAR
+                    IDENTIFIER "yy"
+                  }
+                  RPAREN
+                }
+              }
+              COMMA
+              IDENTIFIER "some_other_arg"
+              COMMA
+              IDENTIFIER "bb"
+              COMMA
+              IDENTIFIER "cc"
+              RPAREN
+            }
+          }
+          SEMI
+        }
+      }
+    }
+    RBRACE
+  }
+}
+BLANK
+FUNC-DECL {
+  KEYWORD "function"
+  SP
+  IDENTIFIER "f"
+  PARAMS {
+    LPAREN
+    RPAREN
+  }
+  BODY {
+    LBRACE
+    LOCAL-DECL {
+      KEYWORD "local"
+      SP
+      IDENTIFIER "info"
+      DECL-INIT {
+        ASSIGN "="
+        CALL {
+          IDENTIFIER "SomeModule::SomeRecord"
+          ARGS {
+            LPAREN
+            FIELD-ASSIGN "field1" {
+              DOLLAR
+              ASSIGN "="
+              IDENTIFIER "some_very_long_value"
+            }
+            COMMA
+            FIELD-ASSIGN "field2" {
+              DOLLAR
+              ASSIGN "="
+              IDENTIFIER "another_long_value"
+            }
+            RPAREN
+          }
+        }
+      }
+      SEMI
+    }
+    RBRACE
+  }
+}
+BLANK
+FUNC-DECL-RET {
+  KEYWORD "function"
+  SP
+  IDENTIFIER "some_func_bb"
+  PARAMS {
+    LPAREN
+    PARAM "c" {
+      COLON
+      TYPE-ATOM "connection"
+    }
+    COMMA
+    PARAM "cnt" {
+      COLON
+      TYPE-ATOM "count"
+    }
+    RPAREN
+  }
+  COLON
+  RETURNS {
+    TYPE-ATOM "interval"
+  }
+  BODY {
+    LBRACE
+    LOCAL-DECL {
+      KEYWORD "local"
+      SP
+      IDENTIFIER "some_long_variable_a"
+      DECL-INIT {
+        ASSIGN "="
+        CALL {
+          IDENTIFIER "double_to_count"
+          ARGS {
+            LPAREN
+            CALL {
+              IDENTIFIER "floor"
+              ARGS {
+                LPAREN
+                DIV {
+                  FIELD-ACCESS {
+                    FIELD-ACCESS {
+                      IDENTIFIER "c"
+                      DOLLAR
+                      IDENTIFIER "orig"
+                    }
+                    DOLLAR
+                    IDENTIFIER "size"
+                  }
+                  OP "/"
+                  IDENTIFIER "some_long_variable_bb"
+                }
+                RPAREN
+              }
+            }
+            RPAREN
+          }
+        }
+      }
+      SEMI
+    }
+    RBRACE
+  }
+}
+BLANK
+FUNC-DECL {
+  KEYWORD "function"
+  SP
+  IDENTIFIER "foo"
+  PARAMS {
+    LPAREN
+    RPAREN
+  }
+  BODY {
+    LBRACE
+    LOCAL-DECL {
+      KEYWORD "local"
+      SP
+      IDENTIFIER "next_orig_multiplier"
+      DECL-INIT {
+        ASSIGN "="
+        CALL {
+          IDENTIFIER "double_to_count"
+          ARGS {
+            LPAREN
+            CALL {
+              IDENTIFIER "floor"
+              ARGS {
+                LPAREN
+                DIV {
+                  FIELD-ACCESS {
+                    FIELD-ACCESS {
+                      IDENTIFIER "c"
+                      DOLLAR
+                      IDENTIFIER "orig"
+                    }
+                    DOLLAR
+                    IDENTIFIER "size"
+                  }
+                  OP "/"
+                  IDENTIFIER "size_threshold_in_bytes"
+                }
+                RPAREN
+              }
+            }
+            RPAREN
+          }
+        }
+      }
+      SEMI
+    }
+    RBRACE
+  }
+}
+BLANK
+FUNC-DECL-RET {
+  KEYWORD "function"
+  SP
+  IDENTIFIER "some_func_bb"
+  PARAMS {
+    LPAREN
+    PARAM "c" {
+      COLON
+      TYPE-ATOM "connection"
+    }
+    COMMA
+    PARAM "cnt" {
+      COLON
+      TYPE-ATOM "count"
+    }
+    RPAREN
+  }
+  COLON
+  RETURNS {
+    TYPE-ATOM "interval"
+  }
+  BODY {
+    LBRACE
+    IF-NO-ELSE {
+      KEYWORD "if"
+      SP
+      LPAREN
+      BINARY-OP ">" {
+        IDENTIFIER "some_long_variable_a"
+        OP ">"
+        CONSTANT "0"
+      }
+      RPAREN
+      BODY {
+        SAME-LINE
+        BLOCK {
+          LBRACE
+          EXPR-STMT {
+            CALL {
+              IDENTIFIER "SomeModule::some_long_function_name"
+              ARGS {
+                LPAREN
+                IDENTIFIER "c"
+                COMMA
+                BINARY-OP "*" {
+                  PAREN {
+                    LPAREN
+                    BINARY-OP "+" {
+                      IDENTIFIER "some_long_variable_a"
+                      OP "+"
+                      CONSTANT "3"
+                    }
+                    RPAREN
+                  }
+                  OP "*"
+                  IDENTIFIER "some_long_variable_bb"
+                }
+                COMMA
+                CONSTANT "F"
+                RPAREN
+              }
+            }
+            SEMI
+          }
+          RBRACE
+        }
+      }
+    }
+    RBRACE
+  }
+}
+BLANK
+FUNC-DECL {
+  KEYWORD "function"
+  SP
+  IDENTIFIER "foo"
+  PARAMS {
+    LPAREN
+    RPAREN
+  }
+  BODY {
+    LBRACE
+    IF-NO-ELSE {
+      KEYWORD "if"
+      SP
+      LPAREN
+      CALL {
+        IDENTIFIER "Cluster::is_enabled"
+        ARGS {
+          LPAREN
+          RPAREN
+        }
+      }
+      RPAREN
+      BODY {
+        BLOCK {
+          LBRACE
+          LOCAL-DECL {
+            KEYWORD "local"
+            SP
+            IDENTIFIER "pt"
+            DECL-INIT {
+              ASSIGN "="
+              CALL {
+                IDENTIFIER "Cluster::rr_topic"
+                ARGS {
+                  LPAREN
+                  IDENTIFIER "Cluster::proxy_pool"
+                  COMMA
+                  CONSTANT "\"application-identification\""
+                  RPAREN
+                }
+              }
+            }
+            SEMI
+          }
+          RBRACE
+        }
+      }
+    }
+    RBRACE
+  }
+}
+BLANK
+FUNC-DECL {
+  KEYWORD "function"
+  SP
+  IDENTIFIER "f"
+  PARAMS {
+    LPAREN
+    RPAREN
+  }
+  BODY {
+    LBRACE
+    IF-NO-ELSE {
+      KEYWORD "if"
+      SP
+      LPAREN
+      NEGATION {
+        OP "!"
+        CALL {
+          IDENTIFIER "some_function_name"
+          ARGS {
+            LPAREN
+            IDENTIFIER "some_argument"
+            COMMA
+            IDENTIFIER "new_file"
+            COMMA
+            IDENTIFIER "extra_vals"
+            COMMA
+            IDENTIFIER "some_uids"
+            COMMA
+            IDENTIFIER "some_ids"
+            COMMA
+            TERNARY {
+              FIELD-ACCESS {
+                IDENTIFIER "info"
+                DOLLAR
+                IDENTIFIER "source"
+              }
+              QUESTION
+              FIELD-ACCESS {
+                IDENTIFIER "info"
+                DOLLAR
+                IDENTIFIER "source"
+              }
+              COLON
+              CONSTANT "\"\""
+            }
+            COMMA
+            TERNARY {
+              FIELD-ACCESS {
+                IDENTIFIER "info"
+                DOLLAR
+                IDENTIFIER "mime"
+              }
+              QUESTION
+              FIELD-ACCESS {
+                IDENTIFIER "info"
+                DOLLAR
+                IDENTIFIER "mime"
+              }
+              COLON
+              CONSTANT "\"\""
+            }
+            COMMA
+            TERNARY {
+              FIELD-ACCESS {
+                IDENTIFIER "info"
+                DOLLAR
+                IDENTIFIER "md5"
+              }
+              QUESTION
+              FIELD-ACCESS {
+                IDENTIFIER "info"
+                DOLLAR
+                IDENTIFIER "md5"
+              }
+              COLON
+              CONSTANT "\"\""
+            }
+            RPAREN
+          }
+        }
+      }
+      RPAREN
+      BODY {
+        SAME-LINE
+        PRINT {
+          KEYWORD "print"
+          SP
+          CONSTANT "\"failed\""
+          SEMI
+        }
+      }
+    }
+    RBRACE
+  }
+}
+BLANK
+COMMENT-LEADING "# Balanced fill: last arg should not be orphaned on its own line."
+FUNC-DECL {
+  KEYWORD "function"
+  SP
+  IDENTIFIER "check_value"
+  PARAMS {
+    LPAREN
+    RPAREN
+  }
+  BODY {
+    LBRACE
+    IF-NO-ELSE {
+      KEYWORD "if"
+      SP
+      LPAREN
+      IDENTIFIER "foo"
+      RPAREN
+      BODY {
+        BLOCK {
+          LBRACE
+          LOCAL-DECL {
+            KEYWORD "local"
+            SP
+            IDENTIFIER "pt"
+            DECL-INIT {
+              ASSIGN "="
+              CALL {
+                IDENTIFIER "Cluster::rr_topic"
+                ARGS {
+                  LPAREN
+                  IDENTIFIER "Cluster::proxy_pool"
+                  COMMA
+                  CONSTANT "\"application-identification\""
+                  RPAREN
+                }
+              }
+            }
+            SEMI
+          }
+          EXPR-STMT {
+            CALL {
+              IDENTIFIER "Cluster::publish"
+              ARGS {
+                LPAREN
+                IDENTIFIER "pt"
+                COMMA
+                IDENTIFIER "mark_server"
+                COMMA
+                CALL {
+                  IDENTIFIER "to_addr"
+                  ARGS {
+                    LPAREN
+                    FIELD-ACCESS {
+                      IDENTIFIER "uri"
+                      DOLLAR
+                      IDENTIFIER "netlocation"
+                    }
+                    RPAREN
+                  }
+                }
+                COMMA
+                IDENTIFIER "p"
+                RPAREN
+              }
+            }
+            SEMI
+          }
+          RBRACE
+        }
+      }
+    }
+    RBRACE
+  }
+}
+BLANK
+COMMENT-LEADING "# Balanced fill across 3+ lines."
+FUNC-DECL {
+  KEYWORD "function"
+  SP
+  IDENTIFIER "foo"
+  PARAMS {
+    LPAREN
+    RPAREN
+  }
+  BODY {
+    LBRACE
+    IF-NO-ELSE {
+      KEYWORD "if"
+      SP
+      LPAREN
+      IDENTIFIER "publish_message"
+      RPAREN
+      BODY {
+        EXPR-STMT {
+          CALL {
+            IDENTIFIER "Cluster::publish_hrw"
+            ARGS {
+              LPAREN
+              IDENTIFIER "Cluster::proxy_pool"
+              COMMA
+              CALL {
+                IDENTIFIER "cat"
+                ARGS {
+                  LPAREN
+                  FIELD-ACCESS {
+                    IDENTIFIER "msg"
+                    DOLLAR
+                    IDENTIFIER "xid"
+                  }
+                  COMMA
+                  FIELD-ACCESS {
+                    IDENTIFIER "msg"
+                    DOLLAR
+                    IDENTIFIER "chaddr"
+                  }
+                  RPAREN
+                }
+              }
+              COMMA
+              IDENTIFIER "analyze_message"
+              COMMA
+              IDENTIFIER "msg"
+              COMMA
+              IDENTIFIER "options"
+              RPAREN
+            }
+          }
+          SEMI
+        }
+      }
+    }
+    RBRACE
+  }
+}
+BLANK
+FUNC-DECL {
+  KEYWORD "function"
+  SP
+  IDENTIFIER "foo"
+  PARAMS {
+    LPAREN
+    RPAREN
+  }
+  BODY {
+    LBRACE
+    IF-NO-ELSE {
+      KEYWORD "if"
+      SP
+      LPAREN
+      IDENTIFIER "x"
+      RPAREN
+      BODY {
+        BLOCK {
+          LBRACE
+          IF-NO-ELSE {
+            KEYWORD "if"
+            SP
+            LPAREN
+            BINARY-OP "in" {
+              IDENTIFIER "name"
+              OP "in"
+              IDENTIFIER "HTTP::proxy_headers"
+            }
+            RPAREN
+            BODY {
+              BLOCK {
+                LBRACE
+                ADD {
+                  KEYWORD "add"
+                  SP
+                  INDEX {
+                    FIELD-ACCESS {
+                      INDEX {
+                        FIELD-ACCESS {
+                          FIELD-ACCESS {
+                            IDENTIFIER "c"
+                            DOLLAR
+                            IDENTIFIER "http2_streams"
+                          }
+                          DOLLAR
+                          IDENTIFIER "streams"
+                        }
+                        SUBSCRIPTS {
+                          LBRACKET
+                          IDENTIFIER "stream"
+                          RBRACKET
+                        }
+                      }
+                      DOLLAR
+                      IDENTIFIER "proxied"
+                    }
+                    SUBSCRIPTS {
+                      LBRACKET
+                      CALL {
+                        IDENTIFIER "fmt"
+                        ARGS {
+                          LPAREN
+                          CONSTANT "\"%s -> %s\""
+                          COMMA
+                          IDENTIFIER "name"
+                          COMMA
+                          IDENTIFIER "value"
+                          RPAREN
+                        }
+                      }
+                      RBRACKET
+                    }
+                  }
+                  SEMI
+                }
+                RBRACE
+              }
+            }
+          }
+          RBRACE
+        }
+      }
+    }
+    RBRACE
+  }
+}
+BLANK
+FUNC-DECL {
+  KEYWORD "function"
+  SP
+  IDENTIFIER "foo"
+  PARAMS {
+    LPAREN
+    RPAREN
+  }
+  BODY {
+    LBRACE
+    IF-NO-ELSE {
+      KEYWORD "if"
+      SP
+      LPAREN
+      IDENTIFIER "test"
+      RPAREN
+      BODY {
+        EXPR-STMT {
+          CALL {
+            IDENTIFIER "ProtocolAnalyzer::register_packet_handler"
+            ARGS {
+              LPAREN
+              IDENTIFIER "ProtocolAnalyzer::ANALYZER_ROOT"
+              COMMA
+              IDENTIFIER "DLT_EN10MB"
+              COMMA
+              IDENTIFIER "handler_tag"
+              RPAREN
+            }
+          }
+          SEMI
+        }
+      }
+    }
+    RBRACE
+  }
+}
+BLANK
+FUNC-DECL {
+  KEYWORD "event"
+  SP
+  IDENTIFIER "Aaa::bbb_ccccc"
+  PARAMS {
+    LPAREN
+    PARAM "ddd" {
+      COLON
+      TYPE-ATOM "EeeFffff"
+    }
+    RPAREN
+  }
+  BODY {
+    LBRACE
+    IF-NO-ELSE {
+      KEYWORD "if"
+      SP
+      LPAREN
+      BINARY-OP "&&" {
+        CALL {
+          IDENTIFIER "Ggggggg::hh_iiiiiii"
+          ARGS {
+            LPAREN
+            RPAREN
+          }
+        }
+        OP "&&"
+        BINARY-OP "==" {
+          CALL {
+            IDENTIFIER "Ggggggg::jjjjj_kkkk_llll"
+            ARGS {
+              LPAREN
+              RPAREN
+            }
+          }
+          OP "=="
+          IDENTIFIER "Ggggggg::MMMMMM"
+        }
+      }
+      RPAREN
+      BODY {
+        EXPR-STMT {
+          CALL {
+            IDENTIFIER "Ggggggg::nnnnnnn"
+            ARGS {
+              LPAREN
+              IDENTIFIER "Ggggggg::ooooo_ppppp"
+              COMMA
+              IDENTIFIER "Aaa::bbb_ccccc_qqqq"
+              COMMA
+              IDENTIFIER "ddd"
+              RPAREN
+            }
+          }
+          SEMI
+        }
+      }
+    }
+    RBRACE
+  }
+}
+BLANK
+FUNC-DECL {
+  KEYWORD "function"
+  SP
+  IDENTIFIER "foo"
+  PARAMS {
+    LPAREN
+    RPAREN
+  }
+  BODY {
+    LBRACE
+    IF-NO-ELSE {
+      KEYWORD "if"
+      SP
+      LPAREN
+      IDENTIFIER "test"
+      RPAREN
+      BODY {
+        BLOCK {
+          LBRACE
+          EXPR-STMT {
+            CALL {
+              IDENTIFIER "Aaaaaa::aaa_aaaaa"
+              ARGS {
+                LPAREN
+                CONSTANT "\"Aaaaaaaaaaaa::aaaaaaaa_aaaaaa_aaaaaaaaaa\""
+                COMMA
+                IDENTIFIER "Aaaaaaaaaa::AAA"
+                COMMA
+                CONSTANT "\"Aaaaaaaaaaaa::aaaaaa_aa_aaaaaaaaa_aaaaaaaa\""
+                RPAREN
+              }
+            }
+            SEMI
+          }
+          RBRACE
+        }
+      }
+    }
+    RBRACE
+  }
+}
+BLANK
+FUNC-DECL {
+  KEYWORD "function"
+  SP
+  IDENTIFIER "foo"
+  PARAMS {
+    LPAREN
+    RPAREN
+  }
+  BODY {
+    LBRACE
+    EXPR-STMT {
+      CALL {
+        IDENTIFIER "xxx_xx_xxxxxxx"
+        ARGS {
+          LPAREN
+          CALL {
+            IDENTIFIER "fmt"
+            ARGS {
+              LPAREN
+              CONSTANT "\"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\""
+              COMMA
+              IDENTIFIER "Xxxxxxx::xxxx"
+              COMMA
+              CALL {
+                IDENTIFIER "xxxxxxxxx_xxxxxxxx_xxxxxxxx_xxxxxxx"
+                ARGS {
+                  LPAREN
+                  IDENTIFIER "xxxxxxxx_xxxxxxxx_xxxxxxx"
+                  RPAREN
+                }
+              }
+              RPAREN
+            }
+          }
+          RPAREN
+        }
+      }
+      SEMI
+    }
+    RBRACE
+  }
+}
+BLANK
+FUNC-DECL {
+  KEYWORD "function"
+  SP
+  IDENTIFIER "foo"
+  PARAMS {
+    LPAREN
+    RPAREN
+  }
+  BODY {
+    LBRACE
+    EXPR-STMT {
+      CALL {
+        IDENTIFIER "Aaa::bbb_cc_ddddddd_eeeeeeeeeeeeeeee"
+        ARGS {
+          LPAREN
+          CONSTANT "\"eeeeeeeee.fff_gg_hhh_iii_jjj_kkkkkkkkk.lllllll\""
+          COMMA
+          FIELD-ACCESS {
+            FIELD-ACCESS {
+              IDENTIFIER "mmmmmmm"
+              DOLLAR
+              IDENTIFIER "nnn_oo_ppp_qqq_rrrrrrrrrrr"
+            }
+            DOLLAR
+            IDENTIFIER "sssss"
+          }
+          RPAREN
+        }
+      }
+      SEMI
+    }
+    EXPR-STMT {
+      CALL {
+        IDENTIFIER "Aaa::bbb_cc_ddddddd_eeeeeeeeeeeeeeee"
+        ARGS {
+          LPAREN
+          CONSTANT "\"eeeeeeeee.fff_gg_hhh_iii_jjj_kkkkkkkkk.tttt\""
+          COMMA
+          FIELD-ACCESS {
+            FIELD-ACCESS {
+              IDENTIFIER "mmmmmmm"
+              DOLLAR
+              IDENTIFIER "nnn_oo_ppp_qqq_rrrrrrrrrrr"
+            }
+            DOLLAR
+            IDENTIFIER "uuuu"
+          }
+          RPAREN
+        }
+      }
+      SEMI
+    }
+    RBRACE
+  }
+}
+BLANK
+EXPR-STMT {
+  CALL {
+    IDENTIFIER "other_function_abc"
+    ARGS {
+      LPAREN
+      CALL {
+        IDENTIFIER "fmt"
+        ARGS {
+          LPAREN
+          CONSTANT "\"tracking %s %s\""
+          COMMA
+          IDENTIFIER "host"
+          COMMA
+          IDENTIFIER "some_uid"
+          COMMA
+          COMMENT-TRAILING "#@ NOT-TESTED"
+          IDENTIFIER "some_dest"
+          COMMA
+          IDENTIFIER "extra_data"
+          RPAREN
+        }
+      }
+      RPAREN
+    }
+  }
+  SEMI
+}
+BLANK
+EXPR-STMT {
+  CALL {
+    IDENTIFIER "NOTICE"
+    ARGS {
+      LPAREN
+      INDEX-LITERAL {
+        ARGS {
+          LBRACKET
+          FIELD-ASSIGN "msg" {
+            DOLLAR
+            ASSIGN "="
+            CALL {
+              IDENTIFIER "fmt"
+              ARGS {
+                LPAREN
+                CONSTANT "\"Value %s was more than %dMB for item %s\""
+                COMMA
+                IDENTIFIER "some_var"
+                COMMA
+                DIV {
+                  IDENTIFIER "some_long_variable_name"
+                  OP "/"
+                  CONSTANT "1000 / 1000"
+                }
+                COMMA
+                IDENTIFIER "bucket"
+                RPAREN
+              }
+            }
+          }
+          RBRACKET
+        }
+      }
+      RPAREN
+    }
+  }
+  SEMI
+}

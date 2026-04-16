@@ -1,0 +1,90 @@
+COMMENT-LEADING "# Ternary expressions: long condition, long branches, wrapping variants."
+COMMENT-LEADING "# test149.zeek"
+COMMENT-LEADING "# test150.zeek"
+COMMENT-LEADING "# test151.zeek"
+BLANK
+FUNC-DECL {
+  KEYWORD "event"
+  SP
+  IDENTIFIER "some_event_abc"
+  PARAMS {
+    LPAREN
+    PARAM "host" {
+      COLON
+      TYPE-ATOM "addr"
+    }
+    COMMA
+    PARAM "svc" {
+      COLON
+      TYPE-ATOM "string"
+    }
+    COMMA
+    PARAM "region" {
+      COLON
+      TYPE-ATOM "string"
+    }
+    RPAREN
+  }
+  BODY {
+    LBRACE
+    LOCAL-DECL {
+      KEYWORD "local"
+      SP
+      IDENTIFIER "endpoints"
+      DECL-INIT {
+        ASSIGN "="
+        TERNARY {
+          BINARY-OP ">" {
+            IDENTIFIER "some_long_variable_ab"
+            OP ">"
+            CONSTANT "0"
+          }
+          QUESTION
+          FIELD-ACCESS {
+            IDENTIFIER "calls"
+            DOLLAR
+            IDENTIFIER "some_fld"
+          }
+          COLON
+          CONSTANT "\"Disabled\""
+        }
+      }
+      SEMI
+    }
+    RBRACE
+  }
+}
+BLANK
+LOCAL-DECL {
+  KEYWORD "local"
+  SP
+  IDENTIFIER "x"
+  DECL-INIT {
+    ASSIGN "="
+    TERNARY {
+      IDENTIFIER "cond"
+      QUESTION
+      IDENTIFIER "some_very_very_very_long_true_value_expression_here"
+      COLON
+      IDENTIFIER "some_very_very_very_long_false_value_expression_here"
+    }
+  }
+  SEMI
+}
+BLANK
+LOCAL-DECL {
+  KEYWORD "local"
+  SP
+  IDENTIFIER "x"
+  DECL-INIT {
+    ASSIGN "="
+    TERNARY {
+      IDENTIFIER "some_very_long_condition_expression_here"
+      QUESTION
+      IDENTIFIER "some_very_long_true_value_expression_here"
+      COLON
+      IDENTIFIER "some_long_false"
+    }
+  }
+  SEMI
+}

@@ -1,0 +1,396 @@
+COMMENT-LEADING "# Patterns and strings: long patterns, multi-line pattern alternation, long strings, string concatenation, fmt with special chars, pattern in conditions."
+COMMENT-LEADING "# test100.zeek"
+COMMENT-LEADING "# test139.zeek"
+COMMENT-LEADING "# test141.zeek"
+COMMENT-LEADING "# test231.zeek"
+COMMENT-LEADING "# test239.zeek"
+COMMENT-LEADING "# test243.zeek"
+COMMENT-LEADING "# test258.zeek"
+COMMENT-LEADING "# test259.zeek"
+BLANK
+GLOBAL-DECL {
+  KEYWORD "const"
+  SP
+  IDENTIFIER "some_long_pattern_name"
+  DECL-INIT {
+    ASSIGN "="
+    CONSTANT "/\\x4c\\x00\\x6f\\x00\\x67\\x00\\x69\\x00\\x6e\\x00\\x20\\x00\\x66\\x00\\x61\\x00\\x69\\x00\\x6c\\x00\\x65\\x00\\x64\\x00\\x20\\x00\\x66\\x00\\x6f\\x00\\x72\\x00\\x20\\x00\\x75\\x00\\x73\\x00\\x65\\x00\\x72\\x00/"
+  }
+  SEMI
+}
+BLANK
+FUNC-DECL {
+  KEYWORD "function"
+  SP
+  IDENTIFIER "foo"
+  PARAMS {
+    LPAREN
+    RPAREN
+  }
+  BODY {
+    LBRACE
+    PRINT {
+      KEYWORD "print"
+      SP
+      BINARY-OP "+" {
+        BINARY-OP "+" {
+          CONSTANT "\"Lovely patio around the fountain. \""
+          OP "+"
+          CONSTANT "\"Spent a lovely lunch on the patio. \""
+        }
+        OP "+"
+        CONSTANT "\"The menu was inviting and lots of things I wanted to order.\""
+      }
+      SEMI
+    }
+    RBRACE
+  }
+}
+BLANK
+FUNC-DECL {
+  KEYWORD "event"
+  SP
+  IDENTIFIER "conn_event"
+  PARAMS {
+    LPAREN
+    PARAM "c" {
+      COLON
+      TYPE-ATOM "connection"
+    }
+    COMMA
+    PARAM "is_orig" {
+      COLON
+      TYPE-ATOM "bool"
+    }
+    COMMA
+    PARAM "name" {
+      COLON
+      TYPE-ATOM "string"
+    }
+    COMMA
+    PARAM "value" {
+      COLON
+      TYPE-ATOM "string"
+    }
+    RPAREN
+  }
+  BODY {
+    LBRACE
+    IF-NO-ELSE {
+      KEYWORD "if"
+      SP
+      LPAREN
+      BINARY-OP "||" {
+        BINARY-OP "||" {
+          BINARY-OP "||" {
+            BINARY-OP "||" {
+              BINARY-OP "||" {
+                BINARY-OP "||" {
+                  BINARY-OP "||" {
+                    BINARY-OP "||" {
+                      BINARY-OP "||" {
+                        BINARY-OP "||" {
+                          BINARY-OP "||" {
+                            BINARY-OP "||" {
+                              BINARY-OP "||" {
+                                BINARY-OP "||" {
+                                  BINARY-OP "||" {
+                                    BINARY-OP "||" {
+                                      BINARY-OP "||" {
+                                        BINARY-OP "in" {
+                                          CONSTANT "/.{0,20}aaaa_aaaa\\(aaaa_aaaa|aaaa%28aaaa_aaaa.{0,20}/"
+                                          OP "in"
+                                          IDENTIFIER "value"
+                                        }
+                                        OP "||"
+                                        BINARY-OP "in" {
+                                          CONSTANT "/.{0,20}aaaa_aaaa\\(aaaa_aaaa|aaaa%28aaaa_aaaa.{0,20}/"
+                                          OP "in"
+                                          IDENTIFIER "value"
+                                        }
+                                      }
+                                      OP "||"
+                                      BINARY-OP "in" {
+                                        CONSTANT "/.{0,20}\\.\\.\\/\\.\\.\\/\\.\\.\\/\\.\\.\\/\\.\\..{0,20}/"
+                                        OP "in"
+                                        IDENTIFIER "value"
+                                      }
+                                    }
+                                    OP "||"
+                                    BINARY-OP "in" {
+                                      CONSTANT "/.{0,20}\\.\\.%c0%af\\.\\.%c0%af/"
+                                      OP "in"
+                                      IDENTIFIER "value"
+                                    }
+                                  }
+                                  OP "||"
+                                  BINARY-OP "in" {
+                                    CONSTANT "/.{0,20}aaa\\/aaaaaa|aaa\\%c0\\%afaaaaaa|aaa\\%c0\\%2faaaaaa.{0,20}/"
+                                    OP "in"
+                                    IDENTIFIER "value"
+                                  }
+                                }
+                                OP "||"
+                                BINARY-OP "in" {
+                                  CONSTANT "/.{0,20}aaa\\/aaaaaa|aaa\\%c0\\%afaaaaaa|aaa\\%c0\\%2faaaaaa.{0,20}/"
+                                  OP "in"
+                                  IDENTIFIER "value"
+                                }
+                              }
+                              OP "||"
+                              BINARY-OP "in" {
+                                CONSTANT "/.{0,20}\\\\r\\\\n.{0,20}/"
+                                OP "in"
+                                IDENTIFIER "value"
+                              }
+                            }
+                            OP "||"
+                            BINARY-OP "in" {
+                              CONSTANT "/.{0,20}\\\\x0d.{0,20}/"
+                              OP "in"
+                              IDENTIFIER "value"
+                            }
+                          }
+                          OP "||"
+                          BINARY-OP "in" {
+                            CONSTANT "/.{0,20}\\\\x0a.{0,20}/"
+                            OP "in"
+                            IDENTIFIER "value"
+                          }
+                        }
+                        OP "||"
+                        BINARY-OP "in" {
+                          CONSTANT "/.{0,20}\\<aaaaaa\\>.{0,20}/"
+                          OP "in"
+                          IDENTIFIER "value"
+                        }
+                      }
+                      OP "||"
+                      BINARY-OP "in" {
+                        CONSTANT "/.{0,20}\\<aaaa\\>.{0,20}/"
+                        OP "in"
+                        IDENTIFIER "value"
+                      }
+                    }
+                    OP "||"
+                    BINARY-OP "in" {
+                      CONSTANT "/.{0,20}\\/aaaa\\.aaa.{0,20}/"
+                      OP "in"
+                      IDENTIFIER "value"
+                    }
+                  }
+                  OP "||"
+                  BINARY-OP "in" {
+                    CONSTANT "/.{0,20}aaaaaaa\\/aaa\\.aaa.{0,20}/"
+                    OP "in"
+                    IDENTIFIER "value"
+                  }
+                }
+                OP "||"
+                BINARY-OP "in" {
+                  CONSTANT "/.{0,20}AAAAAA\\ AAAA|AAAAAA%20AAAA.{0,20}/"
+                  OP "in"
+                  IDENTIFIER "value"
+                }
+              }
+              OP "||"
+              BINARY-OP "in" {
+                CONSTANT "/.{0,20}AAAAAA\\ \\*\\ AAAA|AAAAAA%20%2A%20AAAA.{0,20}/"
+                OP "in"
+                IDENTIFIER "value"
+              }
+            }
+            OP "||"
+            BINARY-OP "in" {
+              CONSTANT "/.{0,20}AAA\\ AAAA|AAA%20AAAA.{0,20}/"
+              OP "in"
+              IDENTIFIER "value"
+            }
+          }
+          OP "||"
+          BINARY-OP "in" {
+            CONSTANT "/.{0,20}\\'\\ or\\ 1.{0,20}/"
+            OP "in"
+            IDENTIFIER "value"
+          }
+        }
+        OP "||"
+        BINARY-OP "in" {
+          CONSTANT "/.{0,20}AAAAAA\\ .{0,20}/"
+          OP "in"
+          IDENTIFIER "value"
+        }
+      }
+      RPAREN
+      BODY {
+        BLOCK {
+          LBRACE
+          ADD {
+            KEYWORD "add"
+            SP
+            INDEX {
+              FIELD-ACCESS {
+                FIELD-ACCESS {
+                  IDENTIFIER "c"
+                  DOLLAR
+                  IDENTIFIER "http"
+                }
+                DOLLAR
+                IDENTIFIER "inferences"
+              }
+              SUBSCRIPTS {
+                LBRACKET
+                CONSTANT "\"ABC\""
+                RBRACKET
+              }
+            }
+            SEMI
+          }
+          RBRACE
+        }
+      }
+    }
+    RBRACE
+  }
+}
+BLANK
+GLOBAL-DECL {
+  KEYWORD "const"
+  SP
+  IDENTIFIER "aaa_bbb_ccc"
+  DECL-INIT {
+    ASSIGN "="
+    BINARY-OP "|" {
+      BINARY-OP "|" {
+        BINARY-OP "|" {
+          BINARY-OP "|" {
+            BINARY-OP "|" {
+              BINARY-OP "|" {
+                BINARY-OP "|" {
+                  BINARY-OP "|" {
+                    BINARY-OP "|" {
+                      CONSTANT "/aaaa\\-bbbb\\ cc\\./"
+                      OP "|"
+                      CONSTANT "/\\[dddddd\\]\\:\\:eeeeeeeeeeeeeeeee/"
+                    }
+                    OP "|"
+                    CONSTANT "/ff\\.gggggggggg\\.hhhhhhhhhh/"
+                  }
+                  OP "|"
+                  CONSTANT "/ff\\.gggggggggg\\.iiiiiiiiiiiiiiiiii\\]/"
+                }
+                OP "|"
+                CONSTANT "/ff\\.jjjjjjjjjjjj/"
+              }
+              OP "|"
+              CONSTANT "/\\.kkkkkkkkk\\(\\)\\;$/"
+            }
+            OP "|"
+            CONSTANT "/\\)\\;LLL/"
+          }
+          OP "|"
+          CONSTANT "/mmmmmmmmmmmmm/"
+        }
+        OP "|"
+        CONSTANT "/nnnnnnnnnn\\.ooo/"
+      }
+      OP "|"
+      CONSTANT "/PpppppPppppppppp/"
+    }
+  }
+  SEMI
+}
+BLANK
+GLOBAL-DECL {
+  KEYWORD "const"
+  SP
+  IDENTIFIER "xxxxxxxxxxxxxxxxxxxxxxxx"
+  DECL-INIT {
+    ASSIGN "="
+    BINARY-OP "|" {
+      BINARY-OP "|" {
+        CONSTANT "/^\\??\\x00+$/"
+        OP "|"
+        CONSTANT "/^xxxx xxx[\\x00-\\xff]{4}\\x00*$/"
+      }
+      COMMENT-TRAILING "# AAAA"
+      OP "|"
+      CONSTANT "/^0123456789abcdefghijklmnopqrstu\\x00$/"
+    }
+  }
+  SEMI
+}
+BLANK
+FUNC-DECL {
+  KEYWORD "function"
+  SP
+  IDENTIFIER "foo"
+  PARAMS {
+    LPAREN
+    RPAREN
+  }
+  BODY {
+    LBRACE
+    LOCAL-DECL {
+      KEYWORD "local"
+      SP
+      IDENTIFIER "message"
+      DECL-INIT {
+        ASSIGN "="
+        CALL {
+          IDENTIFIER "fmt"
+          ARGS {
+            LPAREN
+            CONSTANT "\"Meterpreter detected with reason=CERTIFICATE_DETECTED, protocol=HTTPS, os=ANY\""
+            RPAREN
+          }
+        }
+      }
+      SEMI
+    }
+    RBRACE
+  }
+}
+BLANK
+FUNC-DECL {
+  KEYWORD "function"
+  SP
+  IDENTIFIER "foo"
+  PARAMS {
+    LPAREN
+    RPAREN
+  }
+  BODY {
+    LBRACE
+    EXPR-STMT {
+      BINARY-OP "=" {
+        IDENTIFIER "message"
+        OP "="
+        CALL {
+          IDENTIFIER "fmt"
+          ARGS {
+            LPAREN
+            CONSTANT "\"Meterpreter detected with reason=CERTIFICATE_DETECTED, protocol=HTTPS, os=ANY\""
+            RPAREN
+          }
+        }
+      }
+      SEMI
+    }
+    RBRACE
+  }
+}
+BLANK
+PRINT {
+  KEYWORD "print"
+  SP
+  CALL {
+    IDENTIFIER "fmt"
+    ARGS {
+      LPAREN
+      CONSTANT "\"This is a really long string argument that cannot be broken up into smaller pieces\""
+      RPAREN
+    }
+  }
+  SEMI
+}

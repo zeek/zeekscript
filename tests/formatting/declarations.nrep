@@ -1,0 +1,556 @@
+COMMENT-LEADING "# Declarations: global, local, const, option with types, attributes, wrapping."
+COMMENT-LEADING "# test006.zeek"
+COMMENT-LEADING "# test007.zeek"
+COMMENT-LEADING "# test015.zeek"
+COMMENT-LEADING "# test054.zeek"
+COMMENT-LEADING "# test061.zeek"
+COMMENT-LEADING "# test064.zeek"
+COMMENT-LEADING "# test104.zeek"
+COMMENT-LEADING "# test134.zeek"
+COMMENT-LEADING "# test145.zeek"
+COMMENT-LEADING "# test147.zeek"
+COMMENT-LEADING "# test162.zeek"
+COMMENT-LEADING "# test164.zeek"
+COMMENT-LEADING "# test165.zeek"
+COMMENT-LEADING "# test168.zeek"
+COMMENT-LEADING "# test173.zeek"
+COMMENT-LEADING "# test181.zeek"
+COMMENT-LEADING "# test225.zeek"
+COMMENT-LEADING "# test228.zeek"
+COMMENT-LEADING "# test248.zeek"
+BLANK
+GLOBAL-DECL {
+  KEYWORD "global"
+  SP
+  IDENTIFIER "some_table"
+  DECL-TYPE {
+    COLON
+    TYPE-PARAMETERIZED "table" {
+      SUBSCRIPTS {
+        LBRACKET
+        TYPE-ATOM "string"
+        RBRACKET
+      }
+      KEYWORD "of"
+      SP
+      TYPE-ATOM "count"
+    }
+  }
+  ATTR-LIST {
+    ATTR "&default" {
+      ASSIGN "="
+      IDENTIFIER "some_long_default_expression_here"
+    }
+    ATTR "&redef"
+  }
+  SEMI
+}
+BLANK
+GLOBAL-DECL {
+  KEYWORD "global"
+  SP
+  IDENTIFIER "some_event_decl"
+  DECL-TYPE {
+    COLON
+    TYPE-FUNC "event" {
+      PARAMS {
+        LPAREN
+        PARAM "o" {
+          COLON
+          TYPE-ATOM "string"
+        }
+        COMMA
+        PARAM "label" {
+          COLON
+          TYPE-ATOM "string"
+        }
+        COMMA
+        PARAM "conf" {
+          COLON
+          TYPE-ATOM "score"
+        }
+        COMMA
+        PARAM "sources" {
+          COLON
+          TYPE-PARAMETERIZED "set" {
+            SUBSCRIPTS {
+              LBRACKET
+              TYPE-ATOM "string"
+              RBRACKET
+            }
+          }
+        }
+        COMMA
+        PARAM "caller" {
+          COLON
+          TYPE-ATOM "string"
+        }
+        RPAREN
+      }
+    }
+  }
+  SEMI
+}
+BLANK
+GLOBAL-DECL {
+  KEYWORD "global"
+  SP
+  IDENTIFIER "x"
+  DECL-INIT {
+    ASSIGN "="
+    CONSTANT "42"
+  }
+  SEMI
+}
+COMMENT-TRAILING "# Inline."
+BLANK
+GLOBAL-DECL {
+  KEYWORD "global"
+  SP
+  IDENTIFIER "some_long_cache_name"
+  DECL-TYPE {
+    COLON
+    TYPE-PARAMETERIZED "set" {
+      SUBSCRIPTS {
+        LBRACKET
+        TYPE-ATOM "string"
+        COMMA
+        TYPE-ATOM "subnet"
+        COMMA
+        TYPE-ATOM "subnet"
+        COMMA
+        TYPE-ATOM "transport_proto"
+        COMMA
+        TYPE-ATOM "SomeModule::SomeType"
+        RBRACKET
+      }
+    }
+  }
+  ATTR-LIST {
+    ATTR "&read_expire" {
+      ASSIGN "="
+      IDENTIFIER "cache_interval"
+    }
+  }
+  SEMI
+}
+BLANK
+GLOBAL-DECL {
+  KEYWORD "global"
+  SP
+  IDENTIFIER "some_tracking_var"
+  DECL-TYPE {
+    COLON
+    TYPE-PARAMETERIZED "table" {
+      SUBSCRIPTS {
+        LBRACKET
+        TYPE-ATOM "count"
+        COMMA
+        TYPE-ATOM "string"
+        RBRACKET
+      }
+      KEYWORD "of"
+      SP
+      TYPE-ATOM "TrackingRec"
+    }
+  }
+  ATTR-LIST {
+    ATTR "&default_insert" {
+      ASSIGN "="
+      CALL {
+        IDENTIFIER "TrackingRec"
+        ARGS {
+          LPAREN
+          FIELD-ASSIGN "field" {
+            DOLLAR
+            ASSIGN "="
+            IDENTIFIER "val"
+          }
+          RPAREN
+        }
+      }
+    }
+    ATTR "&create_expire" {
+      ASSIGN "="
+      INTERVAL "10" "sec"
+    }
+    ATTR "&redef"
+  }
+  SEMI
+}
+BLANK
+GLOBAL-DECL {
+  KEYWORD "redef"
+  SP
+  IDENTIFIER "SomeModule::some_generic_packet_thresholds"
+  DECL-INIT {
+    ASSIGN "+="
+    CONSTRUCTOR {
+      KEYWORD "set"
+      ARGS {
+        LPAREN
+        IDENTIFIER "skip_conn_packet_threshold"
+        RPAREN
+      }
+    }
+  }
+  SEMI
+}
+BLANK
+GLOBAL-DECL {
+  KEYWORD "const"
+  SP
+  IDENTIFIER "tbl"
+  DECL-TYPE {
+    COLON
+    TYPE-PARAMETERIZED "table" {
+      SUBSCRIPTS {
+        LBRACKET
+        TYPE-ATOM "count"
+        RBRACKET
+      }
+      KEYWORD "of"
+      SP
+      TYPE-ATOM "string"
+    }
+  }
+  DECL-INIT {
+    ASSIGN "="
+    CONSTRUCTOR {
+      KEYWORD "table"
+      ARGS {
+        LPAREN
+        BINARY-OP "=" {
+          CONSTANT "[1]"
+          OP "="
+          CONSTANT "\"a\""
+        }
+        RPAREN
+      }
+    }
+  }
+  SEMI
+}
+BLANK
+GLOBAL-DECL {
+  KEYWORD "const"
+  SP
+  IDENTIFIER "tbl"
+  DECL-INIT {
+    ASSIGN "="
+    CONSTRUCTOR {
+      KEYWORD "table"
+      ARGS {
+        LPAREN
+        BINARY-OP "=" {
+          CONSTANT "[1]"
+          OP "="
+          CONSTANT "\"a\""
+        }
+        COMMA
+        BINARY-OP "=" {
+          CONSTANT "[2]"
+          OP "="
+          CONSTANT "\"b\""
+        }
+        RPAREN
+      }
+    }
+  }
+  SEMI
+}
+BLANK
+TYPEDECL-ALIAS "val" {
+  KEYWORD "type"
+  SP
+  IDENTIFIER "val"
+  COLON
+  SP
+  TYPE-ATOM "count"
+  SEMI
+}
+COMMENT-TRAILING "# a counter"
+BLANK
+GLOBAL-DECL {
+  KEYWORD "global"
+  SP
+  IDENTIFIER "ftp_connections_cache"
+  DECL-TYPE {
+    COLON
+    TYPE-PARAMETERIZED "set" {
+      SUBSCRIPTS {
+        LBRACKET
+        TYPE-ATOM "string"
+        COMMA
+        TYPE-ATOM "string"
+        COMMA
+        TYPE-ATOM "string"
+        RBRACKET
+      }
+    }
+  }
+  ATTR-LIST {
+    ATTR "&read_expire" {
+      ASSIGN "="
+      IDENTIFIER "cache_interval"
+    }
+  }
+  SEMI
+}
+BLANK
+GLOBAL-DECL {
+  KEYWORD "global"
+  SP
+  IDENTIFIER "some_table_name_a"
+  DECL-TYPE {
+    COLON
+    TYPE-PARAMETERIZED "table" {
+      SUBSCRIPTS {
+        LBRACKET
+        TYPE-ATOM "count"
+        COMMA
+        TYPE-ATOM "string"
+        RBRACKET
+      }
+      KEYWORD "of"
+      SP
+      TYPE-ATOM "TrackingRec"
+    }
+  }
+  ATTR-LIST {
+    ATTR "&default_insert" {
+      ASSIGN "="
+      CALL {
+        IDENTIFIER "TrackingRec"
+        ARGS {
+          LPAREN
+          RPAREN
+        }
+      }
+    }
+    ATTR "&create_expire" {
+      ASSIGN "="
+      INTERVAL "10" "sec"
+    }
+  }
+  SEMI
+}
+BLANK
+GLOBAL-DECL {
+  KEYWORD "global"
+  SP
+  IDENTIFIER "some_state"
+  DECL-TYPE {
+    COLON
+    TYPE-PARAMETERIZED "table" {
+      SUBSCRIPTS {
+        LBRACKET
+        TYPE-ATOM "SomeModule::CertInfo"
+        COMMA
+        TYPE-ATOM "SomeModule::AltNameInfo"
+        COMMA
+        TYPE-ATOM "SomeModule::ConstraintInfo"
+        RBRACKET
+      }
+      KEYWORD "of"
+      SP
+      TYPE-ATOM "count"
+    }
+  }
+  ATTR-LIST {
+    ATTR "&default" {
+      ASSIGN "="
+      CONSTANT "0"
+    }
+  }
+  SEMI
+}
+BLANK
+TYPEDECL-ALIAS "some_very_long_type_name_aaaaa" {
+  KEYWORD "type"
+  SP
+  IDENTIFIER "some_very_long_type_name_aaaaa"
+  COLON
+  SP
+  TYPE-PARAMETERIZED "table" {
+    SUBSCRIPTS {
+      LBRACKET
+      TYPE-ATOM "addr"
+      COMMA
+      TYPE-ATOM "port"
+      COMMA
+      TYPE-ATOM "subnet"
+      COMMA
+      TYPE-ATOM "string"
+      RBRACKET
+    }
+    KEYWORD "of"
+    SP
+    TYPE-ATOM "string"
+  }
+  SEMI
+}
+BLANK
+GLOBAL-DECL {
+  KEYWORD "global"
+  SP
+  IDENTIFIER "some_cache"
+  DECL-TYPE {
+    COLON
+    TYPE-PARAMETERIZED "set" {
+      SUBSCRIPTS {
+        LBRACKET
+        TYPE-ATOM "string"
+        COMMA
+        TYPE-ATOM "subnet"
+        COMMA
+        TYPE-ATOM "subnet"
+        COMMA
+        TYPE-ATOM "string"
+        COMMA
+        TYPE-ATOM "string"
+        COMMA
+        TYPE-ATOM "string"
+        COMMA
+        TYPE-ATOM "bool"
+        COMMA
+        TYPE-ATOM "count"
+        RBRACKET
+      }
+    }
+  }
+  ATTR-LIST {
+    ATTR "&read_expire" {
+      ASSIGN "="
+      IDENTIFIER "some_interval"
+    }
+  }
+  SEMI
+}
+BLANK
+TYPEDECL-ALIAS "Foo" {
+  KEYWORD "type"
+  SP
+  IDENTIFIER "Foo"
+  COLON
+  SP
+  TYPE-ATOM "addr"
+  ATTR-LIST {
+    ATTR "&redef"
+  }
+  SEMI
+}
+BLANK
+GLOBAL-DECL {
+  KEYWORD "global"
+  SP
+  IDENTIFIER "coalesced_state"
+  DECL-TYPE {
+    COLON
+    TYPE-PARAMETERIZED "table" {
+      SUBSCRIPTS {
+        LBRACKET
+        TYPE-ATOM "X509::Certificate"
+        COMMA
+        TYPE-ATOM "X509::SubjectAlternativeName"
+        COMMA
+        TYPE-ATOM "X509::BasicConstraints"
+        RBRACKET
+      }
+      KEYWORD "of"
+      SP
+      TYPE-ATOM "count"
+    }
+  }
+  ATTR-LIST {
+    ATTR "&create_expire" {
+      ASSIGN "="
+      IDENTIFIER "coal_ival"
+    }
+    ATTR "&default" {
+      ASSIGN "="
+      CONSTANT "0"
+    }
+  }
+  SEMI
+}
+BLANK
+GLOBAL-DECL {
+  KEYWORD "global"
+  SP
+  IDENTIFIER "xxxxxxxxxxxxxxxxxxxx"
+  DECL-TYPE {
+    COLON
+    TYPE-FUNC-RET "function" {
+      PARAMS {
+        LPAREN
+        PARAM "xx" {
+          COLON
+          TYPE-ATOM "string"
+        }
+        COMMA
+        PARAM "xxxxxxxxx" {
+          COLON
+          TYPE-PARAMETERIZED "set" {
+            SUBSCRIPTS {
+              LBRACKET
+              TYPE-ATOM "subnet"
+              RBRACKET
+            }
+          }
+        }
+        COMMA
+        PARAM "xxxxxxxx" {
+          COLON
+          TYPE-ATOM "string"
+        }
+        RPAREN
+      }
+      COLON
+      RETURNS {
+        TYPE-PARAMETERIZED "set" {
+          SUBSCRIPTS {
+            LBRACKET
+            TYPE-ATOM "subnet"
+            RBRACKET
+          }
+        }
+      }
+    }
+  }
+  SEMI
+}
+BLANK
+LOCAL-DECL {
+  KEYWORD "local"
+  SP
+  IDENTIFIER "x"
+  DECL-INIT {
+    ASSIGN "="
+    CALL {
+      IDENTIFIER "some_func"
+      ARGS {
+        LPAREN
+        IDENTIFIER "arg"
+        RPAREN
+      }
+    }
+  }
+  SEMI
+}
+BLANK
+EXPR-STMT {
+  BINARY-OP "+=" {
+    IDENTIFIER "another_very_long_access_to_some_member"
+    OP "+="
+    INDEX {
+      IDENTIFIER "yetanotherveryveryveryverylongthing"
+      SUBSCRIPTS {
+        LBRACKET
+        CONSTANT "0"
+        RBRACKET
+      }
+    }
+  }
+  SEMI
+}

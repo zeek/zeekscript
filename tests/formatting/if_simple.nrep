@@ -1,0 +1,1169 @@
+COMMENT-LEADING "# Simple if/else: one-liners, inline if sequences, !in, negated conditions, empty bodies, else with comment."
+COMMENT-LEADING "# test034.zeek"
+COMMENT-LEADING "# test056.zeek"
+COMMENT-LEADING "# test057.zeek"
+COMMENT-LEADING "# test109.zeek"
+COMMENT-LEADING "# test110.zeek"
+COMMENT-LEADING "# test111.zeek"
+COMMENT-LEADING "# test196.zeek"
+COMMENT-LEADING "# test210.zeek"
+COMMENT-LEADING "# test226.zeek"
+COMMENT-LEADING "# test268.zeek"
+BLANK
+FUNC-DECL {
+  KEYWORD "function"
+  SP
+  IDENTIFIER "some_func"
+  PARAMS {
+    LPAREN
+    RPAREN
+  }
+  BODY {
+    LBRACE
+    IF-NO-ELSE {
+      KEYWORD "if"
+      SP
+      LPAREN
+      BINARY-OP "&&" {
+        HAS-FIELD {
+          BINARY-OP "&&" {
+            BINARY-OP "&&" {
+              IDENTIFIER "some_long_var_aa"
+              OP "&&"
+              BINARY-OP "==" {
+                FIELD-ACCESS {
+                  IDENTIFIER "some_var"
+                  DOLLAR
+                  IDENTIFIER "some_field"
+                }
+                OP "=="
+                CONSTANT "\"ok\""
+              }
+            }
+            OP "&&"
+            IDENTIFIER "other"
+          }
+          OP "?$"
+          IDENTIFIER "some_chain"
+        }
+        OP "&&"
+        BINARY-OP ">" {
+          CARDINALITY {
+            OP "|"
+            FIELD-ACCESS {
+              IDENTIFIER "other"
+              DOLLAR
+              IDENTIFIER "some_chain"
+            }
+            OP "|"
+          }
+          OP ">"
+          CONSTANT "2"
+        }
+      }
+      RPAREN
+      BODY {
+        BLOCK {
+          LBRACE
+          RBRACE
+        }
+      }
+    }
+    RBRACE
+  }
+}
+BLANK
+FUNC-DECL {
+  KEYWORD "function"
+  SP
+  IDENTIFIER "some_func"
+  PARAMS {
+    LPAREN
+    RPAREN
+  }
+  BODY {
+    LBRACE
+    IF-NO-ELSE {
+      KEYWORD "if"
+      SP
+      LPAREN
+      HAS-FIELD {
+        BINARY-OP "||" {
+          BINARY-OP "||" {
+            HAS-FIELD {
+              NEGATION {
+                OP "!"
+                IDENTIFIER "aa"
+              }
+              OP "?$"
+              IDENTIFIER "bb_chain"
+            }
+            OP "||"
+            BINARY-OP "==" {
+              CARDINALITY {
+                OP "|"
+                FIELD-ACCESS {
+                  IDENTIFIER "aa"
+                  DOLLAR
+                  IDENTIFIER "bb_chain"
+                }
+                OP "|"
+              }
+              OP "=="
+              CONSTANT "0"
+            }
+          }
+          OP "||"
+          NEGATION {
+            OP "!"
+            INDEX {
+              FIELD-ACCESS {
+                IDENTIFIER "aa"
+                DOLLAR
+                IDENTIFIER "bb_chain"
+              }
+              SUBSCRIPTS {
+                LBRACKET
+                CONSTANT "0"
+                RBRACKET
+              }
+            }
+          }
+        }
+        OP "?$"
+        IDENTIFIER "cc"
+      }
+      RPAREN
+      BODY {
+        RETURN {
+          KEYWORD "return"
+          SP
+          IDENTIFIER "dd"
+          SEMI
+        }
+      }
+    }
+    RBRACE
+  }
+}
+BLANK
+FUNC-DECL {
+  KEYWORD "function"
+  SP
+  IDENTIFIER "some_func"
+  PARAMS {
+    LPAREN
+    PARAM "a" {
+      COLON
+      TYPE-ATOM "int"
+    }
+    RPAREN
+  }
+  BODY {
+    LBRACE
+    IF-NO-ELSE {
+      KEYWORD "if"
+      SP
+      LPAREN
+      BINARY-OP "!in" {
+        INDEX {
+          IDENTIFIER "some_very_long_access_to_a_member"
+          SUBSCRIPTS {
+            LBRACKET
+            IDENTIFIER "foo"
+            RBRACKET
+          }
+        }
+        OP "!in"
+        FIELD-ACCESS {
+          IDENTIFIER "SomeModule::other"
+          DOLLAR
+          IDENTIFIER "nested_field"
+        }
+      }
+      RPAREN
+      BODY {
+        BLOCK {
+          LBRACE
+          PRINT {
+            KEYWORD "print"
+            SP
+            CONSTANT "\"hi\""
+            SEMI
+          }
+          RBRACE
+        }
+      }
+    }
+    RBRACE
+  }
+}
+BLANK
+FUNC-DECL {
+  KEYWORD "function"
+  SP
+  IDENTIFIER "some_func"
+  PARAMS {
+    LPAREN
+    RPAREN
+  }
+  BODY {
+    LBRACE
+    IF-NO-ELSE {
+      KEYWORD "if"
+      SP
+      LPAREN
+      BINARY-OP "!in" {
+        IDENTIFIER "x"
+        OP "!in"
+        IDENTIFIER "y"
+      }
+      RPAREN
+      BODY {
+        PRINT {
+          KEYWORD "print"
+          SP
+          CONSTANT "\"hi\""
+          SEMI
+        }
+      }
+    }
+    RBRACE
+  }
+}
+BLANK
+COMMENT-LEADING "# 3+ inline ifs: all fit, should inline."
+FUNC-DECL-RET {
+  KEYWORD "function"
+  SP
+  IDENTIFIER "f"
+  PARAMS {
+    LPAREN
+    PARAM "val" {
+      COLON
+      TYPE-ATOM "string"
+    }
+    RPAREN
+  }
+  COLON
+  RETURNS {
+    TYPE-ATOM "string"
+  }
+  BODY {
+    LBRACE
+    IF-NO-ELSE {
+      KEYWORD "if"
+      SP
+      LPAREN
+      BINARY-OP "in" {
+        CONSTANT "/aaa/i"
+        OP "in"
+        IDENTIFIER "val"
+      }
+      RPAREN
+      BODY {
+        SAME-LINE
+        RETURN {
+          KEYWORD "return"
+          SP
+          CONSTANT "\"aaa\""
+          SEMI
+        }
+      }
+    }
+    IF-NO-ELSE {
+      KEYWORD "if"
+      SP
+      LPAREN
+      BINARY-OP "in" {
+        CONSTANT "/bbb/i"
+        OP "in"
+        IDENTIFIER "val"
+      }
+      RPAREN
+      BODY {
+        SAME-LINE
+        RETURN {
+          KEYWORD "return"
+          SP
+          CONSTANT "\"bbb\""
+          SEMI
+        }
+      }
+    }
+    IF-NO-ELSE {
+      KEYWORD "if"
+      SP
+      LPAREN
+      BINARY-OP "in" {
+        CONSTANT "/ccc/i"
+        OP "in"
+        IDENTIFIER "val"
+      }
+      RPAREN
+      BODY {
+        SAME-LINE
+        RETURN {
+          KEYWORD "return"
+          SP
+          CONSTANT "\"ccc\""
+          SEMI
+        }
+      }
+    }
+    IF-NO-ELSE {
+      KEYWORD "if"
+      SP
+      LPAREN
+      BINARY-OP "in" {
+        CONSTANT "/ddd/i"
+        OP "in"
+        IDENTIFIER "val"
+      }
+      RPAREN
+      BODY {
+        SAME-LINE
+        RETURN {
+          KEYWORD "return"
+          SP
+          CONSTANT "\"ddd\""
+          SEMI
+        }
+      }
+    }
+    IF-NO-ELSE {
+      KEYWORD "if"
+      SP
+      LPAREN
+      BINARY-OP "in" {
+        CONSTANT "/eee/"
+        OP "in"
+        IDENTIFIER "val"
+      }
+      RPAREN
+      BODY {
+        SAME-LINE
+        RETURN {
+          KEYWORD "return"
+          SP
+          CONSTANT "\"eee\""
+          SEMI
+        }
+      }
+    }
+    BLANK
+    RETURN {
+      KEYWORD "return"
+      SP
+      IDENTIFIER "val"
+      SEMI
+    }
+    RBRACE
+  }
+}
+BLANK
+COMMENT-LEADING "# Only 2 ifs: should NOT inline."
+FUNC-DECL {
+  KEYWORD "function"
+  SP
+  IDENTIFIER "g"
+  PARAMS {
+    LPAREN
+    RPAREN
+  }
+  BODY {
+    LBRACE
+    IF-NO-ELSE {
+      KEYWORD "if"
+      SP
+      LPAREN
+      IDENTIFIER "x"
+      RPAREN
+      BODY {
+        SAME-LINE
+        RETURN {
+          KEYWORD "return"
+          SP
+          CONSTANT "\"a\""
+          SEMI
+        }
+      }
+    }
+    IF-NO-ELSE {
+      KEYWORD "if"
+      SP
+      LPAREN
+      IDENTIFIER "y"
+      RPAREN
+      BODY {
+        SAME-LINE
+        RETURN {
+          KEYWORD "return"
+          SP
+          CONSTANT "\"b\""
+          SEMI
+        }
+      }
+    }
+    RETURN {
+      KEYWORD "return"
+      SP
+      CONSTANT "\"c\""
+      SEMI
+    }
+    RBRACE
+  }
+}
+BLANK
+COMMENT-LEADING "# 3 ifs but one too long: should NOT inline any."
+FUNC-DECL {
+  KEYWORD "function"
+  SP
+  IDENTIFIER "h"
+  PARAMS {
+    LPAREN
+    RPAREN
+  }
+  BODY {
+    LBRACE
+    IF-NO-ELSE {
+      KEYWORD "if"
+      SP
+      LPAREN
+      IDENTIFIER "x"
+      RPAREN
+      BODY {
+        SAME-LINE
+        RETURN {
+          KEYWORD "return"
+          SP
+          CONSTANT "\"a\""
+          SEMI
+        }
+      }
+    }
+    IF-NO-ELSE {
+      KEYWORD "if"
+      SP
+      LPAREN
+      IDENTIFIER "y"
+      RPAREN
+      BODY {
+        SAME-LINE
+        RETURN {
+          KEYWORD "return"
+          SP
+          CONSTANT "\"b\""
+          SEMI
+        }
+      }
+    }
+    IF-NO-ELSE {
+      KEYWORD "if"
+      SP
+      LPAREN
+      IDENTIFIER "some_very_long_condition_that_pushes_past_the_limit"
+      RPAREN
+      BODY {
+        SAME-LINE
+        RETURN {
+          KEYWORD "return"
+          SP
+          CONSTANT "\"this_long_value\""
+          SEMI
+        }
+      }
+    }
+    RBRACE
+  }
+}
+BLANK
+COMMENT-LEADING "# Sequence interrupted by non-if: 2 + 3."
+FUNC-DECL {
+  KEYWORD "function"
+  SP
+  IDENTIFIER "i"
+  PARAMS {
+    LPAREN
+    RPAREN
+  }
+  BODY {
+    LBRACE
+    IF-NO-ELSE {
+      KEYWORD "if"
+      SP
+      LPAREN
+      IDENTIFIER "x"
+      RPAREN
+      BODY {
+        SAME-LINE
+        RETURN {
+          KEYWORD "return"
+          SP
+          CONSTANT "\"a\""
+          SEMI
+        }
+      }
+    }
+    IF-NO-ELSE {
+      KEYWORD "if"
+      SP
+      LPAREN
+      IDENTIFIER "y"
+      RPAREN
+      BODY {
+        SAME-LINE
+        RETURN {
+          KEYWORD "return"
+          SP
+          CONSTANT "\"b\""
+          SEMI
+        }
+      }
+    }
+    PRINT {
+      KEYWORD "print"
+      SP
+      CONSTANT "\"mid\""
+      SEMI
+    }
+    IF-NO-ELSE {
+      KEYWORD "if"
+      SP
+      LPAREN
+      IDENTIFIER "a"
+      RPAREN
+      BODY {
+        SAME-LINE
+        RETURN {
+          KEYWORD "return"
+          SP
+          CONSTANT "\"c\""
+          SEMI
+        }
+      }
+    }
+    IF-NO-ELSE {
+      KEYWORD "if"
+      SP
+      LPAREN
+      IDENTIFIER "b"
+      RPAREN
+      BODY {
+        SAME-LINE
+        RETURN {
+          KEYWORD "return"
+          SP
+          CONSTANT "\"d\""
+          SEMI
+        }
+      }
+    }
+    IF-NO-ELSE {
+      KEYWORD "if"
+      SP
+      LPAREN
+      IDENTIFIER "c"
+      RPAREN
+      BODY {
+        SAME-LINE
+        RETURN {
+          KEYWORD "return"
+          SP
+          CONSTANT "\"e\""
+          SEMI
+        }
+      }
+    }
+    RBRACE
+  }
+}
+BLANK
+COMMENT-LEADING "# if with comment before body: should NOT inline."
+FUNC-DECL {
+  KEYWORD "function"
+  SP
+  IDENTIFIER "j"
+  PARAMS {
+    LPAREN
+    RPAREN
+  }
+  BODY {
+    LBRACE
+    IF-NO-ELSE {
+      KEYWORD "if"
+      SP
+      LPAREN
+      IDENTIFIER "x"
+      RPAREN
+      COMMENT-LEADING "# comment before body"
+      BODY {
+        PRINT {
+          KEYWORD "print"
+          SP
+          CONSTANT "\"done\""
+          SEMI
+        }
+      }
+    }
+    IF-NO-ELSE {
+      KEYWORD "if"
+      SP
+      LPAREN
+      IDENTIFIER "y"
+      RPAREN
+      BODY {
+        SAME-LINE
+        PRINT {
+          KEYWORD "print"
+          SP
+          CONSTANT "\"two\""
+          SEMI
+        }
+      }
+    }
+    IF-NO-ELSE {
+      KEYWORD "if"
+      SP
+      LPAREN
+      IDENTIFIER "z"
+      RPAREN
+      BODY {
+        SAME-LINE
+        PRINT {
+          KEYWORD "print"
+          SP
+          CONSTANT "\"three\""
+          SEMI
+        }
+      }
+    }
+    RBRACE
+  }
+}
+BLANK
+COMMENT-LEADING "# 3+ wrapped ifs that fit: author chose wrapped, preserve it."
+FUNC-DECL {
+  KEYWORD "function"
+  SP
+  IDENTIFIER "k"
+  PARAMS {
+    LPAREN
+    RPAREN
+  }
+  BODY {
+    LBRACE
+    IF-NO-ELSE {
+      KEYWORD "if"
+      SP
+      LPAREN
+      IDENTIFIER "x"
+      RPAREN
+      BODY {
+        RETURN {
+          KEYWORD "return"
+          SP
+          CONSTANT "\"a\""
+          SEMI
+        }
+      }
+    }
+    IF-NO-ELSE {
+      KEYWORD "if"
+      SP
+      LPAREN
+      IDENTIFIER "y"
+      RPAREN
+      BODY {
+        RETURN {
+          KEYWORD "return"
+          SP
+          CONSTANT "\"b\""
+          SEMI
+        }
+      }
+    }
+    IF-NO-ELSE {
+      KEYWORD "if"
+      SP
+      LPAREN
+      IDENTIFIER "z"
+      RPAREN
+      BODY {
+        RETURN {
+          KEYWORD "return"
+          SP
+          CONSTANT "\"c\""
+          SEMI
+        }
+      }
+    }
+    RBRACE
+  }
+}
+BLANK
+COMMENT-LEADING "# Author chose no-wrap, but one of them violates it."
+FUNC-DECL {
+  KEYWORD "function"
+  SP
+  IDENTIFIER "l"
+  PARAMS {
+    LPAREN
+    RPAREN
+  }
+  BODY {
+    LBRACE
+    IF-NO-ELSE {
+      KEYWORD "if"
+      SP
+      LPAREN
+      IDENTIFIER "x"
+      RPAREN
+      BODY {
+        SAME-LINE
+        RETURN {
+          KEYWORD "return"
+          SP
+          CONSTANT "\"a\""
+          SEMI
+        }
+      }
+    }
+    IF-NO-ELSE {
+      KEYWORD "if"
+      SP
+      LPAREN
+      IDENTIFIER "y"
+      RPAREN
+      BODY {
+        SAME-LINE
+        RETURN {
+          KEYWORD "return"
+          SP
+          CONSTANT "\"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\""
+          SEMI
+        }
+      }
+    }
+    IF-NO-ELSE {
+      KEYWORD "if"
+      SP
+      LPAREN
+      IDENTIFIER "z"
+      RPAREN
+      BODY {
+        SAME-LINE
+        RETURN {
+          KEYWORD "return"
+          SP
+          CONSTANT "\"c\""
+          SEMI
+        }
+      }
+    }
+    RBRACE
+  }
+}
+BLANK
+COMMENT-LEADING "# 3+ inline ifs with trailing comment: should still inline."
+FUNC-DECL-RET {
+  KEYWORD "function"
+  SP
+  IDENTIFIER "f"
+  PARAMS {
+    LPAREN
+    PARAM "val" {
+      COLON
+      TYPE-ATOM "string"
+    }
+    RPAREN
+  }
+  COLON
+  RETURNS {
+    TYPE-ATOM "string"
+  }
+  BODY {
+    LBRACE
+    IF-NO-ELSE {
+      KEYWORD "if"
+      SP
+      LPAREN
+      BINARY-OP "in" {
+        CONSTANT "/aaa/i"
+        OP "in"
+        IDENTIFIER "val"
+      }
+      RPAREN
+      BODY {
+        SAME-LINE
+        RETURN {
+          KEYWORD "return"
+          SP
+          CONSTANT "\"aaa\""
+          SEMI
+        }
+      }
+    }
+    IF-NO-ELSE {
+      KEYWORD "if"
+      SP
+      LPAREN
+      BINARY-OP "in" {
+        CONSTANT "/bbb/i"
+        OP "in"
+        IDENTIFIER "val"
+      }
+      RPAREN
+      BODY {
+        SAME-LINE
+        RETURN {
+          KEYWORD "return"
+          SP
+          CONSTANT "\"bbb\""
+          SEMI
+        }
+      }
+    }
+    IF-NO-ELSE {
+      KEYWORD "if"
+      SP
+      LPAREN
+      BINARY-OP "in" {
+        CONSTANT "/ccc/i"
+        OP "in"
+        IDENTIFIER "val"
+      }
+      RPAREN
+      BODY {
+        SAME-LINE
+        RETURN {
+          KEYWORD "return"
+          SP
+          CONSTANT "\"ccc\""
+          SEMI
+        }
+      }
+    }
+    COMMENT-TRAILING "# foo"
+    IF-NO-ELSE {
+      KEYWORD "if"
+      SP
+      LPAREN
+      BINARY-OP "in" {
+        CONSTANT "/ddd/i"
+        OP "in"
+        IDENTIFIER "val"
+      }
+      RPAREN
+      BODY {
+        SAME-LINE
+        RETURN {
+          KEYWORD "return"
+          SP
+          CONSTANT "\"ddd\""
+          SEMI
+        }
+      }
+    }
+    IF-NO-ELSE {
+      KEYWORD "if"
+      SP
+      LPAREN
+      BINARY-OP "in" {
+        CONSTANT "/eee/"
+        OP "in"
+        IDENTIFIER "val"
+      }
+      RPAREN
+      BODY {
+        SAME-LINE
+        RETURN {
+          KEYWORD "return"
+          SP
+          CONSTANT "\"eee\""
+          SEMI
+        }
+      }
+    }
+    BLANK
+    RETURN {
+      KEYWORD "return"
+      SP
+      IDENTIFIER "val"
+      SEMI
+    }
+    RBRACE
+  }
+}
+BLANK
+FUNC-DECL {
+  KEYWORD "function"
+  SP
+  IDENTIFIER "foo"
+  PARAMS {
+    LPAREN
+    RPAREN
+  }
+  BODY {
+    LBRACE
+    COMMENT-LEADING "# A comment."
+    IF-NO-ELSE {
+      KEYWORD "if"
+      SP
+      LPAREN
+      HAS-FIELD {
+        IDENTIFIER "fi"
+        OP "?$"
+        IDENTIFIER "md5"
+      }
+      RPAREN
+      BODY {
+        SAME-LINE
+        EXPR-STMT {
+          BINARY-OP "=" {
+            FIELD-ACCESS {
+              IDENTIFIER "fi_red"
+              DOLLAR
+              IDENTIFIER "md5"
+            }
+            OP "="
+            FIELD-ACCESS {
+              IDENTIFIER "fi"
+              DOLLAR
+              IDENTIFIER "md5"
+            }
+          }
+          SEMI
+        }
+      }
+    }
+    IF-NO-ELSE {
+      KEYWORD "if"
+      SP
+      LPAREN
+      HAS-FIELD {
+        IDENTIFIER "fi"
+        OP "?$"
+        IDENTIFIER "sha1"
+      }
+      RPAREN
+      BODY {
+        SAME-LINE
+        EXPR-STMT {
+          BINARY-OP "=" {
+            FIELD-ACCESS {
+              IDENTIFIER "fi_red"
+              DOLLAR
+              IDENTIFIER "sha1"
+            }
+            OP "="
+            FIELD-ACCESS {
+              IDENTIFIER "fi"
+              DOLLAR
+              IDENTIFIER "sha1"
+            }
+          }
+          SEMI
+        }
+      }
+    }
+    IF-NO-ELSE {
+      KEYWORD "if"
+      SP
+      LPAREN
+      HAS-FIELD {
+        IDENTIFIER "fi"
+        OP "?$"
+        IDENTIFIER "sha256"
+      }
+      RPAREN
+      BODY {
+        SAME-LINE
+        EXPR-STMT {
+          BINARY-OP "=" {
+            FIELD-ACCESS {
+              IDENTIFIER "fi_red"
+              DOLLAR
+              IDENTIFIER "sha256"
+            }
+            OP "="
+            FIELD-ACCESS {
+              IDENTIFIER "fi"
+              DOLLAR
+              IDENTIFIER "sha256"
+            }
+          }
+          SEMI
+        }
+      }
+    }
+    RBRACE
+  }
+}
+BLANK
+FUNC-DECL {
+  KEYWORD "function"
+  SP
+  IDENTIFIER "foo"
+  PARAMS {
+    LPAREN
+    RPAREN
+  }
+  BODY {
+    LBRACE
+    IF-NO-ELSE {
+      KEYWORD "if"
+      SP
+      LPAREN
+      BINARY-OP "||" {
+        BINARY-OP "||" {
+          BINARY-OP "||" {
+            BINARY-OP "||" {
+              BINARY-OP "<" {
+                IDENTIFIER "s0"
+                OP "<"
+                CONSTANT "0"
+              }
+              OP "||"
+              BINARY-OP ">" {
+                IDENTIFIER "s1"
+                OP ">"
+                CONSTANT "0"
+              }
+            }
+            OP "||"
+            BINARY-OP "<" {
+              IDENTIFIER "s2"
+              OP "<"
+              CONSTANT "0"
+            }
+          }
+          OP "||"
+          BINARY-OP ">" {
+            IDENTIFIER "s3"
+            OP ">"
+            CONSTANT "0"
+          }
+        }
+        OP "||"
+        BINARY-OP "<" {
+          IDENTIFIER "s4"
+          OP "<"
+          CONSTANT "0"
+        }
+      }
+      RPAREN
+      BODY {
+        EXPR-STMT {
+          CALL {
+            IDENTIFIER "foo"
+            ARGS {
+              LPAREN
+              RPAREN
+            }
+          }
+          SEMI
+        }
+      }
+    }
+    RBRACE
+  }
+}
+BLANK
+IF-NO-ELSE {
+  KEYWORD "if"
+  SP
+  LPAREN
+  BINARY-OP "&&" {
+    BINARY-OP "&&" {
+      BINARY-OP "&&" {
+        IDENTIFIER "first_condition"
+        OP "&&"
+        IDENTIFIER "second_condition"
+      }
+      OP "&&"
+      IDENTIFIER "third_condition"
+    }
+    OP "&&"
+    BINARY-OP ">" {
+      FIELD-ACCESS {
+        IDENTIFIER "some_object"
+        DOLLAR
+        IDENTIFIER "long_field"
+      }
+      OP ">"
+      FIELD-ACCESS {
+        IDENTIFIER "another_object"
+        DOLLAR
+        IDENTIFIER "other_field"
+      }
+    }
+  }
+  RPAREN
+  BODY {
+    SAME-LINE
+    EXPR-STMT {
+      CALL {
+        IDENTIFIER "do_something"
+        ARGS {
+          LPAREN
+          RPAREN
+        }
+      }
+      SEMI
+    }
+  }
+}
+BLANK
+IF-NO-ELSE {
+  KEYWORD "if"
+  SP
+  LPAREN
+  BINARY-OP "&&" {
+    HAS-FIELD {
+      BINARY-OP "&&" {
+        BINARY-OP "&&" {
+          IDENTIFIER "some_long_bool_variable_a"
+          OP "&&"
+          BINARY-OP "==" {
+            FIELD-ACCESS {
+              IDENTIFIER "result"
+              DOLLAR
+              IDENTIFIER "result_string"
+            }
+            OP "=="
+            CONSTANT "\"ok\""
+          }
+        }
+        OP "&&"
+        IDENTIFIER "result"
+      }
+      OP "?$"
+      IDENTIFIER "chain_certs"
+    }
+    OP "&&"
+    BINARY-OP ">" {
+      CARDINALITY {
+        OP "|"
+        FIELD-ACCESS {
+          IDENTIFIER "result"
+          DOLLAR
+          IDENTIFIER "chain_certs"
+        }
+        OP "|"
+      }
+      OP ">"
+      CONSTANT "2"
+    }
+  }
+  RPAREN
+  BODY {
+    SAME-LINE
+    PRINT {
+      KEYWORD "print"
+      SP
+      CONSTANT "\"x\""
+      SEMI
+    }
+  }
+}

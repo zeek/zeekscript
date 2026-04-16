@@ -1,0 +1,898 @@
+COMMENT-LEADING "# Function/event signatures: formal arg wrapping, &group, &is_used, nested function-type params, semicolon separator, global function types."
+COMMENT-LEADING "# test003.zeek"
+COMMENT-LEADING "# test008.zeek"
+COMMENT-LEADING "# test047.zeek"
+COMMENT-LEADING "# test048.zeek"
+COMMENT-LEADING "# test049.zeek"
+COMMENT-LEADING "# test050.zeek"
+COMMENT-LEADING "# test051.zeek"
+COMMENT-LEADING "# test058.zeek"
+COMMENT-LEADING "# test063.zeek"
+COMMENT-LEADING "# test194.zeek"
+COMMENT-LEADING "# test201.zeek"
+COMMENT-LEADING "# test208.zeek"
+COMMENT-LEADING "# test221.zeek"
+COMMENT-LEADING "# test238.zeek"
+COMMENT-LEADING "# test249.zeek"
+COMMENT-LEADING "# test265.zeek"
+COMMENT-LEADING "# test266.zeek"
+COMMENT-LEADING "# test282.zeek"
+BLANK
+FUNC-DECL {
+  KEYWORD "event"
+  SP
+  IDENTIFIER "some_handler"
+  PARAMS {
+    LPAREN
+    PARAM "c" {
+      COLON
+      TYPE-ATOM "connection"
+    }
+    COMMA
+    PARAM "is_orig" {
+      COLON
+      TYPE-ATOM "bool"
+    }
+    COMMA
+    PARAM "payload" {
+      COLON
+      TYPE-ATOM "string"
+    }
+    RPAREN
+  }
+  BODY {
+    LBRACE
+    ADD {
+      KEYWORD "add"
+      SP
+      INDEX {
+        FIELD-ACCESS {
+          IDENTIFIER "c"
+          DOLLAR
+          IDENTIFIER "app"
+        }
+        SUBSCRIPTS {
+          LBRACKET
+          CONSTANT "\"test\""
+          RBRACKET
+        }
+      }
+      SEMI
+    }
+    RBRACE
+  }
+  COMMENT-TRAILING "#@ NOT-TESTED"
+}
+BLANK
+FUNC-DECL {
+  KEYWORD "event"
+  SP
+  IDENTIFIER "some_event"
+  PARAMS {
+    LPAREN
+    PARAM "some_arg" {
+      COLON
+      TYPE-ATOM "string"
+    }
+    RPAREN
+  }
+  BODY {
+    LBRACE
+    LOCAL-DECL {
+      KEYWORD "local"
+      SP
+      IDENTIFIER "some_name"
+      DECL-INIT {
+        ASSIGN "="
+        CALL {
+          IDENTIFIER "some_func"
+          ARGS {
+            LPAREN
+            IDENTIFIER "arg_one"
+            COMMA
+            IDENTIFIER "arg_two"
+            COMMA
+            IDENTIFIER "arg_three"
+            RPAREN
+          }
+        }
+      }
+      SEMI
+    }
+    RBRACE
+  }
+}
+BLANK
+FUNC-DECL {
+  KEYWORD "event"
+  SP
+  IDENTIFIER "SomeModule::some_raised_evt"
+  PARAMS {
+    LPAREN
+    PARAM "c" {
+      COLON
+      TYPE-ATOM "connection"
+    }
+    COMMA
+    PARAM "is_orig" {
+      COLON
+      TYPE-ATOM "bool"
+    }
+    COMMA
+    PARAM "version" {
+      COLON
+      TYPE-ATOM "count"
+    }
+    COMMA
+    PARAM "some_dcid" {
+      COLON
+      TYPE-ATOM "string"
+    }
+    COMMA
+    PARAM "some_scid" {
+      COLON
+      TYPE-ATOM "string"
+    }
+    COMMA
+    PARAM "some_retoken" {
+      COLON
+      TYPE-ATOM "string"
+    }
+    COMMA
+    PARAM "some_integ_tag" {
+      COLON
+      TYPE-ATOM "string"
+    }
+    RPAREN
+  }
+  ATTR-LIST {
+    ATTR "&group" {
+      ASSIGN "="
+      IDENTIFIER "SomeEvtGroup"
+    }
+  }
+  BODY {
+    LBRACE
+    PRINT {
+      KEYWORD "print"
+      SP
+      IDENTIFIER "c"
+      SEMI
+    }
+    RBRACE
+  }
+}
+BLANK
+FUNC-DECL {
+  KEYWORD "event"
+  SP
+  IDENTIFIER "foo"
+  PARAMS {
+    LPAREN
+    PARAM "c" {
+      COLON
+      TYPE-ATOM "connection"
+    }
+    RPAREN
+  }
+  ATTR-LIST {
+    ATTR "&group" {
+      ASSIGN "="
+      IDENTIFIER "bar"
+    }
+  }
+  BODY {
+    LBRACE
+    PRINT {
+      KEYWORD "print"
+      SP
+      IDENTIFIER "c"
+      SEMI
+    }
+    RBRACE
+  }
+}
+BLANK
+FUNC-DECL {
+  KEYWORD "event"
+  SP
+  IDENTIFIER "some_generic_packet_threshold_crossed"
+  PARAMS {
+    LPAREN
+    PARAM "c" {
+      COLON
+      TYPE-ATOM "connection"
+    }
+    COMMA
+    PARAM "threshold" {
+      COLON
+      TYPE-ATOM "count"
+    }
+    RPAREN
+  }
+  ATTR-LIST {
+    ATTR "&group" {
+      ASSIGN "="
+      IDENTIFIER "MyPkg_SomeUnknownprotos_EvtGroup"
+    }
+  }
+  BODY {
+    LBRACE
+    PRINT {
+      KEYWORD "print"
+      SP
+      IDENTIFIER "c"
+      SEMI
+    }
+    RBRACE
+  }
+}
+BLANK
+FUNC-DECL {
+  KEYWORD "event"
+  SP
+  IDENTIFIER "ssl_extension"
+  PARAMS {
+    LPAREN
+    PARAM "c" {
+      COLON
+      TYPE-ATOM "connection"
+    }
+    COMMA
+    PARAM "is_client" {
+      COLON
+      TYPE-ATOM "bool"
+    }
+    COMMA
+    PARAM "code" {
+      COLON
+      TYPE-ATOM "count"
+    }
+    COMMA
+    PARAM "val" {
+      COLON
+      TYPE-ATOM "string"
+    }
+    RPAREN
+  }
+  ATTR-LIST {
+    ATTR "&group" {
+      ASSIGN "="
+      CONSTANT "\"doh-generic\""
+    }
+  }
+  BODY {
+    LBRACE
+    RBRACE
+  }
+}
+BLANK
+FUNC-DECL {
+  KEYWORD "event"
+  SP
+  IDENTIFIER "some_encrypted_data"
+  PARAMS {
+    LPAREN
+    PARAM "c" {
+      COLON
+      TYPE-ATOM "connection"
+    }
+    COMMA
+    PARAM "is_orig" {
+      COLON
+      TYPE-ATOM "bool"
+    }
+    COMMA
+    PARAM "some_record_vers" {
+      COLON
+      TYPE-ATOM "count"
+    }
+    COMMA
+    PARAM "some_content_t" {
+      COLON
+      TYPE-ATOM "count"
+    }
+    COMMA
+    PARAM "length" {
+      COLON
+      TYPE-ATOM "count"
+    }
+    RPAREN
+  }
+  ATTR-LIST {
+    ATTR "&group" {
+      ASSIGN "="
+      CONSTANT "\"some-group\""
+    }
+  }
+  BODY {
+    LBRACE
+    RBRACE
+  }
+}
+BLANK
+FUNC-DECL {
+  KEYWORD "event"
+  SP
+  IDENTIFIER "some_handler"
+  PARAMS {
+    LPAREN
+    PARAM "aa" {
+      COLON
+      TYPE-ATOM "connection"
+    }
+    COMMA
+    PARAM "bb" {
+      COLON
+      TYPE-ATOM "bool"
+    }
+    COMMA
+    PARAM "cc" {
+      COLON
+      TYPE-ATOM "count"
+    }
+    COMMA
+    PARAM "dd" {
+      COLON
+      TYPE-ATOM "string"
+    }
+    COMMA
+    PARAM "ee" {
+      COLON
+      TYPE-ATOM "string"
+    }
+    COMMA
+    PARAM "ff" {
+      COLON
+      TYPE-ATOM "string"
+    }
+    COMMA
+    PARAM "gg" {
+      COLON
+      TYPE-ATOM "string"
+    }
+    COMMA
+    PARAM "hh" {
+      COLON
+      TYPE-ATOM "string"
+    }
+    COMMA
+    PARAM "ii" {
+      COLON
+      TYPE-ATOM "string"
+    }
+    COMMA
+    PARAM "jj" {
+      COLON
+      TYPE-ATOM "bool"
+    }
+    RPAREN
+  }
+  BODY {
+    LBRACE
+    RBRACE
+  }
+}
+BLANK
+FUNC-DECL {
+  KEYWORD "event"
+  SP
+  IDENTIFIER "SomeModule::Geneve::some_filtered_option"
+  PARAMS {
+    LPAREN
+    PARAM "inner_c" {
+      COLON
+      TYPE-ATOM "connection"
+    }
+    COMMA
+    PARAM "inner_hdr" {
+      COLON
+      TYPE-ATOM "pkt_hdr"
+    }
+    COMMA
+    PARAM "vni" {
+      COLON
+      TYPE-ATOM "count"
+    }
+    COMMA
+    PARAM "flags" {
+      COLON
+      TYPE-ATOM "count"
+    }
+    COMMA
+    PARAM "opt" {
+      COLON
+      TYPE-ATOM "SomeModule::Geneve::some_geneve_hdr_option"
+    }
+    RPAREN
+  }
+  BODY {
+    LBRACE
+    RBRACE
+  }
+}
+BLANK
+FUNC-DECL {
+  KEYWORD "event"
+  SP
+  IDENTIFIER "Some::handler"
+  PARAMS {
+    LPAREN
+    PARAM "c" {
+      COLON
+      TYPE-ATOM "connection"
+    }
+    COMMA
+    PARAM "is_orig" {
+      COLON
+      TYPE-ATOM "bool"
+    }
+    COMMA
+    PARAM "name" {
+      COLON
+      TYPE-ATOM "string"
+    }
+    COMMA
+    PARAM "value" {
+      COLON
+      TYPE-ATOM "string"
+    }
+    RPAREN
+  }
+  BODY {
+    LBRACE
+    RBRACE
+  }
+  COMMENT-TRAILING "#@ NOT-TESTED"
+}
+BLANK
+FUNC-DECL {
+  KEYWORD "event"
+  SP
+  IDENTIFIER "some_rpc_handler"
+  PARAMS {
+    LPAREN
+    PARAM "aa" {
+      COLON
+      TYPE-ATOM "connection"
+    }
+    COMMA
+    PARAM "bbb" {
+      COLON
+      TYPE-ATOM "count"
+    }
+    COMMA
+    PARAM "cccc" {
+      COLON
+      TYPE-ATOM "count"
+    }
+    COMMA
+    PARAM "ddd" {
+      COLON
+      TYPE-ATOM "string"
+    }
+    COMMA
+    PARAM "eee_major" {
+      COLON
+      TYPE-ATOM "count"
+    }
+    COMMA
+    PARAM "fff_minor" {
+      COLON
+      TYPE-ATOM "count"
+    }
+    RPAREN
+  }
+  BODY {
+    LBRACE
+    RBRACE
+  }
+  COMMENT-TRAILING "#@ NOT-TESTED"
+}
+BLANK
+FUNC-DECL {
+  KEYWORD "function"
+  SP
+  IDENTIFIER "register_use_case"
+  PARAMS {
+    LPAREN
+    PARAM "use_case" {
+      COLON
+      TYPE-ATOM "string"
+    }
+    COMMA
+    PARAM "notice_lambda" {
+      COLON
+      TYPE-FUNC "function" {
+        PARAMS {
+          LPAREN
+          PARAM "o_h" {
+            COLON
+            TYPE-ATOM "addr"
+          }
+          COMMA
+          PARAM "si" {
+            COLON
+            TYPE-ATOM "ProxySourceInfo"
+          }
+          RPAREN
+        }
+      }
+    }
+    COMMA
+    PARAM "volume_threshold" {
+      COLON
+      TYPE-ATOM "double"
+      ATTR-LIST {
+        ATTR "&default" {
+          ASSIGN "="
+          IDENTIFIER "default_volume_threshold"
+        }
+      }
+    }
+    RPAREN
+  }
+  BODY {
+    LBRACE
+    RBRACE
+  }
+}
+BLANK
+EXPORT {
+  KEYWORD "export"
+  SP
+  LBRACE
+  GLOBAL-DECL {
+    KEYWORD "global"
+    SP
+    IDENTIFIER "observation_result"
+    DECL-TYPE {
+      COLON
+      TYPE-FUNC "function" {
+        PARAMS {
+          LPAREN
+          PARAM "o" {
+            COLON
+            TYPE-ATOM "string"
+          }
+          COMMA
+          PARAM "label" {
+            COLON
+            TYPE-ATOM "string"
+          }
+          COMMA
+          PARAM "conf" {
+            COLON
+            TYPE-ATOM "Confidence::level"
+          }
+          COMMA
+          PARAM "source" {
+            COLON
+            TYPE-ATOM "string"
+          }
+          COMMA
+          PARAM "caller" {
+            COLON
+            TYPE-ATOM "string"
+          }
+          COMMA
+          PARAM "cache" {
+            COLON
+            TYPE-ATOM "bool"
+            ATTR-LIST {
+              ATTR "&default" {
+                ASSIGN "="
+                CONSTANT "F"
+              }
+            }
+          }
+          RPAREN
+        }
+      }
+    }
+    SEMI
+  }
+  RBRACE
+}
+BLANK
+EXPORT {
+  KEYWORD "export"
+  SP
+  LBRACE
+  GLOBAL-DECL {
+    KEYWORD "global"
+    SP
+    IDENTIFIER "has_text_runs"
+    DECL-TYPE {
+      COLON
+      TYPE-FUNC-RET "function" {
+        PARAMS {
+          LPAREN
+          PARAM "data" {
+            COLON
+            TYPE-ATOM "string"
+          }
+          COMMA
+          PARAM "length" {
+            COLON
+            TYPE-ATOM "count"
+          }
+          COMMA
+          PARAM "run_min" {
+            COLON
+            TYPE-ATOM "count"
+          }
+          COMMA
+          PARAM "runs_min" {
+            COLON
+            TYPE-ATOM "count"
+          }
+          RPAREN
+        }
+        COLON
+        RETURNS {
+          TYPE-ATOM "bool"
+        }
+      }
+    }
+    SEMI
+  }
+  RBRACE
+}
+BLANK
+FUNC-DECL {
+  KEYWORD "event"
+  SP
+  IDENTIFIER "Aaaaaaaaaaaa::xxxxxx_xxxx_xx_xx_xxxxxx_xxx"
+  PARAMS {
+    LPAREN
+    PARAM "xx_xxxxxxx" {
+      COLON
+      TYPE-PARAMETERIZED "set" {
+        SUBSCRIPTS {
+          LBRACKET
+          TYPE-ATOM "addr"
+          COMMA
+          TYPE-ATOM "bool"
+          COMMA
+          TYPE-ATOM "bool"
+          RBRACKET
+        }
+      }
+    }
+    RPAREN
+  }
+  ATTR-LIST {
+    ATTR "&is_used"
+  }
+  BODY {
+    LBRACE
+    IF-NO-ELSE {
+      KEYWORD "if"
+      SP
+      LPAREN
+      BINARY-OP "!=" {
+        IDENTIFIER "Aaaaaaa::xxxx"
+        OP "!="
+        IDENTIFIER "Aaaaaaaaaaaa::xxxxxxxxxxxxx"
+      }
+      RPAREN
+      BODY {
+        SAME-LINE
+        BLOCK {
+          LBRACE
+          EXPR-STMT {
+            CALL {
+              IDENTIFIER "xxxxxxxxxxxxxx"
+              ARGS {
+                LPAREN
+                CALL {
+                  IDENTIFIER "xxx"
+                  ARGS {
+                    LPAREN
+                    CONSTANT "\"[AAAAAA_AAAAAAA] Aaaaaaaa aaaaaaa aaaaa aaaa %s -> %s in %s\""
+                    COMMA
+                    CONSTANT "\"update_addr_to_vt_counts_evt\""
+                    RPAREN
+                  }
+                }
+                RPAREN
+              }
+            }
+            SEMI
+          }
+          RBRACE
+        }
+      }
+    }
+    RBRACE
+  }
+  COMMENT-TRAILING "#@ NOT-TESTED"
+}
+BLANK
+FUNC-DECL {
+  KEYWORD "event"
+  SP
+  IDENTIFIER "aaa_aaaaaaaaa_aaaaaa_aa_aaa"
+  PARAMS {
+    LPAREN
+    PARAM "aaa" {
+      COLON
+      TYPE-ATOM "Input::AAAAAAAAAAAAaaaa"
+    }
+    COMMA
+    PARAM "aa" {
+      COLON
+      TYPE-ATOM "Input::Aaaaa"
+    }
+    COMMA
+    PARAM "AAAA" {
+      COLON
+      TYPE-ATOM "subnet"
+    }
+    RPAREN
+  }
+  BODY {
+    LBRACE
+    RBRACE
+  }
+}
+BLANK
+FUNC-DECL {
+  KEYWORD "function"
+  SP
+  IDENTIFIER "aaa_bbb_ccc_ddd_eeeee"
+  PARAMS {
+    LPAREN
+    PARAM "ff" {
+      COLON
+      TYPE-FUNC "event" {
+        PARAMS {
+          LPAREN
+          PARAM "ggg_hhh_iiis" {
+            COLON
+            TYPE-OF "vector" {
+              KEYWORD "of"
+              SP
+              TYPE-ATOM "time"
+            }
+          }
+          COMMA
+          PARAM "jjj_kkkk" {
+            COLON
+            TYPE-OF "vector" {
+              KEYWORD "of"
+              SP
+              TYPE-ATOM "string"
+            }
+          }
+          COMMA
+          PARAM "lll_mmm" {
+            COLON
+            TYPE-OF "vector" {
+              KEYWORD "of"
+              SP
+              TYPE-ATOM "conn_id"
+            }
+          }
+          COMMA
+          PARAM "nnn_ooo_pp" {
+            COLON
+            TYPE-ATOM "time"
+          }
+          COMMA
+          PARAM "qqqqqqqqq" {
+            COLON
+            TYPE-ATOM "string"
+          }
+          COMMA
+          PARAM "rrrrr_ssssss" {
+            COLON
+            TYPE-ATOM "string"
+          }
+          COMMA
+          PARAM "tttt" {
+            COLON
+            TYPE-ATOM "string"
+          }
+          COMMA
+          PARAM "uuuuuu" {
+            COLON
+            TYPE-ATOM "string"
+          }
+          COMMA
+          PARAM "vvvv_wwww" {
+            COLON
+            TYPE-ATOM "string"
+          }
+          COMMA
+          PARAM "xxx" {
+            COLON
+            TYPE-ATOM "string"
+          }
+          COMMA
+          PARAM "yyy" {
+            COLON
+            TYPE-ATOM "string"
+          }
+          COMMA
+          PARAM "zzzzzz" {
+            COLON
+            TYPE-ATOM "string"
+          }
+          RPAREN
+        }
+      }
+    }
+    COMMA
+    PARAM "zzzzzz" {
+      COLON
+      TYPE-ATOM "string"
+    }
+    RPAREN
+  }
+  BODY {
+    LBRACE
+    RBRACE
+  }
+}
+BLANK
+EXPORT {
+  KEYWORD "export"
+  SP
+  LBRACE
+  GLOBAL-DECL {
+    KEYWORD "global"
+    SP
+    IDENTIFIER "aaaaaaaaa_aa"
+    DECL-TYPE {
+      COLON
+      TYPE-FUNC-RET "function" {
+        PARAMS {
+          LPAREN
+          PARAM "t" {
+            COLON
+            TYPE-PARAMETERIZED "table" {
+              SUBSCRIPTS {
+                LBRACKET
+                TYPE-ATOM "addr"
+                COMMA
+                TYPE-ATOM "addr"
+                RBRACKET
+              }
+              KEYWORD "of"
+              SP
+              TYPE-PARAMETERIZED "set" {
+                SUBSCRIPTS {
+                  LBRACKET
+                  TYPE-ATOM "time"
+                  COMMA
+                  TYPE-ATOM "string"
+                  RBRACKET
+                }
+              }
+            }
+          }
+          COMMA
+          PARAM "aaaa_a" {
+            COLON
+            TYPE-ATOM "addr"
+          }
+          COMMA
+          PARAM "aaaa_a" {
+            COLON
+            TYPE-ATOM "addr"
+          }
+          RPAREN
+        }
+        COLON
+        RETURNS {
+          TYPE-ATOM "interval"
+        }
+      }
+    }
+    SEMI
+  }
+  RBRACE
+}
+SEMI

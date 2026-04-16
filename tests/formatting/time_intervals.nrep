@@ -1,0 +1,19 @@
+COMMENT-LEADING "# Time interval literals: space/no-space before unit, floating point."
+COMMENT-LEADING "# test088.zeek"
+COMMENT-LEADING "# test089.zeek"
+COMMENT-LEADING "# test090.zeek"
+BLANK
+EXPR-STMT {
+  INTERVAL "1" "sec"
+  SEMI
+}
+BLANK
+EXPR-STMT {
+  INTERVAL "1" "min"
+  SEMI
+}
+BLANK
+EXPR-STMT {
+  INTERVAL "3.5" "hrs"
+  SEMI
+}

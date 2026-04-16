@@ -1,0 +1,413 @@
+COMMENT-LEADING "# Comments: trailing on various statement types, pre-comments, doc-comments, comment-only file, comment after close, #@ annotations, bare block with comment, pattern table with interleaved comments."
+COMMENT-LEADING "# test032.zeek"
+COMMENT-LEADING "# test062.zeek"
+COMMENT-LEADING "# test152.zeek"
+COMMENT-LEADING "# test153.zeek"
+COMMENT-LEADING "# test155.zeek"
+COMMENT-LEADING "# test156.zeek"
+COMMENT-LEADING "# test157.zeek"
+COMMENT-LEADING "# test159.zeek"
+COMMENT-LEADING "# test160.zeek"
+COMMENT-LEADING "# test161.zeek"
+COMMENT-LEADING "# test192.zeek"
+COMMENT-LEADING "# test193.zeek"
+COMMENT-LEADING "# test195.zeek"
+COMMENT-LEADING "# test202.zeek"
+COMMENT-LEADING "# test214.zeek"
+BLANK
+FUNC-DECL {
+  KEYWORD "event"
+  SP
+  IDENTIFIER "zeek_init"
+  PARAMS {
+    LPAREN
+    RPAREN
+  }
+  BODY {
+    LBRACE
+    RBRACE
+  }
+}
+COMMENT-LEADING "# Comment on next line."
+BLANK
+FUNC-DECL {
+  KEYWORD "event"
+  SP
+  IDENTIFIER "some_evt"
+  PARAMS {
+    LPAREN
+    RPAREN
+  }
+  BODY {
+    LBRACE
+    ADD {
+      KEYWORD "add"
+      SP
+      INDEX {
+        IDENTIFIER "some_set"
+        SUBSCRIPTS {
+          LBRACKET
+          IDENTIFIER "val"
+          RBRACKET
+        }
+      }
+      SEMI
+    }
+    COMMENT-TRAILING "# track it"
+    DELETE {
+      KEYWORD "delete"
+      SP
+      INDEX {
+        IDENTIFIER "some_set"
+        SUBSCRIPTS {
+          LBRACKET
+          IDENTIFIER "val"
+          RBRACKET
+        }
+      }
+      SEMI
+    }
+    COMMENT-TRAILING "# remove it"
+    RBRACE
+  }
+}
+BLANK
+FUNC-DECL {
+  KEYWORD "event"
+  SP
+  IDENTIFIER "some_evt"
+  PARAMS {
+    LPAREN
+    RPAREN
+  }
+  BODY {
+    LBRACE
+    ASSERT {
+      KEYWORD "assert"
+      SP
+      BINARY-OP "==" {
+        CONSTANT "1"
+        OP "=="
+        CONSTANT "1"
+      }
+      SEMI
+    }
+    COMMENT-TRAILING "# sanity"
+    RBRACE
+  }
+}
+BLANK
+FUNC-DECL {
+  KEYWORD "function"
+  SP
+  IDENTIFIER "some_func"
+  PARAMS {
+    LPAREN
+    PARAM "a" {
+      COLON
+      TYPE-ATOM "count"
+    }
+    COMMA
+    PARAM "b" {
+      COLON
+      TYPE-ATOM "string"
+    }
+    COMMA
+    PARAM "rec" {
+      COLON
+      TYPE-ATOM "SomeRec"
+    }
+    RPAREN
+  }
+  BODY {
+    LBRACE
+    IF-NO-ELSE {
+      KEYWORD "if"
+      SP
+      LPAREN
+      BINARY-OP "in" {
+        IDENTIFIER "rec"
+        OP "in"
+        IDENTIFIER "did_check"
+      }
+      RPAREN
+      COMMENT-TRAILING "#@ BEGIN-SKIP-TESTING"
+      BODY {
+        RETURN-VOID {
+          KEYWORD "return"
+          SP
+          SEMI
+        }
+      }
+    }
+    RBRACE
+  }
+}
+BLANK
+FUNC-DECL {
+  KEYWORD "event"
+  SP
+  IDENTIFIER "some_evt"
+  PARAMS {
+    LPAREN
+    RPAREN
+  }
+  BODY {
+    LBRACE
+    LOCAL-DECL {
+      KEYWORD "local"
+      SP
+      IDENTIFIER "x"
+      DECL-INIT {
+        ASSIGN "="
+        CONSTANT "1"
+      }
+      SEMI
+    }
+    COMMENT-TRAILING "# init"
+    RBRACE
+  }
+}
+BLANK
+MODULE "SomeMod" {
+  KEYWORD "module"
+  SP
+  IDENTIFIER "SomeMod"
+  SEMI
+}
+COMMENT-TRAILING "# main module"
+BLANK
+FUNC-DECL {
+  KEYWORD "event"
+  SP
+  IDENTIFIER "some_evt"
+  PARAMS {
+    LPAREN
+    RPAREN
+  }
+  BODY {
+    LBRACE
+    COMMENT-TRAILING "# Start tracking."
+    PRINT {
+      KEYWORD "print"
+      SP
+      CONSTANT "1"
+      SEMI
+    }
+    RBRACE
+  }
+}
+BLANK
+FUNC-DECL-RET {
+  KEYWORD "function"
+  SP
+  IDENTIFIER "some_func"
+  PARAMS {
+    LPAREN
+    RPAREN
+  }
+  COLON
+  RETURNS {
+    TYPE-ATOM "count"
+  }
+  BODY {
+    LBRACE
+    RETURN {
+      KEYWORD "return"
+      SP
+      CONSTANT "42"
+      SEMI
+    }
+    COMMENT-TRAILING "# the answer"
+    RBRACE
+  }
+}
+BLANK
+GLOBAL-DECL {
+  KEYWORD "const"
+  SP
+  IDENTIFIER "service_patterns"
+  DECL-INIT {
+    ASSIGN "="
+    CONSTRUCTOR {
+      KEYWORD "table"
+      ARGS {
+        LPAREN
+        BINARY-OP "=" {
+          INDEX-LITERAL {
+            ARGS {
+              LBRACKET
+              CONSTANT "/(.*\\.)?(akamaized|akamaihd|akamai|akamaiapis)\\.(com|net)/i"
+              RBRACKET
+            }
+          }
+          OP "="
+          CONSTANT "\"akamai\""
+        }
+        COMMA
+        COMMENT-LEADING "# Meta domains."
+        BINARY-OP "=" {
+          INDEX-LITERAL {
+            ARGS {
+              LBRACKET
+              CONSTANT "/(.*\\.)?(meta|(oculus(cdn)?)|facebook(-dns|-hardware)?|fbcdn)\\.(com|net)/i"
+              RBRACKET
+            }
+          }
+          OP "="
+          CONSTANT "\"facebook\""
+        }
+        COMMA
+        TRAILING-COMMA
+        RPAREN
+      }
+    }
+  }
+  SEMI
+}
+BLANK
+GLOBAL-DECL {
+  KEYWORD "const"
+  SP
+  IDENTIFIER "service_patterns"
+  DECL-INIT {
+    ASSIGN "="
+    CONSTRUCTOR {
+      KEYWORD "table"
+      ARGS {
+        LPAREN
+        BINARY-OP "=" {
+          INDEX-LITERAL {
+            ARGS {
+              LBRACKET
+              CONSTANT "/(.*\\.)?(akamaized|akamaihd|akamai|akamaiapis)\\.(com|net)/i"
+              RBRACKET
+            }
+          }
+          OP "="
+          CONSTANT "\"akamai\""
+        }
+        COMMA
+        BLANK
+        COMMENT-LEADING "# Meta domains."
+        BINARY-OP "=" {
+          INDEX-LITERAL {
+            ARGS {
+              LBRACKET
+              CONSTANT "/(.*\\.)?(meta|(oculus(cdn)?)|facebook(-dns|-hardware)?|fbcdn)\\.(com|net)/i"
+              RBRACKET
+            }
+          }
+          OP "="
+          CONSTANT "\"facebook\""
+        }
+        COMMA
+        TRAILING-COMMA
+        RPAREN
+      }
+    }
+  }
+  SEMI
+}
+BLANK
+GLOBAL-DECL {
+  KEYWORD "const"
+  SP
+  IDENTIFIER "some_patterns"
+  DECL-INIT {
+    ASSIGN "="
+    CONSTRUCTOR {
+      KEYWORD "table"
+      ARGS {
+        LPAREN
+        BINARY-OP "=" {
+          INDEX-LITERAL {
+            ARGS {
+              LBRACKET
+              CONSTANT "/aaa/i"
+              RBRACKET
+            }
+          }
+          OP "="
+          CONSTANT "\"aaa\""
+        }
+        COMMA
+        COMMENT-LEADING "# Group end"
+        BLANK
+        BINARY-OP "=" {
+          INDEX-LITERAL {
+            ARGS {
+              LBRACKET
+              CONSTANT "/bbb/i"
+              RBRACKET
+            }
+          }
+          OP "="
+          CONSTANT "\"bbb\""
+        }
+        COMMA
+        TRAILING-COMMA
+        RPAREN
+      }
+    }
+  }
+  SEMI
+}
+BLANK
+FUNC-DECL {
+  KEYWORD "function"
+  SP
+  IDENTIFIER "foo"
+  PARAMS {
+    LPAREN
+    RPAREN
+  }
+  BODY {
+    LBRACE
+    BLOCK {
+      LBRACE
+      COMMENT-LEADING "# a comment"
+      RBRACE
+    }
+    RBRACE
+  }
+}
+BLANK
+COMMENT-LEADING "# Trailing comment on last element before closing paren."
+GLOBAL-DECL {
+  KEYWORD "redef"
+  SP
+  IDENTIFIER "login_timeouts"
+  DECL-INIT {
+    ASSIGN "="
+    CONSTRUCTOR {
+      KEYWORD "set"
+      ARGS {
+        LPAREN
+        CONSTANT "\"timed out\""
+        COMMA
+        CONSTANT "\"Timeout\""
+        COMMA
+        CONSTANT "\"Timed out\""
+        COMMA
+        COMMENT-TRAILING "# Comment 1"
+        CONSTANT "\"Error reading command input\""
+        COMMA
+        COMMENT-TRAILING "# Comment 2"
+        TRAILING-COMMA
+        RPAREN
+      }
+    }
+  }
+  SEMI
+}
+BLANK
+PRINT {
+  KEYWORD "print"
+  SP
+  CONSTANT "\"hello\""
+  SEMI
+}
+COMMENT-TRAILING "# a note"
+BLANK
+SEMI

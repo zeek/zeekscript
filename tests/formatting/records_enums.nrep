@@ -1,0 +1,613 @@
+COMMENT-LEADING "# Record and enum types: fields with attributes, doc-comments, trailing comments, one-liner/multi-line enums, fill-enum, redef record/enum."
+COMMENT-LEADING "# test044.zeek"
+COMMENT-LEADING "# test045.zeek"
+COMMENT-LEADING "# test046.zeek"
+COMMENT-LEADING "# test121.zeek"
+COMMENT-LEADING "# test131.zeek"
+COMMENT-LEADING "# test133.zeek"
+COMMENT-LEADING "# test166.zeek"
+COMMENT-LEADING "# test175.zeek"
+COMMENT-LEADING "# test177.zeek"
+COMMENT-LEADING "# test179.zeek"
+COMMENT-LEADING "# test184.zeek"
+COMMENT-LEADING "# test223.zeek"
+COMMENT-LEADING "# test224.zeek"
+COMMENT-LEADING "# test262.zeek"
+COMMENT-LEADING "# test269.zeek"
+COMMENT-LEADING "# test273.zeek"
+COMMENT-LEADING "# test274.zeek"
+BLANK
+EXPORT {
+  KEYWORD "export"
+  SP
+  LBRACE
+  TYPEDECL-ENUM "AnomalyTypes" {
+    KEYWORD "type"
+    SP
+    IDENTIFIER "AnomalyTypes"
+    COLON
+    SP
+    TYPE-ENUM {
+      KEYWORD "enum"
+      SP
+      LBRACE
+      ENUM-VALUE "ANOMALY"
+      COMMA
+      ENUM-VALUE "NEW_ENTITY"
+      COMMA
+      ENUM-VALUE "NEW_ITEM"
+      COMMA
+      ENUM-VALUE "NEW_ENTITY_NEW_ITEM"
+      COMMA
+      ENUM-VALUE "NEW_ENTITY_ITEM_PAIR"
+      COMMA
+      ENUM-VALUE "UNKNOWN"
+      RBRACE
+    }
+    SEMI
+  }
+  RBRACE
+}
+BLANK
+TYPEDECL-ENUM "SomeEnumAA" {
+  KEYWORD "type"
+  SP
+  IDENTIFIER "SomeEnumAA"
+  COLON
+  SP
+  TYPE-ENUM {
+    KEYWORD "enum"
+    SP
+    LBRACE
+    ENUM-VALUE "SE_DNS_A"
+    COMMA
+    ENUM-VALUE "SE_DNS_AAAA"
+    COMMA
+    ENUM-VALUE "SE_DNS_A6"
+    COMMA
+    ENUM-VALUE "SE_DNS_PTR"
+    COMMA
+    ENUM-VALUE "SE_HTTP_HOST"
+    COMMA
+    ENUM-VALUE "SE_TLS_SNI"
+    COMMA
+    ENUM-VALUE "SE_NTLM_AUTH"
+    COMMA
+    ENUM-VALUE "SE_UNKNOWN"
+    COMMA
+    TRAILING-COMMA
+    RBRACE
+  }
+  SEMI
+}
+BLANK
+TYPEDECL-ENUM "score" {
+  KEYWORD "type"
+  SP
+  IDENTIFIER "score"
+  COLON
+  SP
+  TYPE-ENUM {
+    KEYWORD "enum"
+    SP
+    LBRACE
+    ENUM-VALUE "NOT" "= 0"
+    COMMA
+    ENUM-VALUE "LOW" "= 1"
+    COMMA
+    ENUM-VALUE "MED" "= 2"
+    COMMA
+    ENUM-VALUE "HIGH" "= 3"
+    RBRACE
+  }
+  SEMI
+}
+BLANK
+TYPEDECL-RECORD "Foo" {
+  KEYWORD "type"
+  SP
+  IDENTIFIER "Foo"
+  COLON
+  SP
+  TYPE-RECORD {
+    KEYWORD "record"
+    SP
+    LBRACE
+    FIELD "aa" {
+      COLON
+      TYPE-ATOM "string"
+      ATTR-LIST {
+        ATTR "&default" {
+          ASSIGN "="
+          CONSTANT "\"\""
+        }
+      }
+      SEMI
+    }
+    FIELD "bb" {
+      COLON
+      TYPE-ATOM "count"
+      ATTR-LIST {
+        ATTR "&default" {
+          ASSIGN "="
+          CONSTANT "0"
+        }
+      }
+      SEMI
+    }
+    COMMENT-TRAILING "# a comment"
+    BLANK
+    FIELD "cc" {
+      COLON
+      TYPE-ATOM "bool"
+      SEMI
+    }
+    FIELD "dd" {
+      COLON
+      TYPE-ATOM "bool"
+      ATTR-LIST {
+        ATTR "&default" {
+          ASSIGN "="
+          CONSTANT "F"
+        }
+      }
+      SEMI
+    }
+    RBRACE
+  }
+  SEMI
+}
+BLANK
+EXPORT {
+  KEYWORD "export"
+  SP
+  LBRACE
+  TYPEDECL-RECORD "SomeAttrs" {
+    KEYWORD "type"
+    SP
+    IDENTIFIER "SomeAttrs"
+    COLON
+    SP
+    TYPE-RECORD {
+      KEYWORD "record"
+      SP
+      LBRACE
+      FIELD "some_strings" {
+        COLON
+        TYPE-PARAMETERIZED "set" {
+          SUBSCRIPTS {
+            LBRACKET
+            TYPE-ATOM "string"
+            RBRACKET
+          }
+        }
+        ATTR-LIST {
+          ATTR "&log"
+          ATTR "&optional"
+        }
+        SEMI
+      }
+      COMMENT-TRAILING "# A set of associated strings"
+      RBRACE
+    }
+    SEMI
+  }
+  RBRACE
+}
+BLANK
+TYPEDECL-RECORD "SomeInfo" {
+  KEYWORD "type"
+  SP
+  IDENTIFIER "SomeInfo"
+  COLON
+  SP
+  TYPE-RECORD {
+    KEYWORD "record"
+    SP
+    LBRACE
+    COMMENT-LEADING "## A timestamp field."
+    FIELD "ts" {
+      COLON
+      TYPE-ATOM "time"
+      ATTR-LIST {
+        ATTR "&log"
+      }
+      SEMI
+    }
+    BLANK
+    COMMENT-LEADING "## A unique identifier."
+    FIELD "uid" {
+      COLON
+      TYPE-ATOM "string"
+      ATTR-LIST {
+        ATTR "&log"
+      }
+      SEMI
+    }
+    BLANK
+    COMMENT-LEADING "## A network address."
+    FIELD "addr_field" {
+      COLON
+      TYPE-ATOM "addr"
+      ATTR-LIST {
+        ATTR "&log"
+      }
+      SEMI
+    }
+    RBRACE
+  }
+  SEMI
+}
+BLANK
+EXPORT {
+  KEYWORD "export"
+  SP
+  LBRACE
+  TYPEDECL-RECORD "SomeInfo" {
+    KEYWORD "type"
+    SP
+    IDENTIFIER "SomeInfo"
+    COLON
+    SP
+    TYPE-RECORD {
+      KEYWORD "record"
+      SP
+      LBRACE
+      FIELD "some_field_name" {
+        COLON
+        TYPE-PARAMETERIZED "set" {
+          SUBSCRIPTS {
+            LBRACKET
+            TYPE-ATOM "string"
+            RBRACKET
+          }
+        }
+        ATTR-LIST {
+          ATTR "&log"
+          ATTR "&optional"
+        }
+        SEMI
+      }
+      COMMENT-TRAILING "# A trailing comment here"
+      RBRACE
+    }
+    SEMI
+  }
+  RBRACE
+}
+BLANK
+EXPORT {
+  KEYWORD "export"
+  SP
+  LBRACE
+  REDEF-ENUM "Notice::Type" {
+    KEYWORD "redef"
+    SP
+    KEYWORD "enum"
+    SP
+    IDENTIFIER "Notice::Type"
+    ASSIGN "+="
+    LBRACE
+    ENUM-VALUE "POTENTIAL_CVE_2022_24497"
+    COMMA
+    TRAILING-COMMA
+    RBRACE
+    SEMI
+  }
+  RBRACE
+}
+BLANK
+REDEF-RECORD "SSL::Info" {
+  KEYWORD "redef"
+  SP
+  KEYWORD "record"
+  SP
+  IDENTIFIER "SSL::Info"
+  ASSIGN "+="
+  LBRACE
+  COMMENT-LEADING "# Flag indicating if \"early data\" extension was sent in Client Hello."
+  FIELD "early_data" {
+    COLON
+    TYPE-ATOM "bool"
+    ATTR-LIST {
+      ATTR "&default" {
+        ASSIGN "="
+        CONSTANT "F"
+      }
+    }
+    SEMI
+  }
+  RBRACE
+  SEMI
+}
+BLANK
+EXPORT {
+  KEYWORD "export"
+  SP
+  LBRACE
+  REDEF-ENUM "Log::ID" {
+    KEYWORD "redef"
+    SP
+    KEYWORD "enum"
+    SP
+    IDENTIFIER "Log::ID"
+    ASSIGN "+="
+    LBRACE
+    ENUM-VALUE "LOG"
+    RBRACE
+    SEMI
+  }
+  RBRACE
+}
+BLANK
+TYPEDECL-RECORD "CertInfo" {
+  KEYWORD "type"
+  SP
+  IDENTIFIER "CertInfo"
+  COLON
+  SP
+  TYPE-RECORD {
+    KEYWORD "record"
+    SP
+    LBRACE
+    FIELD "cn" {
+      COLON
+      TYPE-ATOM "string"
+      ATTR-LIST {
+        ATTR "&log"
+        ATTR "&optional"
+      }
+      SEMI
+    }
+    FIELD "sans" {
+      COLON
+      TYPE-PARAMETERIZED "set" {
+        SUBSCRIPTS {
+          LBRACKET
+          TYPE-ATOM "string"
+          RBRACKET
+        }
+      }
+      ATTR-LIST {
+        ATTR "&log"
+        ATTR "&optional"
+      }
+      SEMI
+    }
+    RBRACE
+  }
+  SEMI
+}
+BLANK
+REDEF-ENUM "Notice::Type" {
+  KEYWORD "redef"
+  SP
+  KEYWORD "enum"
+  SP
+  IDENTIFIER "Notice::Type"
+  ASSIGN "+="
+  LBRACE
+  COMMENT-LEADING "## Anomalous behavior detected."
+  ENUM-VALUE "Found"
+  RBRACE
+  SEMI
+}
+BLANK
+EXPORT {
+  KEYWORD "export"
+  SP
+  LBRACE
+  TYPEDECL-ENUM "Flag" {
+    KEYWORD "type"
+    SP
+    IDENTIFIER "Flag"
+    COLON
+    SP
+    TYPE-ENUM {
+      KEYWORD "enum"
+      SP
+      LBRACE
+      ENUM-VALUE "ControlPkt" "= 0x80"
+      COMMA
+      COMMENT-TRAILING "#< Control messages between tunnel endpoints."
+      ENUM-VALUE "CriticalOpt" "= 0x40"
+      COMMA
+      TRAILING-COMMA
+      COMMENT-TRAILING "#< Geneve header contains a critical option."
+      RBRACE
+    }
+    ATTR-LIST {
+      ATTR "&redef"
+    }
+    SEMI
+  }
+  RBRACE
+}
+BLANK
+TYPEDECL-RECORD "Foo" {
+  KEYWORD "type"
+  SP
+  IDENTIFIER "Foo"
+  COLON
+  SP
+  TYPE-RECORD {
+    KEYWORD "record"
+    SP
+    LBRACE
+    FIELD "x" {
+      COLON
+      TYPE-ATOM "count"
+      SEMI
+    }
+    FIELD "y" {
+      COLON
+      TYPE-ATOM "string"
+      SEMI
+    }
+    RBRACE
+  }
+  ATTR-LIST {
+    ATTR "&redef"
+  }
+  SEMI
+}
+BLANK
+EXPORT {
+  KEYWORD "export"
+  SP
+  LBRACE
+  COMMENT-LEADING "## Documentation comment."
+  TYPEDECL-ENUM "Foo" {
+    KEYWORD "type"
+    SP
+    IDENTIFIER "Foo"
+    COLON
+    SP
+    TYPE-ENUM {
+      KEYWORD "enum"
+      SP
+      LBRACE
+      ENUM-VALUE "AAA"
+      COMMA
+      COMMENT-TRAILING "##< Trailing comment on AAA"
+      ENUM-VALUE "BBB"
+      COMMENT-TRAILING "##< Trailing comment on BBB"
+      RBRACE
+    }
+    SEMI
+  }
+  RBRACE
+}
+BLANK
+EXPORT {
+  KEYWORD "export"
+  SP
+  LBRACE
+  REDEF-RECORD "Aaa::Aaaa" {
+    KEYWORD "redef"
+    SP
+    KEYWORD "record"
+    SP
+    IDENTIFIER "Aaa::Aaaa"
+    ASSIGN "+="
+    LBRACE
+    FIELD "aaaa_aaa" {
+      COLON
+      TYPE-ATOM "count"
+      ATTR-LIST {
+        ATTR "&default" {
+          ASSIGN "="
+          CONSTANT "0"
+        }
+      }
+      SEMI
+    }
+    BLANK
+    COMMENT-LEADING "# aaaaaaa_aaaaa: string &log &optional;"
+    RBRACE
+    SEMI
+  }
+  RBRACE
+}
+BLANK
+EXPORT {
+  KEYWORD "export"
+  SP
+  LBRACE
+  TYPEDECL-ENUM "foo" {
+    KEYWORD "type"
+    SP
+    IDENTIFIER "foo"
+    COLON
+    SP
+    TYPE-ENUM {
+      KEYWORD "enum"
+      SP
+      LBRACE
+      ENUM-VALUE "AAAAA"
+      COMMA
+      ENUM-VALUE "BBBBB"
+      COMMA
+      ENUM-VALUE "CCCCC"
+      COMMA
+      ENUM-VALUE "DDDDD"
+      COMMA
+      ENUM-VALUE "EEEEE"
+      COMMA
+      ENUM-VALUE "FFFFF"
+      COMMA
+      ENUM-VALUE "GGGGG"
+      COMMA
+      ENUM-VALUE "HHHHH"
+      COMMA
+      ENUM-VALUE "IIIII"
+      COMMA
+      ENUM-VALUE "JJJJJ"
+      COMMA
+      ENUM-VALUE "KKKKK"
+      COMMA
+      BLANK
+      ENUM-VALUE "LLLLL"
+      COMMA
+      TRAILING-COMMA
+      RBRACE
+    }
+    SEMI
+  }
+  RBRACE
+}
+BLANK
+EXPORT {
+  KEYWORD "export"
+  SP
+  LBRACE
+  COMMENT-LEADING "#@ FORMAT: FILL-ENUM"
+  TYPEDECL-ENUM "Foo" {
+    KEYWORD "type"
+    SP
+    IDENTIFIER "Foo"
+    COLON
+    SP
+    TYPE-ENUM {
+      KEYWORD "enum"
+      SP
+      LBRACE
+      ENUM-VALUE "AAAA"
+      COMMA
+      ENUM-VALUE "BBBB"
+      COMMA
+      ENUM-VALUE "CCCC"
+      COMMA
+      ENUM-VALUE "DDDD"
+      COMMA
+      ENUM-VALUE "EEEE"
+      COMMA
+      ENUM-VALUE "FFFF"
+      COMMA
+      ENUM-VALUE "GGGG"
+      COMMA
+      ENUM-VALUE "HHHH"
+      COMMA
+      ENUM-VALUE "IIII"
+      COMMA
+      ENUM-VALUE "JJJJ"
+      COMMA
+      ENUM-VALUE "KKKK"
+      COMMA
+      ENUM-VALUE "LLLL"
+      COMMA
+      COMMENT-TRAILING "# trailing"
+      ENUM-VALUE "MMMM"
+      COMMA
+      BLANK
+      ENUM-VALUE "NNNN"
+      COMMA
+      ENUM-VALUE "OOOO"
+      COMMA
+      TRAILING-COMMA
+      RBRACE
+    }
+    SEMI
+  }
+  RBRACE
+}

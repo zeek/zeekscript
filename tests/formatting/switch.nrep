@@ -1,0 +1,634 @@
+COMMENT-LEADING "# Switch statements: one-liner expansion, case/default/break, multi-value cases, comments in switch, brace styles, #@ END comments."
+COMMENT-LEADING "# test025.zeek"
+COMMENT-LEADING "# test142.zeek"
+COMMENT-LEADING "# test143.zeek"
+COMMENT-LEADING "# test144.zeek"
+COMMENT-LEADING "# test186.zeek"
+COMMENT-LEADING "# test188.zeek"
+COMMENT-LEADING "# test209.zeek"
+COMMENT-LEADING "# test211.zeek"
+COMMENT-LEADING "# test246.zeek"
+COMMENT-LEADING "# test253.zeek"
+COMMENT-LEADING "# test271.zeek"
+BLANK
+FUNC-DECL {
+  KEYWORD "function"
+  SP
+  IDENTIFIER "f"
+  PARAMS {
+    LPAREN
+    RPAREN
+  }
+  BODY {
+    LBRACE
+    SWITCH {
+      KEYWORD "switch"
+      SP
+      IDENTIFIER "tag_type"
+      LBRACE
+      CASE {
+        KEYWORD "case"
+        SP
+        VALUES {
+          CONSTANT "\"some_analyzer_udp\""
+          COMMA
+          CONSTANT "\"some_analyzer_udp_hmac_md5\""
+          COMMA
+          CONSTANT "\"some_analyzer_udp_hmac_sha1\""
+          COMMA
+          CONSTANT "\"some_analyzer_udp_hmac_sha256\""
+        }
+        COLON
+        BODY {
+          KW-STMT {
+            KEYWORD "break"
+            SEMI
+          }
+        }
+      }
+      RBRACE
+    }
+    RBRACE
+  }
+}
+BLANK
+FUNC-DECL {
+  KEYWORD "function"
+  SP
+  IDENTIFIER "f"
+  PARAMS {
+    LPAREN
+    RPAREN
+  }
+  BODY {
+    LBRACE
+    SWITCH {
+      KEYWORD "switch"
+      SP
+      IDENTIFIER "val"
+      LBRACE
+      CASE {
+        KEYWORD "case"
+        SP
+        VALUES {
+          CONSTANT "0"
+        }
+        COLON
+        BODY {
+          KW-STMT {
+            KEYWORD "break"
+            SEMI
+          }
+        }
+      }
+      RBRACE
+    }
+    RBRACE
+  }
+}
+BLANK
+FUNC-DECL {
+  KEYWORD "function"
+  SP
+  IDENTIFIER "f"
+  PARAMS {
+    LPAREN
+    RPAREN
+  }
+  BODY {
+    LBRACE
+    SWITCH {
+      KEYWORD "switch"
+      SP
+      PAREN {
+        LPAREN
+        IDENTIFIER "val"
+        RPAREN
+      }
+      LBRACE
+      CASE {
+        KEYWORD "case"
+        SP
+        VALUES {
+          CONSTANT "0"
+        }
+        COLON
+        BODY {
+          KW-STMT {
+            KEYWORD "break"
+            SEMI
+          }
+        }
+      }
+      CASE {
+        KEYWORD "case"
+        SP
+        VALUES {
+          CONSTANT "1"
+        }
+        COLON
+        BODY {
+          KW-STMT {
+            KEYWORD "break"
+            SEMI
+          }
+        }
+      }
+      RBRACE
+    }
+    RBRACE
+  }
+}
+BLANK
+FUNC-DECL {
+  KEYWORD "function"
+  SP
+  IDENTIFIER "f"
+  PARAMS {
+    LPAREN
+    RPAREN
+  }
+  BODY {
+    LBRACE
+    SWITCH {
+      KEYWORD "switch"
+      SP
+      PAREN {
+        LPAREN
+        IDENTIFIER "val"
+        RPAREN
+      }
+      LBRACE
+      CASE {
+        KEYWORD "case"
+        SP
+        VALUES {
+          CONSTANT "0"
+        }
+        COLON
+        BODY {
+          KW-STMT {
+            KEYWORD "break"
+            SEMI
+          }
+        }
+      }
+      RBRACE
+    }
+    RBRACE
+  }
+}
+BLANK
+FUNC-DECL {
+  KEYWORD "function"
+  SP
+  IDENTIFIER "set_groups"
+  PARAMS {
+    LPAREN
+    RPAREN
+  }
+  BODY {
+    LBRACE
+    SWITCH {
+      KEYWORD "switch"
+      SP
+      IDENTIFIER "foo"
+      LBRACE
+      COMMENT-LEADING "#@ BEGIN-NOT-TESTED"
+      CASE {
+        KEYWORD "case"
+        SP
+        VALUES {
+          CONSTANT "4"
+        }
+        COLON
+        BODY {
+          EXPR-STMT {
+            BINARY-OP "=" {
+              FIELD-ACCESS {
+                IDENTIFIER "rec"
+                DOLLAR
+                IDENTIFIER "field_a"
+              }
+              OP "="
+              IDENTIFIER "val_a"
+            }
+            SEMI
+          }
+          EXPR-STMT {
+            BINARY-OP "=" {
+              FIELD-ACCESS {
+                IDENTIFIER "rec"
+                DOLLAR
+                IDENTIFIER "field_b"
+              }
+              OP "="
+              IDENTIFIER "val_b"
+            }
+            SEMI
+          }
+          KW-STMT {
+            KEYWORD "break"
+            SEMI
+          }
+        }
+      }
+      COMMENT-LEADING "#@ END-NOT-TESTED"
+      RBRACE
+    }
+    RBRACE
+  }
+}
+BLANK
+FUNC-DECL {
+  KEYWORD "function"
+  SP
+  IDENTIFIER "foo"
+  PARAMS {
+    LPAREN
+    RPAREN
+  }
+  BODY {
+    LBRACE
+    SWITCH {
+      KEYWORD "switch"
+      SP
+      PAREN {
+        LPAREN
+        IDENTIFIER "n"
+        RPAREN
+      }
+      LBRACE
+      CASE {
+        KEYWORD "case"
+        SP
+        VALUES {
+          CONSTANT "3"
+        }
+        COLON
+        BODY {
+          KW-STMT {
+            KEYWORD "break"
+            SEMI
+          }
+        }
+      }
+      COMMENT-LEADING "#@ BEGIN-NOT-TESTED"
+      CASE {
+        KEYWORD "case"
+        SP
+        VALUES {
+          CONSTANT "4"
+        }
+        COLON
+        BODY {
+          KW-STMT {
+            KEYWORD "break"
+            SEMI
+          }
+        }
+      }
+      COMMENT-LEADING "#@ END-NOT-TESTED"
+      RBRACE
+    }
+    RBRACE
+  }
+}
+BLANK
+FUNC-DECL {
+  KEYWORD "event"
+  SP
+  IDENTIFIER "foo"
+  PARAMS {
+    LPAREN
+    RPAREN
+  }
+  BODY {
+    LBRACE
+    SWITCH {
+      KEYWORD "switch"
+      SP
+      IDENTIFIER "val"
+      LBRACE
+      CASE {
+        KEYWORD "case"
+        SP
+        VALUES {
+          CONSTANT "\"bar\""
+        }
+        COLON
+        COMMENT-TRAILING "# trailing comment"
+        BODY {
+          EXPR-STMT {
+            CALL {
+              IDENTIFIER "do_something"
+              ARGS {
+                LPAREN
+                RPAREN
+              }
+            }
+            SEMI
+          }
+        }
+      }
+      RBRACE
+    }
+    RBRACE
+  }
+}
+BLANK
+COMMENT-LEADING "# default with break in switch."
+FUNC-DECL {
+  KEYWORD "event"
+  SP
+  IDENTIFIER "foo"
+  PARAMS {
+    LPAREN
+    RPAREN
+  }
+  BODY {
+    LBRACE
+    SWITCH {
+      KEYWORD "switch"
+      SP
+      IDENTIFIER "auth_type"
+      LBRACE
+      DEFAULT {
+        KEYWORD "default"
+        COLON
+        BODY {
+          KW-STMT {
+            KEYWORD "break"
+            SEMI
+          }
+        }
+      }
+      BLANK
+      CASE {
+        KEYWORD "case"
+        SP
+        VALUES {
+          CONSTANT "3"
+        }
+        COLON
+        BODY {
+          PRINT {
+            KEYWORD "print"
+            SP
+            CONSTANT "\"yep\""
+            SEMI
+          }
+        }
+      }
+      RBRACE
+    }
+    RBRACE
+  }
+}
+BLANK
+FUNC-DECL {
+  KEYWORD "function"
+  SP
+  IDENTIFIER "xxx"
+  PARAMS {
+    LPAREN
+    RPAREN
+  }
+  BODY {
+    LBRACE
+    SWITCH {
+      KEYWORD "switch"
+      SP
+      PAREN {
+        LPAREN
+        IDENTIFIER "x"
+        RPAREN
+      }
+      LBRACE
+      CASE {
+        KEYWORD "case"
+        SP
+        VALUES {
+          IDENTIFIER "AAAA"
+        }
+        COLON
+        BODY {
+          RETURN {
+            KEYWORD "return"
+            SP
+            CALL {
+              IDENTIFIER "xxx"
+              ARGS {
+                LPAREN
+                BINARY-OP "|" {
+                  IDENTIFIER "xxxxxxxxxx"
+                  OP "|"
+                  IDENTIFIER "xxxxxxx"
+                }
+                RPAREN
+              }
+            }
+            SEMI
+          }
+        }
+      }
+      BLANK
+      CASE {
+        KEYWORD "case"
+        SP
+        VALUES {
+          IDENTIFIER "BBBBBBB"
+        }
+        COLON
+        BODY {
+          RETURN {
+            KEYWORD "return"
+            SP
+            IDENTIFIER "xxxxxxx"
+            SEMI
+          }
+        }
+      }
+      BLANK
+      DEFAULT {
+        KEYWORD "default"
+        COLON
+        COMMENT-LEADING "#@ BEGIN-NOT-TESTED"
+        BODY {
+          EXPR-STMT {
+            CALL {
+              IDENTIFIER "xxxxxxxxxxxxxx"
+              ARGS {
+                LPAREN
+                CALL {
+                  IDENTIFIER "xxx"
+                  ARGS {
+                    LPAREN
+                    CONSTANT "\"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\""
+                    COMMA
+                    IDENTIFIER "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+                    RPAREN
+                  }
+                }
+                RPAREN
+              }
+            }
+            SEMI
+          }
+          RETURN {
+            KEYWORD "return"
+            SP
+            IDENTIFIER "xxxxxxxxxx"
+            SEMI
+          }
+        }
+      }
+      COMMENT-LEADING "#@ END-NOT-TESTED"
+      RBRACE
+    }
+    RBRACE
+  }
+}
+BLANK
+FUNC-DECL {
+  KEYWORD "function"
+  SP
+  IDENTIFIER "foo"
+  PARAMS {
+    LPAREN
+    RPAREN
+  }
+  BODY {
+    LBRACE
+    SWITCH {
+      KEYWORD "switch"
+      SP
+      PAREN {
+        LPAREN
+        INDEX {
+          IDENTIFIER "aaa"
+          SUBSCRIPTS {
+            LBRACKET
+            CONSTANT "1"
+            RBRACKET
+          }
+        }
+        RPAREN
+      }
+      LBRACE
+      CASE {
+        KEYWORD "case"
+        SP
+        VALUES {
+          CONSTANT "\"Aaaa::AAA\""
+        }
+        COLON
+        BODY {
+          EXPR-STMT {
+            BINARY-OP "=" {
+              IDENTIFIER "aaa"
+              OP "="
+              IDENTIFIER "Aaaa::AAA"
+            }
+            SEMI
+          }
+          KW-STMT {
+            KEYWORD "break"
+            SEMI
+          }
+        }
+      }
+      BLANK
+      CASE {
+        KEYWORD "case"
+        SP
+        VALUES {
+          CONSTANT "\"Aaaa::BBB\""
+        }
+        COLON
+        COMMENT-LEADING "#@ BEGIN-NOT-TESTED"
+        BODY {
+          EXPR-STMT {
+            BINARY-OP "=" {
+              IDENTIFIER "aaa"
+              OP "="
+              IDENTIFIER "Aaaa::BBB"
+            }
+            SEMI
+          }
+          KW-STMT {
+            KEYWORD "break"
+            SEMI
+          }
+        }
+      }
+      COMMENT-LEADING "#@ END-NOT-TESTED"
+      RBRACE
+    }
+    RBRACE
+  }
+}
+BLANK
+FUNC-DECL {
+  KEYWORD "function"
+  SP
+  IDENTIFIER "foo"
+  PARAMS {
+    LPAREN
+    RPAREN
+  }
+  BODY {
+    LBRACE
+    SWITCH {
+      KEYWORD "switch"
+      SP
+      IDENTIFIER "aaa"
+      LBRACE
+      CASE {
+        KEYWORD "case"
+        SP
+        VALUES {
+          IDENTIFIER "bbb"
+        }
+        COLON
+        BODY {
+          RETURN-VOID {
+            KEYWORD "return"
+            SP
+            SEMI
+          }
+        }
+      }
+      CASE {
+        KEYWORD "case"
+        SP
+        VALUES {
+          IDENTIFIER "ccc"
+          COMMA
+          IDENTIFIER "ddd"
+        }
+        COLON
+        BODY {
+          PRINT {
+            KEYWORD "print"
+            SP
+            CONSTANT "\"aaa\""
+            SEMI
+          }
+        }
+      }
+      DEFAULT {
+        KEYWORD "default"
+        COLON
+        BODY {
+          KW-STMT {
+            KEYWORD "break"
+            SEMI
+          }
+        }
+      }
+      RBRACE
+    }
+    RBRACE
+  }
+}

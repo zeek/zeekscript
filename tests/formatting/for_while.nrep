@@ -1,0 +1,400 @@
+COMMENT-LEADING "# For/while loops: single/multiple loop vars, nested for, trailing comments, long while conditions, empty while body, while in if/else."
+COMMENT-LEADING "# test011.zeek"
+COMMENT-LEADING "# test060.zeek"
+COMMENT-LEADING "# test117.zeek"
+COMMENT-LEADING "# test154.zeek"
+COMMENT-LEADING "# test158.zeek"
+COMMENT-LEADING "# test163.zeek"
+COMMENT-LEADING "# test260.zeek"
+COMMENT-LEADING "# test267.zeek"
+BLANK
+FUNC-DECL {
+  KEYWORD "function"
+  SP
+  IDENTIFIER "foo"
+  PARAMS {
+    LPAREN
+    RPAREN
+  }
+  BODY {
+    LBRACE
+    FOR {
+      KEYWORD "for"
+      SP
+      LPAREN
+      FOR-COND {
+        IDENTIFIER "x"
+        KEYWORD "in"
+        IDENTIFIER "xs"
+      }
+      RPAREN
+      BODY {
+        FOR {
+          KEYWORD "for"
+          SP
+          LPAREN
+          FOR-COND {
+            IDENTIFIER "y"
+            KEYWORD "in"
+            IDENTIFIER "ys"
+          }
+          RPAREN
+          BODY {
+            EXPR-STMT {
+              BINARY-OP "=" {
+                INDEX {
+                  IDENTIFIER "some_long_table"
+                  SUBSCRIPTS {
+                    LBRACKET
+                    IDENTIFIER "some_key"
+                    RBRACKET
+                  }
+                }
+                OP "="
+                CALL {
+                  IDENTIFIER "SomeFunc"
+                  ARGS {
+                    LPAREN
+                    FIELD-ASSIGN "field_a" {
+                      DOLLAR
+                      ASSIGN "="
+                      IDENTIFIER "val_a"
+                    }
+                    COMMA
+                    FIELD-ASSIGN "field_b" {
+                      DOLLAR
+                      ASSIGN "="
+                      IDENTIFIER "val_b"
+                    }
+                    RPAREN
+                  }
+                }
+              }
+              SEMI
+            }
+          }
+        }
+      }
+    }
+    RBRACE
+  }
+}
+BLANK
+FUNC-DECL {
+  KEYWORD "function"
+  SP
+  IDENTIFIER "f"
+  PARAMS {
+    LPAREN
+    RPAREN
+  }
+  BODY {
+    LBRACE
+    FOR {
+      KEYWORD "for"
+      SP
+      LPAREN
+      FOR-COND {
+        IDENTIFIER "idx"
+        KEYWORD "in"
+        FIELD-ACCESS {
+          IDENTIFIER "result"
+          DOLLAR
+          IDENTIFIER "matches"
+        }
+      }
+      RPAREN
+      BODY {
+        FOR {
+          KEYWORD "for"
+          SP
+          LPAREN
+          FOR-COND {
+            IDENTIFIER "conn_idx"
+            KEYWORD "in"
+            FIELD-ACCESS {
+              IDENTIFIER "result"
+              DOLLAR
+              IDENTIFIER "some_uids_with_a_very_long_field_name_that_forces_wrapping"
+            }
+          }
+          RPAREN
+          BODY {
+            LOCAL-DECL {
+              KEYWORD "local"
+              SP
+              IDENTIFIER "x"
+              DECL-INIT {
+                ASSIGN "="
+                CONSTANT "1"
+              }
+              SEMI
+            }
+          }
+        }
+      }
+    }
+    RBRACE
+  }
+}
+BLANK
+FUNC-DECL {
+  KEYWORD "function"
+  SP
+  IDENTIFIER "f"
+  PARAMS {
+    LPAREN
+    RPAREN
+  }
+  BODY {
+    LBRACE
+    FOR {
+      KEYWORD "for"
+      SP
+      LPAREN
+      FOR-COND-VAL {
+        IDENTIFIER "a"
+        COMMA
+        IDENTIFIER "b"
+        KEYWORD "in"
+        IDENTIFIER "tbl"
+      }
+      RPAREN
+      BODY {
+        PRINT {
+          KEYWORD "print"
+          SP
+          IDENTIFIER "file_handle"
+          COMMA
+          IDENTIFIER "some_variable"
+          COMMA
+          INDEX {
+            IDENTIFIER "another_table"
+            SUBSCRIPTS {
+              LBRACKET
+              IDENTIFIER "some_index"
+              RBRACKET
+            }
+          }
+          COMMA
+          IDENTIFIER "final_value"
+          SEMI
+        }
+      }
+    }
+    RBRACE
+  }
+}
+BLANK
+FUNC-DECL {
+  KEYWORD "event"
+  SP
+  IDENTIFIER "some_evt"
+  PARAMS {
+    LPAREN
+    RPAREN
+  }
+  BODY {
+    LBRACE
+    FOR {
+      KEYWORD "for"
+      SP
+      LPAREN
+      FOR-COND {
+        IDENTIFIER "idx"
+        KEYWORD "in"
+        IDENTIFIER "some_list"
+      }
+      RPAREN
+      COMMENT-TRAILING "# iterate items"
+      BODY {
+        PRINT {
+          KEYWORD "print"
+          SP
+          IDENTIFIER "idx"
+          SEMI
+        }
+      }
+    }
+    RBRACE
+  }
+}
+BLANK
+FUNC-DECL {
+  KEYWORD "event"
+  SP
+  IDENTIFIER "some_evt"
+  PARAMS {
+    LPAREN
+    RPAREN
+  }
+  BODY {
+    LBRACE
+    FOR {
+      KEYWORD "for"
+      SP
+      LPAREN
+      FOR-COND {
+        IDENTIFIER "val"
+        KEYWORD "in"
+        IDENTIFIER "some_set"
+      }
+      RPAREN
+      BODY {
+        KW-STMT {
+          KEYWORD "next"
+          SEMI
+        }
+      }
+    }
+    COMMENT-TRAILING "# skip it"
+    RBRACE
+  }
+}
+BLANK
+FUNC-DECL {
+  KEYWORD "event"
+  SP
+  IDENTIFIER "some_evt"
+  PARAMS {
+    LPAREN
+    RPAREN
+  }
+  BODY {
+    LBRACE
+    WHILE {
+      KEYWORD "while"
+      SP
+      LPAREN
+      IDENTIFIER "some_flag"
+      RPAREN
+      COMMENT-TRAILING "# keep going"
+      BODY {
+        PRINT {
+          KEYWORD "print"
+          SP
+          CONSTANT "1"
+          SEMI
+        }
+      }
+    }
+    RBRACE
+  }
+}
+BLANK
+FUNC-DECL {
+  KEYWORD "function"
+  SP
+  IDENTIFIER "foo"
+  PARAMS {
+    LPAREN
+    RPAREN
+  }
+  BODY {
+    LBRACE
+    IF-NO-ELSE {
+      KEYWORD "if"
+      SP
+      LPAREN
+      IDENTIFIER "test"
+      RPAREN
+      BODY {
+        BLOCK {
+          LBRACE
+          WHILE {
+            KEYWORD "while"
+            SP
+            LPAREN
+            IDENTIFIER "cond"
+            RPAREN
+            BODY {
+              BLOCK {
+                LBRACE
+                IF-WITH-ELSE {
+                  KEYWORD "if"
+                  SP
+                  LPAREN
+                  IDENTIFIER "cond2"
+                  RPAREN
+                  BODY {
+                    EXPR-STMT {
+                      IDENTIFIER "stmt"
+                      SEMI
+                    }
+                  }
+                  ELSE-BODY {
+                    KEYWORD "else"
+                    SP
+                    KW-STMT {
+                      KEYWORD "break"
+                      SEMI
+                    }
+                  }
+                }
+                RBRACE
+              }
+            }
+          }
+          RBRACE
+        }
+      }
+    }
+    RBRACE
+  }
+}
+BLANK
+FUNC-DECL {
+  KEYWORD "function"
+  SP
+  IDENTIFIER "foo"
+  PARAMS {
+    LPAREN
+    RPAREN
+  }
+  BODY {
+    LBRACE
+    WHILE {
+      KEYWORD "while"
+      SP
+      LPAREN
+      BINARY-OP "&&" {
+        BINARY-OP "&&" {
+          BINARY-OP "&&" {
+            BINARY-OP "<" {
+              IDENTIFIER "aaaa_aaaaa_aaaaaa"
+              OP "<"
+              CONSTANT "200"
+            }
+            OP "&&"
+            BINARY-OP "==" {
+              IDENTIFIER "aaaa_aaaaaaa"
+              OP "=="
+              CONSTANT "0"
+            }
+          }
+          OP "&&"
+          BINARY-OP "-" {
+            BINARY-OP "<" {
+              IDENTIFIER "a"
+              OP "<"
+              IDENTIFIER "a"
+            }
+            OP "-"
+            CONSTANT "5"
+          }
+        }
+        OP "&&"
+        BINARY-OP "<" {
+          IDENTIFIER "a"
+          OP "<"
+          CONSTANT "30"
+        }
+      }
+      RPAREN
+      BODY {
+        SEMI
+      }
+    }
+    RBRACE
+  }
+}

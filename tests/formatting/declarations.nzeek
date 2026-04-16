@@ -1,0 +1,60 @@
+# Declarations: global, local, const, option with types, attributes, wrapping.
+# test006.zeek
+# test007.zeek
+# test015.zeek
+# test054.zeek
+# test061.zeek
+# test064.zeek
+# test104.zeek
+# test134.zeek
+# test145.zeek
+# test147.zeek
+# test162.zeek
+# test164.zeek
+# test165.zeek
+# test168.zeek
+# test173.zeek
+# test181.zeek
+# test225.zeek
+# test228.zeek
+# test248.zeek
+
+global some_table: table[string] of count &default=some_long_default_expression_here &redef;
+
+global some_event_decl: event(o: string, label: string, conf: score, sources: set[string], caller: string);
+
+global x = 42;   # Inline.
+
+global some_long_cache_name: set[string, subnet, subnet, transport_proto, SomeModule::SomeType] &read_expire=cache_interval;
+
+global some_tracking_var: table[count, string] of TrackingRec
+	&default_insert = TrackingRec($field=val) &create_expire = 10 sec &redef;
+
+redef SomeModule::some_generic_packet_thresholds += set(skip_conn_packet_threshold);
+
+const tbl: table[count] of string = {[1] = "a"};
+
+const tbl = {[1] = "a", [2] = "b"};
+
+type val: count; # a counter
+
+global ftp_connections_cache: set[string, string, string] &read_expire=cache_interval;
+
+global some_table_name_a: table[count, string] of TrackingRec
+        &default_insert = TrackingRec() &create_expire = 10 sec;
+
+global some_state: table[SomeModule::CertInfo, SomeModule::AltNameInfo, SomeModule::ConstraintInfo] of count &default=0;
+
+type some_very_long_type_name_aaaaa: table[addr, port, subnet, string] of string;
+
+global some_cache: set[string, subnet, subnet, string, string, string, bool, count] &read_expire=some_interval;
+
+type Foo: addr &redef;
+
+global coalesced_state: table[X509::Certificate, X509::SubjectAlternativeName, X509::BasicConstraints] of count &create_expire=coal_ival &default=0;
+
+global xxxxxxxxxxxxxxxxxxxx: function(xx: string, xxxxxxxxx: set[subnet], xxxxxxxx: string): set[subnet];
+
+local x = some_func(arg);
+
+another_very_long_access_to_some_member += yetanotherveryveryveryverylongthing[0];

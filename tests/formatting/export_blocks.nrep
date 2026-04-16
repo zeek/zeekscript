@@ -1,0 +1,509 @@
+COMMENT-LEADING "# Export blocks: const/option/global declarations, wrapped attributes, events, doc-comments, division workaround, pattern alternation."
+COMMENT-LEADING "# test035.zeek"
+COMMENT-LEADING "# test039.zeek"
+COMMENT-LEADING "# test053.zeek"
+COMMENT-LEADING "# test055.zeek"
+COMMENT-LEADING "# test167.zeek"
+COMMENT-LEADING "# test180.zeek"
+COMMENT-LEADING "# test215.zeek"
+COMMENT-LEADING "# test230.zeek"
+COMMENT-LEADING "# test234.zeek"
+COMMENT-LEADING "# test245.zeek"
+COMMENT-LEADING "# test278.zeek"
+COMMENT-LEADING "# test280.zeek"
+BLANK
+EXPORT {
+  KEYWORD "export"
+  SP
+  LBRACE
+  GLOBAL-DECL {
+    KEYWORD "const"
+    SP
+    IDENTIFIER "cert_hygiene_server_wl_source"
+    DECL-INIT {
+      ASSIGN "="
+      CONSTANT "\"cert-hygiene-server-wl.txt\""
+    }
+    ATTR-LIST {
+      ATTR "&redef"
+    }
+    SEMI
+  }
+  RBRACE
+}
+BLANK
+EXPORT {
+  KEYWORD "export"
+  SP
+  LBRACE
+  GLOBAL-DECL {
+    KEYWORD "option"
+    SP
+    IDENTIFIER "some_hosts"
+    DECL-INIT {
+      ASSIGN "="
+      CONSTRUCTOR {
+        KEYWORD "set"
+        ARGS {
+          LPAREN
+          CONSTANT "\"some.host.example.com\""
+          COMMA
+          CONSTANT "\"another.longer.hostname.example.org\""
+          COMMA
+          CONSTANT "\"yet.another.host.example.net\""
+          RPAREN
+        }
+      }
+    }
+    SEMI
+  }
+  RBRACE
+}
+BLANK
+EXPORT {
+  KEYWORD "export"
+  SP
+  LBRACE
+  GLOBAL-DECL {
+    KEYWORD "global"
+    SP
+    IDENTIFIER "SomeModule::some_long_handler"
+    DECL-TYPE {
+      COLON
+      TYPE-FUNC "event" {
+        PARAMS {
+          LPAREN
+          PARAM "anomaly_data" {
+            COLON
+            TYPE-ATOM "SomePredictions"
+          }
+          RPAREN
+        }
+      }
+    }
+    SEMI
+  }
+  RBRACE
+}
+BLANK
+EXPORT {
+  KEYWORD "export"
+  SP
+  LBRACE
+  GLOBAL-DECL {
+    KEYWORD "global"
+    SP
+    IDENTIFIER "some_evt"
+    DECL-TYPE {
+      COLON
+      TYPE-FUNC "event" {
+        PARAMS {
+          LPAREN
+          PARAM "rec" {
+            COLON
+            TYPE-ATOM "Info"
+          }
+          RPAREN
+        }
+      }
+    }
+    SEMI
+  }
+  BLANK
+  COMMENT-LEADING "## Some trailing comment"
+  COMMENT-LEADING "## Another trailing comment"
+  RBRACE
+}
+BLANK
+EXPORT {
+  KEYWORD "export"
+  SP
+  LBRACE
+  GLOBAL-DECL {
+    KEYWORD "const"
+    SP
+    IDENTIFIER "default_analyzer"
+    DECL-TYPE {
+      COLON
+      TYPE-ATOM "PacketAnalyzer::Tag"
+    }
+    DECL-INIT {
+      ASSIGN "="
+      IDENTIFIER "PacketAnalyzer::ANALYZER_IP"
+    }
+    ATTR-LIST {
+      ATTR "&redef"
+    }
+    SEMI
+  }
+  RBRACE
+}
+BLANK
+EXPORT {
+  KEYWORD "export"
+  SP
+  LBRACE
+  GLOBAL-DECL {
+    KEYWORD "option"
+    SP
+    IDENTIFIER "ignored_hosts"
+    DECL-INIT {
+      ASSIGN "="
+      CONSTRUCTOR {
+        KEYWORD "set"
+        ARGS {
+          LPAREN
+          CONSTANT "\"aaa.com\""
+          COMMA
+          CONSTANT "\"bbb.com\""
+          COMMA
+          CONSTANT "\"ccc-1.com\""
+          COMMA
+          CONSTANT "\"ddd.com\""
+          COMMA
+          CONSTANT "\"eee.com\""
+          COMMA
+          CONSTANT "\"fff.com\""
+          RPAREN
+        }
+      }
+    }
+    SEMI
+  }
+  RBRACE
+}
+BLANK
+COMMENT-LEADING "# Global with wrapped attrs inside export block."
+EXPORT {
+  KEYWORD "export"
+  SP
+  LBRACE
+  GLOBAL-DECL {
+    KEYWORD "global"
+    SP
+    IDENTIFIER "recently_validated_certs"
+    DECL-TYPE {
+      COLON
+      TYPE-PARAMETERIZED "table" {
+        SUBSCRIPTS {
+          LBRACKET
+          TYPE-ATOM "string"
+          RBRACKET
+        }
+        KEYWORD "of"
+        SP
+        TYPE-ATOM "X509::Result"
+      }
+    }
+    ATTR-LIST {
+      ATTR "&read_expire" {
+        ASSIGN "="
+        INTERVAL "5" "mins"
+      }
+      ATTR "&redef"
+    }
+    SEMI
+  }
+  RBRACE
+}
+BLANK
+EXPORT {
+  KEYWORD "export"
+  SP
+  LBRACE
+  GLOBAL-DECL {
+    KEYWORD "const"
+    SP
+    IDENTIFIER "aaaa_bbbbb"
+    DECL-TYPE {
+      COLON
+      TYPE-OF "vector" {
+        KEYWORD "of"
+        SP
+        TYPE-ATOM "string"
+      }
+    }
+    DECL-INIT {
+      ASSIGN "="
+      CONSTRUCTOR {
+        KEYWORD "vector"
+        ARGS {
+          LPAREN
+          CONSTANT "\"cccccccccccccc/ddd,eee,ffff,ggggg,hhhhhhhhhhhh,iii,jjjj,kkkk,lll,mmm,nnnnn,ooooo,pppp,qqqq,rrrr,ssss,tt,uuu,vvvv,wwww,xxxx,yyyy,zzzz,aaa\""
+          COMMA
+          CONSTANT "\"cccccccccccccc/bbb,bbb\""
+          COMMA
+          CONSTANT "\"ddddd/eeee,fff,gggg,hhh,iii,jjjj,kkk,lll,fff,fff:mm-nnnnnnnnn,ooo,pppp\""
+          COMMA
+          CONSTANT "\"qqqq/rrrrrrrr,sss\""
+          COMMA
+          CONSTANT "\"qqqq/ttt,ttt\""
+          COMMA
+          CONSTANT "\"qqqq/uuu,uuu\""
+          COMMA
+          CONSTANT "\"qqqq/vvvvv,www,xx,ttt,uuu,yyy,zzz,qqqq\""
+          COMMA
+          CONSTANT "\"ddddd/ooo,ooo,aaaaaa,hhh,gggg,fff\""
+          COMMA
+          CONSTANT "\"cccccccccccccc/bbb.cc-ddd-eeeeeeeeee,fff,GggggHhh\""
+          COMMA
+          CONSTANT "\"cccccccccccccc/i-jjjj,kk,llll,mmm\""
+          COMMA
+          CONSTANT "\"cccccccccccccc/nnnnnnnnnn,oo,www\""
+          COMMA
+          CONSTANT "\"cccccccccccccc/bbb.pppppppppppppppp-qqqqqqqqqqqq.rrrrrrrrrrrrrrrrrrrrr.ssssssss,tttt,uuu\""
+          COMMA
+          CONSTANT "\"cccccccccccccc/i-vvvvvvv,www\""
+          COMMA
+          CONSTANT "\"ddddd/hhh,hhh,gggg,fff,ooo\""
+          COMMA
+          CONSTANT "\"ddddd/xxx,yy,xxx\""
+          COMMA
+          CONSTANT "\"ddddd/zzz+aaa,zzz\""
+          COMMA
+          CONSTANT "\"ddddd/bbbb,ccc,bbbb\""
+          COMMA
+          CONSTANT "\"ddddd/bbb.ddddd.eeeeeeeee,fff\""
+          COMMA
+          CONSTANT "\"ddddd/gggg,hhh,gggg,fff,ooo\""
+          COMMA
+          CONSTANT "\"ddddd/i-jjjj,kkk\""
+          COMMA
+          CONSTANT "\"ddddd/i-ll-xxx,xxx\""
+          COMMA
+          CONSTANT "\"ddddd/i-mmm-nnnnn,ooo\""
+          COMMA
+          CONSTANT "\"cccccccccccccc/pppppp,uuu,qqq\""
+          COMMA
+          CONSTANT "\"cccccccccccccc/rrr,rrr,uuu\""
+          COMMA
+          CONSTANT "\"cccccccccccccc/bbb.ss-tttttttttt,uu,vv\""
+          COMMA
+          CONSTANT "\"cccccccccccccc/bbb.wwwww,xxx\""
+          COMMA
+          CONSTANT "\"cccccccccccccc/i-7z-eeeeeeeeee,7z,7yyy\""
+          COMMA
+          CONSTANT "\"cccccccccccccc/i-aaaaaaa,bbb\""
+          COMMA
+          CONSTANT "\"cccccccccccccc/i-ccc,ccc\""
+          COMMA
+          CONSTANT "\"cccccccccccccc/i-ddddd,ee,ddddd\""
+          COMMA
+          CONSTANT "\"cccccccccccccc/i-fffff2,fffff2,gg2\""
+          COMMA
+          CONSTANT "\"cccccccccccccc/i-hhhh,hhhh\""
+          COMMA
+          CONSTANT "\"cccccccccccccc/i-iii,iii\""
+          COMMA
+          CONSTANT "\"cccccccccccccc/jjjjjjjjjjjj,kkk\""
+          COMMA
+          CONSTANT "\"lllll/3mmm,3mm\""
+          COMMA
+          CONSTANT "\"lllll/3mmm2,3m2\""
+          COMMA
+          CONSTANT "\"lllll/nnn,nnn\""
+          COMMA
+          CONSTANT "\"lllll/oooo,ppp,oooo\""
+          COMMA
+          CONSTANT "\"lllll/qqqq,qqqq,rrr,qqqq\""
+          COMMA
+          CONSTANT "\"lllll/ss4,t4u,ss4\""
+          COMMA
+          CONSTANT "\"lllll/vvv,t2u,ss2,ss3,vvv\""
+          COMMA
+          CONSTANT "\"lllll/wwww,t2u,ss2,ss3,vvv,xxx\""
+          COMMA
+          CONSTANT "\"lllll/yyy,yyy,zzz\""
+          COMMA
+          CONSTANT "\"lllll/aaa,aaa\""
+          COMMA
+          CONSTANT "\"lllll/bbbb,cccc\""
+          COMMA
+          CONSTANT "\"lllll/i-nnn,nnn\""
+          COMMA
+          CONSTANT "\"lllll/i-oooo,ppp,oooo\""
+          COMMA
+          CONSTANT "\"lllll/i-qqqq,qqqq\""
+          COMMA
+          CONSTANT "\"lllll/i-wwww,t2u,ss2,ss3,vvv\""
+          COMMA
+          CONSTANT "\"lllll/i-rrrrrrrr,t3u\""
+          COMMA
+          CONSTANT "\"lllll/i-ll-sss,ppp,sss\""
+          COMMA
+          CONSTANT "\"lllll/i-aaa,aaa\""
+          COMMA
+          CONSTANT "\"ttttt/3mmm,3mm\""
+          COMMA
+          CONSTANT "\"ttttt/3mmm2,3m2\""
+          COMMA
+          CONSTANT "\"ttttt/ss4,t4u,ss4\""
+          COMMA
+          CONSTANT "\"ttttt/wwww,t1v,t2v,vvv,wwww,uuv\""
+          COMMA
+          CONSTANT "\"ttttt/yyy,zzz\""
+          COMMA
+          CONSTANT "\"ttttt/aaaaaaaaaa,t4u,bbb,ss4,cc\""
+          COMMA
+          CONSTANT "\"ttttt/bbbb,bbbb\""
+          COMMA
+          CONSTANT "\"ttttt/i-ddd,ddd\""
+          COMMA
+          CONSTANT "\"ttttt/i-t4v,t4v\""
+          COMMA
+          CONSTANT "\"ttttt/i-ll-eee,ppp,sss,fff\""
+          COMMA
+          CONSTANT "\"ttttt/i-ll-ggg,ggg\""
+          COMMA
+          CONSTANT "\"ttttt/i-llllllll,hhh\""
+          COMMA
+          CONSTANT "\"ttttt/ss2t,ii\""
+          COMMA
+          CONSTANT "\"jjjj/kkk,kkk\""
+          COMMA
+          CONSTANT "\"jjjj/lll,lll\""
+          COMMA
+          CONSTANT "\"cccccccccccccc/i-jjjj-lll,lll\""
+          COMMA
+          CONSTANT "\"jjjj/ssss,ssss\""
+          COMMA
+          CONSTANT "\"cccccccccccccc/jjjj-ssss,ssss\""
+          COMMA
+          CONSTANT "\"jjjj/ssss2,ssss2\""
+          RPAREN
+        }
+      }
+    }
+    SEMI
+  }
+  RBRACE
+}
+BLANK
+EXPORT {
+  KEYWORD "export"
+  SP
+  LBRACE
+  GLOBAL-DECL {
+    KEYWORD "const"
+    SP
+    IDENTIFIER "aaaa_bbbbbbbb_cc_ddddddddd"
+    DECL-TYPE {
+      COLON
+      TYPE-PARAMETERIZED "set" {
+        SUBSCRIPTS {
+          LBRACKET
+          TYPE-ATOM "string"
+          RBRACKET
+        }
+      }
+    }
+    DECL-INIT {
+      ASSIGN "="
+      CONSTRUCTOR {
+        KEYWORD "set"
+        ARGS {
+          LPAREN
+          BLANK
+          COMMENT-LEADING "# EEEE (Fff Ggggggg) hhhh ii jjj kkkk ll_mmm nn Oooooo!! pppppp qqqq ?"
+          COMMENT-LEADING "# rrrrrrrrrrr.ssss/tt-uuuuuuu/vvvvvvv/wwww/xx/yyyy/111111.zzz?aaa=AaAaAaAaAaAaAaAaAaAaAaAaAaAaAaAaAaAaAaAaAaAaAaAaAaAaAaAaAaAaAaAaAaAaAaAaAaAaAaAaAaAaAaAaAaAaAaAaAaAaAaAaAaAaAaAaAaAaAaAaAaAaAaAaAaAa=="
+          COMMENT-LEADING "#"
+          COMMENT-LEADING "# BBBBBBBBBBB,CCCCCC,CCCCCC-DDDDDDDD,EEEE-FFFFF,FFFF 44g8h99i8jk9l1m580"
+          COMMENT-LEADING "# n6opq6rs43t0u3v3"
+          CONSTANT "\"44g8h99i8jk9l1m580n6opq6rs43t0u3v3\""
+          RPAREN
+        }
+      }
+    }
+    SEMI
+  }
+  RBRACE
+}
+BLANK
+EXPORT {
+  KEYWORD "export"
+  SP
+  LBRACE
+  GLOBAL-DECL {
+    KEYWORD "option"
+    SP
+    IDENTIFIER "xxxxxxxxxxxxxxxxxxxxxxxxxx"
+    DECL-INIT {
+      ASSIGN "="
+      INTERVAL "86400" "sec"
+    }
+    SEMI
+  }
+  RBRACE
+}
+BLANK
+EXPORT {
+  KEYWORD "export"
+  SP
+  LBRACE
+  GLOBAL-DECL {
+    KEYWORD "option"
+    SP
+    IDENTIFIER "aaa_aaaa"
+    DECL-TYPE {
+      COLON
+      TYPE-ATOM "pattern"
+    }
+    DECL-INIT {
+      ASSIGN "="
+      BINARY-OP "|" {
+        BINARY-OP "|" {
+          BINARY-OP "|" {
+            BINARY-OP "|" {
+              BINARY-OP "|" {
+                CONSTANT "/\\/bbb\\%0a/"
+                OP "|"
+                CONSTANT "/\\/bbb\\x0a/"
+              }
+              OP "|"
+              CONSTANT "/\\/bbb\\;/"
+            }
+            OP "|"
+            CONSTANT "/\\/cccc\\/ddddd\\.eee\\/\\.\\.\\;/"
+          }
+          OP "|"
+          CONSTANT "/\\.\\.\\;\\/cccc\\/ffffffff\\//"
+        }
+        COMMENT-LEADING "# | /\\/cccc\\/ddddd\\.eee\\/\\.\\.\\;\\/cccc\\/ffffffff\\// # Ggg, hhh iiiiiiiiiii jj kkk llllllll 2 mmmmmmmm"
+        OP "|"
+        CONSTANT "/\\/cccc\\/ddddd\\.eee\\/\\.\\.\\;\\/ddddd\\.eee/"
+      }
+    }
+    COMMENT-TRAILING "# nnnnnnnnnn oo pppp://qqqqqqq.r5.sss/ttt/uuuuuuu/V12345678"
+    SEMI
+  }
+  RBRACE
+}
+BLANK
+EXPORT {
+  KEYWORD "export"
+  SP
+  LBRACE
+  GLOBAL-DECL {
+    KEYWORD "option"
+    SP
+    IDENTIFIER "aaa_bbbbbbbbb"
+    DECL-INIT {
+      ASSIGN "="
+      BINARY-OP "*" {
+        BINARY-OP "*" {
+          CONSTANT "1024.0"
+          OP "*"
+          CONSTANT "1024.0"
+        }
+        OP "*"
+        BINARY-OP "/" {
+          CONSTANT "100.0"
+          OP "/"
+          CONSTANT "8.0"
+        }
+      }
+    }
+    SEMI
+  }
+  RBRACE
+}
