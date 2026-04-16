@@ -648,6 +648,9 @@ class Emitter:
                 num = self._text(ival[0]) if ival else "?"
                 unit = self._text(ival[1]) if len(ival) > 1 else ""
                 self._w(f'INTERVAL {_quote(num)} {_quote(unit)}')
+            elif kids and kids[0].type == "subnet":
+                # WORKAROUND: tree-sitter-zeek division bug.
+                self._emit_subnet_as_div(kids[0])
             else:
                 self._w(f'CONSTANT {_quote(self._text(node))}')
         elif node.type == "pattern":
@@ -1009,7 +1012,8 @@ class Emitter:
     def _find_time_suffix(self, node: tree_sitter.Node) -> str:
         """Check for a time_unit inside a benign ERROR child."""
         for child in node.children:
-            if _is_benign_error(child):
+            if (_is_benign_error(child)
+                    and child.children[0].type == "time_unit"):
                 return self._text(child.children[0])
         return ""
 
@@ -1019,6 +1023,36 @@ class Emitter:
         """Emit INTERVAL from a numeric expr + time unit suffix."""
         value = self._text(expr_node)
         self._w(f'INTERVAL {_quote(value)} {_quote(unit)}')
+
+    # WORKAROUND: tree-sitter-zeek division bug (see _is_benign_error).
+    def _find_div_suffix(self, node: tree_sitter.Node) -> str:
+        """Find a floatp ERROR immediately after node in the source."""
+        end = node.end_byte
+        # Walk up to find the benign ERROR at this position.
+        p = node.parent
+        while p is not None:
+            for child in p.children:
+                if (child.is_extra and child.start_byte == end
+                        and _is_benign_error(child)
+                        and child.children[0].type == "floatp"):
+                    self._consumed_extras.add(child.start_byte)
+                    return self._text(child.children[0])
+            p = p.parent
+        return ""
+
+    # WORKAROUND: tree-sitter-zeek division bug (see _is_benign_error).
+    def _emit_subnet_as_div(self, subnet: tree_sitter.Node) -> None:
+        """Emit a misparked subnet as BINARY-OP "/"."""
+        kids = self._children(subnet)
+        # subnet: ipv4, "/", integer
+        lhs = self._text(kids[0])  # e.g. "100.0"
+        rhs = self._text(kids[2])  # e.g. "8"
+        suffix = self._find_div_suffix(subnet.parent)  # e.g. ".0"
+        self._open('BINARY-OP "/"')
+        self._w(f'CONSTANT {_quote(lhs)}')
+        self._w('OP "/"')
+        self._w(f'CONSTANT {_quote(rhs + suffix)}')
+        self._close()
 
     def _emit_var_decl(self, node: tree_sitter.Node, tag: str) -> None:
         """Emit a variable declaration (global, const, option, redef, local)."""
@@ -1860,11 +1894,15 @@ class Emitter:
 # Remove _is_benign_error, _find_time_suffix, _emit_interval, and
 # all call sites once the updated tree-sitter-zeek ships.
 def _is_benign_error(node: tree_sitter.Node) -> bool:
-    """True for ERROR nodes caused by the tree-sitter-zeek time-unit bug."""
+    """True for ERROR nodes caused by known tree-sitter-zeek bugs."""
     if node.type != "ERROR":
         return False
     kids = [c for c in node.children if not c.is_extra]
-    return len(kids) == 1 and kids[0].type == "time_unit"
+    if len(kids) != 1:
+        return False
+    # Time-unit bug: "86400 sec" puts time_unit in ERROR.
+    # Division bug: "100.0 / 8.0" parses as subnet, ".0" in ERROR.
+    return kids[0].type in ("time_unit", "floatp")
 
 def _find_error(node: tree_sitter.Node) -> tree_sitter.Node | None:
     """Return the first ERROR or missing node, or None."""

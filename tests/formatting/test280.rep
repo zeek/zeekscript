@@ -1,0 +1,28 @@
+EXPORT {
+  KEYWORD "export"
+  SP
+  LBRACE
+  GLOBAL-DECL {
+    KEYWORD "option"
+    SP
+    IDENTIFIER "aaa_bbbbbbbbb"
+    DECL-INIT {
+      ASSIGN "="
+      BINARY-OP "*" {
+        BINARY-OP "*" {
+          CONSTANT "1024.0"
+          OP "*"
+          CONSTANT "1024.0"
+        }
+        OP "*"
+        BINARY-OP "/" {
+          CONSTANT "100.0"
+          OP "/"
+          CONSTANT "8.0"
+        }
+      }
+    }
+    SEMI
+  }
+  RBRACE
+}
