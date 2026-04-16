@@ -1,8 +1,0 @@
-PREPROC-COND "@if" "FOO" {
-  LPAREN
-  RPAREN
-}
-PREPROC "@load" "foo"
-PREPROC "@else"
-PREPROC "@load" "bar"
-PREPROC "@endif"

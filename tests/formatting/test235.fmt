@@ -1,9 +1,0 @@
-event aaa_bbbbbbb(a: aaaaaaaaaa, bbb_ccc: bool, dddd: string, eeeee: string)
-	{
-	if ( (a$bbbb$aaaaaa_bbbbbbbbb_cccccc_ddddd1 == 2 &&
-	      a$bbbb$aaaaaa_bbbbbbbbb_cccccc_ddddd2 == 2) ||
-	     ! a$bbbb?$ffffff || a$bbbb$ffffff != "AAAA" )
-		{
-		return; #@ NOT-TESTED
-		}
-	}

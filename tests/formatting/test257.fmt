@@ -1,6 +1,0 @@
-function foo()
-	{
-	Log::write(SSH_CONN_LOG,
-	           SSHConnections($date=date, $orig_subnet=orig_subnet,
-	                          $resp_subnet=resp_subnet, $uid=rec$uid));
-	}

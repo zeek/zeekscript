@@ -1,1 +1,0 @@
-const xs: vector of count = {1, 2, 3};

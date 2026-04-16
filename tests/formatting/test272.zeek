@@ -1,3 +1,0 @@
-event foo() {
-local i = DebugInfo($t=network_time(), $node_type=node_type(), $event_type="log_statistics", $msg=fmt("stepping-stones-v%d: cn=%s tps=%d trs=%d ips=%d irs=%d", statistics_info$interval_removes_seen));
-}

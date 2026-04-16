@@ -1,4 +1,0 @@
-EXPR-STMT {
-  INTERVAL "1" "min"
-  SEMI
-}

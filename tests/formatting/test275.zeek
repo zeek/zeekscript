@@ -1,8 +1,0 @@
-#@ FORMAT: FILL-SET
-const aaaa_bb: set[CcDd] = set(
-       Eeee,
-       Ffff,
-       Gggg,
-       Hhhh,
-       Iiii,
-);

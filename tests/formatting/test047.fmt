@@ -1,7 +1,0 @@
-event SomeModule::some_raised_evt(c: connection, is_orig: bool, version: count,
-                                  some_dcid: string, some_scid: string,
-                                  some_retoken: string, some_integ_tag: string)
-                                  &group=SomeEvtGroup
-	{
-	print c;
-	}

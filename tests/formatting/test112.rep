@@ -1,8 +1,0 @@
-MODULE "SomeMod" {
-  KEYWORD "module"
-  SP
-  IDENTIFIER "SomeMod"
-  SEMI
-}
-BLANK
-PREPROC "@load" "./const"

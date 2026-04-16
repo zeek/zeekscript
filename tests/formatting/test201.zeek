@@ -1,2 +1,0 @@
-event some_rpc_handler(aa: connection, bbb: count, cccc: count, ddd: string, eee_major: count, fff_minor: count) #@ NOT-TESTED
-	{ }

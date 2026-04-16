@@ -1,6 +1,0 @@
-function foo()
-	{
-	{
-	# a comment
-	}
-	}

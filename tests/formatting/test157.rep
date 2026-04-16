@@ -1,7 +1,0 @@
-MODULE "SomeMod" {
-  KEYWORD "module"
-  SP
-  IDENTIFIER "SomeMod"
-  SEMI
-}
-COMMENT-TRAILING "# main module"

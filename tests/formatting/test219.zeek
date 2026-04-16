@@ -1,9 +1,0 @@
-function foo()
-    {
-    if ( ssl_cache_intermediate_ca && issuer_name_hash in intermediate_cache )
-        {
-        Intel::seen([$indicator=HTTP2::build_url(c$http2_streams$streams[stream]),
-                     $indicator_type=Intel::URL,
-                     $conn=c, $where=HTTP2::IN_URL]);
-        }
-    }

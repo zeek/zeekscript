@@ -1,5 +1,0 @@
-export {
-    redef enum Notice::Type += {
-        POTENTIAL_CVE_2022_24497,
-    };
-}

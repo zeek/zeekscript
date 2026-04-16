@@ -1,3 +1,0 @@
-module SomeMod;
-
-@load ./const

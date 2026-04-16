@@ -1,1 +1,0 @@
-some_table_variable_name[some_key] = X509::Result($result=result$result, $result_string=result$result_string);
