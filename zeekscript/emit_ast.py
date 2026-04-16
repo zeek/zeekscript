@@ -57,13 +57,23 @@ _UNARY_OPS = frozenset({"!", "-", "+", "~", "++", "--"})
 
 
 class Emitter:
-    def __init__(self, source: bytes, root: tree_sitter.Node):
+    def __init__(self, source: bytes, root: tree_sitter.Node,
+                 filename: str | None = None):
         self.source = source
         self.root = root
+        self.filename = filename
         self.out: list[str] = []
         self._indent = 0
         self._prev_content_end = 0  # for blank-line detection
         self._consumed_extras: set[int] = set()  # byte offsets
+
+    def _loc(self, node: tree_sitter.Node) -> str:
+        """Format a source location string for error messages."""
+        line = node.start_point[0] + 1
+        col = node.start_point[1]
+        if self.filename:
+            return f"{self.filename}:{line}:{col}"
+        return f"{line}:{col}"
 
     # ------------------------------------------------------------------
     # Output helpers
@@ -268,8 +278,7 @@ class Emitter:
         kids = self._children(node)
 
         if not kids:
-            loc = f"{node.start_point[0]+1}:{node.start_point[1]}"
-            print(f"error: unhandled expr at {loc}: "
+            print(f"{self._loc(node)}: error: unhandled expr: "
                   f"{self._text(node)!r}", file=sys.stderr)
             sys.exit(1)
 
@@ -1835,10 +1844,9 @@ class Emitter:
     # ------------------------------------------------------------------
 
     def _emit_unknown(self, node: tree_sitter.Node) -> None:
-        loc = f"{node.start_point[0]+1}:{node.start_point[1]}"
         text = self._text(node)
-        print(f"error: unhandled node type {node.type!r} "
-              f"at {loc}: {text!r}", file=sys.stderr)
+        print(f"{self._loc(node)}: error: unhandled node type "
+              f"{node.type!r}: {text!r}", file=sys.stderr)
         sys.exit(1)
 
 
@@ -1858,15 +1866,17 @@ def _is_benign_error(node: tree_sitter.Node) -> bool:
     kids = [c for c in node.children if not c.is_extra]
     return len(kids) == 1 and kids[0].type == "time_unit"
 
-def _has_error(node: tree_sitter.Node) -> bool:
+def _find_error(node: tree_sitter.Node) -> tree_sitter.Node | None:
+    """Return the first ERROR or missing node, or None."""
     if node.is_missing:
-        return True
+        return node
     if node.type == "ERROR" and not _is_benign_error(node):
-        return True
+        return node
     for child in node.children:
-        if _has_error(child):
-            return True
-    return False
+        err = _find_error(child)
+        if err is not None:
+            return err
+    return None
 
 
 # ------------------------------------------------------------------
@@ -1874,8 +1884,10 @@ def _has_error(node: tree_sitter.Node) -> bool:
 # ------------------------------------------------------------------
 
 def main() -> None:
+    filename = None
     if len(sys.argv) > 1 and sys.argv[1] != "-":
-        with open(sys.argv[1], "rb") as f:
+        filename = sys.argv[1]
+        with open(filename, "rb") as f:
             source = f.read()
     else:
         source = sys.stdin.buffer.read()
@@ -1884,11 +1896,18 @@ def main() -> None:
     parser = tree_sitter.Parser(lang)
     tree = parser.parse(source)
 
-    if _has_error(tree.root_node):
-        print("error: parse failed", file=sys.stderr)
+    err = _find_error(tree.root_node)
+    if err is not None:
+        line = err.start_point[0] + 1
+        col = err.start_point[1]
+        if filename:
+            loc = f"{filename}:{line}:{col}"
+        else:
+            loc = f"{line}:{col}"
+        print(f"{loc}: error: parse failed", file=sys.stderr)
         sys.exit(1)
 
-    emitter = Emitter(source, tree.root_node)
+    emitter = Emitter(source, tree.root_node, filename)
     emitter.emit()
 
     sys.stdout.write("\n".join(emitter.out))
