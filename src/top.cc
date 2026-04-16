@@ -7,32 +7,56 @@ Candidates format_expr(const Layout& node, const FmtContext& ctx)
 	return node.Format(ctx);
 	}
 
-// Collect all trailing comments from node fields.
-static void collect_trailing(const Layout& node,
-                            std::vector<std::string>& out)
+// Collect all pre-comments and trailing comments from the node tree.
+static void collect_comments(const Layout& node,
+                             std::vector<std::string>& pre,
+                             std::vector<std::string>& trailing)
 	{
-	if ( node.MustBreakAfter() && ! node.HasChildren() )
+	for ( const auto& pc : node.PreComments() )
+		{
+		// Strip leading/trailing blank-line markers.
+		size_t start = 0;
+		while ( start < pc.size() && pc[start] == '\n' )
+			++start;
+		size_t end = pc.size();
+		while ( end > start && pc[end - 1] == '\n' )
+			--end;
+		if ( start < end )
+			pre.push_back(pc.substr(start, end - start));
+		}
+
+	if ( node.MustBreakAfter() )
 		{
 		auto pos = node.Text().find(" #");
 		if ( pos != std::string::npos )
-			out.push_back(node.Text().substr(pos));
+			trailing.push_back(node.Text().substr(pos));
 		}
+
 	for ( const auto& c : node.Children() )
-		collect_trailing(*c, out);
+		collect_comments(*c, pre, trailing);
 	}
 
-// Check that every trailing comment appears on a line that has
-// preceding content - never as a standalone line.  Uses a simple
-// string search, so a duplicate comment could match the wrong
-// occurrence.
-static bool check_trailing_comments(const std::string& output,
-                                    const LayoutVec& nodes)
+// Check that every comment (pre-comment and trailing) appears in
+// the formatted output.  Returns false if any are missing.
+static bool check_comments(const std::string& output,
+                           const LayoutVec& nodes)
 	{
+	std::vector<std::string> pre;
 	std::vector<std::string> trailing;
 	for ( const auto& n : nodes )
-		collect_trailing(*n, trailing);
+		collect_comments(*n, pre, trailing);
 
 	bool ok = true;
+
+	for ( const auto& text : pre )
+		{
+		if ( output.find(text) == std::string::npos )
+			{
+			fprintf(stderr, "error: pre-comment dropped: "
+			        "%s\n", text.c_str());
+			ok = false;
+			}
+		}
 
 	for ( const auto& text : trailing )
 		{
@@ -125,7 +149,7 @@ std::string Format(const LayoutVec& nodes, bool raw)
 
 	auto result = format_stmt_list(nodes, ctx);
 
-	if ( ! check_trailing_comments(result.Str(), nodes) )
+	if ( ! check_comments(result.Str(), nodes) )
 		exit(1);
 
 	if ( raw )
