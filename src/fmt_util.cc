@@ -1164,6 +1164,7 @@ Formatting format_stmt_list(const LayoutVec& nodes, const FmtContext& ctx,
 
 		if ( t == Tag::Semi )
 			{
+			result += node.EmitPreComments(pad);
 			result += pad + Formatting(nodes[i]) + "\n";
 			continue;
 			}

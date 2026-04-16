@@ -1584,13 +1584,20 @@ Formatting Layout::FormatWhitesmithBlock(const FmtContext& ctx) const
 static Formatting format_single_stmt_body(const Layout& body,
 						const FmtContext& ctx)
 	{
-	auto text = format_stmt_list(body.Children(), ctx.Indented());
+	auto indented = ctx.Indented();
+	auto pad = line_prefix(indented.Indent(), indented.Col());
+
+	// Emit any pre-comments attached to the BODY node itself
+	// (e.g. a comment between the condition and a bare ";").
+	Formatting pre = *body.EmitPreComments(pad);
+
+	auto text = format_stmt_list(body.Children(), indented);
 
 	// Strip trailing newline - the parent loop adds its own.
 	if ( ! text.Empty() && text.Back() == '\n' )
 		text.PopBack();
 
-	return text;
+	return pre + text;
 	}
 
 // Format a BODY node: Whitesmith block if first child is BLOCK,
