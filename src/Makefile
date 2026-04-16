@@ -31,7 +31,7 @@ SHELL = /bin/bash
 PYTHON ?= python3.11
 EMITTER ?= ../zeekscript/emit_ast.py
 
-ZEEK_FILES = $(wildcard ../tests/formatting/test*.zeek)
+ZEEK_FILES = $(wildcard ../tests/formatting/*.zeek)
 REP_FILES  = $(ZEEK_FILES:.zeek=.rep)
 
 rep: $(REP_FILES)
@@ -41,7 +41,7 @@ rep: $(REP_FILES)
 
 test: $(TARGET) rep
 	@pass=0; fail=0; \
-	for f in ../tests/formatting/test*.rep; do \
+	for f in ../tests/formatting/*.rep; do \
 		name=$$(basename "$$f" .rep); \
 		expected="../tests/formatting/$${name}.fmt"; \
 		if diff -q <(./$(TARGET) "$$f") "$$expected" \
@@ -55,11 +55,11 @@ test: $(TARGET) rep
 	echo "$$pass pass, $$fail fail"
 
 new: $(TARGET) rep
-	@for f in ../tests/formatting/test*.rep; do \
+	@for f in ../tests/formatting/*.rep; do \
 		name=$$(basename "$$f" .rep); \
 		./$(TARGET) "$$f" > "../tests/formatting/$${name}.new"; \
 	done; \
-	echo "wrote .new files for $$(ls ../tests/formatting/test*.new | wc -l | tr -d ' ') tests"
+	echo "wrote .new files for $$(ls ../tests/formatting/*.new | wc -l | tr -d ' ') tests"
 
 clean:
 	rm -f $(OBJS) $(TARGET)
