@@ -167,7 +167,7 @@ const Candidate& best(const Candidates& cs)
 	if ( ! normal )
 		return *reluctant;
 
-	if ( reluctant && normal->Ovf() > 2 && reluctant->Ovf() <= 0 )
+	if ( reluctant && normal->Ovf() > INDENT_WIDTH && reluctant->Ovf() <= 0 )
 		return *reluctant;
 
 	return *normal;

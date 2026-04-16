@@ -1,0 +1,55 @@
+FUNC-DECL {
+  KEYWORD "function"
+  SP
+  IDENTIFIER "foo"
+  PARAMS {
+    LPAREN
+    RPAREN
+  }
+  BODY {
+    LBRACE
+    EXPR-STMT {
+      CALL {
+        IDENTIFIER "Aaa::bbb_cc_ddddddd_eeeeeeeeeeeeeeee"
+        ARGS {
+          LPAREN
+          CONSTANT "\"eeeeeeeee.fff_gg_hhh_iii_jjj_kkkkkkkkk.lllllll\""
+          COMMA
+          FIELD-ACCESS {
+            FIELD-ACCESS {
+              IDENTIFIER "mmmmmmm"
+              DOLLAR
+              IDENTIFIER "nnn_oo_ppp_qqq_rrrrrrrrrrr"
+            }
+            DOLLAR
+            IDENTIFIER "sssss"
+          }
+          RPAREN
+        }
+      }
+      SEMI
+    }
+    EXPR-STMT {
+      CALL {
+        IDENTIFIER "Aaa::bbb_cc_ddddddd_eeeeeeeeeeeeeeee"
+        ARGS {
+          LPAREN
+          CONSTANT "\"eeeeeeeee.fff_gg_hhh_iii_jjj_kkkkkkkkk.tttt\""
+          COMMA
+          FIELD-ACCESS {
+            FIELD-ACCESS {
+              IDENTIFIER "mmmmmmm"
+              DOLLAR
+              IDENTIFIER "nnn_oo_ppp_qqq_rrrrrrrrrrr"
+            }
+            DOLLAR
+            IDENTIFIER "uuuu"
+          }
+          RPAREN
+        }
+      }
+      SEMI
+    }
+    RBRACE
+  }
+}
