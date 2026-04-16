@@ -31,12 +31,20 @@ SHELL = /bin/bash
 PYTHON ?= python3.11
 EMITTER ?= ../zeekscript/emit_ast.py
 
-test: $(TARGET)
+ZEEK_FILES = $(wildcard ../tests/formatting/test*.zeek)
+REP_FILES  = $(ZEEK_FILES:.zeek=.rep)
+
+rep: $(REP_FILES)
+
+../tests/formatting/%.rep: ../tests/formatting/%.zeek $(EMITTER)
+	@$(PYTHON) $(EMITTER) "$<" > "$@"
+
+test: $(TARGET) rep
 	@pass=0; fail=0; \
-	for f in ../tests/formatting/test*.zeek; do \
-		name=$$(basename "$$f" .zeek); \
+	for f in ../tests/formatting/test*.rep; do \
+		name=$$(basename "$$f" .rep); \
 		expected="../tests/formatting/$${name}.fmt"; \
-		if diff -q <($(PYTHON) $(EMITTER) "$$f" | ./$(TARGET) -) "$$expected" \
+		if diff -q <(./$(TARGET) "$$f") "$$expected" \
 		    >/dev/null 2>&1; then \
 			pass=$$((pass + 1)); \
 		else \
@@ -46,14 +54,14 @@ test: $(TARGET)
 	done; \
 	echo "$$pass pass, $$fail fail"
 
-new: $(TARGET)
-	@for f in ../tests/formatting/test*.zeek; do \
-		name=$$(basename "$$f" .zeek); \
-		$(PYTHON) $(EMITTER) "$$f" | ./$(TARGET) - > "../tests/formatting/$${name}.new"; \
+new: $(TARGET) rep
+	@for f in ../tests/formatting/test*.rep; do \
+		name=$$(basename "$$f" .rep); \
+		./$(TARGET) "$$f" > "../tests/formatting/$${name}.new"; \
 	done; \
 	echo "wrote .new files for $$(ls ../tests/formatting/test*.new | wc -l | tr -d ' ') tests"
 
 clean:
 	rm -f $(OBJS) $(TARGET)
 
-.PHONY: all clean test new
+.PHONY: all clean test new rep
