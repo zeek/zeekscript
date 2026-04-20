@@ -1,5 +1,6 @@
 [build-system]
-requires = ["setuptools"]
+requires = ["maturin>=1.8,<2.0"]
+build-backend = "maturin"
 
 [project]
 name = "zeekscript"
@@ -9,6 +10,9 @@ readme = "README.md"
 
 classifiers=[
     "Programming Language :: Python :: 3.7",
+    "Programming Language :: Rust",
+    "Programming Language :: Python :: Implementation :: CPython",
+    "Programming Language :: Python :: Implementation :: PyPy",
     "License :: OSI Approved :: BSD License",
     "Topic :: Utilities",
 ]
@@ -50,8 +54,8 @@ Repository = "https://github.com/zeek/zeekscript"
 zeek-format = "zeekscript.cli:zeek_format"
 zeek-script = "zeekscript.cli:zeek_script"
 
-[tool.setuptools]
-packages = ["zeekscript"]
+[tool.maturin]
+features = ["pyo3/extension-module"]
 
 [tool.ruff.lint]
 select = ["PL", "UP", "RUF", "N", "I", "RET"]
