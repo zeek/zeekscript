@@ -14,3 +14,6 @@ const machine_types: table[count] of string = { [0x00]   = "UNKNOWN",
 
 # Single element curly braced init can go on one line
 const thing: table[count] of string = {[123] = "onetwothree"};
+
+print "0.0.0.0"?as addr;
+print "123"     ?as  addr;
