@@ -26,6 +26,8 @@ from typing import TYPE_CHECKING, Protocol
 
 from zeekscript.node import Node
 
+from .zeekscript import format
+
 if TYPE_CHECKING:
     from zeekscript.output import OutputStream
     from zeekscript.script import Script
@@ -385,7 +387,18 @@ class Formatter:
         return MAP.get(node.type)
 
 
-class NullFormatter(Formatter):
+class TopiaryFormatter(Formatter):
+    def format(self) -> None:
+        return self._write(
+            format(
+                self.script.get_content(*self.node.script_range()).decode(
+                    encoding="utf-8"
+                )
+            )
+        )
+
+
+class NullFormatter(TopiaryFormatter):
     """The null formatter doesn't output anything."""
 
     def format(self) -> None:
@@ -1408,7 +1421,7 @@ class AttrFormatter(Formatter):
             self._format_child()
 
 
-class CommentFormatter(Formatter):
+class CommentFormatter(TopiaryFormatter):
     """Base class for any kind of comment."""
 
     def __init__(
@@ -1421,6 +1434,15 @@ class CommentFormatter(Formatter):
     ) -> None:
         super().__init__(script, node, ostream, indent, hints)
         self.hints |= Hint.ZERO_WIDTH  # Comments never count toward line length
+
+    def format(self) -> None:
+        return self._write(
+            format(
+                self.script.get_content(*self.node.script_range()).decode(
+                    encoding="utf-8"
+                )
+            )
+        )
 
 
 class MinorCommentFormatter(CommentFormatter):
@@ -1447,9 +1469,7 @@ class MinorCommentFormatter(CommentFormatter):
 
 
 class ZeekygenCommentFormatter(CommentFormatter):
-    def format(self) -> None:
-        self._format_token()
-        self._write_nl()
+    pass
 
 
 class ZeekygenPrevCommentFormatter(CommentFormatter):
